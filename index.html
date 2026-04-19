@@ -889,19 +889,8 @@ function render() {
     }
     const badge = isAtelier ? '<span class="avp-badge">✅ Je participe</span>' : (isAVP ? '<span class="avp-badge">📋 Planning AVP</span>' : '');
     
-    // Bouton agenda Google pour les rappels ponctuels
+    // Pas de bouton agenda sur les cartes
     let agendaBtn = '';
-    if (r.recurrence === 'once' && r.date && !isAVP) {
-      const gcDate = r.date.replace(/-/g,'');
-      const [h,m] = r.time.split(':');
-      const endH = String(parseInt(h)+1).padStart(2,'0');
-      const gcStart = `${gcDate}T${h}${m}00`;
-      const gcEnd = `${gcDate}T${endH}${m}00`;
-      const appLink = 'https://stevoux1969.github.io/majourneeavp';
-      const details = (r.note ? r.note + '\n\n' : '') + '👉 Ouvrir Mon Agenda AVP : ' + appLink;
-      const gcUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(r.title)}&dates=${gcStart}/${gcEnd}&details=${encodeURIComponent(details)}&reminders=email,0,popup,120`;
-      agendaBtn = `<a href="${gcUrl}" target="_blank" onclick="event.stopPropagation()" style="display:inline-block;margin-top:6px;background:#eef1fb;color:#2c3e91;border:2px solid #2c3e91;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;text-decoration:none;">🔔 Ajouter à l'agenda</a>`;
-    }
 
     return `
       <div class="card ${isDone?'done':''} ${isUpcoming?'upcoming':''} ${(isAVP||isAtelier)?'avp-card':''}" data-id="${r.id}" data-source="${r._source||'personal'}">
