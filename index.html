@@ -15,8 +15,6 @@
     OneSignalDeferred.push(async function(OneSignal) {
       await OneSignal.init({
         appId: "a89f967a-eddf-4a83-b654-4e34f0b95141",
-        serviceWorkerPath: "/OneSignalSDKWorker.js",
-        serviceWorkerParam: { scope: "/" },
         notifyButton: { enable: false },
         promptOptions: {
           slidedown: {
@@ -1124,6 +1122,18 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   if (state.editing) { Object.assign(state.reminders.find(x=>x.id===state.editing), data); }
   else { state.reminders.push({id:uid(),...data,done:{}}); }
   await saveUserData(); render(); showScreen('main-screen');
+  // Ouvrir automatiquement Google Calendar pour les rappels ponctuels
+  if (rec === 'once' && data.date) {
+    const gcDate = data.date.replace(/-/g,'');
+    const [h,m] = data.time.split(':');
+    const endH = String(parseInt(h)+1).padStart(2,'0');
+    const gcStart = `${gcDate}T${h}${m}00`;
+    const gcEnd = `${gcDate}T${endH}${m}00`;
+    const appLink = 'https://stevoux1969.github.io';
+    const details = (data.note ? data.note + '\n\n' : '') + '👉 Ouvrir Mon Agenda AVP : ' + appLink;
+    const gcUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(data.title)}&dates=${gcStart}/${gcEnd}&details=${encodeURIComponent(details)}&reminders=popup,120`;
+    window.open(gcUrl, '_blank');
+  }
 });
 
 document.getElementById('delete-btn').addEventListener('click', () => {
