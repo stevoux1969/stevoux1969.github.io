@@ -657,34 +657,6 @@ function clearSession() {
   try { localStorage.removeItem('avp_session'); } catch(e) {}
 }
 
-// ========== ONESIGNAL NOTIFICATIONS ==========
-const OS_APP_ID = "a89f967a-eddf-4a83-b654-4e34f0b95141";
-const OS_API_KEY = "os_v2_app_vcpzm6xn35fihnsujy2pbokrie4yatvhspnerj526vefq3w6ximldwxhv43wc56d27vawyzszrwck7bidsvz26ax3thvdmt7oiq4xwy";
-
-async function scheduleNotification(title, message, dateStr, timeStr) {
-  try {
-    const [y,mo,d] = dateStr.split('-').map(Number);
-    const [h,m] = timeStr.split(':').map(Number);
-    const sendAt = new Date(y, mo-1, d, h, m, 0).toISOString();
-    const body = {
-      app_id: OS_APP_ID,
-      included_segments: ["Total Subscriptions"],
-      headings: { fr: title, en: title },
-      contents: { fr: message, en: message },
-      send_after: sendAt,
-      url: "https://stevoux1969.github.io"
-    };
-    await fetch("https://onesignal.com/api/v1/notifications", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Key ${OS_API_KEY}`
-      },
-      body: JSON.stringify(body)
-    });
-  } catch(e) { console.error("Erreur notification:", e); }
-}
-
 // ========== FIREBASE DATA ==========
 async function loadUserData() {
   if (!currentUser || currentUser.isAdmin) return;
@@ -898,8 +870,9 @@ function render() {
     const hasDiffEvent = dateDiffers || timeDiffers;
     let eventLine = '';
     if (hasDiffEvent) {
-      const dp = dateDiffers ? ` ${formatRelativeDate(eventDate)}` : '';
-      eventLine = `<div class="card-eventtime">🗓️${dp} à ${eventTime.replace(':','h')}</div>`;
+      const dp = dateDiffers ? `${formatRelativeDate(eventDate)} à ` : '';
+      eventLine = `<div class="card-eventtime" style="font-size:18px;font-weight:800;color:#1a2340;background:none;padding:4px 0;">📅 ${dp}${eventTime.replace(':','h')}</div>
+      <div style="font-size:11px;color:#aab0c4;margin-top:2px;">🔔 Sonnerie à ${r.time.replace(':','h')}</div>`;
     }
     let noteHTML = '';
     if (r.note) {
@@ -932,11 +905,13 @@ function render() {
 
     return `
       <div class="card ${isDone?'done':''} ${isUpcoming?'upcoming':''} ${(isAVP||isAtelier)?'avp-card':''}" data-id="${r.id}" data-source="${r._source||'personal'}">
-        <div class="card-time"><span>${r.time}</span></div>
+        <div class="card-time"><span>${hasDiffEvent ? eventTime.replace(':','h') : r.time.replace(':','h')}</span></div>
         <div class="card-icon">${iconHTML(r.icon)}</div>
         <div class="card-body">
           <div class="card-title">${esc(r.title)}</div>
-          ${eventLine}${noteHTML}${badge}${agendaBtn}
+          ${hasDiffEvent ? `<div style="font-size:13px;color:#aab0c4;margin-top:2px;">📅 ${dateDiffers ? formatRelativeDate(eventDate) : 'Aujourd\'hui'}</div>` : ''}
+          ${noteHTML}${badge}${agendaBtn}
+          ${hasDiffEvent ? `<div style="font-size:11px;color:#c0c6d4;margin-top:3px;">🔔 Sonnerie à ${r.time.replace(':','h')}</div>` : ''}
         </div>
         ${(isAVP||isAtelier) ? '' : `<div class="card-check ${isDone?'':'unchecked'}" data-check="${r.id}">${isDone?'✓':'○'}</div>`}
       </div>`;
@@ -1150,17 +1125,9 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   if (state.editing) { Object.assign(state.reminders.find(x=>x.id===state.editing), data); }
   else { state.reminders.push({id:uid(),...data,done:{}}); }
   await saveUserData(); render(); showScreen('main-screen');
-  // Programmer notification OneSignal + ouvrir Google Calendar
   if (rec === 'once' && data.date) {
-    scheduleNotification(data.title, data.note || `Rappel : ${data.title}`, data.date, data.time);
-    const gcDate = data.date.replace(/-/g,'');
-    const [h,m] = data.time.split(':');
-    const endH = String(parseInt(h)+1).padStart(2,'0');
-    const gcStart = `${gcDate}T${h}${m}00`;
-    const gcEnd = `${gcDate}T${endH}${m}00`;
-    const details = (data.note ? data.note + '\n\n' : '') + '👉 Ouvrir Mon Agenda AVP : https://stevoux1969.github.io';
-    const gcUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(data.title)}&dates=${gcStart}/${gcEnd}&details=${encodeURIComponent(details)}&reminders=popup,120`;
-    window.open(gcUrl, '_blank');
+    const rdvHeure = data.eventTime ? data.eventTime.replace(':','h') : data.time.replace(':','h');
+    showConfirm({icon:'✅', title:'Rappel enregistré !', text:`Votre rendez-vous du ${formatRelativeDate(data.date)} à ${rdvHeure} est bien enregistré. Vous serez rappelé à ${data.time.replace(':','h')}.`, okText:'Super !', hideCancel:true});
   }
 });
 
