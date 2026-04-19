@@ -657,6 +657,34 @@ function clearSession() {
   try { localStorage.removeItem('avp_session'); } catch(e) {}
 }
 
+// ========== ONESIGNAL NOTIFICATIONS ==========
+const OS_APP_ID = "a89f967a-eddf-4a83-b654-4e34f0b95141";
+const OS_API_KEY = "os_v2_app_vcpzm6xn35fihnsujy2pbokrie4yatvhspnerj526vefq3w6ximldwxhv43wc56d27vawyzszrwck7bidsvz26ax3thvdmt7oiq4xwy";
+
+async function scheduleNotification(title, message, dateStr, timeStr) {
+  try {
+    const [y,mo,d] = dateStr.split('-').map(Number);
+    const [h,m] = timeStr.split(':').map(Number);
+    const sendAt = new Date(y, mo-1, d, h, m, 0).toISOString();
+    const body = {
+      app_id: OS_APP_ID,
+      included_segments: ["Total Subscriptions"],
+      headings: { fr: title, en: title },
+      contents: { fr: message, en: message },
+      send_after: sendAt,
+      url: "https://stevoux1969.github.io"
+    };
+    await fetch("https://onesignal.com/api/v1/notifications", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Key ${OS_API_KEY}`
+      },
+      body: JSON.stringify(body)
+    });
+  } catch(e) { console.error("Erreur notification:", e); }
+}
+
 // ========== FIREBASE DATA ==========
 async function loadUserData() {
   if (!currentUser || currentUser.isAdmin) return;
@@ -1122,15 +1150,15 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   if (state.editing) { Object.assign(state.reminders.find(x=>x.id===state.editing), data); }
   else { state.reminders.push({id:uid(),...data,done:{}}); }
   await saveUserData(); render(); showScreen('main-screen');
-  // Ouvrir automatiquement Google Calendar pour les rappels ponctuels
+  // Programmer notification OneSignal + ouvrir Google Calendar
   if (rec === 'once' && data.date) {
+    scheduleNotification(data.title, data.note || `Rappel : ${data.title}`, data.date, data.time);
     const gcDate = data.date.replace(/-/g,'');
     const [h,m] = data.time.split(':');
     const endH = String(parseInt(h)+1).padStart(2,'0');
     const gcStart = `${gcDate}T${h}${m}00`;
     const gcEnd = `${gcDate}T${endH}${m}00`;
-    const appLink = 'https://stevoux1969.github.io';
-    const details = (data.note ? data.note + '\n\n' : '') + '👉 Ouvrir Mon Agenda AVP : ' + appLink;
+    const details = (data.note ? data.note + '\n\n' : '') + '👉 Ouvrir Mon Agenda AVP : https://stevoux1969.github.io';
     const gcUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(data.title)}&dates=${gcStart}/${gcEnd}&details=${encodeURIComponent(details)}&reminders=popup,120`;
     window.open(gcUrl, '_blank');
   }
