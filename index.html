@@ -350,6 +350,37 @@
     .admin-user-meta { font-size: 14px; color: #5e6b8a; margin-top: 2px; }
     .btn-new-user { margin: 0 16px 16px; padding: 18px; background: #d63447; color: white; border: none; border-radius: 16px; font-size: 18px; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 10px; }
     .btn-new-user:active { background: #b02a3e; }
+    .btn-admin-action { margin: 0 16px 10px; padding: 16px; background: #eef1fb; color: #2c3e91; border: 2px solid #8fa3df; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-admin-action:active { background: #dde3f7; }
+
+    /* === ADMIN USER DETAIL === */
+    .admin-detail-body { flex: 1; overflow-y: auto; padding: 16px 16px 100px; }
+    .admin-detail-top { background: white; border-radius: 16px; padding: 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(26,35,64,0.06); }
+    .admin-detail-top .user-avatar { width: 64px; height: 64px; font-size: 28px; }
+    .admin-detail-top-info { flex: 1; }
+    .admin-detail-top-name { font-size: 22px; font-weight: 800; color: #1a2340; }
+    .admin-detail-top-code { font-size: 14px; color: #5e6b8a; margin-top: 4px; }
+    .admin-detail-top-code strong { color: #2c3e91; font-size: 16px; letter-spacing: 2px; }
+    .admin-section-title { font-size: 14px; font-weight: 800; color: #5e6b8a; text-transform: uppercase; letter-spacing: 1px; margin: 20px 4px 10px; }
+    .admin-reminder-card { background: white; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+    .admin-reminder-card.atelier { border-left: 4px solid #f0b93c; }
+    .admin-reminder-card.perso { border-left: 4px solid #2c3e91; }
+    .admin-reminder-time { font-size: 15px; font-weight: 700; color: #2c3e91; min-width: 50px; }
+    .admin-reminder-body { flex: 1; min-width: 0; }
+    .admin-reminder-title { font-size: 15px; font-weight: 600; color: #1a2340; }
+    .admin-reminder-date { font-size: 12px; color: #8590ad; margin-top: 2px; }
+    .admin-reminder-del { background: #fdf0f2; border: 1px solid #f3c3ca; color: #d63447; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .admin-empty { text-align: center; padding: 20px; color: #8590ad; font-style: italic; font-size: 14px; background: white; border-radius: 12px; }
+    .btn-admin-danger { width: calc(100% - 32px); margin: 20px 16px 0; padding: 16px; background: white; color: #d63447; border: 2px solid #f3c3ca; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+    /* === INSCRITS PAR ATELIER === */
+    .atelier-group { background: white; border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+    .atelier-group-header { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #e5e9f2; margin-bottom: 10px; }
+    .atelier-group-date { background: #2c3e91; color: white; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+    .atelier-group-title { font-size: 16px; font-weight: 700; color: #1a2340; flex: 1; }
+    .atelier-group-count { background: #22a559; color: white; padding: 2px 10px; border-radius: 12px; font-size: 13px; font-weight: 700; }
+    .atelier-inscrit-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .atelier-inscrit-tag { background: #eef1fb; color: #2c3e91; padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 600; }
 
     /* === LOADING === */
     .loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
@@ -514,7 +545,26 @@
     <h1>👑 Espace Admin</h1>
   </div>
   <button class="btn-new-user" id="admin-new-user-btn">+ Créer un compte bénéficiaire</button>
+  <button class="btn-admin-action" id="admin-ateliers-btn">📋 Voir les inscrits aux ateliers</button>
   <div class="admin-list" id="admin-user-list"></div>
+</div>
+
+<!-- ADMIN DETAIL USER -->
+<div id="admin-detail-screen" class="screen">
+  <div class="admin-header">
+    <button class="back-btn" id="admin-detail-back" style="color:white">‹</button>
+    <h1 id="admin-detail-title">Bénéficiaire</h1>
+  </div>
+  <div class="admin-detail-body" id="admin-detail-body"></div>
+</div>
+
+<!-- ADMIN ATELIERS (inscrits) -->
+<div id="admin-ateliers-screen" class="screen">
+  <div class="admin-header">
+    <button class="back-btn" id="admin-ateliers-back" style="color:white">‹</button>
+    <h1>📋 Inscrits aux ateliers</h1>
+  </div>
+  <div class="admin-list" id="admin-ateliers-list"></div>
 </div>
 
 <!-- USER MENU -->
@@ -797,6 +847,16 @@ async function loadUserData() {
 }
 
 async function saveUserData() {
+  // Cas admin en train d'ajouter un rappel pour un bénéficiaire
+  if (currentUser && currentUser.isAdmin && state.editingAdminMode && adminEditingUid) {
+    try {
+      await db.collection('users').doc(adminEditingUid).update({
+        reminders: state.reminders,
+        inscriptions: state.inscriptions
+      });
+    } catch(e) { console.error('saveUserData admin', e); }
+    return;
+  }
   if (!currentUser || currentUser.isAdmin) return;
   try {
     await db.collection('users').doc(currentUser.id).update({
@@ -993,6 +1053,221 @@ document.getElementById('admin-new-user-btn').addEventListener('click', () => {
   document.getElementById('login-switch-btn').textContent = '';
   pinValue = ''; updatePinDots();
 });
+
+// Clic sur un bénéficiaire → ouvrir son détail
+document.getElementById('admin-user-list').addEventListener('click', e => {
+  const card = e.target.closest('.admin-user-card');
+  if (!card) return;
+  const uid = card.dataset.uid;
+  showAdminUserDetail(uid);
+});
+
+// Voir les inscrits aux ateliers
+document.getElementById('admin-ateliers-btn').addEventListener('click', showAdminAteliers);
+document.getElementById('admin-ateliers-back').addEventListener('click', () => showAdminScreen());
+document.getElementById('admin-detail-back').addEventListener('click', () => showAdminScreen());
+
+// ========== ADMIN : DÉTAIL BÉNÉFICIAIRE ==========
+let adminEditingUid = null; // UID du bénéficiaire en cours d'édition
+
+async function showAdminUserDetail(uid) {
+  showScreen('admin-detail-screen');
+  adminEditingUid = uid;
+  const body = document.getElementById('admin-detail-body');
+  body.innerHTML = '<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';
+  try {
+    const snap = await db.collection('users').doc(uid).get();
+    if (!snap.exists) { body.innerHTML = '<div class="planning-empty">Compte introuvable.</div>'; return; }
+    const u = snap.data();
+    document.getElementById('admin-detail-title').textContent = u.prenom;
+    renderAdminUserDetail(uid, u);
+  } catch(e) {
+    body.innerHTML = '<div class="planning-empty">Erreur de chargement.</div>';
+    console.error(e);
+  }
+}
+
+function renderAdminUserDetail(uid, u) {
+  const body = document.getElementById('admin-detail-body');
+  const reminders = (u.reminders || []).slice().sort((a,b) => {
+    // Trier par date (si existe) puis heure
+    const da = a.date || '9999-12-31';
+    const db_ = b.date || '9999-12-31';
+    if (da !== db_) return da.localeCompare(db_);
+    return (a.time||'').localeCompare(b.time||'');
+  });
+
+  const ateliers = reminders.filter(r => r.source === 'atelier');
+  const persos = reminders.filter(r => r.source !== 'atelier');
+
+  const renderRem = (r) => {
+    const isAtelier = r.source === 'atelier';
+    const cls = isAtelier ? 'atelier' : 'perso';
+    const dateStr = r.date ? formatShortDate(r.date) : (r.recurrence === 'daily' ? 'Tous les jours' : '');
+    return `<div class="admin-reminder-card ${cls}">
+      <div class="admin-reminder-time">${(r.time||'').replace(':','h')}</div>
+      <div class="admin-reminder-body">
+        <div class="admin-reminder-title">${esc(r.title || '')}</div>
+        <div class="admin-reminder-date">${dateStr}${isAtelier ? ' · Atelier' : ''}</div>
+      </div>
+      ${isAtelier ? '' : `<button class="admin-reminder-del" data-del-id="${esc(r.id)}">✕</button>`}
+    </div>`;
+  };
+
+  body.innerHTML = `
+    <div class="admin-detail-top">
+      <div class="user-avatar">${u.prenom.slice(0,1).toUpperCase()}</div>
+      <div class="admin-detail-top-info">
+        <div class="admin-detail-top-name">${esc(u.prenom)}</div>
+        <div class="admin-detail-top-code">Code PIN : <strong>${esc(u.code)}</strong></div>
+      </div>
+    </div>
+
+    <button class="btn-admin-action" id="admin-add-reminder" style="margin:0 0 10px;">➕ Ajouter un rappel pour ${esc(u.prenom)}</button>
+    <button class="btn-admin-action" id="admin-change-pin" style="margin:0 0 10px;">🔑 Changer le code PIN</button>
+
+    <div class="admin-section-title">Rappels personnels (${persos.length})</div>
+    ${persos.length ? persos.map(renderRem).join('') : '<div class="admin-empty">Aucun rappel personnel.</div>'}
+
+    <div class="admin-section-title">Ateliers AVP inscrits (${ateliers.length})</div>
+    ${ateliers.length ? ateliers.map(renderRem).join('') : '<div class="admin-empty">Aucune inscription aux ateliers.</div>'}
+
+    <button class="btn-admin-danger" id="admin-delete-user">🗑️ Supprimer le compte de ${esc(u.prenom)}</button>
+  `;
+
+  // Gestionnaires
+  document.getElementById('admin-add-reminder').onclick = () => adminAddReminder(uid, u.prenom);
+  document.getElementById('admin-change-pin').onclick = () => adminChangePin(uid, u.prenom);
+  document.getElementById('admin-delete-user').onclick = () => adminDeleteUser(uid, u.prenom);
+  body.querySelectorAll('[data-del-id]').forEach(btn => {
+    btn.onclick = () => adminDeleteReminder(uid, btn.dataset.delId);
+  });
+}
+
+async function adminAddReminder(uid, prenom) {
+  // On passe en mode "créer pour autrui" : on ouvre l'écran edit en le liant à l'uid cible
+  adminEditingUid = uid;
+  state.editing = null;
+  // Charger temporairement les rappels du bénéficiaire dans state.reminders pour édition
+  const snap = await db.collection('users').doc(uid).get();
+  if (!snap.exists) return;
+  const u = snap.data();
+  state.reminders = u.reminders || [];
+  state.inscriptions = u.inscriptions || {};
+  // Préparer l'écran d'édition
+  document.getElementById('edit-title').textContent = `Nouveau rappel pour ${prenom}`;
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-note').value = '';
+  const today = dateKey(new Date());
+  document.getElementById('f-date').value = today;
+  document.getElementById('f-event-date').value = today;
+  // Remettre les sélecteurs par défaut
+  state.editingAdminMode = true;
+  state.editingAdminPrenom = prenom;
+  showScreen('edit-screen');
+  // Re-render icônes, time picker, etc.
+  if (typeof populateIconGrid === 'function') populateIconGrid();
+  if (typeof createTimePicker === 'function') { createTimePicker('f-time','09:00',5); createTimePicker('f-event-time','09:00',5); }
+  // Reset recurrence sur "ponctuel"
+  const onceBtn = document.querySelector('[data-rec="once"]');
+  if (onceBtn) onceBtn.click();
+}
+
+async function adminChangePin(uid, prenom) {
+  const newCode = prompt(`Nouveau code PIN à 4 chiffres pour ${prenom} :`);
+  if (!newCode) return;
+  if (!/^\d{4}$/.test(newCode)) {
+    showConfirm({icon:'⚠️', title:'Code invalide', text:'Le code doit contenir exactement 4 chiffres.', okText:'OK', hideCancel:true});
+    return;
+  }
+  try {
+    await db.collection('users').doc(uid).update({ code: newCode });
+    showConfirm({icon:'✅', title:'Code modifié', text:`Le nouveau code de ${prenom} est : ${newCode}`, okText:'OK', hideCancel:true});
+    showAdminUserDetail(uid); // recharger
+  } catch(e) {
+    showConfirm({icon:'❌', title:'Erreur', text:"Impossible de modifier le code.", okText:'OK', hideCancel:true});
+  }
+}
+
+function adminDeleteUser(uid, prenom) {
+  showConfirm({
+    icon:'⚠️', title:'Supprimer ce compte ?',
+    text:`Le compte de ${prenom} et tous ses rappels seront définitivement supprimés. Cette action est irréversible.`,
+    okText:'Supprimer', danger:true,
+    onOk: async () => {
+      try {
+        await db.collection('users').doc(uid).delete();
+        showAdminScreen();
+      } catch(e) {
+        showConfirm({icon:'❌', title:'Erreur', text:'Impossible de supprimer.', okText:'OK', hideCancel:true});
+      }
+    }
+  });
+}
+
+async function adminDeleteReminder(uid, reminderId) {
+  showConfirm({
+    icon:'🗑️', title:'Supprimer ce rappel ?',
+    text:'Cette action ne peut pas être annulée.',
+    okText:'Supprimer', danger:true,
+    onOk: async () => {
+      try {
+        const snap = await db.collection('users').doc(uid).get();
+        const u = snap.data();
+        const newReminders = (u.reminders || []).filter(r => r.id !== reminderId);
+        await db.collection('users').doc(uid).update({ reminders: newReminders });
+        showAdminUserDetail(uid); // recharger
+      } catch(e) {
+        showConfirm({icon:'❌', title:'Erreur', text:'Impossible de supprimer.', okText:'OK', hideCancel:true});
+      }
+    }
+  });
+}
+
+// ========== ADMIN : INSCRITS AUX ATELIERS ==========
+async function showAdminAteliers() {
+  showScreen('admin-ateliers-screen');
+  const list = document.getElementById('admin-ateliers-list');
+  list.innerHTML = '<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';
+  try {
+    const snap = await db.collection('users').get();
+    // Regrouper par atelier (date + time + titre)
+    const groupes = {}; // key: date_time_titre → { date, time, title, icon, inscrits: [prenom,...] }
+    snap.docs.forEach(doc => {
+      const u = doc.data();
+      (u.reminders || []).filter(r => r.source === 'atelier').forEach(r => {
+        const key = r.date + '_' + r.time + '_' + (r.title||'').slice(0,30);
+        if (!groupes[key]) {
+          groupes[key] = { date: r.date, time: r.time, title: r.title, icon: r.icon, inscrits: [] };
+        }
+        groupes[key].inscrits.push(u.prenom);
+      });
+    });
+    const items = Object.values(groupes).sort((a,b) => {
+      if (a.date !== b.date) return (a.date||'').localeCompare(b.date||'');
+      return (a.time||'').localeCompare(b.time||'');
+    });
+    if (items.length === 0) {
+      list.innerHTML = '<div class="planning-empty">Aucune inscription pour le moment.</div>';
+      return;
+    }
+    list.innerHTML = items.map(g => `
+      <div class="atelier-group">
+        <div class="atelier-group-header">
+          <div class="atelier-group-date">${formatShortDate(g.date)} · ${(g.time||'').replace(':','h')}</div>
+          <div class="atelier-group-title">${esc(g.title)}</div>
+          <div class="atelier-group-count">${g.inscrits.length}</div>
+        </div>
+        <div class="atelier-inscrit-list">
+          ${g.inscrits.map(p => `<span class="atelier-inscrit-tag">${esc(p)}</span>`).join('')}
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    list.innerHTML = '<div class="planning-empty">Erreur de chargement.</div>';
+    console.error(e);
+  }
+}
 
 // ========== INSCRIPTIONS AUX ATELIERS ==========
 function isInscrit(eventKey) {
@@ -1368,7 +1643,19 @@ function getSelectedRecurrence() { return document.querySelector('.seg-btn.activ
 document.querySelectorAll('.seg-btn').forEach(btn => btn.addEventListener('click', () => setRecurrence(btn.dataset.rec)));
 
 document.getElementById('add-btn').addEventListener('click', () => openEdit(null));
-document.getElementById('back-btn').addEventListener('click', () => showScreen('main-screen'));
+document.getElementById('back-btn').addEventListener('click', () => {
+  if (state.editingAdminMode && adminEditingUid) {
+    const uid = adminEditingUid;
+    state.editingAdminMode = false;
+    state.editingAdminPrenom = null;
+    // Recharger les vraies données de l'admin (vider le state)
+    state.reminders = [];
+    state.inscriptions = {};
+    showAdminUserDetail(uid);
+    return;
+  }
+  showScreen('main-screen');
+});
 
 document.getElementById('save-btn').addEventListener('click', async () => {
   const title = document.getElementById('f-title').value.trim();
@@ -1382,7 +1669,36 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   } else { data.date = null; data.eventDate = null; data.eventTime = null; }
   if (state.editing) { Object.assign(state.reminders.find(x=>x.id===state.editing), data); }
   else { state.reminders.push({id:uid(),...data,done:{}}); }
-  await saveUserData(); render(); showScreen('main-screen');
+  await saveUserData();
+
+  // Si admin créait pour un bénéficiaire → retour au détail
+  if (state.editingAdminMode && adminEditingUid) {
+    const targetUid = adminEditingUid;
+    const prenom = state.editingAdminPrenom;
+    // Programmer notification pour LE BÉNÉFICIAIRE (pas l'admin)
+    if (rec === 'once' && data.date && prenom) {
+      queueNotification(
+        '🔔 ' + data.title,
+        data.note ? (data.title + ' — ' + data.note) : data.title,
+        data.date,
+        data.time,
+        { key: 'prenom', value: prenom.toLowerCase() }
+      );
+    }
+    state.editingAdminMode = false;
+    state.editingAdminPrenom = null;
+    state.reminders = [];
+    state.inscriptions = {};
+    showConfirm({
+      icon:'✅', title:'Rappel ajouté !',
+      text:`Le rappel a été ajouté pour ${prenom}.`,
+      okText:'OK', hideCancel:true,
+      onOk: () => showAdminUserDetail(targetUid)
+    });
+    return;
+  }
+
+  render(); showScreen('main-screen');
   if (rec === 'once' && data.date) {
     // Programmer la sonnerie push personnelle
     const userPrenom = currentUser ? currentUser.prenom.toLowerCase() : null;
