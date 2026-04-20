@@ -748,6 +748,7 @@ async function handleLogin() {
       await db.collection('users').doc(userId).set({ prenom, code, createdAt: Date.now(), reminders: [], inscriptions: {} });
       currentUser = { id: userId, prenom, isAdmin: false };
       saveSession();
+      tagOneSignalUser(prenom);
       state.reminders = []; state.inscriptions = {};
       enterApp();
     } catch(e) { showError('Erreur réseau. Vérifiez internet.'); console.error(e); }
@@ -759,6 +760,7 @@ async function handleLogin() {
       if (!found) { showError('Code incorrect.'); pinValue = ''; updatePinDots(); return; }
       currentUser = { id: found.id, prenom: found.prenom, isAdmin: false };
       saveSession();
+      tagOneSignalUser(found.prenom);
       await loadUserData();
       enterApp();
     } catch(e) { showError('Erreur réseau. Vérifiez internet.'); console.error(e); }
@@ -861,6 +863,95 @@ async function requestNotifPermission() {
   }
 }
 
+// ========== ONESIGNAL TAGGING ==========
+// Attache le prénom de l'usager connecté comme tag OneSignal
+// pour que le script Google Apps Script puisse lui envoyer des notifications ciblées
+async function tagOneSignalUser(prenom) {
+  if (!prenom) return;
+  try {
+    if (window.OneSignalDeferred) {
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.User.addTag("prenom", prenom.toLowerCase());
+        console.log("✅ OneSignal taggé:", prenom);
+      });
+    }
+  } catch(e) { console.log("OneSignal tag erreur:", e); }
+}
+
+// Ajoute un tag pour dire "je suis inscrit à cet atelier"
+async function tagOneSignalAtelier(atelierKey, inscrit) {
+  try {
+    if (window.OneSignalDeferred) {
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        const tagKey = "atelier_" + atelierKey.replace(/[^a-z0-9_]/gi,'_').slice(0,60);
+        if (inscrit) {
+          await OneSignal.User.addTag(tagKey, "1");
+        } else {
+          await OneSignal.User.removeTag(tagKey);
+        }
+      });
+    }
+  } catch(e) { console.log("OneSignal atelier tag erreur:", e); }
+}
+
+// ========== QUEUE NOTIFICATIONS (Firebase → Google Apps Script) ==========
+// Enregistre une notification à envoyer dans Firebase
+// Le Google Apps Script la lira toutes les 15 min et l'enverra via OneSignal
+// targetTag: { key: "prenom", value: "mariam" } ou { key: "atelier_xxx", value: "1" }
+async function queueNotification(title, message, sendAtDate, sendAtTime, targetTag) {
+  try {
+    // Si l'heure est déjà passée, on n'enregistre pas
+    const [y, mo, d] = sendAtDate.split('-').map(Number);
+    const [h, m] = sendAtTime.split(':').map(Number);
+    const sendDate = new Date(y, mo - 1, d, h, m, 0);
+    if (sendDate.getTime() < Date.now()) {
+      console.log("⏭️ Notification ignorée (heure passée):", title);
+      return;
+    }
+    const notif = {
+      title: title,
+      message: message,
+      sendAt: sendDate.toISOString(),
+      sendAtMs: sendDate.getTime(),
+      targetTagKey: targetTag.key,
+      targetTagValue: targetTag.value,
+      sent: false,
+      createdAt: Date.now(),
+      createdBy: currentUser ? currentUser.prenom : 'unknown'
+    };
+    await db.collection('notifications').add(notif);
+    console.log("📬 Notification en file:", title, "→", targetTag.key + "=" + targetTag.value, "le", sendAtDate, sendAtTime);
+  } catch(e) { console.error("queueNotification erreur:", e); }
+}
+
+// Programme les 2 sonneries d'un atelier (veille 15h + 2h avant)
+async function queueAtelierNotifications(atelier, atelierKey) {
+  const atelierDate = new Date(atelier.date + 'T' + atelier.time + ':00');
+  const tagKey = "atelier_" + atelierKey.replace(/[^a-z0-9_]/gi,'_').slice(0,60);
+  const target = { key: tagKey, value: "1" };
+  // Sonnerie 1 : la veille à 15h00
+  const veille = new Date(atelierDate);
+  veille.setDate(veille.getDate() - 1);
+  await queueNotification(
+    '📅 Demain : ' + atelier.title,
+    'Rappel : demain à ' + atelier.time.replace(':','h') + ' — ' + atelier.title,
+    dateKey(veille),
+    '15:00',
+    target
+  );
+  // Sonnerie 2 : 2h avant
+  const avant2h = new Date(atelierDate.getTime() - 2 * 60 * 60 * 1000);
+  const hh = String(avant2h.getHours()).padStart(2, '0');
+  const mm = String(avant2h.getMinutes()).padStart(2, '0');
+  await queueNotification(
+    '🔔 Dans 2h : ' + atelier.title,
+    'Rappel : ' + atelier.title + ' à ' + atelier.time.replace(':','h'),
+    dateKey(avant2h),
+    hh + ':' + mm,
+    target
+  );
+}
+
 // ========== ADMIN SCREEN ==========
 async function showAdminScreen() {
   showScreen('admin-screen');
@@ -915,6 +1006,8 @@ async function toggleInscription(event) {
     delete state.inscriptions[key];
     // Remove from reminders
     state.reminders = state.reminders.filter(r => r.id !== 'atelier_' + key);
+    // Retirer le tag OneSignal pour cet atelier
+    tagOneSignalAtelier(key, false);
   } else {
     // Inscription
     state.inscriptions[key] = true;
@@ -933,6 +1026,10 @@ async function toggleInscription(event) {
       source: 'atelier'
     });
     speak(`Inscrit à ${event.title} !`);
+    // Ajouter le tag OneSignal pour cet atelier (pour recevoir les notifs)
+    tagOneSignalAtelier(key, true);
+    // Programmer les 2 sonneries push (veille 15h + 2h avant) - ciblées par tag atelier
+    queueAtelierNotifications(event, key);
   }
   await saveUserData();
   render();
@@ -1287,6 +1384,17 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   else { state.reminders.push({id:uid(),...data,done:{}}); }
   await saveUserData(); render(); showScreen('main-screen');
   if (rec === 'once' && data.date) {
+    // Programmer la sonnerie push personnelle
+    const userPrenom = currentUser ? currentUser.prenom.toLowerCase() : null;
+    if (userPrenom) {
+      queueNotification(
+        '🔔 ' + data.title,
+        data.note ? (data.title + ' — ' + data.note) : data.title,
+        data.date,
+        data.time,
+        { key: 'prenom', value: userPrenom }
+      );
+    }
     const rdvHeure = data.eventTime ? data.eventTime.replace(':','h') : data.time.replace(':','h');
     showConfirm({icon:'✅', title:'Rappel enregistré !', text:`Votre rendez-vous du ${formatRelativeDate(data.date)} à ${rdvHeure} est bien enregistré. Vous serez rappelé à ${data.time.replace(':','h')}.`, okText:'Super !', hideCancel:true});
   }
@@ -1469,6 +1577,7 @@ async function init() {
     if (currentUser.isAdmin) {
       showAdminScreen();
     } else {
+      tagOneSignalUser(currentUser.prenom);
       await loadUserData();
       enterApp();
       loadAVPPlanning();
