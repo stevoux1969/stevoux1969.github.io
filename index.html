@@ -129,6 +129,114 @@
     .card-check { font-size: 28px; color: #22a559; margin-left: 4px; }
     .card-check.unchecked { color: #d0d5e0; }
 
+    /* === NOUVELLE CARTE SONNERIE (jaune) === */
+    .card-sonnerie {
+      background: #fff8e6;
+      border-left: 6px solid #f0b93c;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      cursor: pointer;
+    }
+    .card-sonnerie:active { transform: scale(0.98); }
+    .card-sonnerie.done { opacity: 0.55; }
+    .card-sonnerie.done .sonnerie-titre { text-decoration: line-through; }
+    .sonnerie-left {
+      background: #f0b93c;
+      color: white;
+      border-radius: 10px;
+      padding: 10px 12px;
+      text-align: center;
+      min-width: 90px;
+      flex-shrink: 0;
+    }
+    .sonnerie-date { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1; }
+    .sonnerie-heure { font-size: 26px; font-weight: 800; margin-top: 4px; line-height: 1; }
+    .sonnerie-icon { font-size: 40px; line-height: 1; flex-shrink: 0; }
+    .sonnerie-icon img { width: 48px; height: 48px; }
+    .sonnerie-body { flex: 1; min-width: 0; }
+    .sonnerie-type { font-size: 11px; font-weight: 700; color: #8a5a00; text-transform: uppercase; letter-spacing: 1px; }
+    .sonnerie-titre { font-size: 18px; font-weight: 700; color: #1a2340; margin-top: 2px; line-height: 1.2; }
+    .sonnerie-note { font-size: 14px; color: #5e6b8a; margin-top: 4px; }
+
+    /* === NOUVELLE CARTE RENDEZ-VOUS (bleu) === */
+    .card-rdv {
+      background: #e9efff;
+      border: 2px solid #8fa3df;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      cursor: pointer;
+    }
+    .card-rdv:active { transform: scale(0.98); }
+    .card-rdv.done { opacity: 0.55; }
+    .card-rdv.done .rdv-titre { text-decoration: line-through; }
+    .rdv-top { display: flex; align-items: center; gap: 14px; }
+    .rdv-left {
+      background: #2c3e91;
+      color: white;
+      border-radius: 10px;
+      padding: 10px 12px;
+      text-align: center;
+      min-width: 90px;
+      flex-shrink: 0;
+    }
+    .rdv-date { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1; }
+    .rdv-heure { font-size: 26px; font-weight: 800; margin-top: 4px; line-height: 1; }
+    .rdv-image {
+      width: 64px; height: 64px;
+      background: white;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 44px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      line-height: 1;
+    }
+    .rdv-image img { width: 48px; height: 48px; }
+    .rdv-body { flex: 1; min-width: 0; }
+    .rdv-type { font-size: 11px; font-weight: 700; color: #2c3e91; text-transform: uppercase; letter-spacing: 1px; }
+    .rdv-titre { font-size: 18px; font-weight: 700; color: #1a2340; margin-top: 2px; line-height: 1.2; }
+    .rdv-note { font-size: 14px; color: #5e6b8a; margin-top: 4px; }
+    .rdv-note a { color: #2c3e91; text-decoration: underline; }
+    .rdv-sonnerie {
+      background: #fff;
+      border: 1px dashed #aab0c4;
+      border-radius: 10px;
+      padding: 8px 10px;
+      margin-top: 10px;
+      font-size: 13px;
+      color: #5e6b8a;
+    }
+    .btn-agenda {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px;
+      background: #2c3e91;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      margin-top: 10px;
+      cursor: pointer;
+      font-family: inherit;
+      text-decoration: none;
+    }
+    .btn-agenda:active { background: #1e2d6e; }
+    .rdv-check { text-align: right; margin-top: 8px; font-size: 24px; color: #22a559; }
+    .rdv-check.unchecked { color: #d0d5e0; }
+
     .icon-badge { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; padding: 4px 6px; background: #eef1fb; border-radius: 10px; border: 2px solid #2c3e91; min-width: 52px; }
     .ib-big { font-size: 15px; font-weight: 800; color: #2c3e91; letter-spacing: 0.5px; }
     .ib-small { font-size: 8px; font-weight: 600; color: #5e6b8a; margin-top: 2px; text-align: center; text-transform: lowercase; }
@@ -520,6 +628,23 @@ function getCurrentDate() { const d = new Date(); d.setDate(d.getDate() + state.
 function dayLabel() { if(state.dayOffset===0)return"Aujourd'hui"; if(state.dayOffset===1)return"Demain"; if(state.dayOffset===-1)return"Hier"; const d=getCurrentDate(); return d.toLocaleDateString('fr-FR',{weekday:'long'}); }
 function formatDate(d) { return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}); }
 function formatRelativeDate(ds) { const d=new Date(ds+'T12:00:00'); return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}); }
+function formatShortDate(ds) {
+  const d = new Date(ds+'T12:00:00');
+  const jours = ['Dim.','Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.'];
+  const mois = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+  return jours[d.getDay()] + ' ' + d.getDate() + ' ' + mois[d.getMonth()];
+}
+function buildGoogleCalendarLink(r) {
+  const eventDate = r.eventDate || r.date;
+  const eventTime = r.eventTime || r.time;
+  const [hh, mm] = eventTime.split(':').map(Number);
+  const d = new Date(eventDate + 'T' + eventTime + ':00');
+  const dEnd = new Date(d.getTime() + 60*60*1000);
+  const fmt = dt => dt.getUTCFullYear() + String(dt.getUTCMonth()+1).padStart(2,'0') + String(dt.getUTCDate()).padStart(2,'0') + 'T' + String(dt.getUTCHours()).padStart(2,'0') + String(dt.getUTCMinutes()).padStart(2,'0') + '00Z';
+  const title = encodeURIComponent(r.title || 'Rendez-vous');
+  const details = encodeURIComponent(r.note || '');
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(d)}/${fmt(dEnd)}&details=${details}`;
+}
 function timeToSpeech(t) { const[h,m]=t.split(':').map(Number); return m?`${h} heures ${m}`:`${h} heures`; }
 function reminderAppliesToDay(r, key) {
   if (r.recurrence === 'daily') return true;
@@ -868,41 +993,67 @@ function render() {
     const dateDiffers = r.recurrence==='once' && eventDate && eventDate !== r.date;
     const timeDiffers = r.recurrence==='once' && eventTime && eventTime !== r.time;
     const hasDiffEvent = dateDiffers || timeDiffers;
-    let eventLine = '';
-    if (hasDiffEvent) {
-      const dp = dateDiffers ? `${formatRelativeDate(eventDate)} à ` : '';
-      eventLine = `<div class="card-eventtime" style="font-size:18px;font-weight:800;color:#1a2340;background:none;padding:4px 0;">📅 ${dp}${eventTime.replace(':','h')}</div>
-      <div style="font-size:11px;color:#aab0c4;margin-top:2px;">🔔 Sonnerie à ${r.time.replace(':','h')}</div>`;
-    }
-    let noteHTML = '';
+
+    // note (avec map éventuelle)
+    let noteText = '';
     if (r.note) {
       if (r.mapLink) {
-        noteHTML = `<div class="card-note"><a href="${r.mapLink}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a></div>`;
+        noteText = `<a href="${r.mapLink}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;
       } else {
         const iconDef = ICONS.find(ic => ic.title === r.title || (r.icon && ic.emoji === r.icon));
         if (iconDef && iconDef.address) {
-          noteHTML = `<div class="card-note"><a href="https://www.google.com/maps/search/?api=1&query=${iconDef.address}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a></div>`;
+          noteText = `<a href="https://www.google.com/maps/search/?api=1&query=${iconDef.address}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;
         } else {
-          noteHTML = `<div class="card-note">${esc(r.note)}</div>`;
+          noteText = esc(r.note);
         }
       }
     }
-    const badge = isAtelier ? '<span class="avp-badge">✅ Je participe</span>' : (isAVP ? '<span class="avp-badge">📋 Planning AVP</span>' : '');
-    
-    // Pas de bouton agenda sur les cartes
-    let agendaBtn = '';
 
+    const checkHTML = (isAVP||isAtelier) ? '' : `<div class="card-check ${isDone?'':'unchecked'}" data-check="${r.id}" style="position:absolute;top:12px;right:12px;">${isDone?'✓':'○'}</div>`;
+
+    // ===== CARTE RENDEZ-VOUS (bleu) : quand hasDiffEvent =====
+    if (hasDiffEvent) {
+      const agendaLink = buildGoogleCalendarLink(r);
+      const sonnerieText = dateDiffers
+        ? `🔔 Sonnerie le <strong>${formatRelativeDate(r.date)} à ${r.time.replace(':','h')}</strong>`
+        : `🔔 Sonnerie à <strong>${r.time.replace(':','h')}</strong>`;
+      return `
+        <div class="card-rdv ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">
+          ${checkHTML}
+          <div class="rdv-top">
+            <div class="rdv-left">
+              <div class="rdv-date">${formatShortDate(eventDate)}</div>
+              <div class="rdv-heure">${eventTime.replace(':','h')}</div>
+            </div>
+            <div class="rdv-image">${iconHTML(r.icon)}</div>
+            <div class="rdv-body">
+              <div class="rdv-type">Rendez-vous</div>
+              <div class="rdv-titre">${esc(r.title)}</div>
+              ${noteText ? `<div class="rdv-note">${noteText}</div>` : ''}
+            </div>
+          </div>
+          <div class="rdv-sonnerie">${sonnerieText}</div>
+          <a href="${agendaLink}" target="_blank" class="btn-agenda" onclick="event.stopPropagation()">📅 Ajouter à mon agenda Google</a>
+        </div>`;
+    }
+
+    // ===== CARTE SONNERIE SIMPLE (jaune) =====
+    const badge = isAtelier ? '<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">✅ Je participe</span>' : (isAVP ? '<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">📋 Planning AVP</span>' : '');
+    const sonnerieType = isAVP || isAtelier ? 'Atelier' : 'Sonnerie';
     return `
-      <div class="card ${isDone?'done':''} ${isUpcoming?'upcoming':''} ${(isAVP||isAtelier)?'avp-card':''}" data-id="${r.id}" data-source="${r._source||'personal'}">
-        <div class="card-time"><span>${hasDiffEvent ? eventTime.replace(':','h') : r.time.replace(':','h')}</span></div>
-        <div class="card-icon">${iconHTML(r.icon)}</div>
-        <div class="card-body">
-          <div class="card-title">${esc(r.title)}</div>
-          ${hasDiffEvent ? `<div style="font-size:13px;color:#aab0c4;margin-top:2px;">📅 ${dateDiffers ? formatRelativeDate(eventDate) : 'Aujourd\'hui'}</div>` : ''}
-          ${noteHTML}${badge}${agendaBtn}
-          ${hasDiffEvent ? `<div style="font-size:11px;color:#c0c6d4;margin-top:3px;">🔔 Sonnerie à ${r.time.replace(':','h')}</div>` : ''}
+      <div class="card-sonnerie ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">
+        ${checkHTML}
+        <div class="sonnerie-left">
+          <div class="sonnerie-date">${formatShortDate(r.date)}</div>
+          <div class="sonnerie-heure">${r.time.replace(':','h')}</div>
         </div>
-        ${(isAVP||isAtelier) ? '' : `<div class="card-check ${isDone?'':'unchecked'}" data-check="${r.id}">${isDone?'✓':'○'}</div>`}
+        <div class="sonnerie-icon">${iconHTML(r.icon)}</div>
+        <div class="sonnerie-body">
+          <div class="sonnerie-type">${sonnerieType}</div>
+          <div class="sonnerie-titre">${esc(r.title)}</div>
+          ${noteText ? `<div class="sonnerie-note">${noteText}</div>` : ''}
+          ${badge}
+        </div>
       </div>`;
   }).join('');
 }
@@ -1018,8 +1169,10 @@ document.getElementById('open-planning-btn').addEventListener('click', () => { r
 document.getElementById('planning-back-btn').addEventListener('click', () => showScreen('main-screen'));
 
 document.getElementById('reminders-list').addEventListener('click', e => {
+  // Ne pas ouvrir l'édition si on a cliqué sur un lien (agenda, map)
+  if (e.target.closest('a')) return;
   const checkId = e.target.closest('[data-check]')?.dataset.check;
-  const card = e.target.closest('.card');
+  const card = e.target.closest('.card, .card-sonnerie, .card-rdv');
   if (checkId) { toggleDone(checkId); e.stopPropagation(); return; }
   if (card) {
     const source = card.dataset.source;
