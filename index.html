@@ -1011,12 +1011,30 @@ function render() {
 
     const checkHTML = (isAVP||isAtelier) ? '' : `<div class="card-check ${isDone?'':'unchecked'}" data-check="${r.id}" style="position:absolute;top:12px;right:12px;">${isDone?'✓':'○'}</div>`;
 
-    // ===== CARTE RENDEZ-VOUS (bleu) : quand hasDiffEvent =====
-    if (hasDiffEvent) {
+    // ===== CARTE RENDEZ-VOUS (bleu) : quand hasDiffEvent OU atelier =====
+    if (hasDiffEvent || isAtelier) {
       const agendaLink = buildGoogleCalendarLink(r);
-      const sonnerieText = dateDiffers
-        ? `🔔 Sonnerie le <strong>${formatRelativeDate(r.date)} à ${r.time.replace(':','h')}</strong>`
-        : `🔔 Sonnerie à <strong>${r.time.replace(':','h')}</strong>`;
+      let sonnerieText;
+      if (isAtelier) {
+        // Pour un atelier : 2 sonneries automatiques (veille 15h + 2h avant)
+        const atelierDate = new Date(r.date + 'T' + r.time + ':00');
+        // Sonnerie 1 : la veille à 15h
+        const veille = new Date(atelierDate);
+        veille.setDate(veille.getDate() - 1);
+        // Sonnerie 2 : 2h avant
+        const avant2h = new Date(atelierDate.getTime() - 2*60*60*1000);
+        const h2 = String(avant2h.getHours()).padStart(2,'0');
+        const m2 = String(avant2h.getMinutes()).padStart(2,'0');
+        sonnerieText = `🔔 <strong>2 sonneries prévues :</strong><br>
+          • La veille (${formatShortDate(veille.toISOString().slice(0,10))}) à <strong>15h00</strong><br>
+          • 2h avant, à <strong>${h2}h${m2}</strong>`;
+      } else if (dateDiffers) {
+        sonnerieText = `🔔 Sonnerie le <strong>${formatRelativeDate(r.date)} à ${r.time.replace(':','h')}</strong>`;
+      } else {
+        sonnerieText = `🔔 Sonnerie à <strong>${r.time.replace(':','h')}</strong>`;
+      }
+      const typeLabel = isAtelier ? 'Atelier AVP' : 'Rendez-vous';
+      const badgeAtelier = isAtelier ? '<span style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">✅ Je participe</span>' : '';
       return `
         <div class="card-rdv ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">
           ${checkHTML}
@@ -1027,9 +1045,10 @@ function render() {
             </div>
             <div class="rdv-image">${iconHTML(r.icon)}</div>
             <div class="rdv-body">
-              <div class="rdv-type">Rendez-vous</div>
+              <div class="rdv-type">${typeLabel}</div>
               <div class="rdv-titre">${esc(r.title)}</div>
               ${noteText ? `<div class="rdv-note">${noteText}</div>` : ''}
+              ${badgeAtelier}
             </div>
           </div>
           <div class="rdv-sonnerie">${sonnerieText}</div>
@@ -1038,8 +1057,8 @@ function render() {
     }
 
     // ===== CARTE SONNERIE SIMPLE (jaune) =====
-    const badge = isAtelier ? '<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">✅ Je participe</span>' : (isAVP ? '<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">📋 Planning AVP</span>' : '');
-    const sonnerieType = isAVP || isAtelier ? 'Atelier' : 'Sonnerie';
+    const badge = isAVP ? '<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">📋 Planning AVP</span>' : '';
+    const sonnerieType = isAVP ? 'Atelier' : 'Sonnerie';
     return `
       <div class="card-sonnerie ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">
         ${checkHTML}
