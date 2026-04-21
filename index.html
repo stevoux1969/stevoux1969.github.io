@@ -89,6 +89,11 @@
 
     .planning-btn { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 12px 16px 0; padding: 14px 20px; background: #eef1fb; color: #2c3e91; border: 2px solid #8fa3df; border-radius: 14px; font-size: 17px; font-weight: 700; text-decoration: none; font-family: inherit; flex-shrink: 0; cursor: pointer; }
     .planning-btn:active { background: #dde3f7; }
+    .planning-btns-row { display: flex; gap: 8px; margin: 12px 16px 0; flex-shrink: 0; }
+    .planning-btn-split { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 14px 10px; background: #eef1fb; color: #2c3e91; border: 2px solid #8fa3df; border-radius: 14px; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; }
+    .planning-btn-split:active { background: #dde3f7; }
+    .planning-btn-split.disabled { background: #f1f3f8; color: #a0aac4; border-color: #d5dae6; cursor: not-allowed; opacity: 0.7; }
+    .planning-header-anim { background: #22a559; color: white; padding: 10px 16px; text-align: center; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
 
     .planning-day-header { background: #2c3e91; color: white; padding: 12px 16px; margin: 16px 0 8px; border-radius: 12px; font-size: 17px; font-weight: 700; text-transform: capitalize; }
     .planning-day-header:first-child { margin-top: 0; }
@@ -98,6 +103,10 @@
     .planning-item-body { flex: 1; }
     .planning-item-title { font-size: 16px; font-weight: 600; color: #1a2340; }
     .planning-item-meta { font-size: 13px; color: #5e6b8a; margin-top: 2px; }
+    .planning-inscrits { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e5e9f2; font-size: 12px; color: #5e6b8a; line-height: 1.6; }
+    .planning-inscrits-empty { font-style: italic; color: #a0aac4; }
+    .planning-inscrits-count { font-weight: 700; color: #22a559; margin-right: 4px; }
+    .planning-inscrit-tag { display: inline-block; background: #eef1fb; color: #2c3e91; padding: 2px 8px; border-radius: 10px; margin: 2px 2px; font-size: 12px; font-weight: 600; }
     .btn-inscrit { background: #22a559; color: white; border: none; border-radius: 20px; padding: 8px 16px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; flex-shrink: 0; }
     .btn-inscrit:active { background: #1d8b4b; }
     .btn-inscrit.inscrit { background: #eef1fb; color: #2c3e91; border: 2px solid #2c3e91; }
@@ -412,7 +421,7 @@
   <div class="login-wrap">
     <div class="login-logo" style="font-size:48px; background:#2c3e91; color:white; width:90px; height:90px; border-radius:20px; display:flex; align-items:center; justify-content:center; margin:0 auto;">🏠</div>
     <div class="login-title">Bienvenue dans l'application AVP</div>
-    <div class="login-subtitle" style="font-weight:700; color:#22a559; font-size:17px;">Animateur Steve</div>
+    <div class="login-subtitle" style="font-weight:700; color:#22a559; font-size:17px;">Animateurs Steve et Greg</div>
     <div class="login-card" id="login-card">
       <h2 id="login-card-title">Se connecter</h2>
       <div class="login-field" id="field-prenom">
@@ -464,9 +473,10 @@
   <div class="today-bar" id="today-bar" style="display:none">
     <button id="back-to-today">Revenir à aujourd'hui</button>
   </div>
-  <button class="planning-btn" id="open-planning-btn">
-    📋 Voir le planning du mois
-  </button>
+  <div class="planning-btns-row">
+    <button class="planning-btn-split" id="open-planning-steve" data-anim="Steve">📋 Planning Steve</button>
+    <button class="planning-btn-split disabled" id="open-planning-greg" data-anim="Greg">📋 Planning Greg</button>
+  </div>
   <div class="list-wrap">
     <div id="reminders-list"></div>
   </div>
@@ -535,6 +545,7 @@
     <button class="back-btn" id="planning-back-btn">‹ Retour</button>
     <h2 id="planning-month-title">Planning du mois</h2>
   </div>
+  <div class="planning-header-anim" id="planning-anim-label">Planning de Steve</div>
   <div class="list-wrap" id="planning-content"></div>
 </div>
 
@@ -1511,9 +1522,39 @@ function renderPlanning() {
   const [y,m] = firstDate.split('-').map(Number);
   const monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   document.getElementById('planning-month-title').textContent = `Planning ${monthNames[m-1]} ${y}`;
+
+  // Afficher d'abord sans inscrits puis recharger avec inscrits
+  renderPlanningInner(content, events);
+  // Charger en arrière-plan la liste globale des inscrits
+  loadAllInscriptions().then(inscritsByEvent => {
+    state.allInscriptions = inscritsByEvent;
+    renderPlanningInner(content, events);
+  });
+}
+
+// Charge la liste des inscrits de tous les bénéficiaires pour chaque atelier
+async function loadAllInscriptions() {
+  const result = {}; // key: event_key → [prenom1, prenom2...]
+  try {
+    const snap = await db.collection('users').get();
+    snap.docs.forEach(doc => {
+      const u = doc.data();
+      if (!u.prenom) return;
+      (u.reminders || []).filter(r => r.source === 'atelier').forEach(r => {
+        const key = r.date + '_' + r.time + '_' + (r.title||'').slice(0,20).replace(/\s/g,'_');
+        if (!result[key]) result[key] = [];
+        if (!result[key].includes(u.prenom)) result[key].push(u.prenom);
+      });
+    });
+  } catch(e) { console.error('loadAllInscriptions', e); }
+  return result;
+}
+
+function renderPlanningInner(content, events) {
   const grouped = {};
   events.forEach(e => { if(!grouped[e.date]) grouped[e.date]=[]; grouped[e.date].push(e); });
   const today = dateKey(new Date());
+  const allInscrits = state.allInscriptions || {};
   let html = '';
   Object.keys(grouped).sort().forEach(dk => {
     const [yy,mm,dd] = dk.split('-').map(Number);
@@ -1524,12 +1565,17 @@ function renderPlanning() {
     grouped[dk].forEach(e => {
       const ek = e.date+'_'+e.time+'_'+e.title.slice(0,20).replace(/\s/g,'_');
       const inscrit = isInscrit(ek);
+      const inscritsList = allInscrits[ek] || [];
+      const inscritsHTML = inscritsList.length
+        ? `<div class="planning-inscrits"><span class="planning-inscrits-count">👥 ${inscritsList.length} inscrit${inscritsList.length>1?'s':''}</span> : ${inscritsList.map(p => `<span class="planning-inscrit-tag">${esc(p)}</span>`).join(' ')}</div>`
+        : '<div class="planning-inscrits planning-inscrits-empty">Aucun inscrit pour le moment</div>';
       html += `<div class="planning-item">
         <div class="planning-item-time">${e.time}</div>
         <div class="planning-item-icon">${iconHTML(e.icon)}</div>
         <div class="planning-item-body">
           <div class="planning-item-title">${esc(e.title)}</div>
           ${inscrit ? '<div class="planning-item-meta">✅ Vous participez</div>' : ''}
+          ${inscritsHTML}
         </div>
         <button class="btn-inscrit ${inscrit?'inscrit':''}" data-ekey="${esc(ek)}" data-edate="${esc(e.date)}" data-etime="${esc(e.time)}" data-etitle="${esc(e.title)}" data-eicon="${esc(e.icon||'📋')}">
           ${inscrit ? '✓ Inscrit' : "M'inscrire"}
@@ -1539,11 +1585,13 @@ function renderPlanning() {
   });
   content.innerHTML = html;
   content.querySelectorAll('.btn-inscrit').forEach(btn => {
-    btn.addEventListener('click', e => {
+    btn.addEventListener('click', async e => {
       e.stopPropagation();
       const ev = { date: btn.dataset.edate, time: btn.dataset.etime, title: btn.dataset.etitle, icon: btn.dataset.eicon };
-      toggleInscription(ev);
-      renderPlanning();
+      await toggleInscription(ev);
+      // Recharger les inscrits après inscription/désinscription
+      state.allInscriptions = await loadAllInscriptions();
+      renderPlanningInner(content, events);
     });
   });
   setTimeout(() => {
@@ -1556,7 +1604,22 @@ function renderPlanning() {
 document.getElementById('prev-day').addEventListener('click', () => { state.dayOffset--; render(); });
 document.getElementById('next-day').addEventListener('click', () => { state.dayOffset++; render(); });
 document.getElementById('back-to-today').addEventListener('click', () => { state.dayOffset=0; render(); });
-document.getElementById('open-planning-btn').addEventListener('click', () => { renderPlanning(); showScreen('planning-screen'); });
+document.getElementById('open-planning-steve').addEventListener('click', () => {
+  state.currentAnim = 'Steve';
+  document.getElementById('planning-anim-label').textContent = '👤 Planning de Steve';
+  renderPlanning();
+  showScreen('planning-screen');
+});
+document.getElementById('open-planning-greg').addEventListener('click', () => {
+  // Planning Greg désactivé pour l'instant
+  showConfirm({
+    icon: '🚧',
+    title: 'Planning Greg bientôt disponible',
+    text: "Le planning de Greg n'est pas encore activé. Il sera disponible quand son Google Sheet sera prêt.",
+    okText: 'OK',
+    hideCancel: true
+  });
+});
 document.getElementById('planning-back-btn').addEventListener('click', () => showScreen('main-screen'));
 
 document.getElementById('reminders-list').addEventListener('click', e => {
