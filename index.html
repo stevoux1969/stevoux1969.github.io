@@ -107,6 +107,11 @@
     .planning-inscrits-empty { font-style: italic; color: #a0aac4; }
     .planning-inscrits-count { font-weight: 700; color: #22a559; margin-right: 4px; }
     .planning-inscrit-tag { display: inline-block; background: #eef1fb; color: #2c3e91; padding: 2px 8px; border-radius: 10px; margin: 2px 2px; font-size: 12px; font-weight: 600; }
+    .planning-places { display: inline-block; color: white; padding: 4px 10px; border-radius: 10px; font-size: 12px; font-weight: 700; margin-top: 6px; letter-spacing: 0.3px; }
+    .planning-places strong { font-size: 14px; margin-right: 2px; }
+    .planning-item-complet { opacity: 0.75; }
+    .btn-inscrit.btn-complet { background: #d63447; color: white; border: none; cursor: not-allowed; opacity: 0.85; }
+    .btn-inscrit.btn-complet:active { transform: none; }
     .btn-inscrit { background: #22a559; color: white; border: none; border-radius: 20px; padding: 8px 16px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; flex-shrink: 0; }
     .btn-inscrit:active { background: #1d8b4b; }
     .btn-inscrit.inscrit { background: #eef1fb; color: #2c3e91; border: 2px solid #2c3e91; }
@@ -406,6 +411,27 @@
     .user-menu-btn { width: 100%; padding: 16px; background: #f1f3f8; border: none; border-radius: 14px; font-size: 17px; font-weight: 600; color: #1a2340; cursor: pointer; font-family: inherit; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
     .user-menu-btn:active { background: #e5e9f2; }
     .user-menu-btn.danger { color: #d63447; background: #fdf0f2; }
+
+    /* === TUTORIEL === */
+    #tutorial-screen { background: linear-gradient(160deg, #2c3e91 0%, #22a559 100%); }
+    .tutorial-wrap { flex: 1; display: flex; flex-direction: column; padding: 40px 24px calc(24px + env(safe-area-inset-bottom)); padding-top: calc(50px + env(safe-area-inset-top)); overflow: hidden; }
+    .tutorial-skip { position: absolute; top: calc(16px + env(safe-area-inset-top)); right: 16px; background: rgba(255,255,255,0.25); color: white; border: none; padding: 10px 16px; border-radius: 20px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; z-index: 10; }
+    .tutorial-skip:active { background: rgba(255,255,255,0.4); }
+    .tutorial-content { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white; overflow-y: auto; padding: 20px 0; }
+    .tutorial-emoji { font-size: 92px; line-height: 1; margin-bottom: 20px; }
+    .tutorial-title { font-size: 28px; font-weight: 800; margin-bottom: 16px; line-height: 1.2; }
+    .tutorial-text { font-size: 18px; line-height: 1.5; max-width: 340px; margin: 0 auto; opacity: 0.95; }
+    .tutorial-text strong { color: #ffe07a; }
+    .tutorial-dots { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
+    .tutorial-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.4); transition: all 0.2s; }
+    .tutorial-dot.active { background: white; width: 28px; border-radius: 5px; }
+    .tutorial-nav { display: flex; gap: 10px; }
+    .tutorial-btn { flex: 1; padding: 16px; background: white; color: #2c3e91; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .tutorial-btn:active { background: #e5e9f2; }
+    .tutorial-btn-prev { background: rgba(255,255,255,0.25); color: white; }
+    .tutorial-btn-prev:active { background: rgba(255,255,255,0.4); }
+    .tutorial-btn-prev.hidden, .tutorial-btn-next.final { display: none; }
+    .tutorial-btn-finish { background: #ffc107; color: #1a2340; }
   </style>
 </head>
 <body>
@@ -583,9 +609,25 @@
   <div class="user-menu-sheet">
     <div class="user-menu-name" id="um-name"></div>
     <div class="user-menu-role" id="um-role"></div>
+    <button class="user-menu-btn" id="um-tutorial">📖 Comment ça marche ? (Tutoriel)</button>
     <button class="user-menu-btn" id="um-planning">📋 Planning du mois</button>
     <button class="user-menu-btn" id="um-notif">🔔 Activer les notifications</button>
     <button class="user-menu-btn danger" id="um-logout">🚪 Se déconnecter</button>
+  </div>
+</div>
+
+<!-- TUTORIEL -->
+<div id="tutorial-screen" class="screen">
+  <div class="tutorial-wrap">
+    <button class="tutorial-skip" id="tutorial-skip">Passer ✕</button>
+    <div class="tutorial-content" id="tutorial-content">
+      <!-- Pages générées en JS -->
+    </div>
+    <div class="tutorial-dots" id="tutorial-dots"></div>
+    <div class="tutorial-nav">
+      <button class="tutorial-btn tutorial-btn-prev" id="tutorial-prev">‹ Précédent</button>
+      <button class="tutorial-btn tutorial-btn-next" id="tutorial-next">Suivant ›</button>
+    </div>
   </div>
 </div>
 
@@ -643,11 +685,13 @@ const ICONS = [
   { id: 'psychiatre', emoji: '🧠', type: 'emoji', label: 'Psychiatre', title: 'Rendez-vous psychiatre', note: '' },
   { id: 'dentiste', emoji: '🦷', type: 'emoji', label: 'Dentiste', title: 'Rendez-vous dentiste', note: '' },
   { id: 'hopital', emoji: '🏥', type: 'emoji', label: 'Hôpital', title: 'Rendez-vous hôpital', note: '' },
+  { id: 'specialiste', emoji: '🩺', type: 'emoji', label: 'Spécialiste', title: 'Rendez-vous spécialiste', note: '' },
   { id: 'hdj', emoji: 'svg:HDJ', type: 'svg', svg: SVG_HDJ, label: 'Hôpital de jour', title: 'Hôpital de jour', note: '' },
   { id: 'cmp', emoji: 'svg:CMP', type: 'svg', svg: SVG_CMP, label: 'Centre médico-psy', title: 'Rendez-vous CMP', note: '' },
   { id: 'aux', emoji: 'svg:AUX', type: 'svg', svg: SVG_AUX, label: 'Auxiliaire de vie', title: 'Visite auxiliaire de vie', note: '' },
   { id: 'avp-maison', emoji: 'svg:MAISON', type: 'svg', svg: SVG_MAISON, label: 'Petite maison', title: 'Atelier AVP petite maison', note: '80 bis boulevard du 11 novembre, Petit-Quevilly', address: '80+bis+boulevard+du+11+novembre,+Petit-Quevilly' },
   { id: 'avp-cle', emoji: 'svg:CLE', type: 'svg', svg: SVG_CLE, label: 'La clé', title: 'Atelier AVP la clé', note: '22 Place Henri Gadeau de Kerville, 76100 Rouen', address: '22+Place+Henri+Gadeau+de+Kerville,+76100+Rouen' },
+  { id: 'autres', emoji: '📌', type: 'emoji', label: 'Autres', title: '', note: '' },
 ];
 
 const ACTIVITY_ICONS = {
@@ -897,6 +941,11 @@ function enterApp() {
   render();
   loadAVPPlanning();
   checkReminders();
+
+  // Afficher automatiquement le tutoriel à la première connexion
+  if (shouldShowTutorial()) {
+    setTimeout(() => startTutorial(), 800);
+  }
 }
 
 // ========== USER MENU ==========
@@ -910,11 +959,18 @@ document.getElementById('user-menu').addEventListener('click', e => {
 });
 document.getElementById('um-planning').addEventListener('click', () => {
   document.getElementById('user-menu').classList.remove('active');
+  // Utiliser le planning Steve par défaut (depuis le menu utilisateur)
+  state.currentAnim = 'Steve';
+  document.getElementById('planning-anim-label').textContent = '👤 Planning de Steve';
   renderPlanning(); showScreen('planning-screen');
 });
 document.getElementById('um-notif').addEventListener('click', () => {
   document.getElementById('user-menu').classList.remove('active');
   requestNotifPermission();
+});
+document.getElementById('um-tutorial').addEventListener('click', () => {
+  document.getElementById('user-menu').classList.remove('active');
+  startTutorial();
 });
 document.getElementById('um-logout').addEventListener('click', () => {
   document.getElementById('user-menu').classList.remove('active');
@@ -922,6 +978,106 @@ document.getElementById('um-logout').addEventListener('click', () => {
     onOk: () => { clearSession(); currentUser=null; state.reminders=[]; state.inscriptions={}; pinValue=''; updatePinDots(); showScreen('login-screen'); }
   });
 });
+
+// ========== TUTORIEL ==========
+const TUTORIAL_PAGES = [
+  {
+    emoji: '👋',
+    title: 'Bienvenue !',
+    text: 'Cette application a été créée pour vous aider à <strong>organiser votre journée</strong>. Suivez ce petit guide pour bien la prendre en main.'
+  },
+  {
+    emoji: '🔔',
+    title: 'Les sonneries',
+    text: 'Appuyez sur le <strong>bouton vert "+"</strong> en bas pour créer un rappel : prendre vos médicaments, un rendez-vous… L\'application vous <strong>sonnera à l\'heure prévue</strong>.'
+  },
+  {
+    emoji: '📅',
+    title: 'Les rendez-vous',
+    text: 'Pour un rendez-vous médecin ou dentiste, choisissez l\'icône et indiquez <strong>la date et l\'heure</strong>. Vous pouvez même l\'ajouter à <strong>Google Agenda</strong> en un clic.'
+  },
+  {
+    emoji: '📋',
+    title: 'Le planning AVP',
+    text: 'Le bouton <strong>"Planning Steve"</strong> affiche tous les ateliers du mois. Appuyez sur <strong>"M\'inscrire"</strong> pour participer. Vous verrez aussi les autres personnes inscrites.'
+  },
+  {
+    emoji: '🎤',
+    title: 'La voix',
+    text: 'Vous n\'aimez pas écrire ? Appuyez sur le <strong>bouton microphone vert</strong> quand vous créez un rappel et dictez : <em>"Prendre mes médicaments à 8h"</em>.'
+  },
+  {
+    emoji: '👤',
+    title: 'Votre prénom en haut',
+    text: 'Appuyez sur <strong>votre prénom</strong> en haut à droite pour voir ce menu : activer les notifications, revoir ce tutoriel, ou vous déconnecter.'
+  },
+  {
+    emoji: '🎉',
+    title: 'C\'est parti !',
+    text: 'Vous savez tout ce qu\'il faut ! En cas de question, demandez à <strong>Steve ou Greg</strong>. Bonne journée !'
+  }
+];
+
+let tutorialIndex = 0;
+
+function startTutorial() {
+  tutorialIndex = 0;
+  showScreen('tutorial-screen');
+  renderTutorialPage();
+}
+
+function renderTutorialPage() {
+  const page = TUTORIAL_PAGES[tutorialIndex];
+  const content = document.getElementById('tutorial-content');
+  content.innerHTML = `
+    <div class="tutorial-emoji">${page.emoji}</div>
+    <div class="tutorial-title">${page.title}</div>
+    <div class="tutorial-text">${page.text}</div>
+  `;
+
+  // Dots
+  const dots = document.getElementById('tutorial-dots');
+  dots.innerHTML = TUTORIAL_PAGES.map((_, i) =>
+    `<div class="tutorial-dot ${i === tutorialIndex ? 'active' : ''}"></div>`
+  ).join('');
+
+  // Boutons
+  const prev = document.getElementById('tutorial-prev');
+  const next = document.getElementById('tutorial-next');
+  prev.classList.toggle('hidden', tutorialIndex === 0);
+  if (tutorialIndex === TUTORIAL_PAGES.length - 1) {
+    next.textContent = '✓ Commencer';
+    next.classList.add('tutorial-btn-finish');
+  } else {
+    next.textContent = 'Suivant ›';
+    next.classList.remove('tutorial-btn-finish');
+  }
+}
+
+document.getElementById('tutorial-prev').addEventListener('click', () => {
+  if (tutorialIndex > 0) { tutorialIndex--; renderTutorialPage(); }
+});
+document.getElementById('tutorial-next').addEventListener('click', () => {
+  if (tutorialIndex < TUTORIAL_PAGES.length - 1) {
+    tutorialIndex++;
+    renderTutorialPage();
+  } else {
+    finishTutorial();
+  }
+});
+document.getElementById('tutorial-skip').addEventListener('click', finishTutorial);
+
+function finishTutorial() {
+  // Marquer comme vu pour ne plus afficher automatiquement
+  try { localStorage.setItem('avp_tutorial_seen_' + (currentUser ? currentUser.id : 'x'), '1'); } catch(e) {}
+  showScreen('main-screen');
+}
+
+function shouldShowTutorial() {
+  try {
+    return !localStorage.getItem('avp_tutorial_seen_' + (currentUser ? currentUser.id : 'x'));
+  } catch(e) { return false; }
+}
 
 // ========== NOTIFICATIONS ==========
 async function requestNotifPermission() {
@@ -1504,7 +1660,25 @@ function parseAVPPlanning(csv) {
           else if(justH&&parseInt(justH[1])>=6&&parseInt(justH[1])<=22&&!hour){hour=(parseInt(justH[1])<10?'0':'')+parseInt(justH[1])+':00';}
           else if(cell.length>2&&!activity){activity=cell;}
         }
-        if(activity){const mo=monthIndex+1;const dateStr=`${year}-${(mo<10?'0':'')+mo}-${(dayNum<10?'0':'')+dayNum}`;events.push({date:dateStr,time:hour||'09:00',title:activity,icon:getActivityIcon(activity)});}
+        if(activity){
+          const mo=monthIndex+1;
+          const dateStr=`${year}-${(mo<10?'0':'')+mo}-${(dayNum<10?'0':'')+dayNum}`;
+          // Extraire la limite entre parenthèses (ex: "Jeux de société (5)" → limite=5)
+          let limite = null;
+          let cleanTitle = activity;
+          const limMatch = activity.match(/\s*\((\d{1,2})\)\s*$/);
+          if (limMatch) {
+            limite = parseInt(limMatch[1]);
+            cleanTitle = activity.replace(/\s*\(\d{1,2}\)\s*$/, '').trim();
+          }
+          events.push({
+            date: dateStr,
+            time: hour||'09:00',
+            title: cleanTitle,
+            icon: getActivityIcon(cleanTitle),
+            limite: limite
+          });
+        }
       }
     }
   }
@@ -1566,28 +1740,76 @@ function renderPlanningInner(content, events) {
       const ek = e.date+'_'+e.time+'_'+e.title.slice(0,20).replace(/\s/g,'_');
       const inscrit = isInscrit(ek);
       const inscritsList = allInscrits[ek] || [];
+      const nbInscrits = inscritsList.length;
+      const limite = e.limite || null;
+      const complet = limite !== null && nbInscrits >= limite && !inscrit;
+
+      // Affichage du compteur (limité ou illimité)
+      let compteurHTML;
+      if (limite !== null) {
+        const color = complet ? '#d63447' : (nbInscrits >= limite - 1 ? '#e09400' : '#22a559');
+        compteurHTML = `<div class="planning-places" style="background:${color}"><strong>${nbInscrits}/${limite}</strong> ${complet ? 'COMPLET' : 'places'}</div>`;
+      } else {
+        compteurHTML = `<div class="planning-places" style="background:#8590ad"><strong>${nbInscrits}</strong> inscrit${nbInscrits>1?'s':''}</div>`;
+      }
+
       const inscritsHTML = inscritsList.length
-        ? `<div class="planning-inscrits"><span class="planning-inscrits-count">👥 ${inscritsList.length} inscrit${inscritsList.length>1?'s':''}</span> : ${inscritsList.map(p => `<span class="planning-inscrit-tag">${esc(p)}</span>`).join(' ')}</div>`
+        ? `<div class="planning-inscrits">${inscritsList.map(p => `<span class="planning-inscrit-tag">${esc(p)}</span>`).join(' ')}</div>`
         : '<div class="planning-inscrits planning-inscrits-empty">Aucun inscrit pour le moment</div>';
-      html += `<div class="planning-item">
+
+      // Bouton : "Complet" si plein, sinon Inscrire / Inscrit
+      let btnHTML;
+      if (complet) {
+        btnHTML = `<button class="btn-inscrit btn-complet" disabled>❌ Complet</button>`;
+      } else {
+        btnHTML = `<button class="btn-inscrit ${inscrit?'inscrit':''}" data-ekey="${esc(ek)}" data-edate="${esc(e.date)}" data-etime="${esc(e.time)}" data-etitle="${esc(e.title)}" data-eicon="${esc(e.icon||'📋')}" data-elimite="${limite||''}">${inscrit ? '✓ Inscrit' : "M'inscrire"}</button>`;
+      }
+
+      html += `<div class="planning-item ${complet?'planning-item-complet':''}">
         <div class="planning-item-time">${e.time}</div>
         <div class="planning-item-icon">${iconHTML(e.icon)}</div>
         <div class="planning-item-body">
           <div class="planning-item-title">${esc(e.title)}</div>
           ${inscrit ? '<div class="planning-item-meta">✅ Vous participez</div>' : ''}
+          ${compteurHTML}
           ${inscritsHTML}
         </div>
-        <button class="btn-inscrit ${inscrit?'inscrit':''}" data-ekey="${esc(ek)}" data-edate="${esc(e.date)}" data-etime="${esc(e.time)}" data-etitle="${esc(e.title)}" data-eicon="${esc(e.icon||'📋')}">
-          ${inscrit ? '✓ Inscrit' : "M'inscrire"}
-        </button>
+        ${btnHTML}
       </div>`;
     });
   });
   content.innerHTML = html;
-  content.querySelectorAll('.btn-inscrit').forEach(btn => {
+  content.querySelectorAll('.btn-inscrit:not(.btn-complet)').forEach(btn => {
     btn.addEventListener('click', async e => {
       e.stopPropagation();
+      if (btn.disabled) return;
       const ev = { date: btn.dataset.edate, time: btn.dataset.etime, title: btn.dataset.etitle, icon: btn.dataset.eicon };
+      const limite = btn.dataset.elimite ? parseInt(btn.dataset.elimite) : null;
+      const ek = ev.date + '_' + ev.time + '_' + ev.title.slice(0,20).replace(/\s/g,'_');
+      const dejaInscrit = isInscrit(ek);
+
+      // Si je veux m'inscrire (pas encore inscrit) et qu'il y a une limite
+      if (!dejaInscrit && limite !== null) {
+        // Rafraîchir les inscriptions en temps réel (quelqu'un a pu s'inscrire entre temps)
+        btn.disabled = true;
+        btn.textContent = '⏳ Vérification...';
+        const freshInscriptions = await loadAllInscriptions();
+        const currentCount = (freshInscriptions[ek] || []).length;
+        if (currentCount >= limite) {
+          // Trop tard, c'est complet
+          showConfirm({
+            icon: '😔',
+            title: 'Atelier complet',
+            text: `Désolé, les ${limite} places pour "${ev.title}" viennent d'être prises. Essayez un autre atelier.`,
+            okText: 'OK',
+            hideCancel: true
+          });
+          state.allInscriptions = freshInscriptions;
+          renderPlanningInner(content, events);
+          return;
+        }
+      }
+
       await toggleInscription(ev);
       // Recharger les inscrits après inscription/désinscription
       state.allInscriptions = await loadAllInscriptions();
