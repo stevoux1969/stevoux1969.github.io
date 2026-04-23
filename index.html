@@ -1731,11 +1731,26 @@ function renderPlanning() {
 }
 
 function scrollToToday(content) {
-  // Essayer plusieurs fois car le DOM peut ne pas être prêt tout de suite
   const tryScroll = (attempt) => {
-    const todayHeader = content.querySelector('[style*="22a559"]');
-    if (todayHeader) {
-      todayHeader.scrollIntoView({behavior:'smooth',block:'start'});
+    const today = dateKey(new Date());
+    // Chercher d'abord exactement aujourd'hui
+    let target = content.querySelector(`[data-date="${today}"]`);
+    // Si pas trouvé, chercher le prochain jour après aujourd'hui
+    if (!target) {
+      const allHeaders = content.querySelectorAll('[data-date]');
+      for (const h of allHeaders) {
+        if (h.dataset.date >= today) {
+          target = h;
+          break;
+        }
+      }
+      // Sinon prendre le dernier jour (tout le mois est passé)
+      if (!target && allHeaders.length > 0) {
+        target = allHeaders[allHeaders.length - 1];
+      }
+    }
+    if (target) {
+      target.scrollIntoView({behavior:'smooth', block:'start'});
     } else if (attempt < 5) {
       setTimeout(() => tryScroll(attempt + 1), 200);
     }
@@ -1772,7 +1787,7 @@ function renderPlanningInner(content, events) {
     const d = new Date(yy,mm-1,dd);
     const dayName = d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
     const isToday = dk === today;
-    html += `<div class="planning-day-header" ${isToday?'style="background:#22a559"':''}>${isToday?"📍 Aujourd'hui — ":''}${dayName}</div>`;
+    html += `<div class="planning-day-header" data-date="${dk}" ${isToday?'style="background:#22a559"':''}>${isToday?"📍 Aujourd'hui — ":''}${dayName}</div>`;
     grouped[dk].forEach(e => {
       const ek = e.date+'_'+e.time+'_'+e.title.slice(0,20).replace(/\s/g,'_');
       const inscrit = isInscrit(ek);
