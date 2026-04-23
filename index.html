@@ -1663,13 +1663,19 @@ function parseAVPPlanning(csv) {
         if(activity){
           const mo=monthIndex+1;
           const dateStr=`${year}-${(mo<10?'0':'')+mo}-${(dayNum<10?'0':'')+dayNum}`;
+          // Nettoyer les emojis au début du titre (venant du Sheet pour impression papier)
+          // On enlève tout caractère non alphabétique/chiffre jusqu'au premier mot
+          let cleanTitle = activity.replace(/^[\s\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F\u200D]+/gu, '').trim();
+          // Fallback simple si la regex Unicode ne marche pas
+          if (cleanTitle === activity) {
+            cleanTitle = activity.replace(/^[^a-zA-ZÀ-ÿ0-9]+/, '').trim();
+          }
           // Extraire la limite entre parenthèses (ex: "Jeux de société (5)" → limite=5)
           let limite = null;
-          let cleanTitle = activity;
-          const limMatch = activity.match(/\s*\((\d{1,2})\)\s*$/);
+          const limMatch = cleanTitle.match(/\s*\((\d{1,2})\)\s*$/);
           if (limMatch) {
             limite = parseInt(limMatch[1]);
-            cleanTitle = activity.replace(/\s*\(\d{1,2}\)\s*$/, '').trim();
+            cleanTitle = cleanTitle.replace(/\s*\(\d{1,2}\)\s*$/, '').trim();
           }
           events.push({
             date: dateStr,
