@@ -1721,11 +1721,26 @@ function renderPlanning() {
 
   // Afficher d'abord sans inscrits puis recharger avec inscrits
   renderPlanningInner(content, events);
+  scrollToToday(content);
   // Charger en arrière-plan la liste globale des inscrits
   loadAllInscriptions().then(inscritsByEvent => {
     state.allInscriptions = inscritsByEvent;
     renderPlanningInner(content, events);
+    scrollToToday(content);
   });
+}
+
+function scrollToToday(content) {
+  // Essayer plusieurs fois car le DOM peut ne pas être prêt tout de suite
+  const tryScroll = (attempt) => {
+    const todayHeader = content.querySelector('[style*="22a559"]');
+    if (todayHeader) {
+      todayHeader.scrollIntoView({behavior:'smooth',block:'start'});
+    } else if (attempt < 5) {
+      setTimeout(() => tryScroll(attempt + 1), 200);
+    }
+  };
+  setTimeout(() => tryScroll(1), 300);
 }
 
 // Charge la liste des inscrits de tous les bénéficiaires pour chaque atelier
@@ -1838,10 +1853,6 @@ function renderPlanningInner(content, events) {
       renderPlanningInner(content, events);
     });
   });
-  setTimeout(() => {
-    const todayHeader = content.querySelector('[style*="22a559"]');
-    if (todayHeader) todayHeader.scrollIntoView({behavior:'smooth',block:'start'});
-  }, 100);
 }
 
 // ========== INTERACTIONS ==========
