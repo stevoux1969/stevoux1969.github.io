@@ -396,6 +396,23 @@
     .atelier-inscrit-list { display: flex; flex-wrap: wrap; gap: 6px; }
     .atelier-inscrit-tag { background: #eef1fb; color: #2c3e91; padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 600; }
 
+    /* === POINTAGE PRÉSENCE === */
+    .atelier-badge-passe { background: #8590ad; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+    .atelier-badge-aujourdhui { background: #22a559; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+    .atelier-badge-futur { background: #2c3e91; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+    .atelier-stats { background: #f1f3f8; border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; font-size: 13px; color: #1a2340; line-height: 1.6; }
+    .atelier-stats strong { color: #2c3e91; }
+    .atelier-pointage-list { display: flex; flex-direction: column; gap: 8px; }
+    .atelier-pointage-row { display: flex; align-items: center; gap: 6px; padding: 8px 0; border-top: 1px solid #eef1fb; }
+    .atelier-pointage-row:first-child { border-top: none; }
+    .atelier-pointage-name { flex: 1; font-size: 14px; font-weight: 600; color: #1a2340; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .btn-pointage { padding: 8px 10px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; border: 2px solid transparent; white-space: nowrap; }
+    .btn-pointage.btn-present { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+    .btn-pointage.btn-present.active { background: #22a559; color: white; border-color: #22a559; }
+    .btn-pointage.btn-absent { background: #fef2f2; color: #d63447; border-color: #fecaca; }
+    .btn-pointage.btn-absent.active { background: #d63447; color: white; border-color: #d63447; }
+    .btn-pointage:active { transform: scale(0.95); }
+
     /* === LOADING === */
     .loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
     .spinner { width: 48px; height: 48px; border: 4px solid #e5e9f2; border-top-color: #2c3e91; border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -1413,11 +1430,24 @@ async function showAdminAteliers() {
   const list = document.getElementById('admin-ateliers-list');
   list.innerHTML = '<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';
   try {
-    const snap = await db.collection('users').get();
-    // Regrouper par atelier (date + time + titre)
-    const groupes = {}; // key: date_time_titre → { date, time, title, icon, inscrits: [prenom,...] }
-    snap.docs.forEach(doc => {
+    const [usersSnap, presSnap] = await Promise.all([
+      db.collection('users').get(),
+      db.collection('presences').get()
+    ]);
+
+    // Charger les présences existantes dans un map
+    // Clé Firestore: atelierKey_prenom → { statut: "present"|"absent" }
+    const presences = {};
+    presSnap.docs.forEach(doc => {
+      presences[doc.id] = doc.data();
+    });
+    state.presences = presences;
+
+    // Regrouper par atelier
+    const groupes = {};
+    usersSnap.docs.forEach(doc => {
       const u = doc.data();
+      if (!u.prenom) return;
       (u.reminders || []).filter(r => r.source === 'atelier').forEach(r => {
         const key = r.date + '_' + r.time + '_' + (r.title||'').slice(0,30);
         if (!groupes[key]) {
@@ -1426,30 +1456,100 @@ async function showAdminAteliers() {
         groupes[key].inscrits.push(u.prenom);
       });
     });
+
     const items = Object.values(groupes).sort((a,b) => {
       if (a.date !== b.date) return (a.date||'').localeCompare(b.date||'');
       return (a.time||'').localeCompare(b.time||'');
     });
+
     if (items.length === 0) {
       list.innerHTML = '<div class="planning-empty">Aucune inscription pour le moment.</div>';
       return;
     }
-    list.innerHTML = items.map(g => `
+
+    const today = dateKey(new Date());
+
+    list.innerHTML = items.map(g => {
+      const atelierKey = g.date + '_' + g.time + '_' + (g.title||'').slice(0,30);
+      // Compter les statuts
+      let nbPresent = 0, nbAbsent = 0, nbNonPointe = 0;
+      g.inscrits.forEach(p => {
+        const presKey = sanitizePresKey(atelierKey + '__' + p);
+        const pres = presences[presKey];
+        if (pres && pres.statut === 'present') nbPresent++;
+        else if (pres && pres.statut === 'absent') nbAbsent++;
+        else nbNonPointe++;
+      });
+
+      const isPasse = g.date < today;
+      const isToday_ = g.date === today;
+      const badge = isPasse ? '<span class="atelier-badge-passe">PASSÉ</span>' :
+                    isToday_ ? '<span class="atelier-badge-aujourdhui">AUJOURD\'HUI</span>' :
+                    '<span class="atelier-badge-futur">À VENIR</span>';
+
+      return `
       <div class="atelier-group">
         <div class="atelier-group-header">
           <div class="atelier-group-date">${formatShortDate(g.date)} · ${(g.time||'').replace(':','h')}</div>
           <div class="atelier-group-title">${esc(g.title)}</div>
-          <div class="atelier-group-count">${g.inscrits.length}</div>
+          ${badge}
         </div>
-        <div class="atelier-inscrit-list">
-          ${g.inscrits.map(p => `<span class="atelier-inscrit-tag">${esc(p)}</span>`).join('')}
+        <div class="atelier-stats">
+          👥 <strong>${g.inscrits.length}</strong> inscrits · ✅ <strong>${nbPresent}</strong> présents · ❌ <strong>${nbAbsent}</strong> absents · ⏳ <strong>${nbNonPointe}</strong> non pointés
         </div>
-      </div>
-    `).join('');
+        <div class="atelier-pointage-list">
+          ${g.inscrits.map(p => {
+            const presKey = sanitizePresKey(atelierKey + '__' + p);
+            const pres = presences[presKey];
+            const statut = pres ? pres.statut : null;
+            return `<div class="atelier-pointage-row">
+              <div class="atelier-pointage-name">${esc(p)}</div>
+              <button class="btn-pointage btn-present ${statut==='present'?'active':''}" data-preskey="${esc(presKey)}" data-atelier="${esc(atelierKey)}" data-prenom="${esc(p)}" data-statut="present">✅ Présent</button>
+              <button class="btn-pointage btn-absent ${statut==='absent'?'active':''}" data-preskey="${esc(presKey)}" data-atelier="${esc(atelierKey)}" data-prenom="${esc(p)}" data-statut="absent">❌ Absent</button>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }).join('');
+
+    // Brancher les clics sur les boutons de pointage
+    list.querySelectorAll('.btn-pointage').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const presKey = btn.dataset.preskey;
+        const atelier = btn.dataset.atelier;
+        const prenom = btn.dataset.prenom;
+        const statut = btn.dataset.statut;
+        await togglePresence(presKey, atelier, prenom, statut);
+        showAdminAteliers(); // Recharger l'affichage
+      });
+    });
   } catch(e) {
     list.innerHTML = '<div class="planning-empty">Erreur de chargement.</div>';
     console.error(e);
   }
+}
+
+// Nettoyer une clé pour Firestore (pas d'espaces, caractères spéciaux)
+function sanitizePresKey(key) {
+  return key.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 150);
+}
+
+// Marquer une présence/absence (bascule : si déjà dans le statut, on efface)
+async function togglePresence(presKey, atelier, prenom, nouveauStatut) {
+  try {
+    const current = state.presences ? state.presences[presKey] : null;
+    if (current && current.statut === nouveauStatut) {
+      // Re-clic sur le même statut = annuler
+      await db.collection('presences').doc(presKey).delete();
+    } else {
+      await db.collection('presences').doc(presKey).set({
+        atelier: atelier,
+        prenom: prenom,
+        statut: nouveauStatut,
+        pointeAt: Date.now()
+      });
+    }
+  } catch(e) { console.error('togglePresence', e); }
 }
 
 // ========== INSCRIPTIONS AUX ATELIERS ==========
