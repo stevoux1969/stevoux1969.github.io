@@ -353,8 +353,8 @@ function parseCSV(text) {
 
 function nettoyer(txt) {
   if (!txt) return '';
-  // Supprimer emojis doublons et caractères parasites
-  return txt.replace(/^[^\w\s\u00C0-\u024F]+\s*/, '').trim();
+  // Garder les emojis, juste nettoyer les espaces
+  return txt.trim();
 }
 
 function afficherPlanning(csv, animateur, mois) {
