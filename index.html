@@ -8,7 +8,6 @@
   <meta name="apple-mobile-web-app-title" content="Ma Journée AVP">
   <meta name="theme-color" content="#2c3e91">
   <title>Ma Journée AVP</title>
-  <!-- OneSignal Push Notifications -->
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
     window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -16,22 +15,8 @@
       await OneSignal.init({
         appId: "a89f967a-eddf-4a83-b654-4e34f0b95141",
         notifyButton: { enable: false },
-        promptOptions: {
-          slidedown: {
-            prompts: [{
-              type: "push",
-              autoPrompt: true,
-              text: {
-                actionMessage: "Ma Journée AVP souhaite vous envoyer des notifications pour vos rappels.",
-                acceptButton: "Autoriser",
-                cancelButton: "Non merci"
-              },
-              delay: { pageViews: 1, timeDelay: 2 }
-            }]
-          }
-        }
+        promptOptions: { slidedown: { prompts: [{ type: "push", autoPrompt: true, text: { actionMessage: "Ma Journée AVP souhaite vous envoyer des notifications pour vos rappels.", acceptButton: "Autoriser", cancelButton: "Non merci" }, delay: { pageViews: 1, timeDelay: 2 } }] } }
       });
-      // Forcer la demande
       await OneSignal.Slidedown.promptPush();
     });
   </script>
@@ -39,15 +24,9 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body { height: 100%; overflow: hidden; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f1f3f8; color: #1a2340; font-size: 18px; line-height: 1.4;
-      -webkit-font-smoothing: antialiased; user-select: none;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f3f8; color: #1a2340; font-size: 18px; line-height: 1.4; -webkit-font-smoothing: antialiased; user-select: none; }
     .screen { position: fixed; inset: 0; display: none; flex-direction: column; background: #f1f3f8; }
     .screen.active { display: flex; }
-
-    /* === LOGIN SCREEN === */
     .login-wrap { flex: 1; overflow-y: auto; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
     .login-logo { font-size: 72px; text-align: center; }
     .login-title { font-size: 28px; font-weight: 800; color: #2c3e91; text-align: center; line-height: 1.2; }
@@ -73,8 +52,6 @@
     .login-error { background: #fdf0f2; border: 2px solid #f3c3ca; border-radius: 12px; padding: 12px 16px; color: #d63447; font-size: 15px; font-weight: 600; text-align: center; display: none; }
     .login-error.visible { display: block; }
     .user-avatar { width: 56px; height: 56px; border-radius: 50%; background: #2c3e91; color: white; font-size: 24px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-
-    /* === HEADER === */
     .header { background: #2c3e91; color: white; padding: 24px 20px 20px; padding-top: calc(24px + env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
     .btn-arrow { background: rgba(255,255,255,0.18); border: none; color: white; width: 48px; height: 48px; min-width: 48px; border-radius: 50%; font-size: 30px; font-weight: 700; cursor: pointer; font-family: inherit; line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0; }
     .btn-arrow:active { background: rgba(255,255,255,0.3); }
@@ -83,10 +60,8 @@
     .header-title .date { font-size: 14px; opacity: 0.85; margin-top: 4px; text-transform: capitalize; }
     .header-user { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 6px 12px; cursor: pointer; border: none; color: white; font-family: inherit; }
     .header-user-name { font-size: 14px; font-weight: 600; }
-
     .today-bar { background: #ffeecb; padding: 10px 16px; text-align: center; flex-shrink: 0; border-bottom: 1px solid #f0d89b; }
     .today-bar button { background: none; border: none; color: #8a5a00; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
-
     .planning-btn { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 12px 16px 0; padding: 14px 20px; background: #eef1fb; color: #2c3e91; border: 2px solid #8fa3df; border-radius: 14px; font-size: 17px; font-weight: 700; text-decoration: none; font-family: inherit; flex-shrink: 0; cursor: pointer; }
     .planning-btn:active { background: #dde3f7; }
     .planning-btns-row { display: flex; gap: 8px; margin: 12px 16px 0; flex-shrink: 0; }
@@ -94,7 +69,6 @@
     .planning-btn-split:active { background: #dde3f7; }
     .planning-btn-split.disabled { background: #f1f3f8; color: #a0aac4; border-color: #d5dae6; cursor: not-allowed; opacity: 0.7; }
     .planning-header-anim { background: #22a559; color: white; padding: 10px 16px; text-align: center; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
-
     .planning-day-header { background: #2c3e91; color: white; padding: 12px 16px; margin: 16px 0 8px; border-radius: 12px; font-size: 17px; font-weight: 700; text-transform: capitalize; }
     .planning-day-header:first-child { margin-top: 0; }
     .planning-item { display: flex; align-items: center; gap: 12px; background: white; border-left: 4px solid #22a559; border-radius: 12px; padding: 14px 14px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
@@ -116,13 +90,10 @@
     .btn-inscrit:active { background: #1d8b4b; }
     .btn-inscrit.inscrit { background: #eef1fb; color: #2c3e91; border: 2px solid #2c3e91; }
     .planning-empty { text-align: center; padding: 40px 20px; color: #6c7a99; font-size: 17px; }
-
-    /* === LIST === */
     .list-wrap { flex: 1; overflow-y: auto; padding: 16px 16px 120px; -webkit-overflow-scrolling: touch; }
     .empty { text-align: center; padding: 60px 20px; color: #6c7a99; }
     .empty-icon { font-size: 64px; margin-bottom: 16px; }
     .empty-text { font-size: 18px; line-height: 1.5; }
-
     .card { background: white; border-radius: 18px; padding: 18px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(26,35,64,0.06); display: flex; align-items: center; gap: 14px; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
     .card:active { transform: scale(0.98); }
     .card.done { opacity: 0.55; }
@@ -142,32 +113,11 @@
     .avp-badge { display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 600; color: #0a6e31; background: #dcfce7; padding: 3px 8px; border-radius: 6px; }
     .card-check { font-size: 28px; color: #22a559; margin-left: 4px; }
     .card-check.unchecked { color: #d0d5e0; }
-
-    /* === NOUVELLE CARTE SONNERIE (jaune) === */
-    .card-sonnerie {
-      background: #fff8e6;
-      border-left: 6px solid #f0b93c;
-      border-radius: 14px;
-      padding: 14px;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-      cursor: pointer;
-    }
+    .card-sonnerie { background: #fff8e6; border-left: 6px solid #f0b93c; border-radius: 14px; padding: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); cursor: pointer; }
     .card-sonnerie:active { transform: scale(0.98); }
     .card-sonnerie.done { opacity: 0.55; }
     .card-sonnerie.done .sonnerie-titre { text-decoration: line-through; }
-    .sonnerie-left {
-      background: #f0b93c;
-      color: white;
-      border-radius: 10px;
-      padding: 10px 12px;
-      text-align: center;
-      min-width: 90px;
-      flex-shrink: 0;
-    }
+    .sonnerie-left { background: #f0b93c; color: white; border-radius: 10px; padding: 10px 12px; text-align: center; min-width: 90px; flex-shrink: 0; }
     .sonnerie-date { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1; }
     .sonnerie-heure { font-size: 26px; font-weight: 800; margin-top: 4px; line-height: 1; }
     .sonnerie-icon { font-size: 40px; line-height: 1; flex-shrink: 0; }
@@ -176,104 +126,42 @@
     .sonnerie-type { font-size: 11px; font-weight: 700; color: #8a5a00; text-transform: uppercase; letter-spacing: 1px; }
     .sonnerie-titre { font-size: 18px; font-weight: 700; color: #1a2340; margin-top: 2px; line-height: 1.2; }
     .sonnerie-note { font-size: 14px; color: #5e6b8a; margin-top: 4px; }
-
-    /* === NOUVELLE CARTE RENDEZ-VOUS (bleu) === */
-    .card-rdv {
-      background: #e9efff;
-      border: 2px solid #8fa3df;
-      border-radius: 14px;
-      padding: 14px;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-      cursor: pointer;
-    }
+    .card-rdv { background: #e9efff; border: 2px solid #8fa3df; border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); cursor: pointer; }
     .card-rdv:active { transform: scale(0.98); }
     .card-rdv.done { opacity: 0.55; }
     .card-rdv.done .rdv-titre { text-decoration: line-through; }
     .rdv-top { display: flex; align-items: center; gap: 14px; }
-    .rdv-left {
-      background: #2c3e91;
-      color: white;
-      border-radius: 10px;
-      padding: 10px 12px;
-      text-align: center;
-      min-width: 90px;
-      flex-shrink: 0;
-    }
+    .rdv-left { background: #2c3e91; color: white; border-radius: 10px; padding: 10px 12px; text-align: center; min-width: 90px; flex-shrink: 0; }
     .rdv-date { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1; }
     .rdv-heure { font-size: 26px; font-weight: 800; margin-top: 4px; line-height: 1; }
-    .rdv-image {
-      width: 64px; height: 64px;
-      background: white;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 44px;
-      flex-shrink: 0;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      line-height: 1;
-    }
+    .rdv-image { width: 64px; height: 64px; background: white; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 44px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1); line-height: 1; }
     .rdv-image img { width: 48px; height: 48px; }
     .rdv-body { flex: 1; min-width: 0; }
     .rdv-type { font-size: 11px; font-weight: 700; color: #2c3e91; text-transform: uppercase; letter-spacing: 1px; }
     .rdv-titre { font-size: 18px; font-weight: 700; color: #1a2340; margin-top: 2px; line-height: 1.2; }
     .rdv-note { font-size: 14px; color: #5e6b8a; margin-top: 4px; }
     .rdv-note a { color: #2c3e91; text-decoration: underline; }
-    .rdv-sonnerie {
-      background: #fff;
-      border: 1px dashed #aab0c4;
-      border-radius: 10px;
-      padding: 8px 10px;
-      margin-top: 10px;
-      font-size: 13px;
-      color: #5e6b8a;
-    }
-    .btn-agenda {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      width: 100%;
-      padding: 12px;
-      background: #2c3e91;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 700;
-      margin-top: 10px;
-      cursor: pointer;
-      font-family: inherit;
-      text-decoration: none;
-    }
+    .rdv-sonnerie { background: #fff; border: 1px dashed #aab0c4; border-radius: 10px; padding: 8px 10px; margin-top: 10px; font-size: 13px; color: #5e6b8a; }
+    .btn-agenda { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; background: #2c3e91; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; margin-top: 10px; cursor: pointer; font-family: inherit; text-decoration: none; }
     .btn-agenda:active { background: #1e2d6e; }
     .rdv-check { text-align: right; margin-top: 8px; font-size: 24px; color: #22a559; }
     .rdv-check.unchecked { color: #d0d5e0; }
-
     .icon-badge { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; padding: 4px 6px; background: #eef1fb; border-radius: 10px; border: 2px solid #2c3e91; min-width: 52px; }
     .ib-big { font-size: 15px; font-weight: 800; color: #2c3e91; letter-spacing: 0.5px; }
     .ib-small { font-size: 8px; font-weight: 600; color: #5e6b8a; margin-top: 2px; text-align: center; text-transform: lowercase; }
-
-    /* === ADD BUTTON === */
     .btn-add { position: fixed; bottom: 20px; left: 16px; right: 16px; padding: 20px; background: #22a559; color: white; border: none; border-radius: 40px; font-size: 20px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 20px rgba(34,165,89,0.35); font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 10px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
     .btn-add:active { background: #1d8b4b; }
     .btn-add .plus { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: white; color: #22a559; font-size: 24px; line-height: 1; font-weight: 700; }
-
-    /* === EDIT SCREEN === */
     .edit-header { background: white; padding: 18px 16px; padding-top: calc(18px + env(safe-area-inset-top)); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e5e9f2; flex-shrink: 0; }
     .back-btn { background: none; border: none; font-size: 26px; color: #2c3e91; cursor: pointer; padding: 4px 8px; font-family: inherit; }
     .edit-header h2 { font-size: 22px; font-weight: 700; flex: 1; }
     .edit-body { flex: 1; overflow-y: auto; padding: 20px 16px 40px; }
-
     .field { margin-bottom: 24px; }
     .field label { display: block; font-size: 15px; font-weight: 700; color: #5e6b8a; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
     .field-hint { font-size: 13px; color: #8590ad; margin-top: 6px; line-height: 1.35; font-style: italic; }
     .input, .textarea { width: 100%; padding: 16px; font-size: 20px; border: 2px solid #e5e9f2; border-radius: 14px; background: white; font-family: inherit; color: #1a2340; -webkit-appearance: none; }
     .input:focus, .textarea:focus { outline: none; border-color: #2c3e91; }
     .textarea { resize: none; min-height: 80px; }
-
-    /* === VOICE INPUT === */
     .voice-input { margin-bottom: 24px; padding: 14px; background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-radius: 16px; border: 2px solid #a7e4bd; }
     .voice-btn { width: 100%; padding: 18px; background: #22a559; color: white; border: none; border-radius: 12px; font-size: 19px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; font-family: inherit; }
     .voice-btn:active { background: #1d8b4b; transform: scale(0.98); }
@@ -285,13 +173,9 @@
     .voice-status.error { background: #fdf0f2; color: #b02a3e; display: block; border: 1px solid #f3c3ca; }
     .voice-status.listening { background: #fff8e6; color: #8a5a00; display: block; border: 1px solid #f0d89b; }
     .voice-hint { margin-top: 10px; font-size: 13px; color: #5e7a66; text-align: center; font-style: italic; line-height: 1.4; }
-
-    /* === SEGMENTED === */
     .segmented { display: flex; background: #e5e9f2; border-radius: 14px; padding: 4px; gap: 4px; }
     .seg-btn { flex: 1; padding: 14px 8px; background: transparent; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; color: #5e6b8a; cursor: pointer; font-family: inherit; }
     .seg-btn.active { background: white; color: #2c3e91; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
-
-    /* === COLOR SECTIONS === */
     .section-box { padding: 18px 16px 16px; border-radius: 18px; margin-bottom: 24px; border: 2px solid; }
     .section-box.section-alarm { background: #fff7e0; border-color: #f0cc5f; }
     .section-box.section-event { background: #e9efff; border-color: #8fa3df; }
@@ -306,8 +190,6 @@
     .section-box.plain { padding: 0; border: none; background: transparent; margin-bottom: 0; }
     .section-box.plain .section-header { display: none; }
     .section-box.plain .field { margin-bottom: 24px; }
-
-    /* === ICON GRID === */
     .icon-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .icon-opt { background: white; border: 2px solid #e5e9f2; border-radius: 16px; padding: 12px 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-family: inherit; min-height: 100px; }
     .icon-opt.selected { border-color: #2c3e91; background: #eef1fb; }
@@ -315,8 +197,6 @@
     .icon-opt-emoji { font-size: 44px; line-height: 1; }
     .icon-opt-img { width: 56px; height: 56px; object-fit: contain; }
     .icon-opt-label { font-size: 11px; font-weight: 700; color: #5e6b8a; text-align: center; line-height: 1.15; max-width: 100%; overflow: hidden; }
-
-    /* === TIME PICKER === */
     .tp { display: flex; align-items: center; justify-content: center; gap: 16px; background: white; border: 2px solid #e5e9f2; border-radius: 14px; padding: 12px; }
     .tp-col { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; max-width: 130px; }
     .tp-btn { width: 100%; height: 48px; background: #eef1fb; border: none; border-radius: 12px; font-size: 22px; font-weight: 700; color: #2c3e91; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; padding: 0; }
@@ -324,13 +204,9 @@
     .tp-val { font-size: 42px; font-weight: 800; color: #1a2340; width: 100%; text-align: center; padding: 6px 0; font-variant-numeric: tabular-nums; background: #f8f9fd; border-radius: 10px; }
     .tp-sep { font-size: 40px; font-weight: 800; color: #1a2340; padding: 0 4px; margin-top: 28px; }
     .tp-label { font-size: 11px; font-weight: 700; color: #8590ad; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-
-    /* === BUTTONS === */
     .btn-save { width: 100%; padding: 20px; background: #22a559; color: white; border: none; border-radius: 16px; font-size: 19px; font-weight: 700; cursor: pointer; margin-top: 8px; font-family: inherit; }
     .btn-save:active { background: #1d8b4b; }
     .btn-delete { width: 100%; padding: 16px; background: white; color: #d63447; border: 2px solid #f3c3ca; border-radius: 16px; font-size: 17px; font-weight: 600; cursor: pointer; margin-top: 12px; font-family: inherit; }
-
-    /* === MODAL === */
     .modal-backdrop { position: fixed; inset: 0; background: rgba(26,35,64,0.5); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 100; }
     .modal-backdrop.active { display: flex; }
     .modal { background: white; border-radius: 20px; padding: 28px 24px; max-width: 340px; width: 100%; text-align: center; }
@@ -342,8 +218,6 @@
     .btn-primary { background: #2c3e91; color: white; }
     .btn-secondary { background: #e5e9f2; color: #1a2340; }
     .btn-danger { background: #d63447; color: white; }
-
-    /* === ALERT === */
     .alert { position: fixed; inset: 0; background: #2c3e91; color: white; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 30px; z-index: 200; }
     .alert.active { display: flex; }
     .alert-icon { font-size: 100px; margin-bottom: 20px; }
@@ -352,8 +226,6 @@
     .alert-eventtime { background: white; color: #2c3e91; font-size: 26px; font-weight: 700; padding: 12px 24px; border-radius: 14px; margin-bottom: 20px; }
     .alert-note { font-size: 22px; opacity: 0.9; margin-bottom: 40px; }
     .alert-btn { background: white; color: #2c3e91; border: none; padding: 20px 40px; font-size: 20px; font-weight: 700; border-radius: 40px; cursor: pointer; font-family: inherit; width: 100%; max-width: 320px; }
-
-    /* === ADMIN SCREEN === */
     .admin-header { background: #d63447; color: white; padding: 24px 20px 20px; padding-top: calc(24px + env(safe-area-inset-top)); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
     .admin-header h1 { font-size: 22px; font-weight: 700; flex: 1; }
     .admin-list { flex: 1; overflow-y: auto; padding: 16px; }
@@ -366,8 +238,6 @@
     .btn-new-user:active { background: #b02a3e; }
     .btn-admin-action { margin: 0 16px 10px; padding: 16px; background: #eef1fb; color: #2c3e91; border: 2px solid #8fa3df; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .btn-admin-action:active { background: #dde3f7; }
-
-    /* === ADMIN USER DETAIL === */
     .admin-detail-body { flex: 1; overflow-y: auto; padding: 16px 16px 100px; }
     .admin-detail-top { background: white; border-radius: 16px; padding: 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(26,35,64,0.06); }
     .admin-detail-top .user-avatar { width: 64px; height: 64px; font-size: 28px; }
@@ -386,8 +256,6 @@
     .admin-reminder-del { background: #fdf0f2; border: 1px solid #f3c3ca; color: #d63447; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
     .admin-empty { text-align: center; padding: 20px; color: #8590ad; font-style: italic; font-size: 14px; background: white; border-radius: 12px; }
     .btn-admin-danger { width: calc(100% - 32px); margin: 20px 16px 0; padding: 16px; background: white; color: #d63447; border: 2px solid #f3c3ca; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; }
-
-    /* === INSCRITS PAR ATELIER === */
     .atelier-group { background: white; border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
     .atelier-group-header { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #e5e9f2; margin-bottom: 10px; }
     .atelier-group-date { background: #2c3e91; color: white; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
@@ -395,8 +263,6 @@
     .atelier-group-count { background: #22a559; color: white; padding: 2px 10px; border-radius: 12px; font-size: 13px; font-weight: 700; }
     .atelier-inscrit-list { display: flex; flex-wrap: wrap; gap: 6px; }
     .atelier-inscrit-tag { background: #eef1fb; color: #2c3e91; padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 600; }
-
-    /* === POINTAGE PRÉSENCE === */
     .atelier-badge-passe { background: #8590ad; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
     .atelier-badge-aujourdhui { background: #22a559; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
     .atelier-badge-futur { background: #2c3e91; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
@@ -412,14 +278,10 @@
     .btn-pointage.btn-absent { background: #fef2f2; color: #d63447; border-color: #fecaca; }
     .btn-pointage.btn-absent.active { background: #d63447; color: white; border-color: #d63447; }
     .btn-pointage:active { transform: scale(0.95); }
-
-    /* === LOADING === */
     .loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
     .spinner { width: 48px; height: 48px; border: 4px solid #e5e9f2; border-top-color: #2c3e91; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { font-size: 16px; color: #5e6b8a; }
-
-    /* === USER MENU === */
     .user-menu { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(26,35,64,0.5); z-index: 150; display: none; align-items: flex-end; }
     .user-menu.active { display: flex; }
     .user-menu-sheet { background: white; border-radius: 24px 24px 0 0; padding: 24px; width: 100%; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
@@ -428,8 +290,6 @@
     .user-menu-btn { width: 100%; padding: 16px; background: #f1f3f8; border: none; border-radius: 14px; font-size: 17px; font-weight: 600; color: #1a2340; cursor: pointer; font-family: inherit; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
     .user-menu-btn:active { background: #e5e9f2; }
     .user-menu-btn.danger { color: #d63447; background: #fdf0f2; }
-
-    /* === TUTORIEL === */
     #tutorial-screen { background: linear-gradient(160deg, #2c3e91 0%, #22a559 100%); }
     .tutorial-wrap { flex: 1; display: flex; flex-direction: column; padding: 40px 24px calc(24px + env(safe-area-inset-bottom)); padding-top: calc(50px + env(safe-area-inset-top)); overflow: hidden; }
     .tutorial-skip { position: absolute; top: calc(16px + env(safe-area-inset-top)); right: 16px; background: rgba(255,255,255,0.25); color: white; border: none; padding: 10px 16px; border-radius: 20px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; z-index: 10; }
@@ -453,13 +313,11 @@
 </head>
 <body>
 
-<!-- LOADING SCREEN -->
 <div id="loading-screen" class="screen active loading-screen">
   <div class="spinner"></div>
   <div class="loading-text">Chargement...</div>
 </div>
 
-<!-- LOGIN SCREEN -->
 <div id="login-screen" class="screen">
   <div class="login-wrap">
     <div class="login-logo" style="font-size:48px; background:#2c3e91; color:white; width:90px; height:90px; border-radius:20px; display:flex; align-items:center; justify-content:center; margin:0 auto;">🏠</div>
@@ -503,7 +361,6 @@
   </div>
 </div>
 
-<!-- MAIN SCREEN -->
 <div id="main-screen" class="screen">
   <header class="header">
     <button id="prev-day" class="btn-arrow" aria-label="Jour précédent">‹</button>
@@ -529,7 +386,6 @@
   </button>
 </div>
 
-<!-- EDIT SCREEN -->
 <div id="edit-screen" class="screen">
   <div class="edit-header">
     <button class="back-btn" id="back-btn">‹ Retour</button>
@@ -582,7 +438,6 @@
   </div>
 </div>
 
-<!-- PLANNING SCREEN -->
 <div id="planning-screen" class="screen">
   <div class="edit-header">
     <button class="back-btn" id="planning-back-btn">‹ Retour</button>
@@ -592,7 +447,6 @@
   <div class="list-wrap" id="planning-content"></div>
 </div>
 
-<!-- ADMIN SCREEN -->
 <div id="admin-screen" class="screen">
   <div class="admin-header">
     <button class="back-btn" id="admin-back-btn" style="color:white">‹</button>
@@ -603,7 +457,6 @@
   <div class="admin-list" id="admin-user-list"></div>
 </div>
 
-<!-- ADMIN DETAIL USER -->
 <div id="admin-detail-screen" class="screen">
   <div class="admin-header">
     <button class="back-btn" id="admin-detail-back" style="color:white">‹</button>
@@ -612,7 +465,6 @@
   <div class="admin-detail-body" id="admin-detail-body"></div>
 </div>
 
-<!-- ADMIN ATELIERS (inscrits) -->
 <div id="admin-ateliers-screen" class="screen">
   <div class="admin-header">
     <button class="back-btn" id="admin-ateliers-back" style="color:white">‹</button>
@@ -621,7 +473,6 @@
   <div class="admin-list" id="admin-ateliers-list"></div>
 </div>
 
-<!-- USER MENU -->
 <div class="user-menu" id="user-menu">
   <div class="user-menu-sheet">
     <div class="user-menu-name" id="um-name"></div>
@@ -633,13 +484,10 @@
   </div>
 </div>
 
-<!-- TUTORIEL -->
 <div id="tutorial-screen" class="screen">
   <div class="tutorial-wrap">
     <button class="tutorial-skip" id="tutorial-skip">Passer ✕</button>
-    <div class="tutorial-content" id="tutorial-content">
-      <!-- Pages générées en JS -->
-    </div>
+    <div class="tutorial-content" id="tutorial-content"></div>
     <div class="tutorial-dots" id="tutorial-dots"></div>
     <div class="tutorial-nav">
       <button class="tutorial-btn tutorial-btn-prev" id="tutorial-prev">‹ Précédent</button>
@@ -648,7 +496,6 @@
   </div>
 </div>
 
-<!-- CONFIRM MODAL -->
 <div id="confirm-modal" class="modal-backdrop">
   <div class="modal">
     <div class="modal-icon" id="confirm-icon">❓</div>
@@ -661,7 +508,6 @@
   </div>
 </div>
 
-<!-- ALERT -->
 <div id="alert" class="alert">
   <div class="alert-icon" id="alert-icon">💊</div>
   <div class="alert-time" id="alert-time"></div>
@@ -671,8 +517,6 @@
   <button class="alert-btn" id="alert-dismiss">J'ai compris</button>
 </div>
 
-<!-- Firebase SDK -->
-<!-- Firebase SDK compat (fonctionne sur mobile sans module) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
@@ -685,10 +529,8 @@ firebase.initializeApp({
   appId: "1:462434472591:web:300522e541df2ce1ae96fa"
 });
 const db = firebase.firestore();
-
 const ADMIN_CODE = '1969';
 
-// ========== SVG ICONS ==========
 const SVG_HDJ = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="60" cy="14" r="10" fill="#FFD93D"/><line x1="60" y1="2" x2="60" y2="4" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><line x1="60" y1="24" x2="60" y2="26" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><line x1="48" y1="14" x2="50" y2="14" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><line x1="70" y1="14" x2="72" y2="14" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><circle cx="30" cy="18" r="8" fill="#F5DEB3"/><rect x="22" y="28" width="16" height="24" rx="3" fill="#2AA198"/><rect x="18" y="28" width="8" height="18" rx="2" fill="#2AA198"/><rect x="34" y="28" width="8" height="18" rx="2" fill="#2AA198"/><rect x="24" y="52" width="6" height="14" rx="2" fill="#3B6B8A"/><rect x="32" y="52" width="6" height="14" rx="2" fill="#3B6B8A"/><rect x="26" y="32" width="8" height="3" rx="1" fill="white"/><rect x="29" y="30" width="2" height="7" rx="1" fill="white"/><circle cx="30" cy="14" r="2" fill="#2AA198"/></svg>`;
 const SVG_CMP = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><polygon points="40,8 8,35 72,35" fill="#E85D4A"/><rect x="14" y="35" width="52" height="32" fill="#FFF5E6"/><rect x="14" y="35" width="52" height="3" fill="#D44A3A"/><rect x="30" y="45" width="20" height="22" rx="2" fill="#8B6914"/><circle cx="46" cy="57" r="2" fill="#FFD93D"/><rect x="18" y="40" width="10" height="10" rx="1" fill="#87CEEB"/><line x1="23" y1="40" x2="23" y2="50" stroke="white" stroke-width="1"/><line x1="18" y1="45" x2="28" y2="45" stroke="white" stroke-width="1"/><rect x="52" y="40" width="10" height="10" rx="1" fill="#87CEEB"/><line x1="57" y1="40" x2="57" y2="50" stroke="white" stroke-width="1"/><line x1="52" y1="45" x2="62" y2="45" stroke="white" stroke-width="1"/><text x="40" y="76" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#2c3e91">CMP</text></svg>`;
 const SVG_AUX = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="28" cy="16" r="7" fill="#E8D5C4"/><rect x="22" y="25" width="12" height="20" rx="3" fill="#D4A0D0"/><rect x="18" y="25" width="6" height="15" rx="2" fill="#D4A0D0"/><rect x="34" y="25" width="6" height="15" rx="2" fill="#D4A0D0"/><rect x="23" y="45" width="5" height="16" rx="2" fill="#8B7355"/><rect x="30" y="45" width="5" height="16" rx="2" fill="#8B7355"/><line x1="20" y1="42" x2="14" y2="62" stroke="#8B6914" stroke-width="2.5" stroke-linecap="round"/><circle cx="52" cy="18" r="7" fill="#F5DEB3"/><rect x="46" y="27" width="12" height="20" rx="3" fill="#64B5F6"/><rect x="42" y="27" width="6" height="15" rx="2" fill="#64B5F6"/><rect x="58" y="27" width="6" height="15" rx="2" fill="#64B5F6"/><rect x="47" y="47" width="5" height="16" rx="2" fill="#3B6B8A"/><rect x="54" y="47" width="5" height="16" rx="2" fill="#3B6B8A"/><path d="M36,36 Q40,34 44,36" stroke="#D4A0D0" stroke-width="2" fill="none"/></svg>`;
@@ -729,15 +571,12 @@ const ACTIVITY_ICONS = {
   'sortie culturelle': '🎭', 'culturelle': '🎭',
   'bien-être': '💆', 'atelier bien-être': '💆',
   'loisir créatif': '✂️', 'créatif': '✂️',
-  // Nouveaux ateliers
   'infos': '🗣️', 'débat': '🗣️', 'échanges': '🗣️', 'infos / débat': '🗣️',
-  'férié': '🎉',
-  'vacances': '🏖️',
+  'férié': '🎉', 'vacances': '🏖️',
   'mobilsport': '⚽', 'mobil sport': '⚽', 'sport': '⚽',
   'atelier libre': '🆓', 'libre': '🆓',
   'sortie extérieure': '🚗', 'extérieure': '🚗',
-  'barbecue': '🍖',
-  'pétanque': '🎯',
+  'barbecue': '🍖', 'pétanque': '🎯',
   'groupe de parole': '👂', 'marie psychologue': '👂', 'psychologue': '👂',
   'anglais': '🇬🇧',
   'visite à domicile': '🏠', 'visite domicile': '🏠', 'domicile': '🏠',
@@ -751,13 +590,11 @@ const AVP_LOCATIONS = {
 
 const AVP_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiMQSY5bkzgEsLV58rkPeAxuAffVuw0qPuehrTL_92BdlYDgL_QMjHZTzd5KF_IhhPm3pfmQJsXB7T/pub?gid=382746303&single=true&output=csv';
 
-// ========== STATE ==========
-let currentUser = null; // { id, prenom, isAdmin }
+let currentUser = null;
 let state = { reminders: [], dayOffset: 0, editing: null, avpEvents: [], inscriptions: {} };
-let loginMode = 'login'; // 'login' | 'register'
+let loginMode = 'login';
 let pinValue = '';
 
-// ========== UTILS ==========
 function esc(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 function pad2(n) { return String(n).padStart(2,'0'); }
@@ -766,555 +603,105 @@ function getCurrentDate() { const d = new Date(); d.setDate(d.getDate() + state.
 function dayLabel() { if(state.dayOffset===0)return"Aujourd'hui"; if(state.dayOffset===1)return"Demain"; if(state.dayOffset===-1)return"Hier"; const d=getCurrentDate(); return d.toLocaleDateString('fr-FR',{weekday:'long'}); }
 function formatDate(d) { return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}); }
 function formatRelativeDate(ds) { const d=new Date(ds+'T12:00:00'); return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}); }
-function formatShortDate(ds) {
-  const d = new Date(ds+'T12:00:00');
-  const jours = ['Dim.','Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.'];
-  const mois = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
-  return jours[d.getDay()] + ' ' + d.getDate() + ' ' + mois[d.getMonth()];
-}
-function buildGoogleCalendarLink(r) {
-  const eventDate = r.eventDate || r.date;
-  const eventTime = r.eventTime || r.time;
-  const [hh, mm] = eventTime.split(':').map(Number);
-  const d = new Date(eventDate + 'T' + eventTime + ':00');
-  const dEnd = new Date(d.getTime() + 60*60*1000);
-  const fmt = dt => dt.getUTCFullYear() + String(dt.getUTCMonth()+1).padStart(2,'0') + String(dt.getUTCDate()).padStart(2,'0') + 'T' + String(dt.getUTCHours()).padStart(2,'0') + String(dt.getUTCMinutes()).padStart(2,'0') + '00Z';
-  const title = encodeURIComponent(r.title || 'Rendez-vous');
-  const details = encodeURIComponent(r.note || '');
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(d)}/${fmt(dEnd)}&details=${details}`;
-}
+function formatShortDate(ds) { const d=new Date(ds+'T12:00:00'); const j=['Dim.','Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.']; const m=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.']; return j[d.getDay()]+' '+d.getDate()+' '+m[d.getMonth()]; }
+function buildGoogleCalendarLink(r) { const eventDate=r.eventDate||r.date; const eventTime=r.eventTime||r.time; const d=new Date(eventDate+'T'+eventTime+':00'); const dEnd=new Date(d.getTime()+60*60*1000); const fmt=dt=>dt.getUTCFullYear()+String(dt.getUTCMonth()+1).padStart(2,'0')+String(dt.getUTCDate()).padStart(2,'0')+'T'+String(dt.getUTCHours()).padStart(2,'0')+String(dt.getUTCMinutes()).padStart(2,'0')+'00Z'; const title=encodeURIComponent(r.title||'Rendez-vous'); const details=encodeURIComponent(r.note||''); return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(d)}/${fmt(dEnd)}&details=${details}`; }
 function timeToSpeech(t) { const[h,m]=t.split(':').map(Number); return m?`${h} heures ${m}`:`${h} heures`; }
-function reminderAppliesToDay(r, key) {
-  if (r.recurrence === 'daily') return true;
-  return r.date === key;
-}
+function reminderAppliesToDay(r, key) { if(r.recurrence==='daily')return true; return r.date===key; }
+function getActivityIcon(name) { const lc=(name||'').toLowerCase().trim(); for(const[key,icon] of Object.entries(ACTIVITY_ICONS)){if(lc.includes(key))return icon;} return '📋'; }
+function getAVPLocation(title) { const lc=(title||'').toLowerCase(); for(const[key,loc] of Object.entries(AVP_LOCATIONS)){if(lc.includes(key))return loc;} return null; }
+function iconHTML(ic) { if(!ic)return''; if(typeof ic==='string'&&ic.startsWith('svg:')){const name=ic.slice(4);const svgMap={HDJ:SVG_HDJ,CMP:SVG_CMP,AUX:SVG_AUX,MAISON:SVG_MAISON,CLE:SVG_CLE};if(svgMap[name])return`<img src="data:image/svg+xml,${encodeURIComponent(svgMap[name])}" style="width:40px;height:40px" alt="${name}">`;}if(typeof ic==='string'&&ic.startsWith('txt:')){const rest=ic.slice(4),pipe=rest.indexOf('|');const big=pipe>=0?rest.slice(0,pipe):rest;const small=pipe>=0?rest.slice(pipe+1):'';return`<span class="icon-badge"><span class="ib-big">${esc(big)}</span>${small?`<span class="ib-small">${esc(small)}</span>`:''}</span>`;}return esc(ic||''); }
+function showScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
 
-function getActivityIcon(name) {
-  const lc = (name||'').toLowerCase().trim();
-  for (const [key, icon] of Object.entries(ACTIVITY_ICONS)) { if(lc.includes(key)) return icon; }
-  return '📋';
-}
-function getAVPLocation(title) {
-  const lc = (title||'').toLowerCase();
-  for (const [key, loc] of Object.entries(AVP_LOCATIONS)) { if(lc.includes(key)) return loc; }
-  return null;
-}
+function updatePinDots() { for(let i=0;i<4;i++){document.getElementById('pd'+i).classList.toggle('filled',i<pinValue.length);} document.getElementById('pin-ok-btn').disabled=pinValue.length<4; }
+document.querySelectorAll('.pin-btn').forEach(btn => { btn.addEventListener('click',()=>{ const d=btn.dataset.digit; if(d==='del'){pinValue=pinValue.slice(0,-1);}else if(d==='ok'){handleLogin();return;}else if(pinValue.length<4){pinValue+=d;} updatePinDots(); if('vibrate' in navigator)try{navigator.vibrate(15)}catch(e){} }); });
 
-function iconHTML(ic) {
-  if (!ic) return '';
-  if (typeof ic === 'string' && ic.startsWith('svg:')) {
-    const name = ic.slice(4);
-    const svgMap = { HDJ: SVG_HDJ, CMP: SVG_CMP, AUX: SVG_AUX, MAISON: SVG_MAISON, CLE: SVG_CLE };
-    if (svgMap[name]) return `<img src="data:image/svg+xml,${encodeURIComponent(svgMap[name])}" style="width:40px;height:40px" alt="${name}">`;
-  }
-  if (typeof ic === 'string' && ic.startsWith('txt:')) {
-    const rest = ic.slice(4), pipe = rest.indexOf('|');
-    const big = pipe >= 0 ? rest.slice(0, pipe) : rest;
-    const small = pipe >= 0 ? rest.slice(pipe + 1) : '';
-    return `<span class="icon-badge"><span class="ib-big">${esc(big)}</span>${small ? `<span class="ib-small">${esc(small)}</span>` : ''}</span>`;
-  }
-  return esc(ic||'');
-}
+document.getElementById('login-switch-btn').addEventListener('click',()=>{ loginMode=loginMode==='login'?'register':'login'; pinValue=''; updatePinDots(); document.getElementById('login-error').classList.remove('visible'); if(loginMode==='register'){document.getElementById('login-card-title').textContent='Créer mon compte';document.getElementById('field-prenom').style.display='block';document.getElementById('login-switch-text').textContent='Déjà un compte ?';document.getElementById('login-switch-btn').textContent='Se connecter';}else{document.getElementById('login-card-title').textContent='Se connecter';document.getElementById('field-prenom').style.display='none';document.getElementById('login-switch-text').textContent='Pas encore de compte ?';document.getElementById('login-switch-btn').textContent='Créer un compte';} });
 
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-// ========== PIN LOGIC ==========
-function updatePinDots() {
-  for (let i = 0; i < 4; i++) {
-    document.getElementById('pd'+i).classList.toggle('filled', i < pinValue.length);
-  }
-  document.getElementById('pin-ok-btn').disabled = pinValue.length < 4;
-}
-
-document.querySelectorAll('.pin-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const d = btn.dataset.digit;
-    if (d === 'del') { pinValue = pinValue.slice(0, -1); }
-    else if (d === 'ok') { handleLogin(); return; }
-    else if (pinValue.length < 4) { pinValue += d; }
-    updatePinDots();
-    if ('vibrate' in navigator) try { navigator.vibrate(15); } catch(e) {}
-  });
-});
-
-// ========== LOGIN MODE TOGGLE ==========
-document.getElementById('login-switch-btn').addEventListener('click', () => {
-  loginMode = loginMode === 'login' ? 'register' : 'login';
-  pinValue = '';
-  updatePinDots();
-  document.getElementById('login-error').classList.remove('visible');
-  if (loginMode === 'register') {
-    document.getElementById('login-card-title').textContent = 'Créer mon compte';
-    document.getElementById('field-prenom').style.display = 'block';
-    document.getElementById('login-switch-text').textContent = 'Déjà un compte ?';
-    document.getElementById('login-switch-btn').textContent = 'Se connecter';
-  } else {
-    document.getElementById('login-card-title').textContent = 'Se connecter';
-    document.getElementById('field-prenom').style.display = 'none';
-    document.getElementById('login-switch-text').textContent = 'Pas encore de compte ?';
-    document.getElementById('login-switch-btn').textContent = 'Créer un compte';
-  }
-});
-
-// ========== FIREBASE AUTH ==========
 async function handleLogin() {
-  const prenom = document.getElementById('login-prenom').value.trim();
-  const code = pinValue;
-  const errEl = document.getElementById('login-error');
-  errEl.classList.remove('visible');
-
-  if (code.length < 4) { showError('Entrez vos 4 chiffres.'); return; }
-
-  // Check admin
-  if (code === ADMIN_CODE && loginMode === 'login') {
-    currentUser = { id: 'admin', prenom: 'Admin', isAdmin: true };
-    saveSession();
-    showAdminScreen();
-    return;
-  }
-
-  if (loginMode === 'register') {
-    if (!prenom) { showError('Entrez votre prénom.'); return; }
-    try {
-      const snap = await db.collection('users').get();
-      const existing = snap.docs.find(d => d.data().prenom.toLowerCase() === prenom.toLowerCase());
-      if (existing) { showError('Ce prénom existe déjà. Connectez-vous.'); return; }
-      const userId = uid();
-      await db.collection('users').doc(userId).set({ prenom, code, createdAt: Date.now(), reminders: [], inscriptions: {} });
-      currentUser = { id: userId, prenom, isAdmin: false };
-      saveSession();
-      tagOneSignalUser(prenom);
-      state.reminders = []; state.inscriptions = {};
-      enterApp();
-    } catch(e) { showError('Erreur réseau. Vérifiez internet.'); console.error(e); }
-  } else {
-    try {
-      const snap = await db.collection('users').get();
-      let found = null;
-      snap.docs.forEach(d => { if (d.data().code === code) found = { id: d.id, ...d.data() }; });
-      if (!found) { showError('Code incorrect.'); pinValue = ''; updatePinDots(); return; }
-      currentUser = { id: found.id, prenom: found.prenom, isAdmin: false };
-      saveSession();
-      tagOneSignalUser(found.prenom);
-      await loadUserData();
-      enterApp();
-    } catch(e) { showError('Erreur réseau. Vérifiez internet.'); console.error(e); }
+  const prenom=document.getElementById('login-prenom').value.trim();
+  const code=pinValue;
+  document.getElementById('login-error').classList.remove('visible');
+  if(code.length<4){showError('Entrez vos 4 chiffres.');return;}
+  if(code===ADMIN_CODE&&loginMode==='login'){currentUser={id:'admin',prenom:'Admin',isAdmin:true};saveSession();showAdminScreen();return;}
+  if(loginMode==='register'){
+    if(!prenom){showError('Entrez votre prénom.');return;}
+    try{const snap=await db.collection('users').get();const existing=snap.docs.find(d=>d.data().prenom.toLowerCase()===prenom.toLowerCase());if(existing){showError('Ce prénom existe déjà. Connectez-vous.');return;}const userId=uid();await db.collection('users').doc(userId).set({prenom,code,createdAt:Date.now(),reminders:[],inscriptions:{}});currentUser={id:userId,prenom,isAdmin:false};saveSession();tagOneSignalUser(prenom);state.reminders=[];state.inscriptions={};enterApp();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
+  }else{
+    try{const snap=await db.collection('users').get();let found=null;snap.docs.forEach(d=>{if(d.data().code===code)found={id:d.id,...d.data()};});if(!found){showError('Code incorrect.');pinValue='';updatePinDots();return;}currentUser={id:found.id,prenom:found.prenom,isAdmin:false};saveSession();tagOneSignalUser(found.prenom);await loadUserData();enterApp();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
   }
 }
 
-function showError(msg) {
-  const el = document.getElementById('login-error');
-  el.textContent = msg;
-  el.classList.add('visible');
+function showError(msg){const el=document.getElementById('login-error');el.textContent=msg;el.classList.add('visible');}
+function saveSession(){try{localStorage.setItem('avp_session',JSON.stringify(currentUser));}catch(e){}}
+function loadSession(){try{const s=localStorage.getItem('avp_session');if(s)return JSON.parse(s);}catch(e){}return null;}
+function clearSession(){try{localStorage.removeItem('avp_session');}catch(e){}}
+
+async function loadUserData(){if(!currentUser||currentUser.isAdmin)return;try{const snap=await db.collection('users').doc(currentUser.id).get();if(snap.exists){state.reminders=snap.data().reminders||[];state.inscriptions=snap.data().inscriptions||{};}}catch(e){}}
+
+async function saveUserData(){
+  if(currentUser&&currentUser.isAdmin&&state.editingAdminMode&&adminEditingUid){try{await db.collection('users').doc(adminEditingUid).update({reminders:state.reminders,inscriptions:state.inscriptions});}catch(e){}return;}
+  if(!currentUser||currentUser.isAdmin)return;
+  try{await db.collection('users').doc(currentUser.id).update({reminders:state.reminders,inscriptions:state.inscriptions});}catch(e){}
 }
 
-function saveSession() {
-  try { localStorage.setItem('avp_session', JSON.stringify(currentUser)); } catch(e) {}
-}
-function loadSession() {
-  try { const s = localStorage.getItem('avp_session'); if(s) return JSON.parse(s); } catch(e) {}
-  return null;
-}
-function clearSession() {
-  try { localStorage.removeItem('avp_session'); } catch(e) {}
-}
-
-// ========== FIREBASE DATA ==========
-async function loadUserData() {
-  if (!currentUser || currentUser.isAdmin) return;
-  try {
-    const snap = await db.collection('users').doc(currentUser.id).get();
-    if (snap.exists) {
-      state.reminders = snap.data().reminders || [];
-      state.inscriptions = snap.data().inscriptions || {};
-    }
-  } catch(e) { console.error('loadUserData', e); }
+function enterApp(){
+  const header=document.querySelector('#main-screen .header');
+  let userBtn=document.getElementById('header-user-btn');
+  if(!userBtn){userBtn=document.createElement('button');userBtn.id='header-user-btn';userBtn.className='header-user';header.appendChild(userBtn);}
+  const initials=currentUser.prenom.slice(0,1).toUpperCase();
+  userBtn.innerHTML=`<div class="user-avatar" style="width:36px;height:36px;font-size:16px">${initials}</div><span class="header-user-name">${esc(currentUser.prenom)}</span>`;
+  userBtn.onclick=()=>openUserMenu();
+  showScreen('main-screen');render();loadAVPPlanning();checkReminders();
+  if(shouldShowTutorial())setTimeout(()=>startTutorial(),800);
 }
 
-async function saveUserData() {
-  // Cas admin en train d'ajouter un rappel pour un bénéficiaire
-  if (currentUser && currentUser.isAdmin && state.editingAdminMode && adminEditingUid) {
-    try {
-      await db.collection('users').doc(adminEditingUid).update({
-        reminders: state.reminders,
-        inscriptions: state.inscriptions
-      });
-    } catch(e) { console.error('saveUserData admin', e); }
-    return;
-  }
-  if (!currentUser || currentUser.isAdmin) return;
-  try {
-    await db.collection('users').doc(currentUser.id).update({
-      reminders: state.reminders,
-      inscriptions: state.inscriptions
-    });
-  } catch(e) { console.error('saveUserData', e); }
-}
+function openUserMenu(){document.getElementById('um-name').textContent=currentUser.prenom;document.getElementById('um-role').textContent='Mon compte AVP';document.getElementById('user-menu').classList.add('active');}
+document.getElementById('user-menu').addEventListener('click',e=>{if(e.target===document.getElementById('user-menu'))document.getElementById('user-menu').classList.remove('active');});
+document.getElementById('um-planning').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';renderPlanning();showScreen('planning-screen');});
+document.getElementById('um-notif').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');requestNotifPermission();});
+document.getElementById('um-tutorial').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');startTutorial();});
+document.getElementById('um-logout').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');showConfirm({icon:'🚪',title:'Se déconnecter ?',text:'Vous devrez vous reconnecter la prochaine fois.',okText:'Déconnecter',danger:true,onOk:()=>{clearSession();currentUser=null;state.reminders=[];state.inscriptions={};pinValue='';updatePinDots();showScreen('login-screen');}});});
 
-// ========== ENTER APP ==========
-function enterApp() {
-  // Update header with user name
-  const header = document.querySelector('#main-screen .header');
-  // Add user button if not exists
-  let userBtn = document.getElementById('header-user-btn');
-  if (!userBtn) {
-    userBtn = document.createElement('button');
-    userBtn.id = 'header-user-btn';
-    userBtn.className = 'header-user';
-    header.appendChild(userBtn);
-  }
-  const initials = currentUser.prenom.slice(0,1).toUpperCase();
-  userBtn.innerHTML = `<div class="user-avatar" style="width:36px;height:36px;font-size:16px">${initials}</div><span class="header-user-name">${esc(currentUser.prenom)}</span>`;
-  userBtn.onclick = () => openUserMenu();
+const TUTORIAL_PAGES=[{emoji:'👋',title:'Bienvenue !',text:'Cette application a été créée pour vous aider à <strong>organiser votre journée</strong>. Suivez ce petit guide pour bien la prendre en main.'},{emoji:'🔔',title:'Les sonneries',text:'Appuyez sur le <strong>bouton vert "+"</strong> en bas pour créer un rappel : prendre vos médicaments, un rendez-vous… L\'application vous <strong>sonnera à l\'heure prévue</strong>.'},{emoji:'📅',title:'Les rendez-vous',text:'Pour un rendez-vous médecin ou dentiste, choisissez l\'icône et indiquez <strong>la date et l\'heure</strong>. Vous pouvez même l\'ajouter à <strong>Google Agenda</strong> en un clic.'},{emoji:'📋',title:'Le planning AVP',text:'Le bouton <strong>"Planning Steve"</strong> affiche tous les ateliers du mois. Appuyez sur <strong>"M\'inscrire"</strong> pour participer. Vous verrez aussi les autres personnes inscrites.'},{emoji:'🎤',title:'La voix',text:'Vous n\'aimez pas écrire ? Appuyez sur le <strong>bouton microphone vert</strong> quand vous créez un rappel et dictez : <em>"Prendre mes médicaments à 8h"</em>.'},{emoji:'👤',title:'Votre prénom en haut',text:'Appuyez sur <strong>votre prénom</strong> en haut à droite pour voir ce menu : activer les notifications, revoir ce tutoriel, ou vous déconnecter.'},{emoji:'🎉',title:'C\'est parti !',text:'Vous savez tout ce qu\'il faut ! En cas de question, demandez à <strong>Steve ou Greg</strong>. Bonne journée !'}];
+let tutorialIndex=0;
+function startTutorial(){tutorialIndex=0;showScreen('tutorial-screen');renderTutorialPage();}
+function renderTutorialPage(){const page=TUTORIAL_PAGES[tutorialIndex];document.getElementById('tutorial-content').innerHTML=`<div class="tutorial-emoji">${page.emoji}</div><div class="tutorial-title">${page.title}</div><div class="tutorial-text">${page.text}</div>`;document.getElementById('tutorial-dots').innerHTML=TUTORIAL_PAGES.map((_,i)=>`<div class="tutorial-dot ${i===tutorialIndex?'active':''}"></div>`).join('');const prev=document.getElementById('tutorial-prev');const next=document.getElementById('tutorial-next');prev.classList.toggle('hidden',tutorialIndex===0);if(tutorialIndex===TUTORIAL_PAGES.length-1){next.textContent='✓ Commencer';next.classList.add('tutorial-btn-finish');}else{next.textContent='Suivant ›';next.classList.remove('tutorial-btn-finish');}}
+document.getElementById('tutorial-prev').addEventListener('click',()=>{if(tutorialIndex>0){tutorialIndex--;renderTutorialPage();}});
+document.getElementById('tutorial-next').addEventListener('click',()=>{if(tutorialIndex<TUTORIAL_PAGES.length-1){tutorialIndex++;renderTutorialPage();}else{finishTutorial();}});
+document.getElementById('tutorial-skip').addEventListener('click',finishTutorial);
+function finishTutorial(){try{localStorage.setItem('avp_tutorial_seen_'+(currentUser?currentUser.id:'x'),'1');}catch(e){}showScreen('main-screen');}
+function shouldShowTutorial(){try{return!localStorage.getItem('avp_tutorial_seen_'+(currentUser?currentUser.id:'x'));}catch(e){return false;}}
 
-  showScreen('main-screen');
-  render();
-  loadAVPPlanning();
-  checkReminders();
+async function requestNotifPermission(){if(!('Notification' in window)){showConfirm({icon:'❌',title:'Non disponible',text:"Les notifications ne sont pas disponibles sur ce navigateur.",okText:'OK',hideCancel:true});return;}const perm=await Notification.requestPermission();if(perm==='granted'){showConfirm({icon:'🔔',title:'Notifications activées !',text:"Vous recevrez des rappels quand l'application est ouverte.",okText:'Super',hideCancel:true});}else{showConfirm({icon:'⚠️',title:'Notifications refusées',text:"Autorisez les notifications dans les paramètres de votre téléphone.",okText:'OK',hideCancel:true});}}
 
-  // Afficher automatiquement le tutoriel à la première connexion
-  if (shouldShowTutorial()) {
-    setTimeout(() => startTutorial(), 800);
-  }
-}
+async function tagOneSignalUser(prenom){if(!prenom)return;try{if(window.OneSignalDeferred){window.OneSignalDeferred.push(async function(OneSignal){await OneSignal.User.addTag("prenom",prenom.toLowerCase());});}}catch(e){}}
+async function tagOneSignalAtelier(atelierKey,inscrit){try{if(window.OneSignalDeferred){window.OneSignalDeferred.push(async function(OneSignal){const tagKey="atelier_"+atelierKey.replace(/[^a-z0-9_]/gi,'_').slice(0,60);if(inscrit){await OneSignal.User.addTag(tagKey,"1");}else{await OneSignal.User.removeTag(tagKey);}});}}catch(e){}}
 
-// ========== USER MENU ==========
-function openUserMenu() {
-  document.getElementById('um-name').textContent = currentUser.prenom;
-  document.getElementById('um-role').textContent = 'Mon compte AVP';
-  document.getElementById('user-menu').classList.add('active');
-}
-document.getElementById('user-menu').addEventListener('click', e => {
-  if (e.target === document.getElementById('user-menu')) document.getElementById('user-menu').classList.remove('active');
-});
-document.getElementById('um-planning').addEventListener('click', () => {
-  document.getElementById('user-menu').classList.remove('active');
-  // Utiliser le planning Steve par défaut (depuis le menu utilisateur)
-  state.currentAnim = 'Steve';
-  document.getElementById('planning-anim-label').textContent = '👤 Planning de Steve';
-  renderPlanning(); showScreen('planning-screen');
-});
-document.getElementById('um-notif').addEventListener('click', () => {
-  document.getElementById('user-menu').classList.remove('active');
-  requestNotifPermission();
-});
-document.getElementById('um-tutorial').addEventListener('click', () => {
-  document.getElementById('user-menu').classList.remove('active');
-  startTutorial();
-});
-document.getElementById('um-logout').addEventListener('click', () => {
-  document.getElementById('user-menu').classList.remove('active');
-  showConfirm({ icon:'🚪', title:'Se déconnecter ?', text:'Vous devrez vous reconnecter la prochaine fois.', okText:'Déconnecter', danger:true,
-    onOk: () => { clearSession(); currentUser=null; state.reminders=[]; state.inscriptions={}; pinValue=''; updatePinDots(); showScreen('login-screen'); }
-  });
-});
+async function queueNotification(title,message,sendAtDate,sendAtTime,targetTag){try{const[y,mo,d]=sendAtDate.split('-').map(Number);const[h,m]=sendAtTime.split(':').map(Number);const sendDate=new Date(y,mo-1,d,h,m,0);if(sendDate.getTime()<Date.now())return;const notif={title,message,sendAt:sendDate.toISOString(),sendAtMs:sendDate.getTime(),targetTagKey:targetTag.key,targetTagValue:targetTag.value,sent:false,createdAt:Date.now(),createdBy:currentUser?currentUser.prenom:'unknown'};await db.collection('notifications').add(notif);}catch(e){}}
 
-// ========== TUTORIEL ==========
-const TUTORIAL_PAGES = [
-  {
-    emoji: '👋',
-    title: 'Bienvenue !',
-    text: 'Cette application a été créée pour vous aider à <strong>organiser votre journée</strong>. Suivez ce petit guide pour bien la prendre en main.'
-  },
-  {
-    emoji: '🔔',
-    title: 'Les sonneries',
-    text: 'Appuyez sur le <strong>bouton vert "+"</strong> en bas pour créer un rappel : prendre vos médicaments, un rendez-vous… L\'application vous <strong>sonnera à l\'heure prévue</strong>.'
-  },
-  {
-    emoji: '📅',
-    title: 'Les rendez-vous',
-    text: 'Pour un rendez-vous médecin ou dentiste, choisissez l\'icône et indiquez <strong>la date et l\'heure</strong>. Vous pouvez même l\'ajouter à <strong>Google Agenda</strong> en un clic.'
-  },
-  {
-    emoji: '📋',
-    title: 'Le planning AVP',
-    text: 'Le bouton <strong>"Planning Steve"</strong> affiche tous les ateliers du mois. Appuyez sur <strong>"M\'inscrire"</strong> pour participer. Vous verrez aussi les autres personnes inscrites.'
-  },
-  {
-    emoji: '🎤',
-    title: 'La voix',
-    text: 'Vous n\'aimez pas écrire ? Appuyez sur le <strong>bouton microphone vert</strong> quand vous créez un rappel et dictez : <em>"Prendre mes médicaments à 8h"</em>.'
-  },
-  {
-    emoji: '👤',
-    title: 'Votre prénom en haut',
-    text: 'Appuyez sur <strong>votre prénom</strong> en haut à droite pour voir ce menu : activer les notifications, revoir ce tutoriel, ou vous déconnecter.'
-  },
-  {
-    emoji: '🎉',
-    title: 'C\'est parti !',
-    text: 'Vous savez tout ce qu\'il faut ! En cas de question, demandez à <strong>Steve ou Greg</strong>. Bonne journée !'
-  }
-];
+async function queueAtelierNotifications(atelier,atelierKey){const atelierDate=new Date(atelier.date+'T'+atelier.time+':00');const tagKey="atelier_"+atelierKey.replace(/[^a-z0-9_]/gi,'_').slice(0,60);const target={key:tagKey,value:"1"};const veille=new Date(atelierDate);veille.setDate(veille.getDate()-1);await queueNotification('📅 Demain : '+atelier.title,'Rappel : demain à '+atelier.time.replace(':','h')+' — '+atelier.title,dateKey(veille),'15:00',target);const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const hh=String(avant2h.getHours()).padStart(2,'0');const mm=String(avant2h.getMinutes()).padStart(2,'0');await queueNotification('🔔 Dans 2h : '+atelier.title,'Rappel : '+atelier.title+' à '+atelier.time.replace(':','h'),dateKey(avant2h),hh+':'+mm,target);}
 
-let tutorialIndex = 0;
+async function showAdminScreen(){showScreen('admin-screen');await loadAdminUsers();}
+async function loadAdminUsers(){const list=document.getElementById('admin-user-list');list.innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';try{const snap=await db.collection('users').get();if(snap.empty){list.innerHTML='<div class="planning-empty">Aucun compte créé.</div>';return;}list.innerHTML=snap.docs.map(d=>{const u=d.data();const nb=(u.reminders||[]).length;return`<div class="admin-user-card" data-uid="${d.id}"><div class="user-avatar">${u.prenom.slice(0,1).toUpperCase()}</div><div class="admin-user-info"><div class="admin-user-name">${esc(u.prenom)}</div><div class="admin-user-meta">${nb} rappel${nb>1?'s':''} · Code : ${u.code}</div></div><span style="font-size:22px;color:#5e6b8a">›</span></div>`;}).join('');}catch(e){list.innerHTML='<div class="planning-empty">Erreur de chargement.</div>';}}
 
-function startTutorial() {
-  tutorialIndex = 0;
-  showScreen('tutorial-screen');
-  renderTutorialPage();
-}
+document.getElementById('admin-back-btn').addEventListener('click',()=>{clearSession();currentUser=null;showScreen('login-screen');});
+document.getElementById('admin-new-user-btn').addEventListener('click',()=>{showScreen('login-screen');loginMode='register';document.getElementById('login-card-title').textContent='Créer un compte';document.getElementById('field-prenom').style.display='block';document.getElementById('login-switch-text').textContent='';document.getElementById('login-switch-btn').textContent='';pinValue='';updatePinDots();});
+document.getElementById('admin-user-list').addEventListener('click',e=>{const card=e.target.closest('.admin-user-card');if(!card)return;showAdminUserDetail(card.dataset.uid);});
+document.getElementById('admin-ateliers-btn').addEventListener('click',showAdminAteliers);
+document.getElementById('admin-ateliers-back').addEventListener('click',()=>showAdminScreen());
+document.getElementById('admin-detail-back').addEventListener('click',()=>showAdminScreen());
 
-function renderTutorialPage() {
-  const page = TUTORIAL_PAGES[tutorialIndex];
-  const content = document.getElementById('tutorial-content');
-  content.innerHTML = `
-    <div class="tutorial-emoji">${page.emoji}</div>
-    <div class="tutorial-title">${page.title}</div>
-    <div class="tutorial-text">${page.text}</div>
-  `;
+let adminEditingUid=null;
 
-  // Dots
-  const dots = document.getElementById('tutorial-dots');
-  dots.innerHTML = TUTORIAL_PAGES.map((_, i) =>
-    `<div class="tutorial-dot ${i === tutorialIndex ? 'active' : ''}"></div>`
-  ).join('');
+async function showAdminUserDetail(uid){showScreen('admin-detail-screen');adminEditingUid=uid;const body=document.getElementById('admin-detail-body');body.innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';try{const snap=await db.collection('users').doc(uid).get();if(!snap.exists){body.innerHTML='<div class="planning-empty">Compte introuvable.</div>';return;}const u=snap.data();document.getElementById('admin-detail-title').textContent=u.prenom;renderAdminUserDetail(uid,u);}catch(e){body.innerHTML='<div class="planning-empty">Erreur de chargement.</div>';}}
 
-  // Boutons
-  const prev = document.getElementById('tutorial-prev');
-  const next = document.getElementById('tutorial-next');
-  prev.classList.toggle('hidden', tutorialIndex === 0);
-  if (tutorialIndex === TUTORIAL_PAGES.length - 1) {
-    next.textContent = '✓ Commencer';
-    next.classList.add('tutorial-btn-finish');
-  } else {
-    next.textContent = 'Suivant ›';
-    next.classList.remove('tutorial-btn-finish');
-  }
-}
-
-document.getElementById('tutorial-prev').addEventListener('click', () => {
-  if (tutorialIndex > 0) { tutorialIndex--; renderTutorialPage(); }
-});
-document.getElementById('tutorial-next').addEventListener('click', () => {
-  if (tutorialIndex < TUTORIAL_PAGES.length - 1) {
-    tutorialIndex++;
-    renderTutorialPage();
-  } else {
-    finishTutorial();
-  }
-});
-document.getElementById('tutorial-skip').addEventListener('click', finishTutorial);
-
-function finishTutorial() {
-  // Marquer comme vu pour ne plus afficher automatiquement
-  try { localStorage.setItem('avp_tutorial_seen_' + (currentUser ? currentUser.id : 'x'), '1'); } catch(e) {}
-  showScreen('main-screen');
-}
-
-function shouldShowTutorial() {
-  try {
-    return !localStorage.getItem('avp_tutorial_seen_' + (currentUser ? currentUser.id : 'x'));
-  } catch(e) { return false; }
-}
-
-// ========== NOTIFICATIONS ==========
-async function requestNotifPermission() {
-  if (!('Notification' in window)) { showConfirm({icon:'❌',title:'Non disponible',text:"Les notifications ne sont pas disponibles sur ce navigateur.",okText:'OK',hideCancel:true}); return; }
-  const perm = await Notification.requestPermission();
-  if (perm === 'granted') {
-    showConfirm({icon:'🔔',title:'Notifications activées !',text:"Vous recevrez des rappels quand l'application est ouverte.",okText:'Super',hideCancel:true});
-  } else {
-    showConfirm({icon:'⚠️',title:'Notifications refusées',text:"Autorisez les notifications dans les paramètres de votre téléphone.",okText:'OK',hideCancel:true});
-  }
-}
-
-// ========== ONESIGNAL TAGGING ==========
-// Attache le prénom de l'usager connecté comme tag OneSignal
-// pour que le script Google Apps Script puisse lui envoyer des notifications ciblées
-async function tagOneSignalUser(prenom) {
-  if (!prenom) return;
-  try {
-    if (window.OneSignalDeferred) {
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.User.addTag("prenom", prenom.toLowerCase());
-        console.log("✅ OneSignal taggé:", prenom);
-      });
-    }
-  } catch(e) { console.log("OneSignal tag erreur:", e); }
-}
-
-// Ajoute un tag pour dire "je suis inscrit à cet atelier"
-async function tagOneSignalAtelier(atelierKey, inscrit) {
-  try {
-    if (window.OneSignalDeferred) {
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        const tagKey = "atelier_" + atelierKey.replace(/[^a-z0-9_]/gi,'_').slice(0,60);
-        if (inscrit) {
-          await OneSignal.User.addTag(tagKey, "1");
-        } else {
-          await OneSignal.User.removeTag(tagKey);
-        }
-      });
-    }
-  } catch(e) { console.log("OneSignal atelier tag erreur:", e); }
-}
-
-// ========== QUEUE NOTIFICATIONS (Firebase → Google Apps Script) ==========
-// Enregistre une notification à envoyer dans Firebase
-// Le Google Apps Script la lira toutes les 15 min et l'enverra via OneSignal
-// targetTag: { key: "prenom", value: "mariam" } ou { key: "atelier_xxx", value: "1" }
-async function queueNotification(title, message, sendAtDate, sendAtTime, targetTag) {
-  try {
-    // Si l'heure est déjà passée, on n'enregistre pas
-    const [y, mo, d] = sendAtDate.split('-').map(Number);
-    const [h, m] = sendAtTime.split(':').map(Number);
-    const sendDate = new Date(y, mo - 1, d, h, m, 0);
-    if (sendDate.getTime() < Date.now()) {
-      console.log("⏭️ Notification ignorée (heure passée):", title);
-      return;
-    }
-    const notif = {
-      title: title,
-      message: message,
-      sendAt: sendDate.toISOString(),
-      sendAtMs: sendDate.getTime(),
-      targetTagKey: targetTag.key,
-      targetTagValue: targetTag.value,
-      sent: false,
-      createdAt: Date.now(),
-      createdBy: currentUser ? currentUser.prenom : 'unknown'
-    };
-    await db.collection('notifications').add(notif);
-    console.log("📬 Notification en file:", title, "→", targetTag.key + "=" + targetTag.value, "le", sendAtDate, sendAtTime);
-  } catch(e) { console.error("queueNotification erreur:", e); }
-}
-
-// Programme les 2 sonneries d'un atelier (veille 15h + 2h avant)
-async function queueAtelierNotifications(atelier, atelierKey) {
-  const atelierDate = new Date(atelier.date + 'T' + atelier.time + ':00');
-  const tagKey = "atelier_" + atelierKey.replace(/[^a-z0-9_]/gi,'_').slice(0,60);
-  const target = { key: tagKey, value: "1" };
-  // Sonnerie 1 : la veille à 15h00
-  const veille = new Date(atelierDate);
-  veille.setDate(veille.getDate() - 1);
-  await queueNotification(
-    '📅 Demain : ' + atelier.title,
-    'Rappel : demain à ' + atelier.time.replace(':','h') + ' — ' + atelier.title,
-    dateKey(veille),
-    '15:00',
-    target
-  );
-  // Sonnerie 2 : 2h avant
-  const avant2h = new Date(atelierDate.getTime() - 2 * 60 * 60 * 1000);
-  const hh = String(avant2h.getHours()).padStart(2, '0');
-  const mm = String(avant2h.getMinutes()).padStart(2, '0');
-  await queueNotification(
-    '🔔 Dans 2h : ' + atelier.title,
-    'Rappel : ' + atelier.title + ' à ' + atelier.time.replace(':','h'),
-    dateKey(avant2h),
-    hh + ':' + mm,
-    target
-  );
-}
-
-// ========== ADMIN SCREEN ==========
-async function showAdminScreen() {
-  showScreen('admin-screen');
-  await loadAdminUsers();
-}
-
-async function loadAdminUsers() {
-  const list = document.getElementById('admin-user-list');
-  list.innerHTML = '<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';
-  try {
-    const snap = await db.collection('users').get();
-    if (snap.empty) { list.innerHTML = '<div class="planning-empty">Aucun compte créé.</div>'; return; }
-    list.innerHTML = snap.docs.map(d => {
-      const u = d.data();
-      const nb = (u.reminders || []).length;
-      return `<div class="admin-user-card" data-uid="${d.id}">
-        <div class="user-avatar">${u.prenom.slice(0,1).toUpperCase()}</div>
-        <div class="admin-user-info">
-          <div class="admin-user-name">${esc(u.prenom)}</div>
-          <div class="admin-user-meta">${nb} rappel${nb>1?'s':''} · Code : ${u.code}</div>
-        </div>
-        <span style="font-size:22px;color:#5e6b8a">›</span>
-      </div>`;
-    }).join('');
-  } catch(e) { list.innerHTML = '<div class="planning-empty">Erreur de chargement.</div>'; }
-}
-
-document.getElementById('admin-back-btn').addEventListener('click', () => {
-  clearSession(); currentUser=null; showScreen('login-screen');
-});
-
-document.getElementById('admin-new-user-btn').addEventListener('click', () => {
-  // Open login in register mode for admin to create a user
-  showScreen('login-screen');
-  loginMode = 'register';
-  document.getElementById('login-card-title').textContent = 'Créer un compte';
-  document.getElementById('field-prenom').style.display = 'block';
-  document.getElementById('login-switch-text').textContent = '';
-  document.getElementById('login-switch-btn').textContent = '';
-  pinValue = ''; updatePinDots();
-});
-
-// Clic sur un bénéficiaire → ouvrir son détail
-document.getElementById('admin-user-list').addEventListener('click', e => {
-  const card = e.target.closest('.admin-user-card');
-  if (!card) return;
-  const uid = card.dataset.uid;
-  showAdminUserDetail(uid);
-});
-
-// Voir les inscrits aux ateliers
-document.getElementById('admin-ateliers-btn').addEventListener('click', showAdminAteliers);
-document.getElementById('admin-ateliers-back').addEventListener('click', () => showAdminScreen());
-document.getElementById('admin-detail-back').addEventListener('click', () => showAdminScreen());
-
-// ========== ADMIN : DÉTAIL BÉNÉFICIAIRE ==========
-let adminEditingUid = null; // UID du bénéficiaire en cours d'édition
-
-async function showAdminUserDetail(uid) {
-  showScreen('admin-detail-screen');
-  adminEditingUid = uid;
-  const body = document.getElementById('admin-detail-body');
-  body.innerHTML = '<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';
-  try {
-    const snap = await db.collection('users').doc(uid).get();
-    if (!snap.exists) { body.innerHTML = '<div class="planning-empty">Compte introuvable.</div>'; return; }
-    const u = snap.data();
-    document.getElementById('admin-detail-title').textContent = u.prenom;
-    renderAdminUserDetail(uid, u);
-  } catch(e) {
-    body.innerHTML = '<div class="planning-empty">Erreur de chargement.</div>';
-    console.error(e);
-  }
-}
-
-function renderAdminUserDetail(uid, u) {
-  const body = document.getElementById('admin-detail-body');
-  const reminders = (u.reminders || []).slice().sort((a,b) => {
-    // Trier par date (si existe) puis heure
-    const da = a.date || '9999-12-31';
-    const db_ = b.date || '9999-12-31';
-    if (da !== db_) return da.localeCompare(db_);
-    return (a.time||'').localeCompare(b.time||'');
-  });
-
-  const ateliers = reminders.filter(r => r.source === 'atelier');
-  const persos = reminders.filter(r => r.source !== 'atelier');
-
-  const renderRem = (r) => {
-    const isAtelier = r.source === 'atelier';
-    const cls = isAtelier ? 'atelier' : 'perso';
-    const dateStr = r.date ? formatShortDate(r.date) : (r.recurrence === 'daily' ? 'Tous les jours' : '');
-    return `<div class="admin-reminder-card ${cls}">
-      <div class="admin-reminder-time">${(r.time||'').replace(':','h')}</div>
-      <div class="admin-reminder-body">
-        <div class="admin-reminder-title">${esc(r.title || '')}</div>
-        <div class="admin-reminder-date">${dateStr}${isAtelier ? ' · Atelier' : ''}</div>
-      </div>
-      ${isAtelier ? '' : `<button class="admin-reminder-del" data-del-id="${esc(r.id)}">✕</button>`}
-    </div>`;
-  };
-
-  body.innerHTML = `
+function renderAdminUserDetail(uid,u){
+  const body=document.getElementById('admin-detail-body');
+  const reminders=(u.reminders||[]).slice().sort((a,b)=>{const da=a.date||'9999-12-31';const db_=b.date||'9999-12-31';if(da!==db_)return da.localeCompare(db_);return(a.time||'').localeCompare(b.time||'');});
+  const ateliers=reminders.filter(r=>r.source==='atelier');
+  const persos=reminders.filter(r=>r.source!=='atelier');
+  const renderRem=(r)=>{const isAtelier=r.source==='atelier';const cls=isAtelier?'atelier':'perso';const dateStr=r.date?formatShortDate(r.date):(r.recurrence==='daily'?'Tous les jours':'');return`<div class="admin-reminder-card ${cls}"><div class="admin-reminder-time">${(r.time||'').replace(':','h')}</div><div class="admin-reminder-body"><div class="admin-reminder-title">${esc(r.title||'')}</div><div class="admin-reminder-date">${dateStr}${isAtelier?' · Atelier':''}</div></div>${isAtelier?'':`<button class="admin-reminder-del" data-del-id="${esc(r.id)}">✕</button>`}</div>`;};
+  body.innerHTML=`
     <div class="admin-detail-top">
       <div class="user-avatar">${u.prenom.slice(0,1).toUpperCase()}</div>
       <div class="admin-detail-top-info">
@@ -1322,1023 +709,201 @@ function renderAdminUserDetail(uid, u) {
         <div class="admin-detail-top-code">Code PIN : <strong>${esc(u.code)}</strong></div>
       </div>
     </div>
-
     <button class="btn-admin-action" id="admin-add-reminder" style="margin:0 0 10px;">➕ Ajouter un rappel pour ${esc(u.prenom)}</button>
+    <button class="btn-admin-action" id="admin-inscrire-atelier" style="margin:0 0 10px;background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;">📋 Inscrire à un atelier</button>
     <button class="btn-admin-action" id="admin-change-pin" style="margin:0 0 10px;">🔑 Changer le code PIN</button>
-
     <div class="admin-section-title">Rappels personnels (${persos.length})</div>
-    ${persos.length ? persos.map(renderRem).join('') : '<div class="admin-empty">Aucun rappel personnel.</div>'}
-
+    ${persos.length?persos.map(renderRem).join(''):'<div class="admin-empty">Aucun rappel personnel.</div>'}
     <div class="admin-section-title">Ateliers AVP inscrits (${ateliers.length})</div>
-    ${ateliers.length ? ateliers.map(renderRem).join('') : '<div class="admin-empty">Aucune inscription aux ateliers.</div>'}
-
-    <button class="btn-admin-danger" id="admin-delete-user">🗑️ Supprimer le compte de ${esc(u.prenom)}</button>
-  `;
-
-  // Gestionnaires
-  document.getElementById('admin-add-reminder').onclick = () => adminAddReminder(uid, u.prenom);
-  document.getElementById('admin-change-pin').onclick = () => adminChangePin(uid, u.prenom);
-  document.getElementById('admin-delete-user').onclick = () => adminDeleteUser(uid, u.prenom);
-  body.querySelectorAll('[data-del-id]').forEach(btn => {
-    btn.onclick = () => adminDeleteReminder(uid, btn.dataset.delId);
-  });
+    ${ateliers.length?ateliers.map(renderRem).join(''):'<div class="admin-empty">Aucune inscription aux ateliers.</div>'}
+    <button class="btn-admin-danger" id="admin-delete-user">🗑️ Supprimer le compte de ${esc(u.prenom)}</button>`;
+  document.getElementById('admin-add-reminder').onclick=()=>adminAddReminder(uid,u.prenom);
+  document.getElementById('admin-inscrire-atelier').onclick=()=>adminInscrireAtelier(uid,u.prenom);
+  document.getElementById('admin-change-pin').onclick=()=>adminChangePin(uid,u.prenom);
+  document.getElementById('admin-delete-user').onclick=()=>adminDeleteUser(uid,u.prenom);
+  body.querySelectorAll('[data-del-id]').forEach(btn=>{btn.onclick=()=>adminDeleteReminder(uid,btn.dataset.delId);});
 }
 
-async function adminAddReminder(uid, prenom) {
-  // On passe en mode "créer pour autrui" : on ouvre l'écran edit en le liant à l'uid cible
-  adminEditingUid = uid;
-  state.editing = null;
-  // Charger temporairement les rappels du bénéficiaire dans state.reminders pour édition
+// ========== ADMIN : INSCRIRE À UN ATELIER ==========
+async function adminInscrireAtelier(uid, prenom) {
   const snap = await db.collection('users').doc(uid).get();
   if (!snap.exists) return;
   const u = snap.data();
-  state.reminders = u.reminders || [];
-  state.inscriptions = u.inscriptions || {};
-  // Préparer l'écran d'édition
-  document.getElementById('edit-title').textContent = `Nouveau rappel pour ${prenom}`;
-  document.getElementById('f-title').value = '';
-  document.getElementById('f-note').value = '';
+  const reminders = u.reminders || [];
+  if (!state.avpEvents || state.avpEvents.length === 0) {
+    showConfirm({icon:'⏳', title:'Chargement...', text:'Le planning se charge, réessaie dans quelques secondes.', okText:'OK', hideCancel:true});
+    return;
+  }
   const today = dateKey(new Date());
-  document.getElementById('f-date').value = today;
-  document.getElementById('f-event-date').value = today;
-  // Remettre les sélecteurs par défaut
-  state.editingAdminMode = true;
-  state.editingAdminPrenom = prenom;
-  showScreen('edit-screen');
-  // Re-render icônes, time picker, etc.
-  if (typeof populateIconGrid === 'function') populateIconGrid();
-  if (typeof createTimePicker === 'function') { createTimePicker('f-time','09:00',5); createTimePicker('f-event-time','09:00',5); }
-  // Reset recurrence sur "ponctuel"
-  const onceBtn = document.querySelector('[data-rec="once"]');
-  if (onceBtn) onceBtn.click();
-}
-
-async function adminChangePin(uid, prenom) {
-  const newCode = prompt(`Nouveau code PIN à 4 chiffres pour ${prenom} :`);
-  if (!newCode) return;
-  if (!/^\d{4}$/.test(newCode)) {
-    showConfirm({icon:'⚠️', title:'Code invalide', text:'Le code doit contenir exactement 4 chiffres.', okText:'OK', hideCancel:true});
+  const ateliers = state.avpEvents.filter(e => e.date >= today);
+  if (ateliers.length === 0) {
+    showConfirm({icon:'📋', title:'Aucun atelier', text:'Aucun atelier à venir dans le planning.', okText:'OK', hideCancel:true});
     return;
   }
-  try {
-    await db.collection('users').doc(uid).update({ code: newCode });
-    showConfirm({icon:'✅', title:'Code modifié', text:`Le nouveau code de ${prenom} est : ${newCode}`, okText:'OK', hideCancel:true});
-    showAdminUserDetail(uid); // recharger
-  } catch(e) {
-    showConfirm({icon:'❌', title:'Erreur', text:"Impossible de modifier le code.", okText:'OK', hideCancel:true});
+  const existing = new Set(reminders.filter(r => r.source === 'atelier').map(r => r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_')));
+  let overlay = document.getElementById('atelier-select-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'atelier-select-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(26,35,64,0.6);z-index:200;display:flex;align-items:flex-end;';
+    document.body.appendChild(overlay);
   }
-}
-
-function adminDeleteUser(uid, prenom) {
-  showConfirm({
-    icon:'⚠️', title:'Supprimer ce compte ?',
-    text:`Le compte de ${prenom} et tous ses rappels seront définitivement supprimés. Cette action est irréversible.`,
-    okText:'Supprimer', danger:true,
-    onOk: async () => {
-      try {
-        await db.collection('users').doc(uid).delete();
-        showAdminScreen();
-      } catch(e) {
-        showConfirm({icon:'❌', title:'Erreur', text:'Impossible de supprimer.', okText:'OK', hideCancel:true});
-      }
-    }
-  });
-}
-
-async function adminDeleteReminder(uid, reminderId) {
-  showConfirm({
-    icon:'🗑️', title:'Supprimer ce rappel ?',
-    text:'Cette action ne peut pas être annulée.',
-    okText:'Supprimer', danger:true,
-    onOk: async () => {
-      try {
-        const snap = await db.collection('users').doc(uid).get();
-        const u = snap.data();
-        const newReminders = (u.reminders || []).filter(r => r.id !== reminderId);
-        await db.collection('users').doc(uid).update({ reminders: newReminders });
-        showAdminUserDetail(uid); // recharger
-      } catch(e) {
-        showConfirm({icon:'❌', title:'Erreur', text:'Impossible de supprimer.', okText:'OK', hideCancel:true});
-      }
-    }
-  });
-}
-
-// ========== ADMIN : INSCRITS AUX ATELIERS ==========
-async function showAdminAteliers() {
-  showScreen('admin-ateliers-screen');
-  const list = document.getElementById('admin-ateliers-list');
-  list.innerHTML = '<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';
-  try {
-    const [usersSnap, presSnap] = await Promise.all([
-      db.collection('users').get(),
-      db.collection('presences').get()
-    ]);
-
-    // Charger les présences existantes dans un map
-    // Clé Firestore: atelierKey_prenom → { statut: "present"|"absent" }
-    const presences = {};
-    presSnap.docs.forEach(doc => {
-      presences[doc.id] = doc.data();
-    });
-    state.presences = presences;
-
-    // Regrouper par atelier
-    const groupes = {};
-    usersSnap.docs.forEach(doc => {
-      const u = doc.data();
-      if (!u.prenom) return;
-      (u.reminders || []).filter(r => r.source === 'atelier').forEach(r => {
-        const key = r.date + '_' + r.time + '_' + (r.title||'').slice(0,30);
-        if (!groupes[key]) {
-          groupes[key] = { date: r.date, time: r.time, title: r.title, icon: r.icon, inscrits: [] };
-        }
-        groupes[key].inscrits.push(u.prenom);
-      });
-    });
-
-    const items = Object.values(groupes).sort((a,b) => {
-      if (a.date !== b.date) return (a.date||'').localeCompare(b.date||'');
-      return (a.time||'').localeCompare(b.time||'');
-    });
-
-    if (items.length === 0) {
-      list.innerHTML = '<div class="planning-empty">Aucune inscription pour le moment.</div>';
-      return;
-    }
-
-    const today = dateKey(new Date());
-
-    list.innerHTML = items.map(g => {
-      const atelierKey = g.date + '_' + g.time + '_' + (g.title||'').slice(0,30);
-      // Compter les statuts
-      let nbPresent = 0, nbAbsent = 0, nbNonPointe = 0;
-      g.inscrits.forEach(p => {
-        const presKey = sanitizePresKey(atelierKey + '__' + p);
-        const pres = presences[presKey];
-        if (pres && pres.statut === 'present') nbPresent++;
-        else if (pres && pres.statut === 'absent') nbAbsent++;
-        else nbNonPointe++;
-      });
-
-      const isPasse = g.date < today;
-      const isToday_ = g.date === today;
-      const badge = isPasse ? '<span class="atelier-badge-passe">PASSÉ</span>' :
-                    isToday_ ? '<span class="atelier-badge-aujourdhui">AUJOURD\'HUI</span>' :
-                    '<span class="atelier-badge-futur">À VENIR</span>';
-
-      return `
-      <div class="atelier-group">
-        <div class="atelier-group-header">
-          <div class="atelier-group-date">${formatShortDate(g.date)} · ${(g.time||'').replace(':','h')}</div>
-          <div class="atelier-group-title">${esc(g.title)}</div>
-          ${badge}
-        </div>
-        <div class="atelier-stats">
-          👥 <strong>${g.inscrits.length}</strong> inscrits · ✅ <strong>${nbPresent}</strong> présents · ❌ <strong>${nbAbsent}</strong> absents · ⏳ <strong>${nbNonPointe}</strong> non pointés
-        </div>
-        <div class="atelier-pointage-list">
-          ${g.inscrits.map(p => {
-            const presKey = sanitizePresKey(atelierKey + '__' + p);
-            const pres = presences[presKey];
-            const statut = pres ? pres.statut : null;
-            return `<div class="atelier-pointage-row">
-              <div class="atelier-pointage-name">${esc(p)}</div>
-              <button class="btn-pointage btn-present ${statut==='present'?'active':''}" data-preskey="${esc(presKey)}" data-atelier="${esc(atelierKey)}" data-prenom="${esc(p)}" data-statut="present">✅ Présent</button>
-              <button class="btn-pointage btn-absent ${statut==='absent'?'active':''}" data-preskey="${esc(presKey)}" data-atelier="${esc(atelierKey)}" data-prenom="${esc(p)}" data-statut="absent">❌ Absent</button>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>`;
-    }).join('');
-
-    // Brancher les clics sur les boutons de pointage
-    list.querySelectorAll('.btn-pointage').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const presKey = btn.dataset.preskey;
-        const atelier = btn.dataset.atelier;
-        const prenom = btn.dataset.prenom;
-        const statut = btn.dataset.statut;
-        await togglePresence(presKey, atelier, prenom, statut);
-        showAdminAteliers(); // Recharger l'affichage
-      });
-    });
-  } catch(e) {
-    list.innerHTML = '<div class="planning-empty">Erreur de chargement.</div>';
-    console.error(e);
-  }
-}
-
-// Nettoyer une clé pour Firestore (pas d'espaces, caractères spéciaux)
-function sanitizePresKey(key) {
-  return key.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 150);
-}
-
-// Marquer une présence/absence (bascule : si déjà dans le statut, on efface)
-async function togglePresence(presKey, atelier, prenom, nouveauStatut) {
-  try {
-    const current = state.presences ? state.presences[presKey] : null;
-    if (current && current.statut === nouveauStatut) {
-      // Re-clic sur le même statut = annuler
-      await db.collection('presences').doc(presKey).delete();
-    } else {
-      await db.collection('presences').doc(presKey).set({
-        atelier: atelier,
-        prenom: prenom,
-        statut: nouveauStatut,
-        pointeAt: Date.now()
-      });
-    }
-  } catch(e) { console.error('togglePresence', e); }
-}
-
-// ========== INSCRIPTIONS AUX ATELIERS ==========
-function isInscrit(eventKey) {
-  return !!(state.inscriptions && state.inscriptions[eventKey]);
-}
-
-async function toggleInscription(event) {
-  const key = event.date + '_' + event.time + '_' + event.title.slice(0,20).replace(/\s/g,'_');
-  if (isInscrit(key)) {
-    // Désinscription
-    delete state.inscriptions[key];
-    // Remove from reminders
-    state.reminders = state.reminders.filter(r => r.id !== 'atelier_' + key);
-    // Retirer le tag OneSignal pour cet atelier
-    tagOneSignalAtelier(key, false);
-  } else {
-    // Inscription
-    state.inscriptions[key] = true;
-    // Add to reminders as a once reminder
-    const loc = getAVPLocation(event.title);
-    state.reminders.push({
-      id: 'atelier_' + key,
-      title: event.title,
-      icon: event.icon || '📋',
-      time: event.time,
-      date: event.date,
-      recurrence: 'once',
-      note: loc ? loc.address : '',
-      mapLink: loc ? `https://www.google.com/maps/search/?api=1&query=${loc.query}` : null,
-      done: {},
-      source: 'atelier'
-    });
-    speak(`Inscrit à ${event.title} !`);
-    // Ajouter le tag OneSignal pour cet atelier (pour recevoir les notifs)
-    tagOneSignalAtelier(key, true);
-    // Programmer les 2 sonneries push (veille 15h + 2h avant) - ciblées par tag atelier
-    queueAtelierNotifications(event, key);
-  }
-  await saveUserData();
-  render();
-}
-
-// ========== RENDER MAIN ==========
-function render() {
-  const d = getCurrentDate();
-  const key = dateKey(d);
-  document.getElementById('day-title').textContent = dayLabel();
-  document.getElementById('day-date').textContent = formatDate(d);
-  document.getElementById('today-bar').style.display = state.dayOffset === 0 ? 'none' : 'block';
-
-  const list = document.getElementById('reminders-list');
-  const personal = state.reminders.filter(r => reminderAppliesToDay(r, key)).map(r => ({...r, _source:'personal'}));
-  const avp = state.avpEvents.filter(e => e.date === key).map(e => {
-    const loc = getAVPLocation(e.title);
-    const ek = e.date + '_' + e.time + '_' + e.title.slice(0,20).replace(/\s/g,'_');
-    return {
-      id: 'avp_'+e.date+'_'+e.time+'_'+e.title.slice(0,10),
-      eventKey: ek,
-      time: e.time, title: e.title, icon: e.icon,
-      note: loc ? loc.address : '',
-      mapLink: loc ? `https://www.google.com/maps/search/?api=1&query=${loc.query}` : null,
-      _source: 'avp', recurrence: 'once'
-    };
-  });
-
-  // Les ateliers AVP n'apparaissent PAS automatiquement - seulement si inscrit
-  const atelierIds = new Set(state.reminders.filter(r=>r.source==='atelier').map(r=>r.date+'_'+r.time+'_'+r.title.slice(0,20).replace(/\s/g,'_')));
-  // On n'affiche plus les avp non inscrits dans la journée
-  const items = [...personal].sort((a,b) => a.time.localeCompare(b.time));
-
-  if (items.length === 0) {
-    const prenom = currentUser ? currentUser.prenom : '';
-    const isToday2 = state.dayOffset === 0;
-    const msg = isToday2 ? `Bonjour ${prenom} 👋` : '🌿';
-    const subMsg = isToday2 ? 'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.' : 'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';
-    list.innerHTML = `<div class="empty"><div class="empty-icon" style="font-size:36px;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;
-    return;
-  }
-
-  const now = new Date(); const isToday = state.dayOffset === 0;
-  const nowMinutes = now.getHours()*60+now.getMinutes();
-  let upcomingId = null;
-  if (isToday) {
-    const up = items.find(r => { const[h,m]=r.time.split(':').map(Number); return(h*60+m)>=nowMinutes&&!(r.done&&r.done[key]); });
-    if (up) upcomingId = up.id;
-  }
-
-  list.innerHTML = items.map(r => {
-    const isDone = r.done && r.done[key];
-    const isUpcoming = r.id === upcomingId;
-    const isAVP = r._source === 'avp';
-    const isAtelier = r.source === 'atelier';
-    const eventDate = r.eventDate || r.date;
-    const eventTime = r.eventTime || r.time;
-    const dateDiffers = r.recurrence==='once' && eventDate && eventDate !== r.date;
-    const timeDiffers = r.recurrence==='once' && eventTime && eventTime !== r.time;
-    const hasDiffEvent = dateDiffers || timeDiffers;
-
-    // note (avec map éventuelle)
-    let noteText = '';
-    if (r.note) {
-      if (r.mapLink) {
-        noteText = `<a href="${r.mapLink}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;
-      } else {
-        const iconDef = ICONS.find(ic => ic.title === r.title || (r.icon && ic.emoji === r.icon));
-        if (iconDef && iconDef.address) {
-          noteText = `<a href="https://www.google.com/maps/search/?api=1&query=${iconDef.address}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;
-        } else {
-          noteText = esc(r.note);
-        }
-      }
-    }
-
-    const checkHTML = (isAVP||isAtelier) ? '' : `<div class="card-check ${isDone?'':'unchecked'}" data-check="${r.id}" style="position:absolute;top:12px;right:12px;">${isDone?'✓':'○'}</div>`;
-
-    // ===== CARTE RENDEZ-VOUS (bleu) : quand hasDiffEvent OU atelier =====
-    if (hasDiffEvent || isAtelier) {
-      const agendaLink = buildGoogleCalendarLink(r);
-      let sonnerieText;
-      if (isAtelier) {
-        // Pour un atelier : 2 sonneries automatiques (veille 15h + 2h avant)
-        const atelierDate = new Date(r.date + 'T' + r.time + ':00');
-        // Sonnerie 1 : la veille à 15h
-        const veille = new Date(atelierDate);
-        veille.setDate(veille.getDate() - 1);
-        // Sonnerie 2 : 2h avant
-        const avant2h = new Date(atelierDate.getTime() - 2*60*60*1000);
-        const h2 = String(avant2h.getHours()).padStart(2,'0');
-        const m2 = String(avant2h.getMinutes()).padStart(2,'0');
-        sonnerieText = `🔔 <strong>2 sonneries prévues :</strong><br>
-          • La veille (${formatShortDate(veille.toISOString().slice(0,10))}) à <strong>15h00</strong><br>
-          • 2h avant, à <strong>${h2}h${m2}</strong>`;
-      } else if (dateDiffers) {
-        sonnerieText = `🔔 Sonnerie le <strong>${formatRelativeDate(r.date)} à ${r.time.replace(':','h')}</strong>`;
-      } else {
-        sonnerieText = `🔔 Sonnerie à <strong>${r.time.replace(':','h')}</strong>`;
-      }
-      const typeLabel = isAtelier ? 'Atelier AVP' : 'Rendez-vous';
-      const badgeAtelier = isAtelier ? '<span style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">✅ Je participe</span>' : '';
-      return `
-        <div class="card-rdv ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">
-          ${checkHTML}
-          <div class="rdv-top">
-            <div class="rdv-left">
-              <div class="rdv-date">${formatShortDate(eventDate)}</div>
-              <div class="rdv-heure">${eventTime.replace(':','h')}</div>
-            </div>
-            <div class="rdv-image">${iconHTML(r.icon)}</div>
-            <div class="rdv-body">
-              <div class="rdv-type">${typeLabel}</div>
-              <div class="rdv-titre">${esc(r.title)}</div>
-              ${noteText ? `<div class="rdv-note">${noteText}</div>` : ''}
-              ${badgeAtelier}
-            </div>
-          </div>
-          <div class="rdv-sonnerie">${sonnerieText}</div>
-          <a href="${agendaLink}" target="_blank" class="btn-agenda" onclick="event.stopPropagation()">📅 Ajouter à mon agenda Google</a>
-        </div>`;
-    }
-
-    // ===== CARTE SONNERIE SIMPLE (jaune) =====
-    const badge = isAVP ? '<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">📋 Planning AVP</span>' : '';
-    const sonnerieType = isAVP ? 'Atelier' : 'Sonnerie';
-    return `
-      <div class="card-sonnerie ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">
-        ${checkHTML}
-        <div class="sonnerie-left">
-          <div class="sonnerie-date">${formatShortDate(r.date)}</div>
-          <div class="sonnerie-heure">${r.time.replace(':','h')}</div>
-        </div>
-        <div class="sonnerie-icon">${iconHTML(r.icon)}</div>
-        <div class="sonnerie-body">
-          <div class="sonnerie-type">${sonnerieType}</div>
-          <div class="sonnerie-titre">${esc(r.title)}</div>
-          ${noteText ? `<div class="sonnerie-note">${noteText}</div>` : ''}
-          ${badge}
-        </div>
-      </div>`;
+  const atelierItems = ateliers.map(e => {
+    const ek = e.date+'_'+e.time+'_'+(e.title||'').slice(0,20).replace(/\s/g,'_');
+    const checked = existing.has(ek);
+    return `<label style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:white;border-radius:12px;margin-bottom:8px;cursor:pointer;border:2px solid ${checked?'#22a559':'#e5e9f2'};">
+      <input type="checkbox" data-ek="${ek}" data-date="${e.date}" data-time="${e.time}" data-title="${esc(e.title)}" data-icon="${esc(e.icon||'📋')}" ${checked?'checked':''} style="width:22px;height:22px;accent-color:#22a559;flex-shrink:0;">
+      <span style="font-size:22px">${e.icon||'📋'}</span>
+      <div style="flex:1;"><div style="font-weight:700;font-size:15px;color:#1a2340">${esc(e.title)}</div><div style="font-size:13px;color:#5e6b8a">${formatShortDate(e.date)} à ${e.time.replace(':','h')}</div></div>
+      ${checked?'<span style="color:#22a559;font-weight:700;font-size:13px;">✓</span>':''}
+    </label>`;
   }).join('');
-}
-
-// ========== PLANNING ==========
-function loadAVPPlanning() {
-  fetch(AVP_CSV_URL + '&_=' + Date.now())
-    .then(r => r.text())
-    .then(csv => { state.avpEvents = parseAVPPlanning(csv); render(); })
-    .catch(e => console.log('AVP planning offline', e));
-}
-
-function parseAVPPlanning(csv) {
-  const events = [];
-  const lines = csv.split('\n');
-  if (lines.length < 2) return events;
-  let year = 2026;
-  const ym = lines[0].match(/(\d{4})/); if(ym) year = parseInt(ym[1]);
-  const monthNames = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-  let monthIndex = -1;
-  const titleLc = lines[0].toLowerCase();
-  for (let i = 0; i < monthNames.length; i++) { if(titleLc.includes(monthNames[i])){monthIndex=i;break;} }
-  if (monthIndex === -1) return events;
-  function parseCSVLine(line) {
-    const result=[];let cur='';let inQuote=false;
-    for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'){inQuote=!inQuote;}else if(c===','&&!inQuote){result.push(cur.trim());cur='';}else{cur+=c;}}
-    result.push(cur.trim()); return result;
-  }
-  const rows = lines.map(l => parseCSVLine(l));
-  for (let r=0;r<rows.length;r++) {
-    const row=rows[r],rowStr=row.join(' ');
-    const dateMatches=rowStr.match(/(lundi|mardi|mercredi|jeudi|vendredi)\s+(\d{1,2})/gi);
-    if(!dateMatches||dateMatches.length===0) continue;
-    const dayMap={};
-    for(let c=0;c<row.length;c++){const cell=String(row[c]||'');const dm=cell.match(/(lundi|mardi|mercredi|jeudi|vendredi)\s+(\d{1,2})/i);if(dm)dayMap[c]=parseInt(dm[2]);}
-    for(let offset=1;offset<=2&&(r+offset)<rows.length;offset++){
-      const dRow=rows[r+offset]; if(!dRow) continue;
-      const dayCols=Object.keys(dayMap).map(Number).sort((a,b)=>a-b);
-      for(const startCol of dayCols){
-        const dayNum=dayMap[startCol];let hour='',activity='';
-        for(let cc=startCol;cc<Math.min(startCol+3,dRow.length);cc++){
-          const cell=String(dRow[cc]||'').trim();
-          if(!cell||cell==='-'||cell==='—') continue;
-          const hm=cell.match(/(\d{1,2})\s*[hH:\.]\s*(\d{0,2})/),justH=cell.match(/^(\d{1,2})$/);
-          if(hm&&!hour){const hh=parseInt(hm[1]),mm=hm[2]?parseInt(hm[2]):0;hour=(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm;}
-          else if(justH&&parseInt(justH[1])>=6&&parseInt(justH[1])<=22&&!hour){hour=(parseInt(justH[1])<10?'0':'')+parseInt(justH[1])+':00';}
-          else if(cell.length>2&&!activity){activity=cell;}
-        }
-        if(activity){
-          const mo=monthIndex+1;
-          const dateStr=`${year}-${(mo<10?'0':'')+mo}-${(dayNum<10?'0':'')+dayNum}`;
-          // Nettoyer les emojis au début du titre (venant du Sheet pour impression papier)
-          // On enlève tout caractère non alphabétique/chiffre jusqu'au premier mot
-          let cleanTitle = activity.replace(/^[\s\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F\u200D]+/gu, '').trim();
-          // Fallback simple si la regex Unicode ne marche pas
-          if (cleanTitle === activity) {
-            cleanTitle = activity.replace(/^[^a-zA-ZÀ-ÿ0-9]+/, '').trim();
-          }
-          // Extraire la limite entre parenthèses (ex: "Jeux de société (5)" → limite=5)
-          let limite = null;
-          const limMatch = cleanTitle.match(/\s*\((\d{1,2})\)\s*$/);
-          if (limMatch) {
-            limite = parseInt(limMatch[1]);
-            cleanTitle = cleanTitle.replace(/\s*\(\d{1,2}\)\s*$/, '').trim();
-          }
-          events.push({
-            date: dateStr,
-            time: hour||'09:00',
-            title: cleanTitle,
-            icon: getActivityIcon(cleanTitle),
-            limite: limite
-          });
-        }
+  overlay.innerHTML = `<div style="background:#f1f3f8;border-radius:24px 24px 0 0;padding:24px;width:100%;max-height:85vh;overflow-y:auto;padding-bottom:calc(24px + env(safe-area-inset-bottom));">
+    <div style="font-size:20px;font-weight:800;color:#1a2340;margin-bottom:4px;">📋 Ateliers pour ${esc(prenom)}</div>
+    <div style="font-size:14px;color:#5e6b8a;margin-bottom:16px;">Cochez les ateliers pour ${esc(prenom)}</div>
+    <div id="atelier-check-list">${atelierItems}</div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button id="atelier-select-cancel" style="flex:1;padding:16px;background:#e5e9f2;color:#1a2340;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;">Annuler</button>
+      <button id="atelier-select-ok" style="flex:1;padding:16px;background:#22a559;color:white;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;">✅ Enregistrer</button>
+    </div></div>`;
+  overlay.style.display = 'flex';
+  document.getElementById('atelier-select-cancel').onclick = () => { overlay.style.display = 'none'; };
+  document.getElementById('atelier-select-ok').onclick = async () => {
+    overlay.style.display = 'none';
+    const freshSnap = await db.collection('users').doc(uid).get();
+    const freshData = freshSnap.data();
+    const personnels = (freshData.reminders || []).filter(r => r.source !== 'atelier');
+    const newInscriptions = {};
+    const newAteliers = [];
+    document.querySelectorAll('#atelier-check-list input[type=checkbox]').forEach(cb => {
+      if (cb.checked) {
+        const ek = cb.dataset.ek;
+        newInscriptions[ek] = true;
+        const loc = getAVPLocation(cb.dataset.title);
+        newAteliers.push({id:'atelier_'+ek,title:cb.dataset.title,icon:cb.dataset.icon,time:cb.dataset.time,date:cb.dataset.date,recurrence:'once',note:loc?loc.address:'',mapLink:loc?'https://www.google.com/maps/search/?api=1&query='+loc.query:null,done:{},source:'atelier'});
+        const veille = new Date(cb.dataset.date+'T12:00:00'); veille.setDate(veille.getDate()-1);
+        queueNotification('📅 Demain : '+cb.dataset.title,'Rappel : demain à '+cb.dataset.time.replace(':','h')+' — '+cb.dataset.title,dateKey(veille),'15:00',{key:'prenom',value:prenom.toLowerCase()});
+        const avant = new Date(cb.dataset.date+'T'+cb.dataset.time+':00'); avant.setTime(avant.getTime()-2*60*60*1000);
+        queueNotification('🔔 Dans 2h : '+cb.dataset.title,'Rappel : '+cb.dataset.title+' à '+cb.dataset.time.replace(':','h'),dateKey(avant),String(avant.getHours()).padStart(2,'0')+':'+String(avant.getMinutes()).padStart(2,'0'),{key:'prenom',value:prenom.toLowerCase()});
       }
-    }
-  }
-  events.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.time<b.time?-1:1);
-  return events;
-}
-
-function renderPlanning() {
-  const content = document.getElementById('planning-content');
-  const events = state.avpEvents;
-  if (events.length === 0) {
-    content.innerHTML = '<div class="planning-empty">📋 Aucune activité trouvée dans le planning.</div>'; return;
-  }
-  const firstDate = events[0].date;
-  const [y,m] = firstDate.split('-').map(Number);
-  const monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  document.getElementById('planning-month-title').textContent = `Planning ${monthNames[m-1]} ${y}`;
-
-  // Afficher d'abord sans inscrits puis recharger avec inscrits
-  renderPlanningInner(content, events);
-  scrollToToday(content);
-  // Charger en arrière-plan la liste globale des inscrits
-  loadAllInscriptions().then(inscritsByEvent => {
-    state.allInscriptions = inscritsByEvent;
-    renderPlanningInner(content, events);
-    scrollToToday(content);
-  });
-}
-
-function scrollToToday(content) {
-  const tryScroll = (attempt) => {
-    const today = dateKey(new Date());
-    // Chercher d'abord exactement aujourd'hui
-    let target = content.querySelector(`[data-date="${today}"]`);
-    // Si pas trouvé, chercher le prochain jour après aujourd'hui
-    if (!target) {
-      const allHeaders = content.querySelectorAll('[data-date]');
-      for (const h of allHeaders) {
-        if (h.dataset.date >= today) {
-          target = h;
-          break;
-        }
-      }
-      // Sinon prendre le dernier jour (tout le mois est passé)
-      if (!target && allHeaders.length > 0) {
-        target = allHeaders[allHeaders.length - 1];
-      }
-    }
-    if (target) {
-      target.scrollIntoView({behavior:'smooth', block:'start'});
-    } else if (attempt < 5) {
-      setTimeout(() => tryScroll(attempt + 1), 200);
-    }
+    });
+    await db.collection('users').doc(uid).update({reminders:[...personnels,...newAteliers],inscriptions:newInscriptions});
+    showConfirm({icon:'✅',title:'Inscriptions enregistrées !',text:prenom+' est inscrit(e) à '+newAteliers.length+' atelier'+(newAteliers.length>1?'s':'')+'.',okText:'OK',hideCancel:true,onOk:()=>showAdminUserDetail(uid)});
   };
-  setTimeout(() => tryScroll(1), 300);
 }
 
-// Charge la liste des inscrits de tous les bénéficiaires pour chaque atelier
-async function loadAllInscriptions() {
-  const result = {}; // key: event_key → [prenom1, prenom2...]
-  try {
-    const snap = await db.collection('users').get();
-    snap.docs.forEach(doc => {
-      const u = doc.data();
-      if (!u.prenom) return;
-      (u.reminders || []).filter(r => r.source === 'atelier').forEach(r => {
-        const key = r.date + '_' + r.time + '_' + (r.title||'').slice(0,20).replace(/\s/g,'_');
-        if (!result[key]) result[key] = [];
-        if (!result[key].includes(u.prenom)) result[key].push(u.prenom);
-      });
-    });
-  } catch(e) { console.error('loadAllInscriptions', e); }
-  return result;
-}
-
-function renderPlanningInner(content, events) {
-  const grouped = {};
-  events.forEach(e => { if(!grouped[e.date]) grouped[e.date]=[]; grouped[e.date].push(e); });
-  const today = dateKey(new Date());
-  const allInscrits = state.allInscriptions || {};
-  let html = '';
-  Object.keys(grouped).sort().forEach(dk => {
-    const [yy,mm,dd] = dk.split('-').map(Number);
-    const d = new Date(yy,mm-1,dd);
-    const dayName = d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-    const isToday = dk === today;
-    html += `<div class="planning-day-header" data-date="${dk}" ${isToday?'style="background:#22a559"':''}>${isToday?"📍 Aujourd'hui — ":''}${dayName}</div>`;
-    grouped[dk].forEach(e => {
-      const ek = e.date+'_'+e.time+'_'+e.title.slice(0,20).replace(/\s/g,'_');
-      const inscrit = isInscrit(ek);
-      const inscritsList = allInscrits[ek] || [];
-      const nbInscrits = inscritsList.length;
-      const limite = e.limite || null;
-      const complet = limite !== null && nbInscrits >= limite && !inscrit;
-
-      // Affichage du compteur (limité ou illimité)
-      let compteurHTML;
-      if (limite !== null) {
-        const color = complet ? '#d63447' : (nbInscrits >= limite - 1 ? '#e09400' : '#22a559');
-        compteurHTML = `<div class="planning-places" style="background:${color}"><strong>${nbInscrits}/${limite}</strong> ${complet ? 'COMPLET' : 'places'}</div>`;
-      } else {
-        compteurHTML = `<div class="planning-places" style="background:#8590ad"><strong>${nbInscrits}</strong> inscrit${nbInscrits>1?'s':''}</div>`;
-      }
-
-      const inscritsHTML = inscritsList.length
-        ? `<div class="planning-inscrits">${inscritsList.map(p => `<span class="planning-inscrit-tag">${esc(p)}</span>`).join(' ')}</div>`
-        : '<div class="planning-inscrits planning-inscrits-empty">Aucun inscrit pour le moment</div>';
-
-      // Bouton : "Complet" si plein, sinon Inscrire / Inscrit
-      let btnHTML;
-      if (complet) {
-        btnHTML = `<button class="btn-inscrit btn-complet" disabled>❌ Complet</button>`;
-      } else {
-        btnHTML = `<button class="btn-inscrit ${inscrit?'inscrit':''}" data-ekey="${esc(ek)}" data-edate="${esc(e.date)}" data-etime="${esc(e.time)}" data-etitle="${esc(e.title)}" data-eicon="${esc(e.icon||'📋')}" data-elimite="${limite||''}">${inscrit ? '✓ Inscrit' : "M'inscrire"}</button>`;
-      }
-
-      html += `<div class="planning-item ${complet?'planning-item-complet':''}">
-        <div class="planning-item-time">${e.time}</div>
-        <div class="planning-item-icon">${iconHTML(e.icon)}</div>
-        <div class="planning-item-body">
-          <div class="planning-item-title">${esc(e.title)}</div>
-          ${inscrit ? '<div class="planning-item-meta">✅ Vous participez</div>' : ''}
-          ${compteurHTML}
-          ${inscritsHTML}
-        </div>
-        ${btnHTML}
-      </div>`;
-    });
-  });
-  content.innerHTML = html;
-  content.querySelectorAll('.btn-inscrit:not(.btn-complet)').forEach(btn => {
-    btn.addEventListener('click', async e => {
-      e.stopPropagation();
-      if (btn.disabled) return;
-      const ev = { date: btn.dataset.edate, time: btn.dataset.etime, title: btn.dataset.etitle, icon: btn.dataset.eicon };
-      const limite = btn.dataset.elimite ? parseInt(btn.dataset.elimite) : null;
-      const ek = ev.date + '_' + ev.time + '_' + ev.title.slice(0,20).replace(/\s/g,'_');
-      const dejaInscrit = isInscrit(ek);
-
-      // Si je veux m'inscrire (pas encore inscrit) et qu'il y a une limite
-      if (!dejaInscrit && limite !== null) {
-        // Rafraîchir les inscriptions en temps réel (quelqu'un a pu s'inscrire entre temps)
-        btn.disabled = true;
-        btn.textContent = '⏳ Vérification...';
-        const freshInscriptions = await loadAllInscriptions();
-        const currentCount = (freshInscriptions[ek] || []).length;
-        if (currentCount >= limite) {
-          // Trop tard, c'est complet
-          showConfirm({
-            icon: '😔',
-            title: 'Atelier complet',
-            text: `Désolé, les ${limite} places pour "${ev.title}" viennent d'être prises. Essayez un autre atelier.`,
-            okText: 'OK',
-            hideCancel: true
-          });
-          state.allInscriptions = freshInscriptions;
-          renderPlanningInner(content, events);
-          return;
-        }
-      }
-
-      await toggleInscription(ev);
-      // Recharger les inscrits après inscription/désinscription
-      state.allInscriptions = await loadAllInscriptions();
-      renderPlanningInner(content, events);
-    });
-  });
-}
-
-// ========== INTERACTIONS ==========
-document.getElementById('prev-day').addEventListener('click', () => { state.dayOffset--; render(); });
-document.getElementById('next-day').addEventListener('click', () => { state.dayOffset++; render(); });
-document.getElementById('back-to-today').addEventListener('click', () => { state.dayOffset=0; render(); });
-document.getElementById('open-planning-steve').addEventListener('click', () => {
-  state.currentAnim = 'Steve';
-  document.getElementById('planning-anim-label').textContent = '👤 Planning de Steve';
-  renderPlanning();
-  showScreen('planning-screen');
-});
-document.getElementById('open-planning-greg').addEventListener('click', () => {
-  // Planning Greg désactivé pour l'instant
-  showConfirm({
-    icon: '🚧',
-    title: 'Planning Greg bientôt disponible',
-    text: "Le planning de Greg n'est pas encore activé. Il sera disponible quand son Google Sheet sera prêt.",
-    okText: 'OK',
-    hideCancel: true
-  });
-});
-document.getElementById('planning-back-btn').addEventListener('click', () => showScreen('main-screen'));
-
-document.getElementById('reminders-list').addEventListener('click', e => {
-  // Ne pas ouvrir l'édition si on a cliqué sur un lien (agenda, map)
-  if (e.target.closest('a')) return;
-  const checkId = e.target.closest('[data-check]')?.dataset.check;
-  const card = e.target.closest('.card, .card-sonnerie, .card-rdv');
-  if (checkId) { toggleDone(checkId); e.stopPropagation(); return; }
-  if (card) {
-    const source = card.dataset.source;
-    const id = card.dataset.id;
-    if (source === 'avp') {
-      const avpItem = state.avpEvents.find(e => ('avp_'+e.date+'_'+e.time+'_'+e.title.slice(0,10)) === id);
-      if (avpItem) speak(`${avpItem.title}, à ${timeToSpeech(avpItem.time)}`);
-    } else {
-      const r = state.reminders.find(x => x.id === id);
-      if (r) { speak(`${r.title}. ${r.note||''}`); if(r.source!=='atelier') openEdit(id); }
-    }
-  }
-});
-
-async function toggleDone(id) {
-  const r = state.reminders.find(x => x.id===id); if (!r) return;
-  if (!r.done) r.done = {};
-  const key = dateKey(getCurrentDate()); r.done[key] = !r.done[key];
-  await saveUserData(); render(); if (r.done[key]) speak('Bravo !');
-}
-
-// ========== EDIT SCREEN ==========
-function openEdit(id) {
-  state.editing = id;
-  const r = id ? state.reminders.find(x => x.id===id) : null;
-  document.getElementById('edit-title').textContent = r ? 'Modifier le rappel' : 'Nouveau rappel';
-  const vs = document.getElementById('voice-status'); if(vs){vs.className='voice-status';vs.innerHTML='';}
-  document.getElementById('voice-btn').querySelector('.voice-label').textContent = 'Dicter au lieu de taper';
-  setTPVal('f-time', r ? r.time : '08:00');
-  document.getElementById('f-title').value = r ? r.title : '';
-  document.getElementById('f-note').value = r ? r.note : '';
-  document.getElementById('delete-btn').style.display = r ? 'block' : 'none';
-  const rec = r ? (r.recurrence||'daily') : 'daily';
-  setRecurrence(rec);
-  document.getElementById('f-date').value = r&&r.date ? r.date : dateKey(getCurrentDate());
-  document.getElementById('f-event-date').value = r&&r.eventDate ? r.eventDate : (r&&r.date?r.date:dateKey(getCurrentDate()));
-  setTPVal('f-event-time', r&&r.eventTime ? r.eventTime : '14:00');
-  renderIcons(r ? r.icon : null);
+async function adminAddReminder(uid, prenom) {
+  adminEditingUid=uid;state.editing=null;
+  const snap=await db.collection('users').doc(uid).get();if(!snap.exists)return;
+  const u=snap.data();state.reminders=u.reminders||[];state.inscriptions=u.inscriptions||{};
+  document.getElementById('edit-title').textContent=`Nouveau rappel pour ${prenom}`;
+  document.getElementById('f-title').value='';document.getElementById('f-note').value='';
+  const today=dateKey(new Date());document.getElementById('f-date').value=today;document.getElementById('f-event-date').value=today;
+  state.editingAdminMode=true;state.editingAdminPrenom=prenom;
   showScreen('edit-screen');
+  if(typeof populateIconGrid==='function')populateIconGrid();
+  if(typeof createTimePicker==='function'){createTimePicker('f-time','09:00',5);createTimePicker('f-event-time','09:00',5);}
+  const onceBtn=document.querySelector('[data-rec="once"]');if(onceBtn)onceBtn.click();
 }
 
-function renderIcons(selected) {
-  const grid = document.getElementById('icon-grid');
-  grid.innerHTML = ICONS.map(ic => {
-    const isSel = selected === ic.emoji;
-    let visual = ic.type === 'svg' && ic.svg
-      ? `<img class="icon-opt-img" src="data:image/svg+xml,${encodeURIComponent(ic.svg)}" alt="${esc(ic.label)}">`
-      : `<span class="icon-opt-emoji">${iconHTML(ic.emoji)}</span>`;
-    return `<button class="icon-opt ${isSel?'selected':''}" data-icon-id="${ic.id}">${visual}<span class="icon-opt-label">${esc(ic.label)}</span></button>`;
-  }).join('');
-  grid.querySelectorAll('.icon-opt').forEach(el => {
-    el.addEventListener('click', () => {
-      grid.querySelectorAll('.icon-opt').forEach(x => x.classList.remove('selected'));
-      el.classList.add('selected');
-      const def = ICONS.find(ic => ic.id === el.dataset.iconId);
-      if (def) { document.getElementById('f-title').value = def.title; if(def.note) document.getElementById('f-note').value = def.note; }
-    });
-  });
-}
+async function adminChangePin(uid,prenom){const newCode=prompt(`Nouveau code PIN à 4 chiffres pour ${prenom} :`);if(!newCode)return;if(!/^\d{4}$/.test(newCode)){showConfirm({icon:'⚠️',title:'Code invalide',text:'Le code doit contenir exactement 4 chiffres.',okText:'OK',hideCancel:true});return;}try{await db.collection('users').doc(uid).update({code:newCode});showConfirm({icon:'✅',title:'Code modifié',text:`Le nouveau code de ${prenom} est : ${newCode}`,okText:'OK',hideCancel:true});showAdminUserDetail(uid);}catch(e){showConfirm({icon:'❌',title:'Erreur',text:"Impossible de modifier le code.",okText:'OK',hideCancel:true});}}
+function adminDeleteUser(uid,prenom){showConfirm({icon:'⚠️',title:'Supprimer ce compte ?',text:`Le compte de ${prenom} et tous ses rappels seront définitivement supprimés.`,okText:'Supprimer',danger:true,onOk:async()=>{try{await db.collection('users').doc(uid).delete();showAdminScreen();}catch(e){showConfirm({icon:'❌',title:'Erreur',text:'Impossible de supprimer.',okText:'OK',hideCancel:true});}}});}
+async function adminDeleteReminder(uid,reminderId){showConfirm({icon:'🗑️',title:'Supprimer ce rappel ?',text:'Cette action ne peut pas être annulée.',okText:'Supprimer',danger:true,onOk:async()=>{try{const snap=await db.collection('users').doc(uid).get();const u=snap.data();const newReminders=(u.reminders||[]).filter(r=>r.id!==reminderId);await db.collection('users').doc(uid).update({reminders:newReminders});showAdminUserDetail(uid);}catch(e){showConfirm({icon:'❌',title:'Erreur',text:'Impossible de supprimer.',okText:'OK',hideCancel:true});}}}); }
 
-function getSelectedIcon() {
-  const sel = document.querySelector('.icon-opt.selected');
-  if (!sel) return '🗓️';
-  const def = ICONS.find(ic => ic.id === sel.dataset.iconId);
-  return def ? def.emoji : '🗓️';
-}
+async function showAdminAteliers(){showScreen('admin-ateliers-screen');const list=document.getElementById('admin-ateliers-list');list.innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';try{const[usersSnap,presSnap]=await Promise.all([db.collection('users').get(),db.collection('presences').get()]);const presences={};presSnap.docs.forEach(doc=>{presences[doc.id]=doc.data();});state.presences=presences;const groupes={};usersSnap.docs.forEach(doc=>{const u=doc.data();if(!u.prenom)return;(u.reminders||[]).filter(r=>r.source==='atelier').forEach(r=>{const key=r.date+'_'+r.time+'_'+(r.title||'').slice(0,30);if(!groupes[key])groupes[key]={date:r.date,time:r.time,title:r.title,icon:r.icon,inscrits:[]};groupes[key].inscrits.push(u.prenom);});});const items=Object.values(groupes).sort((a,b)=>{if(a.date!==b.date)return(a.date||'').localeCompare(b.date||'');return(a.time||'').localeCompare(b.time||'');});if(items.length===0){list.innerHTML='<div class="planning-empty">Aucune inscription pour le moment.</div>';return;}const today=dateKey(new Date());list.innerHTML=items.map(g=>{const atelierKey=g.date+'_'+g.time+'_'+(g.title||'').slice(0,30);let nbPresent=0,nbAbsent=0,nbNonPointe=0;g.inscrits.forEach(p=>{const presKey=sanitizePresKey(atelierKey+'__'+p);const pres=presences[presKey];if(pres&&pres.statut==='present')nbPresent++;else if(pres&&pres.statut==='absent')nbAbsent++;else nbNonPointe++;});const isPasse=g.date<today;const isToday_=g.date===today;const badge=isPasse?'<span class="atelier-badge-passe">PASSÉ</span>':isToday_?'<span class="atelier-badge-aujourdhui">AUJOURD\'HUI</span>':'<span class="atelier-badge-futur">À VENIR</span>';return`<div class="atelier-group"><div class="atelier-group-header"><div class="atelier-group-date">${formatShortDate(g.date)} · ${(g.time||'').replace(':','h')}</div><div class="atelier-group-title">${esc(g.title)}</div>${badge}</div><div class="atelier-stats">👥 <strong>${g.inscrits.length}</strong> inscrits · ✅ <strong>${nbPresent}</strong> présents · ❌ <strong>${nbAbsent}</strong> absents · ⏳ <strong>${nbNonPointe}</strong> non pointés</div><div class="atelier-pointage-list">${g.inscrits.map(p=>{const presKey=sanitizePresKey(atelierKey+'__'+p);const pres=presences[presKey];const statut=pres?pres.statut:null;return`<div class="atelier-pointage-row"><div class="atelier-pointage-name">${esc(p)}</div><button class="btn-pointage btn-present ${statut==='present'?'active':''}" data-preskey="${esc(presKey)}" data-atelier="${esc(atelierKey)}" data-prenom="${esc(p)}" data-statut="present">✅ Présent</button><button class="btn-pointage btn-absent ${statut==='absent'?'active':''}" data-preskey="${esc(presKey)}" data-atelier="${esc(atelierKey)}" data-prenom="${esc(p)}" data-statut="absent">❌ Absent</button></div>`;}).join('')}</div></div>`;}).join('');list.querySelectorAll('.btn-pointage').forEach(btn=>{btn.addEventListener('click',async()=>{const presKey=btn.dataset.preskey;const atelier=btn.dataset.atelier;const prenom=btn.dataset.prenom;const statut=btn.dataset.statut;await togglePresence(presKey,atelier,prenom,statut);showAdminAteliers();});});}catch(e){list.innerHTML='<div class="planning-empty">Erreur de chargement.</div>';}}
 
-function setRecurrence(rec) {
-  document.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.rec===rec));
-  const isOnce = rec === 'once';
-  const as = document.getElementById('alarm-section');
-  as.classList.toggle('plain', !isOnce); as.classList.toggle('section-alarm', isOnce);
-  document.getElementById('alarm-date-field').style.display = isOnce ? 'block' : 'none';
-  document.getElementById('event-section').style.display = isOnce ? 'block' : 'none';
-}
-function getSelectedRecurrence() { return document.querySelector('.seg-btn.active')?.dataset.rec || 'daily'; }
-document.querySelectorAll('.seg-btn').forEach(btn => btn.addEventListener('click', () => setRecurrence(btn.dataset.rec)));
+function sanitizePresKey(key){return key.replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,150);}
+async function togglePresence(presKey,atelier,prenom,nouveauStatut){try{const current=state.presences?state.presences[presKey]:null;if(current&&current.statut===nouveauStatut){await db.collection('presences').doc(presKey).delete();}else{await db.collection('presences').doc(presKey).set({atelier,prenom,statut:nouveauStatut,pointeAt:Date.now()});}}catch(e){}}
 
-document.getElementById('add-btn').addEventListener('click', () => openEdit(null));
-document.getElementById('back-btn').addEventListener('click', () => {
-  if (state.editingAdminMode && adminEditingUid) {
-    const uid = adminEditingUid;
-    state.editingAdminMode = false;
-    state.editingAdminPrenom = null;
-    // Recharger les vraies données de l'admin (vider le state)
-    state.reminders = [];
-    state.inscriptions = {};
-    showAdminUserDetail(uid);
-    return;
-  }
-  showScreen('main-screen');
-});
+function isInscrit(eventKey){return!!(state.inscriptions&&state.inscriptions[eventKey]);}
+async function toggleInscription(event){const key=event.date+'_'+event.time+'_'+event.title.slice(0,20).replace(/\s/g,'_');if(isInscrit(key)){delete state.inscriptions[key];state.reminders=state.reminders.filter(r=>r.id!=='atelier_'+key);tagOneSignalAtelier(key,false);}else{state.inscriptions[key]=true;const loc=getAVPLocation(event.title);state.reminders.push({id:'atelier_'+key,title:event.title,icon:event.icon||'📋',time:event.time,date:event.date,recurrence:'once',note:loc?loc.address:'',mapLink:loc?`https://www.google.com/maps/search/?api=1&query=${loc.query}`:null,done:{},source:'atelier'});speak(`Inscrit à ${event.title} !`);tagOneSignalAtelier(key,true);queueAtelierNotifications(event,key);}await saveUserData();render();}
 
-document.getElementById('save-btn').addEventListener('click', async () => {
-  const title = document.getElementById('f-title').value.trim();
-  if (!title) { showConfirm({icon:'⚠️',title:'Titre manquant',text:"Appuyez sur une image ou écrivez ce qu'il faut faire.",okText:'OK',hideCancel:true}); return; }
-  const rec = getSelectedRecurrence();
-  const data = { time: getTPVal('f-time'), title, icon: getSelectedIcon(), note: document.getElementById('f-note').value.trim(), recurrence: rec };
-  if (rec === 'once') {
-    const d = document.getElementById('f-date').value;
-    if (!d) { showConfirm({icon:'⚠️',title:'Date manquante',text:'Choisissez la date.',okText:'OK',hideCancel:true}); return; }
-    data.date = d; data.eventDate = document.getElementById('f-event-date').value || d; data.eventTime = getTPVal('f-event-time');
-  } else { data.date = null; data.eventDate = null; data.eventTime = null; }
-  if (state.editing) { Object.assign(state.reminders.find(x=>x.id===state.editing), data); }
-  else { state.reminders.push({id:uid(),...data,done:{}}); }
-  await saveUserData();
+function render(){const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key)).map(r=>({...r,_source:'personal'}));const items=[...personal].sort((a,b)=>a.time.localeCompare(b.time));if(items.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:36px;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;return;}const now=new Date();const isToday=state.dayOffset===0;const nowMinutes=now.getHours()*60+now.getMinutes();let upcomingId=null;if(isToday){const up=items.find(r=>{const[h,m]=r.time.split(':').map(Number);return(h*60+m)>=nowMinutes&&!(r.done&&r.done[key]);});if(up)upcomingId=up.id;}list.innerHTML=items.map(r=>{const isDone=r.done&&r.done[key];const isAVP=r._source==='avp';const isAtelier=r.source==='atelier';const eventDate=r.eventDate||r.date;const eventTime=r.eventTime||r.time;const dateDiffers=r.recurrence==='once'&&eventDate&&eventDate!==r.date;const timeDiffers=r.recurrence==='once'&&eventTime&&eventTime!==r.time;const hasDiffEvent=dateDiffers||timeDiffers;let noteText='';if(r.note){if(r.mapLink){noteText=`<a href="${r.mapLink}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{const iconDef=ICONS.find(ic=>ic.title===r.title||(r.icon&&ic.emoji===r.icon));if(iconDef&&iconDef.address){noteText=`<a href="https://www.google.com/maps/search/?api=1&query=${iconDef.address}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{noteText=esc(r.note);}}}const checkHTML=(isAVP||isAtelier)?'':`<div class="card-check ${isDone?'':'unchecked'}" data-check="${r.id}" style="position:absolute;top:12px;right:12px;">${isDone?'✓':'○'}</div>`;if(hasDiffEvent||isAtelier){const agendaLink=buildGoogleCalendarLink(r);let sonnerieText;if(isAtelier){const atelierDate=new Date(r.date+'T'+r.time+':00');const veille=new Date(atelierDate);veille.setDate(veille.getDate()-1);const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const h2=String(avant2h.getHours()).padStart(2,'0');const m2=String(avant2h.getMinutes()).padStart(2,'0');sonnerieText=`🔔 <strong>2 sonneries prévues :</strong><br>• La veille (${formatShortDate(veille.toISOString().slice(0,10))}) à <strong>15h00</strong><br>• 2h avant, à <strong>${h2}h${m2}</strong>`;}else if(dateDiffers){sonnerieText=`🔔 Sonnerie le <strong>${formatRelativeDate(r.date)} à ${r.time.replace(':','h')}</strong>`;}else{sonnerieText=`🔔 Sonnerie à <strong>${r.time.replace(':','h')}</strong>`;}const typeLabel=isAtelier?'Atelier AVP':'Rendez-vous';const badgeAtelier=isAtelier?'<span style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">✅ Je participe</span>':'';return`<div class="card-rdv ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="rdv-top"><div class="rdv-left"><div class="rdv-date">${formatShortDate(eventDate)}</div><div class="rdv-heure">${eventTime.replace(':','h')}</div></div><div class="rdv-image">${iconHTML(r.icon)}</div><div class="rdv-body"><div class="rdv-type">${typeLabel}</div><div class="rdv-titre">${esc(r.title)}</div>${noteText?`<div class="rdv-note">${noteText}</div>`:''} ${badgeAtelier}</div></div><div class="rdv-sonnerie">${sonnerieText}</div><a href="${agendaLink}" target="_blank" class="btn-agenda" onclick="event.stopPropagation()">📅 Ajouter à mon agenda Google</a></div>`;}const badge=isAVP?'<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">📋 Planning AVP</span>':'';const sonnerieType=isAVP?'Atelier':'Sonnerie';return`<div class="card-sonnerie ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="sonnerie-left"><div class="sonnerie-date">${formatShortDate(r.date)}</div><div class="sonnerie-heure">${r.time.replace(':','h')}</div></div><div class="sonnerie-icon">${iconHTML(r.icon)}</div><div class="sonnerie-body"><div class="sonnerie-type">${sonnerieType}</div><div class="sonnerie-titre">${esc(r.title)}</div>${noteText?`<div class="sonnerie-note">${noteText}</div>`:''}${badge}</div></div>`;}).join('');}
 
-  // Si admin créait pour un bénéficiaire → retour au détail
-  if (state.editingAdminMode && adminEditingUid) {
-    const targetUid = adminEditingUid;
-    const prenom = state.editingAdminPrenom;
-    // Programmer notification pour LE BÉNÉFICIAIRE (pas l'admin)
-    if (rec === 'once' && data.date && prenom) {
-      queueNotification(
-        '🔔 ' + data.title,
-        data.note ? (data.title + ' — ' + data.note) : data.title,
-        data.date,
-        data.time,
-        { key: 'prenom', value: prenom.toLowerCase() }
-      );
-    }
-    state.editingAdminMode = false;
-    state.editingAdminPrenom = null;
-    state.reminders = [];
-    state.inscriptions = {};
-    showConfirm({
-      icon:'✅', title:'Rappel ajouté !',
-      text:`Le rappel a été ajouté pour ${prenom}.`,
-      okText:'OK', hideCancel:true,
-      onOk: () => showAdminUserDetail(targetUid)
-    });
-    return;
-  }
+function loadAVPPlanning(){fetch(AVP_CSV_URL+'&_='+Date.now()).then(r=>r.text()).then(csv=>{state.avpEvents=parseAVPPlanning(csv);render();}).catch(e=>console.log('AVP planning offline',e));}
 
-  render(); showScreen('main-screen');
-  if (rec === 'once' && data.date) {
-    // Programmer la sonnerie push personnelle
-    const userPrenom = currentUser ? currentUser.prenom.toLowerCase() : null;
-    if (userPrenom) {
-      queueNotification(
-        '🔔 ' + data.title,
-        data.note ? (data.title + ' — ' + data.note) : data.title,
-        data.date,
-        data.time,
-        { key: 'prenom', value: userPrenom }
-      );
-    }
-    const rdvHeure = data.eventTime ? data.eventTime.replace(':','h') : data.time.replace(':','h');
-    showConfirm({icon:'✅', title:'Rappel enregistré !', text:`Votre rendez-vous du ${formatRelativeDate(data.date)} à ${rdvHeure} est bien enregistré. Vous serez rappelé à ${data.time.replace(':','h')}.`, okText:'Super !', hideCancel:true});
-  }
-});
+function parseAVPPlanning(csv){const events=[];const lines=csv.split('\n');if(lines.length<2)return events;let year=2026;const ym=lines[0].match(/(\d{4})/);if(ym)year=parseInt(ym[1]);const monthNames=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];let monthIndex=-1;const titleLc=lines[0].toLowerCase();for(let i=0;i<monthNames.length;i++){if(titleLc.includes(monthNames[i])){monthIndex=i;break;}}if(monthIndex===-1)return events;function parseCSVLine(line){const result=[];let cur='';let inQuote=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'){inQuote=!inQuote;}else if(c===','&&!inQuote){result.push(cur.trim());cur='';}else{cur+=c;}}result.push(cur.trim());return result;}const rows=lines.map(l=>parseCSVLine(l));for(let r=0;r<rows.length;r++){const row=rows[r],rowStr=row.join(' ');const dateMatches=rowStr.match(/(lundi|mardi|mercredi|jeudi|vendredi)\s+(\d{1,2})/gi);if(!dateMatches||dateMatches.length===0)continue;const dayMap={};for(let c=0;c<row.length;c++){const cell=String(row[c]||'');const dm=cell.match(/(lundi|mardi|mercredi|jeudi|vendredi)\s+(\d{1,2})/i);if(dm)dayMap[c]=parseInt(dm[2]);}for(let offset=1;offset<=2&&(r+offset)<rows.length;offset++){const dRow=rows[r+offset];if(!dRow)continue;const dayCols=Object.keys(dayMap).map(Number).sort((a,b)=>a-b);for(const startCol of dayCols){const dayNum=dayMap[startCol];let hour='',activity='';for(let cc=startCol;cc<Math.min(startCol+3,dRow.length);cc++){const cell=String(dRow[cc]||'').trim();if(!cell||cell==='-'||cell==='—')continue;const hm=cell.match(/(\d{1,2})\s*[hH:\.]\s*(\d{0,2})/),justH=cell.match(/^(\d{1,2})$/);if(hm&&!hour){const hh=parseInt(hm[1]),mm=hm[2]?parseInt(hm[2]):0;hour=(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm;}else if(justH&&parseInt(justH[1])>=6&&parseInt(justH[1])<=22&&!hour){hour=(parseInt(justH[1])<10?'0':'')+parseInt(justH[1])+':00';}else if(cell.length>2&&!activity){activity=cell;}}if(activity){const mo=monthIndex+1;const dateStr=`${year}-${(mo<10?'0':'')+mo}-${(dayNum<10?'0':'')+dayNum}`;let cleanTitle=activity.replace(/^[\s\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F\u200D]+/gu,'').trim();if(cleanTitle===activity){cleanTitle=activity.replace(/^[^a-zA-ZÀ-ÿ0-9]+/,'').trim();}let limite=null;const limMatch=cleanTitle.match(/\s*\((\d{1,2})\)\s*$/);if(limMatch){limite=parseInt(limMatch[1]);cleanTitle=cleanTitle.replace(/\s*\(\d{1,2}\)\s*$/,'').trim();}events.push({date:dateStr,time:hour||'09:00',title:cleanTitle,icon:getActivityIcon(cleanTitle),limite});}}}}events.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.time<b.time?-1:1);return events;}
 
-document.getElementById('delete-btn').addEventListener('click', () => {
-  showConfirm({icon:'🗑️',title:'Supprimer ce rappel ?',text:'Cette action ne peut pas être annulée.',okText:'Supprimer',danger:true,
-    onOk: async () => { state.reminders=state.reminders.filter(x=>x.id!==state.editing); await saveUserData(); render(); showScreen('main-screen'); }
-  });
-});
+function renderPlanning(){const content=document.getElementById('planning-content');const events=state.avpEvents;if(events.length===0){content.innerHTML='<div class="planning-empty">📋 Aucune activité trouvée dans le planning.</div>';return;}const firstDate=events[0].date;const[y,m]=firstDate.split('-').map(Number);const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];document.getElementById('planning-month-title').textContent=`Planning ${monthNames[m-1]} ${y}`;renderPlanningInner(content,events);scrollToToday(content);loadAllInscriptions().then(inscritsByEvent=>{state.allInscriptions=inscritsByEvent;renderPlanningInner(content,events);scrollToToday(content);});}
 
-// ========== TIME PICKER ==========
-function createTimePicker(hostId, val, step) {
-  const host = document.getElementById(hostId); if (!host) return;
-  host.dataset.step = step||5; host.dataset.value = val||'08:00';
-  host.innerHTML = `<div class="tp-col"><button type="button" class="tp-btn" data-dir="up" data-part="h">▲</button><div class="tp-val" data-part="h">00</div><button type="button" class="tp-btn" data-dir="down" data-part="h">▼</button><div class="tp-label">heures</div></div><div class="tp-sep">:</div><div class="tp-col"><button type="button" class="tp-btn" data-dir="up" data-part="m">▲</button><div class="tp-val" data-part="m">00</div><button type="button" class="tp-btn" data-dir="down" data-part="m">▼</button><div class="tp-label">minutes</div></div>`;
-  renderTP(host);
-  host.addEventListener('click', e => {
-    const btn = e.target.closest('.tp-btn'); if (!btn) return;
-    changeTP(host, btn.dataset.part, btn.dataset.dir==='up'?1:-1);
-    if ('vibrate' in navigator) try{navigator.vibrate(15)}catch(e){}
-  });
-}
-function renderTP(h) { const[hr,mn]=h.dataset.value.split(':').map(Number); h.querySelector('.tp-val[data-part="h"]').textContent=String(hr).padStart(2,'0'); h.querySelector('.tp-val[data-part="m"]').textContent=String(mn).padStart(2,'0'); }
-function changeTP(h,part,dir) { const step=parseInt(h.dataset.step)||5;let[hr,mn]=h.dataset.value.split(':').map(Number);if(part==='h'){hr=(hr+dir+24)%24}else{mn=Math.round(mn/step)*step;if(mn>=60)mn=0;mn=(mn+dir*step+60)%60}h.dataset.value=`${String(hr).padStart(2,'0')}:${String(mn).padStart(2,'0')}`;renderTP(h); }
-function getTPVal(id) { const h=document.getElementById(id);return h?h.dataset.value:'08:00'; }
-function setTPVal(id,v) { const h=document.getElementById(id);if(!h)return;h.dataset.value=v||'08:00';renderTP(h); }
+function scrollToToday(content){const tryScroll=(attempt)=>{const today=dateKey(new Date());let target=content.querySelector(`[data-date="${today}"]`);if(!target){const allHeaders=content.querySelectorAll('[data-date]');for(const h of allHeaders){if(h.dataset.date>=today){target=h;break;}}if(!target&&allHeaders.length>0){target=allHeaders[allHeaders.length-1];}}if(target){target.scrollIntoView({behavior:'smooth',block:'start'});}else if(attempt<5){setTimeout(()=>tryScroll(attempt+1),200);}};setTimeout(()=>tryScroll(1),300);}
 
-// ========== CONFIRM MODAL ==========
-function showConfirm({icon,title,text,okText,cancelText,danger,hideCancel,onOk}) {
-  document.getElementById('confirm-icon').textContent=icon||'❓';
-  document.getElementById('confirm-title').textContent=title;
-  document.getElementById('confirm-text').textContent=text;
-  const ok=document.getElementById('confirm-ok'),ca=document.getElementById('confirm-cancel');
-  ok.textContent=okText||'OK'; ok.className=danger?'btn-danger':'btn-primary';
-  ca.textContent=cancelText||'Annuler'; ca.style.display=hideCancel?'none':'block';
-  document.getElementById('confirm-modal').classList.add('active');
-  ok.onclick=()=>{ document.getElementById('confirm-modal').classList.remove('active'); if(onOk)onOk(); };
-  ca.onclick=()=>document.getElementById('confirm-modal').classList.remove('active');
-}
+async function loadAllInscriptions(){const result={};try{const snap=await db.collection('users').get();snap.docs.forEach(doc=>{const u=doc.data();if(!u.prenom)return;(u.reminders||[]).filter(r=>r.source==='atelier').forEach(r=>{const key=r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');if(!result[key])result[key]=[];if(!result[key].includes(u.prenom))result[key].push(u.prenom);});});}catch(e){}return result;}
 
-// ========== VOICE ==========
-function speak(text) {
-  if (!('speechSynthesis' in window)) return;
-  try { window.speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang='fr-FR'; u.rate=0.95; u.volume=1; window.speechSynthesis.speak(u); } catch(e){}
-}
+function renderPlanningInner(content,events){const grouped={};events.forEach(e=>{if(!grouped[e.date])grouped[e.date]=[];grouped[e.date].push(e);});const today=dateKey(new Date());const allInscrits=state.allInscriptions||{};let html='';Object.keys(grouped).sort().forEach(dk=>{const[yy,mm,dd]=dk.split('-').map(Number);const d=new Date(yy,mm-1,dd);const dayName=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});const isToday=dk===today;html+=`<div class="planning-day-header" data-date="${dk}" ${isToday?'style="background:#22a559"':''}>${isToday?"📍 Aujourd'hui — ":''}${dayName}</div>`;grouped[dk].forEach(e=>{const ek=e.date+'_'+e.time+'_'+e.title.slice(0,20).replace(/\s/g,'_');const inscrit=isInscrit(ek);const inscritsList=allInscrits[ek]||[];const nbInscrits=inscritsList.length;const limite=e.limite||null;const complet=limite!==null&&nbInscrits>=limite&&!inscrit;let compteurHTML;if(limite!==null){const color=complet?'#d63447':(nbInscrits>=limite-1?'#e09400':'#22a559');compteurHTML=`<div class="planning-places" style="background:${color}"><strong>${nbInscrits}/${limite}</strong> ${complet?'COMPLET':'places'}</div>`;}else{compteurHTML=`<div class="planning-places" style="background:#8590ad"><strong>${nbInscrits}</strong> inscrit${nbInscrits>1?'s':''}</div>`;}const inscritsHTML=inscritsList.length?`<div class="planning-inscrits">${inscritsList.map(p=>`<span class="planning-inscrit-tag">${esc(p)}</span>`).join(' ')}</div>`:'<div class="planning-inscrits planning-inscrits-empty">Aucun inscrit pour le moment</div>';let btnHTML;if(complet){btnHTML=`<button class="btn-inscrit btn-complet" disabled>❌ Complet</button>`;}else{btnHTML=`<button class="btn-inscrit ${inscrit?'inscrit':''}" data-ekey="${esc(ek)}" data-edate="${esc(e.date)}" data-etime="${esc(e.time)}" data-etitle="${esc(e.title)}" data-eicon="${esc(e.icon||'📋')}" data-elimite="${limite||''}">${inscrit?'✓ Inscrit':"M'inscrire"}</button>`;}html+=`<div class="planning-item ${complet?'planning-item-complet':''}"><div class="planning-item-time">${e.time}</div><div class="planning-item-icon">${iconHTML(e.icon)}</div><div class="planning-item-body"><div class="planning-item-title">${esc(e.title)}</div>${inscrit?'<div class="planning-item-meta">✅ Vous participez</div>':''}${compteurHTML}${inscritsHTML}</div>${btnHTML}</div>`;});});content.innerHTML=html;content.querySelectorAll('.btn-inscrit:not(.btn-complet)').forEach(btn=>{btn.addEventListener('click',async e=>{e.stopPropagation();if(btn.disabled)return;const ev={date:btn.dataset.edate,time:btn.dataset.etime,title:btn.dataset.etitle,icon:btn.dataset.eicon};const limite=btn.dataset.elimite?parseInt(btn.dataset.elimite):null;const ek=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');const dejaInscrit=isInscrit(ek);if(!dejaInscrit&&limite!==null){btn.disabled=true;btn.textContent='⏳ Vérification...';const freshInscriptions=await loadAllInscriptions();const currentCount=(freshInscriptions[ek]||[]).length;if(currentCount>=limite){showConfirm({icon:'😔',title:'Atelier complet',text:`Désolé, les ${limite} places pour "${ev.title}" viennent d'être prises.`,okText:'OK',hideCancel:true});state.allInscriptions=freshInscriptions;renderPlanningInner(content,events);return;}}await toggleInscription(ev);state.allInscriptions=await loadAllInscriptions();renderPlanningInner(content,events);});});}
+
+document.getElementById('prev-day').addEventListener('click',()=>{state.dayOffset--;render();});
+document.getElementById('next-day').addEventListener('click',()=>{state.dayOffset++;render();});
+document.getElementById('back-to-today').addEventListener('click',()=>{state.dayOffset=0;render();});
+document.getElementById('open-planning-steve').addEventListener('click',()=>{state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';renderPlanning();showScreen('planning-screen');});
+document.getElementById('open-planning-greg').addEventListener('click',()=>{showConfirm({icon:'🚧',title:'Planning Greg bientôt disponible',text:"Le planning de Greg n'est pas encore activé.",okText:'OK',hideCancel:true});});
+document.getElementById('planning-back-btn').addEventListener('click',()=>showScreen('main-screen'));
+
+document.getElementById('reminders-list').addEventListener('click',e=>{if(e.target.closest('a'))return;const checkId=e.target.closest('[data-check]')?.dataset.check;const card=e.target.closest('.card, .card-sonnerie, .card-rdv');if(checkId){toggleDone(checkId);e.stopPropagation();return;}if(card){const source=card.dataset.source;const id=card.dataset.id;if(source==='avp'){const avpItem=state.avpEvents.find(e=>('avp_'+e.date+'_'+e.time+'_'+e.title.slice(0,10))===id);if(avpItem)speak(`${avpItem.title}, à ${timeToSpeech(avpItem.time)}`);}else{const r=state.reminders.find(x=>x.id===id);if(r){speak(`${r.title}. ${r.note||''}`);if(r.source!=='atelier')openEdit(id);}}}});
+
+async function toggleDone(id){const r=state.reminders.find(x=>x.id===id);if(!r)return;if(!r.done)r.done={};const key=dateKey(getCurrentDate());r.done[key]=!r.done[key];await saveUserData();render();if(r.done[key])speak('Bravo !');}
+
+function openEdit(id){state.editing=id;const r=id?state.reminders.find(x=>x.id===id):null;document.getElementById('edit-title').textContent=r?'Modifier le rappel':'Nouveau rappel';const vs=document.getElementById('voice-status');if(vs){vs.className='voice-status';vs.innerHTML='';}document.getElementById('voice-btn').querySelector('.voice-label').textContent='Dicter au lieu de taper';setTPVal('f-time',r?r.time:'08:00');document.getElementById('f-title').value=r?r.title:'';document.getElementById('f-note').value=r?r.note:'';document.getElementById('delete-btn').style.display=r?'block':'none';const rec=r?(r.recurrence||'daily'):'daily';setRecurrence(rec);document.getElementById('f-date').value=r&&r.date?r.date:dateKey(getCurrentDate());document.getElementById('f-event-date').value=r&&r.eventDate?r.eventDate:(r&&r.date?r.date:dateKey(getCurrentDate()));setTPVal('f-event-time',r&&r.eventTime?r.eventTime:'14:00');renderIcons(r?r.icon:null);showScreen('edit-screen');}
+
+function renderIcons(selected){const grid=document.getElementById('icon-grid');grid.innerHTML=ICONS.map(ic=>{const isSel=selected===ic.emoji;let visual=ic.type==='svg'&&ic.svg?`<img class="icon-opt-img" src="data:image/svg+xml,${encodeURIComponent(ic.svg)}" alt="${esc(ic.label)}">`:`<span class="icon-opt-emoji">${iconHTML(ic.emoji)}</span>`;return`<button class="icon-opt ${isSel?'selected':''}" data-icon-id="${ic.id}">${visual}<span class="icon-opt-label">${esc(ic.label)}</span></button>`;}).join('');grid.querySelectorAll('.icon-opt').forEach(el=>{el.addEventListener('click',()=>{grid.querySelectorAll('.icon-opt').forEach(x=>x.classList.remove('selected'));el.classList.add('selected');const def=ICONS.find(ic=>ic.id===el.dataset.iconId);if(def){document.getElementById('f-title').value=def.title;if(def.note)document.getElementById('f-note').value=def.note;}});});}
+function getSelectedIcon(){const sel=document.querySelector('.icon-opt.selected');if(!sel)return'🗓️';const def=ICONS.find(ic=>ic.id===sel.dataset.iconId);return def?def.emoji:'🗓️';}
+function setRecurrence(rec){document.querySelectorAll('.seg-btn').forEach(b=>b.classList.toggle('active',b.dataset.rec===rec));const isOnce=rec==='once';const as=document.getElementById('alarm-section');as.classList.toggle('plain',!isOnce);as.classList.toggle('section-alarm',isOnce);document.getElementById('alarm-date-field').style.display=isOnce?'block':'none';document.getElementById('event-section').style.display=isOnce?'block':'none';}
+function getSelectedRecurrence(){return document.querySelector('.seg-btn.active')?.dataset.rec||'daily';}
+document.querySelectorAll('.seg-btn').forEach(btn=>btn.addEventListener('click',()=>setRecurrence(btn.dataset.rec)));
+document.getElementById('add-btn').addEventListener('click',()=>openEdit(null));
+document.getElementById('back-btn').addEventListener('click',()=>{if(state.editingAdminMode&&adminEditingUid){const uid=adminEditingUid;state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showAdminUserDetail(uid);return;}showScreen('main-screen');});
+
+document.getElementById('save-btn').addEventListener('click',async()=>{const title=document.getElementById('f-title').value.trim();if(!title){showConfirm({icon:'⚠️',title:'Titre manquant',text:"Appuyez sur une image ou écrivez ce qu'il faut faire.",okText:'OK',hideCancel:true});return;}const rec=getSelectedRecurrence();const data={time:getTPVal('f-time'),title,icon:getSelectedIcon(),note:document.getElementById('f-note').value.trim(),recurrence:rec};if(rec==='once'){const d=document.getElementById('f-date').value;if(!d){showConfirm({icon:'⚠️',title:'Date manquante',text:'Choisissez la date.',okText:'OK',hideCancel:true});return;}data.date=d;data.eventDate=document.getElementById('f-event-date').value||d;data.eventTime=getTPVal('f-event-time');}else{data.date=null;data.eventDate=null;data.eventTime=null;}if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}});}await saveUserData();if(state.editingAdminMode&&adminEditingUid){const targetUid=adminEditingUid;const prenom=state.editingAdminPrenom;if(rec==='once'&&data.date&&prenom){queueNotification('🔔 '+data.title,data.note?(data.title+' — '+data.note):data.title,data.date,data.time,{key:'prenom',value:prenom.toLowerCase()});}state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showConfirm({icon:'✅',title:'Rappel ajouté !',text:`Le rappel a été ajouté pour ${prenom}.`,okText:'OK',hideCancel:true,onOk:()=>showAdminUserDetail(targetUid)});return;}render();showScreen('main-screen');if(rec==='once'&&data.date){const userPrenom=currentUser?currentUser.prenom.toLowerCase():null;if(userPrenom){queueNotification('🔔 '+data.title,data.note?(data.title+' — '+data.note):data.title,data.date,data.time,{key:'prenom',value:userPrenom});}const rdvHeure=data.eventTime?data.eventTime.replace(':','h'):data.time.replace(':','h');showConfirm({icon:'✅',title:'Rappel enregistré !',text:`Votre rendez-vous du ${formatRelativeDate(data.date)} à ${rdvHeure} est bien enregistré.`,okText:'Super !',hideCancel:true});}});
+
+document.getElementById('delete-btn').addEventListener('click',()=>{showConfirm({icon:'🗑️',title:'Supprimer ce rappel ?',text:'Cette action ne peut pas être annulée.',okText:'Supprimer',danger:true,onOk:async()=>{state.reminders=state.reminders.filter(x=>x.id!==state.editing);await saveUserData();render();showScreen('main-screen');}});});
+
+function createTimePicker(hostId,val,step){const host=document.getElementById(hostId);if(!host)return;host.dataset.step=step||5;host.dataset.value=val||'08:00';host.innerHTML=`<div class="tp-col"><button type="button" class="tp-btn" data-dir="up" data-part="h">▲</button><div class="tp-val" data-part="h">00</div><button type="button" class="tp-btn" data-dir="down" data-part="h">▼</button><div class="tp-label">heures</div></div><div class="tp-sep">:</div><div class="tp-col"><button type="button" class="tp-btn" data-dir="up" data-part="m">▲</button><div class="tp-val" data-part="m">00</div><button type="button" class="tp-btn" data-dir="down" data-part="m">▼</button><div class="tp-label">minutes</div></div>`;renderTP(host);host.addEventListener('click',e=>{const btn=e.target.closest('.tp-btn');if(!btn)return;changeTP(host,btn.dataset.part,btn.dataset.dir==='up'?1:-1);if('vibrate' in navigator)try{navigator.vibrate(15)}catch(e){} });}
+function renderTP(h){const[hr,mn]=h.dataset.value.split(':').map(Number);h.querySelector('.tp-val[data-part="h"]').textContent=String(hr).padStart(2,'0');h.querySelector('.tp-val[data-part="m"]').textContent=String(mn).padStart(2,'0');}
+function changeTP(h,part,dir){const step=parseInt(h.dataset.step)||5;let[hr,mn]=h.dataset.value.split(':').map(Number);if(part==='h'){hr=(hr+dir+24)%24;}else{mn=Math.round(mn/step)*step;if(mn>=60)mn=0;mn=(mn+dir*step+60)%60;}h.dataset.value=`${String(hr).padStart(2,'0')}:${String(mn).padStart(2,'0')}`;renderTP(h);}
+function getTPVal(id){const h=document.getElementById(id);return h?h.dataset.value:'08:00';}
+function setTPVal(id,v){const h=document.getElementById(id);if(!h)return;h.dataset.value=v||'08:00';renderTP(h);}
+
+function showConfirm({icon,title,text,okText,cancelText,danger,hideCancel,onOk}){document.getElementById('confirm-icon').textContent=icon||'❓';document.getElementById('confirm-title').textContent=title;document.getElementById('confirm-text').textContent=text;const ok=document.getElementById('confirm-ok'),ca=document.getElementById('confirm-cancel');ok.textContent=okText||'OK';ok.className=danger?'btn-danger':'btn-primary';ca.textContent=cancelText||'Annuler';ca.style.display=hideCancel?'none':'block';document.getElementById('confirm-modal').classList.add('active');ok.onclick=()=>{document.getElementById('confirm-modal').classList.remove('active');if(onOk)onOk();};ca.onclick=()=>document.getElementById('confirm-modal').classList.remove('active');}
+
+function speak(text){if(!('speechSynthesis' in window))return;try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='fr-FR';u.rate=0.95;u.volume=1;window.speechSynthesis.speak(u);}catch(e){}}
 
 let recognition=null;
-function getSR(){const S=window.SpeechRecognition||window.webkitSpeechRecognition;if(!S)return null;if(!recognition){recognition=new S();recognition.lang='fr-FR';recognition.continuous=false;recognition.interimResults=false}return recognition;}
-function startListening(onRes,onErr){const r=getSR();if(!r){onErr('not-supported');return}r.onresult=e=>onRes(e.results[0][0].transcript);r.onerror=e=>onErr(e.error||'unknown');try{r.start()}catch(e){onErr('already-started')}}
+function getSR(){const S=window.SpeechRecognition||window.webkitSpeechRecognition;if(!S)return null;if(!recognition){recognition=new S();recognition.lang='fr-FR';recognition.continuous=false;recognition.interimResults=false;}return recognition;}
+function startListening(onRes,onErr){const r=getSR();if(!r){onErr('not-supported');return;}r.onresult=e=>onRes(e.results[0][0].transcript);r.onerror=e=>onErr(e.error||'unknown');try{r.start();}catch(e){onErr('already-started');}}
 
-function parseVoiceInput(text) {
-  let w=' '+text.toLowerCase()+' ';
-  const result={title:text,time:null,date:null,recurrence:'daily',icon:null};
-  const tr=parseVoiceTime(w);if(tr){result.time=tr.time;w=w.replace(tr.regex,' ');}
-  const dr=parseVoiceDate(w);if(dr){result.date=dr.date;result.recurrence='once';w=w.replace(dr.regex,' ');}
-  if(/\b(tous les jours|chaque jour)\b/i.test(w)){result.recurrence='daily';result.date=null;}
-  result.icon=suggestVoiceIcon(text.toLowerCase())||'🗓️';
-  let title=w.replace(/\b(à|au|le|la|les|du|de|d['']|pour)\b/gi,' ').replace(/\s+/g,' ').trim();
-  if(title.length<2)title=text.trim();
-  if(title)title=title.charAt(0).toUpperCase()+title.slice(1);
-  result.title=title.slice(0,50);
-  return result;
-}
+function parseVoiceInput(text){let w=' '+text.toLowerCase()+' ';const result={title:text,time:null,date:null,recurrence:'daily',icon:null};const tr=parseVoiceTime(w);if(tr){result.time=tr.time;w=w.replace(tr.regex,' ');}const dr=parseVoiceDate(w);if(dr){result.date=dr.date;result.recurrence='once';w=w.replace(dr.regex,' ');}if(/\b(tous les jours|chaque jour)\b/i.test(w)){result.recurrence='daily';result.date=null;}result.icon=suggestVoiceIcon(text.toLowerCase())||'🗓️';let title=w.replace(/\b(à|au|le|la|les|du|de|d['']|pour)\b/gi,' ').replace(/\s+/g,' ').trim();if(title.length<2)title=text.trim();if(title)title=title.charAt(0).toUpperCase()+title.slice(1);result.title=title.slice(0,50);return result;}
+function parseVoiceTime(t){if(/\bmidi\b/.test(t))return{time:'12:00',regex:/\bà?\s*midi\b/gi};if(/\bminuit\b/.test(t))return{time:'00:00',regex:/\bà?\s*minuit\b/gi};let m=t.match(/\b(\d{1,2})\s*heures?\s+et\s+demie?\b/i);if(m){const h=parseInt(m[1]);if(h>=0&&h<=23)return{time:pad2(h)+':30',regex:new RegExp('\\bà?\\s*'+m[0].trim()+'\\b','gi')};}m=t.match(/\b(\d{1,2})\s*h\s*(\d{2})\b/i);if(m){const h=parseInt(m[1]),mn=parseInt(m[2]);if(h>=0&&h<=23&&mn>=0&&mn<=59)return{time:pad2(h)+':'+pad2(mn),regex:new RegExp('\\bà?\\s*'+m[1]+'\\s*h\\s*'+m[2]+'\\b','gi')};}m=t.match(/\b(\d{1,2})\s*heures?\s+(\d{1,2})\b/i);if(m){const h=parseInt(m[1]),mn=parseInt(m[2]);if(h>=0&&h<=23&&mn>=0&&mn<=59)return{time:pad2(h)+':'+pad2(mn),regex:new RegExp('\\bà?\\s*'+m[1]+'\\s*heures?\\s+'+m[2]+'\\b','gi')};}m=t.match(/\b(\d{1,2})\s*heures?\b/i);if(m){const h=parseInt(m[1]);if(h>=0&&h<=23)return{time:pad2(h)+':00',regex:new RegExp('\\bà?\\s*'+m[1]+'\\s*heures?\\b','gi')};}return null;}
+function parseVoiceDate(t){const today=new Date();today.setHours(0,0,0,0);if(/\baprès.?demain\b/i.test(t)){const d=new Date(today);d.setDate(d.getDate()+2);return{date:dateKey(d),regex:/\baprès.?demain\b/gi};}if(/\bdemain\b/i.test(t)){const d=new Date(today);d.setDate(d.getDate()+1);return{date:dateKey(d),regex:/\bdemain\b/gi};}if(/\baujourd.?hui\b/i.test(t))return{date:dateKey(today),regex:/\baujourd.?hui\b/gi};const months=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];const mre=new RegExp('\\b(\\d{1,2})\\s+('+months.join('|')+')(?:\\s+(\\d{4}))?\\b','i');let m=t.match(mre);if(m){const day=parseInt(m[1]),mi=months.findIndex(x=>x.toLowerCase()===m[2].toLowerCase()),yr=m[3]?parseInt(m[3]):today.getFullYear();const d=new Date(yr,mi,day);return{date:dateKey(d),regex:new RegExp('\\b(?:le\\s+)?\\d{1,2}\\s+'+m[2]+'(?:\\s+\\d{4})?\\b','gi')};}const wd=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];for(let i=0;i<7;i++){const re=new RegExp('\\b'+wd[i]+'(?:\\s+prochain)?\\b','i');if(re.test(t)){const d=new Date(today);let diff=(i-today.getDay()+7)%7;if(diff===0)diff=7;d.setDate(d.getDate()+diff);return{date:dateKey(d),regex:new RegExp('\\b'+wd[i]+'(?:\\s+prochain)?\\b','gi')};}}return null;}
+function suggestVoiceIcon(lc){const map=[{w:['avp petite maison','petite maison'],i:'svg:MAISON'},{w:['avp la clé','atelier clé'],i:'svg:CLE'},{w:['cmp','centre médico'],i:'svg:CMP'},{w:['hôpital de jour','hdj'],i:'svg:HDJ'},{w:['auxiliaire'],i:'svg:AUX'},{w:['psychiatre','psy '],i:'🧠'},{w:['infirmier','infirmière'],i:'👩‍⚕️'},{w:['dentiste'],i:'🦷'},{w:['hôpital','clinique'],i:'🏥'},{w:['docteur','médecin'],i:'👨‍⚕️'},{w:['médicament','traitement','cachet'],i:'💊'}];for(const e of map)for(const ww of e.w)if(lc.includes(ww))return e.i;return null;}
+function applyParsedToForm(p){if(p.title)document.getElementById('f-title').value=p.title;if(p.time)setTPVal('f-time',p.time);setRecurrence(p.recurrence||'daily');if(p.recurrence==='once'&&p.date){document.getElementById('f-date').value=p.date;document.getElementById('f-event-date').value=p.date;if(p.time)setTPVal('f-event-time',p.time);}if(p.icon){const def=ICONS.find(ic=>ic.emoji===p.icon);if(def){const grid=document.getElementById('icon-grid');grid.querySelectorAll('.icon-opt').forEach(x=>x.classList.remove('selected'));const sel=grid.querySelector(`[data-icon-id="${def.id}"]`);if(sel)sel.classList.add('selected');}}}
 
-function parseVoiceTime(t) {
-  if(/\bmidi\b/.test(t))return{time:'12:00',regex:/\bà?\s*midi\b/gi};
-  if(/\bminuit\b/.test(t))return{time:'00:00',regex:/\bà?\s*minuit\b/gi};
-  let m=t.match(/\b(\d{1,2})\s*heures?\s+et\s+demie?\b/i);if(m){const h=parseInt(m[1]);if(h>=0&&h<=23)return{time:pad2(h)+':30',regex:new RegExp('\\bà?\\s*'+m[0].trim()+'\\b','gi')};}
-  m=t.match(/\b(\d{1,2})\s*h\s*(\d{2})\b/i);if(m){const h=parseInt(m[1]),mn=parseInt(m[2]);if(h>=0&&h<=23&&mn>=0&&mn<=59)return{time:pad2(h)+':'+pad2(mn),regex:new RegExp('\\bà?\\s*'+m[1]+'\\s*h\\s*'+m[2]+'\\b','gi')};}
-  m=t.match(/\b(\d{1,2})\s*heures?\s+(\d{1,2})\b/i);if(m){const h=parseInt(m[1]),mn=parseInt(m[2]);if(h>=0&&h<=23&&mn>=0&&mn<=59)return{time:pad2(h)+':'+pad2(mn),regex:new RegExp('\\bà?\\s*'+m[1]+'\\s*heures?\\s+'+m[2]+'\\b','gi')};}
-  m=t.match(/\b(\d{1,2})\s*heures?\b/i);if(m){const h=parseInt(m[1]);if(h>=0&&h<=23)return{time:pad2(h)+':00',regex:new RegExp('\\bà?\\s*'+m[1]+'\\s*heures?\\b','gi')};}
-  return null;
-}
+document.getElementById('voice-btn').addEventListener('click',()=>{const btn=document.getElementById('voice-btn'),status=document.getElementById('voice-status'),label=btn.querySelector('.voice-label');const ctx=getAudioContext();if(ctx&&ctx.state==='suspended')ctx.resume().catch(()=>{});btn.classList.add('listening');label.textContent="J'écoute... parlez";status.className='voice-status listening';status.textContent='🔴 Parlez maintenant, puis attendez un instant.';startListening(transcript=>{btn.classList.remove('listening');label.textContent='Recommencer la dictée';const parsed=parseVoiceInput(transcript);applyParsedToForm(parsed);status.className='voice-status success';let s=`✓ J'ai compris : <strong>« ${esc(transcript)} »</strong><br>Titre : <strong>${esc(parsed.title)}</strong>`;if(parsed.time)s+=` — Heure : <strong>${parsed.time}</strong>`;s+='<br><em>Vérifiez puis enregistrez.</em>';status.innerHTML=s;},error=>{btn.classList.remove('listening');label.textContent='Dicter au lieu de taper';status.className='voice-status error';if(error==='not-supported')status.textContent="✗ La dictée vocale n'est pas disponible sur ce téléphone.";else if(error==='not-allowed')status.textContent="✗ Autorisez le microphone dans les paramètres.";else status.textContent="✗ Désolé, réessayez.";});});
 
-function parseVoiceDate(t) {
-  const today=new Date();today.setHours(0,0,0,0);
-  if(/\baprès.?demain\b/i.test(t)){const d=new Date(today);d.setDate(d.getDate()+2);return{date:dateKey(d),regex:/\baprès.?demain\b/gi};}
-  if(/\bdemain\b/i.test(t)){const d=new Date(today);d.setDate(d.getDate()+1);return{date:dateKey(d),regex:/\bdemain\b/gi};}
-  if(/\baujourd.?hui\b/i.test(t))return{date:dateKey(today),regex:/\baujourd.?hui\b/gi};
-  const months=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-  const mre=new RegExp('\\b(\\d{1,2})\\s+('+months.join('|')+')(?:\\s+(\\d{4}))?\\b','i');
-  let m=t.match(mre);
-  if(m){const day=parseInt(m[1]),mi=months.findIndex(x=>x.toLowerCase()===m[2].toLowerCase()),yr=m[3]?parseInt(m[3]):today.getFullYear();const d=new Date(yr,mi,day);return{date:dateKey(d),regex:new RegExp('\\b(?:le\\s+)?\\d{1,2}\\s+'+m[2]+'(?:\\s+\\d{4})?\\b','gi')};}
-  const wd=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
-  for(let i=0;i<7;i++){const re=new RegExp('\\b'+wd[i]+'(?:\\s+prochain)?\\b','i');if(re.test(t)){const d=new Date(today);let diff=(i-today.getDay()+7)%7;if(diff===0)diff=7;d.setDate(d.getDate()+diff);return{date:dateKey(d),regex:new RegExp('\\b'+wd[i]+'(?:\\s+prochain)?\\b','gi')};}}
-  return null;
-}
-
-function suggestVoiceIcon(lc) {
-  const map=[
-    {w:['avp petite maison','petite maison'],i:'svg:MAISON'},{w:['avp la clé','atelier clé'],i:'svg:CLE'},
-    {w:['cmp','centre médico'],i:'svg:CMP'},{w:['hôpital de jour','hdj'],i:'svg:HDJ'},{w:['auxiliaire'],i:'svg:AUX'},
-    {w:['psychiatre','psy '],i:'🧠'},{w:['infirmier','infirmière'],i:'👩‍⚕️'},{w:['dentiste'],i:'🦷'},
-    {w:['hôpital','clinique'],i:'🏥'},{w:['docteur','médecin'],i:'👨‍⚕️'},{w:['médicament','traitement','cachet'],i:'💊'},
-  ];
-  for(const e of map)for(const ww of e.w)if(lc.includes(ww))return e.i;
-  return null;
-}
-
-function applyParsedToForm(p) {
-  if(p.title)document.getElementById('f-title').value=p.title;
-  if(p.time)setTPVal('f-time',p.time);
-  setRecurrence(p.recurrence||'daily');
-  if(p.recurrence==='once'&&p.date){document.getElementById('f-date').value=p.date;document.getElementById('f-event-date').value=p.date;if(p.time)setTPVal('f-event-time',p.time);}
-  if(p.icon){const def=ICONS.find(ic=>ic.emoji===p.icon);if(def){const grid=document.getElementById('icon-grid');grid.querySelectorAll('.icon-opt').forEach(x=>x.classList.remove('selected'));const sel=grid.querySelector(`[data-icon-id="${def.id}"]`);if(sel)sel.classList.add('selected');}}
-}
-
-document.getElementById('voice-btn').addEventListener('click',()=>{
-  const btn=document.getElementById('voice-btn'),status=document.getElementById('voice-status'),label=btn.querySelector('.voice-label');
-  const ctx=getAudioContext();if(ctx&&ctx.state==='suspended')ctx.resume().catch(()=>{});
-  btn.classList.add('listening');label.textContent="J'écoute... parlez";
-  status.className='voice-status listening';status.textContent='🔴 Parlez maintenant, puis attendez un instant.';
-  startListening(transcript=>{
-    btn.classList.remove('listening');label.textContent='Recommencer la dictée';
-    const parsed=parseVoiceInput(transcript);applyParsedToForm(parsed);
-    status.className='voice-status success';
-    let s=`✓ J'ai compris : <strong>« ${esc(transcript)} »</strong><br>Titre : <strong>${esc(parsed.title)}</strong>`;
-    if(parsed.time)s+=` — Heure : <strong>${parsed.time}</strong>`;
-    s+='<br><em>Vérifiez puis enregistrez.</em>';status.innerHTML=s;
-  },error=>{
-    btn.classList.remove('listening');label.textContent='Dicter au lieu de taper';
-    status.className='voice-status error';
-    if(error==='not-supported')status.textContent="✗ La dictée vocale n'est pas disponible sur ce téléphone.";
-    else if(error==='not-allowed')status.textContent="✗ Autorisez le microphone dans les paramètres.";
-    else status.textContent="✗ Désolé, réessayez.";
-  });
-});
-
-// ========== CHIME & ALERT ==========
 let audioCtx=null,chimeInterval=null;
-function getAudioContext(){if(!audioCtx){const A=window.AudioContext||window.webkitAudioContext;if(A)audioCtx=new A()}return audioCtx;}
-function playChimeOnce(){const ctx=getAudioContext();if(!ctx)return;if(ctx.state==='suspended')ctx.resume();if('vibrate' in navigator)try{navigator.vibrate([500,200,500])}catch(e){};[523.25,659.25,783.99].forEach((freq,i)=>{const start=ctx.currentTime+i*0.22;const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';osc.frequency.value=freq;gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(0.35,start+0.02);gain.gain.exponentialRampToValueAtTime(0.001,start+1.2);osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+1.3);});}
+function getAudioContext(){if(!audioCtx){const A=window.AudioContext||window.webkitAudioContext;if(A)audioCtx=new A();}return audioCtx;}
+function playChimeOnce(){const ctx=getAudioContext();if(!ctx)return;if(ctx.state==='suspended')ctx.resume();if('vibrate' in navigator)try{navigator.vibrate([500,200,500])}catch(e){}; [523.25,659.25,783.99].forEach((freq,i)=>{const start=ctx.currentTime+i*0.22;const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';osc.frequency.value=freq;gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(0.35,start+0.02);gain.gain.exponentialRampToValueAtTime(0.001,start+1.2);osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+1.3);});}
 function startChime(){stopChime();playChimeOnce();chimeInterval=setInterval(playChimeOnce,4000);}
-function stopChime(){if(chimeInterval){clearInterval(chimeInterval);chimeInterval=null}if('vibrate' in navigator)try{navigator.vibrate(0)}catch(e){}}
+function stopChime(){if(chimeInterval){clearInterval(chimeInterval);chimeInterval=null;}if('vibrate' in navigator)try{navigator.vibrate(0)}catch(e){}}
 
-function fireAlert(r) {
-  document.getElementById('alert-icon').innerHTML=iconHTML(r.icon);
-  document.getElementById('alert-time').textContent=r.time;
-  document.getElementById('alert-title').textContent=r.title;
-  document.getElementById('alert-note').textContent=r.note||'';
-  const eD=r.eventDate||r.date,eT=r.eventTime||r.time;
-  const dd=r.recurrence==='once'&&eD&&eD!==r.date,td=r.recurrence==='once'&&eT&&eT!==r.time,hd=dd||td;
-  const ae=document.getElementById('alert-eventtime');
-  if(hd){ae.textContent=`🗓️ Rendez-vous${dd?' '+formatRelativeDate(eD):''} à ${eT.replace(':','h')}`;ae.style.display='block';}else{ae.style.display='none';}
-  document.getElementById('alert').classList.add('active');
-  startChime();
-  let phrase=`Il est ${timeToSpeech(r.time)}. ${r.title}`;
-  if(hd){if(dd)phrase+=`, ${formatRelativeDate(eD)}`;phrase+=`, à ${timeToSpeech(eT)}`;}
-  phrase+=`. ${r.note||''}`;
-  setTimeout(()=>speak(phrase),1400);
-  if('Notification' in window&&Notification.permission==='granted')try{new Notification('Ma Journée AVP',{body:`${r.time} — ${r.title}`})}catch(e){}
-}
+function fireAlert(r){document.getElementById('alert-icon').innerHTML=iconHTML(r.icon);document.getElementById('alert-time').textContent=r.time;document.getElementById('alert-title').textContent=r.title;document.getElementById('alert-note').textContent=r.note||'';const eD=r.eventDate||r.date,eT=r.eventTime||r.time;const dd=r.recurrence==='once'&&eD&&eD!==r.date,td=r.recurrence==='once'&&eT&&eT!==r.time,hd=dd||td;const ae=document.getElementById('alert-eventtime');if(hd){ae.textContent=`🗓️ Rendez-vous${dd?' '+formatRelativeDate(eD):''} à ${eT.replace(':','h')}`;ae.style.display='block';}else{ae.style.display='none';}document.getElementById('alert').classList.add('active');startChime();let phrase=`Il est ${timeToSpeech(r.time)}. ${r.title}`;if(hd){if(dd)phrase+=`, ${formatRelativeDate(eD)}`;phrase+=`, à ${timeToSpeech(eT)}`;}phrase+=`. ${r.note||''}`;setTimeout(()=>speak(phrase),1400);if('Notification' in window&&Notification.permission==='granted')try{new Notification('Ma Journée AVP',{body:`${r.time} — ${r.title}`})}catch(e){}}
 document.getElementById('alert-dismiss').addEventListener('click',()=>{document.getElementById('alert').classList.remove('active');stopChime();window.speechSynthesis?.cancel();});
 
-let firedToday = new Set();
-function checkReminders() {
-  if (!currentUser) return;
-  const now=new Date(),ct=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,tk=dateKey(new Date());
-  state.reminders.forEach(r=>{
-    if(!reminderAppliesToDay(r,tk))return;
-    const fk=`${tk}_${r.id}_${r.time}`;
-    if(r.time===ct&&!firedToday.has(fk)&&!(r.done&&r.done[tk])){firedToday.add(fk);fireAlert(r);}
-  });
-}
+let firedToday=new Set();
+function checkReminders(){if(!currentUser)return;const now=new Date(),ct=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,tk=dateKey(new Date());state.reminders.forEach(r=>{if(!reminderAppliesToDay(r,tk))return;const fk=`${tk}_${r.id}_${r.time}`;if(r.time===ct&&!firedToday.has(fk)&&!(r.done&&r.done[tk])){firedToday.add(fk);fireAlert(r);}});}
 
-// ========== INIT ==========
 document.body.addEventListener('click',()=>{const c=getAudioContext();if(c&&c.state==='suspended')c.resume().catch(()=>{});},{once:true});
 
-async function init() {
+async function init(){
   createTimePicker('f-time','08:00',5);
   createTimePicker('f-event-time','14:00',5);
   updatePinDots();
-  document.getElementById('field-prenom').style.display = 'none'; // hidden by default (login mode)
-
-  // Check session
-  const session = loadSession();
-  if (session) {
-    currentUser = session;
-    if (currentUser.isAdmin) {
-      showAdminScreen();
-    } else {
-      tagOneSignalUser(currentUser.prenom);
-      await loadUserData();
-      enterApp();
-      loadAVPPlanning();
-    }
-  } else {
-    showScreen('login-screen');
-  }
-
-  setInterval(checkReminders, 30000);
-  setInterval(render, 60000);
-  setInterval(() => { const n=new Date(); if(n.getHours()===0&&n.getMinutes()===0) firedToday.clear(); }, 60000);
-  setInterval(loadAVPPlanning, 1800000);
+  document.getElementById('field-prenom').style.display='none';
+  const session=loadSession();
+  if(session){currentUser=session;if(currentUser.isAdmin){showAdminScreen();}else{tagOneSignalUser(currentUser.prenom);await loadUserData();enterApp();loadAVPPlanning();}}else{showScreen('login-screen');}
+  setInterval(checkReminders,30000);
+  setInterval(render,60000);
+  setInterval(()=>{const n=new Date();if(n.getHours()===0&&n.getMinutes()===0)firedToday.clear();},60000);
+  setInterval(loadAVPPlanning,1800000);
 }
 
 init();
