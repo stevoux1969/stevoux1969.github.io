@@ -588,7 +588,21 @@ const AVP_LOCATIONS = {
   'rue de paris': { address: 'Rue de Paris, Rouen', query: 'Rue+de+Paris,+Rouen' },
 };
 
-const AVP_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiMQSY5bkzgEsLV58rkPeAxuAffVuw0qPuehrTL_92BdlYDgL_QMjHZTzd5KF_IhhPm3pfmQJsXB7T/pub?gid=382746303&single=true&output=csv';
+const AVP_CSV_URLS = {
+  0:  '', // Janvier
+  1:  '', // Février
+  2:  '', // Mars
+  3:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiMQSY5bkzgEsLV58rkPeAxuAffVuw0qPuehrTL_92BdlYDgL_QMjHZTzd5KF_IhhPm3pfmQJsXB7T/pub?gid=382746303&single=true&output=csv', // Avril
+  4:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiMQSY5bkzgEsLV58rkPeAxuAffVuw0qPuehrTL_92BdlYDgL_QMjHZTzd5KF_IhhPm3pfmQJsXB7T/pub?gid=506017650&single=true&output=csv', // Mai
+  5:  '', // Juin
+  6:  '', // Juillet
+  7:  '', // Août
+  8:  '', // Septembre
+  9:  '', // Octobre
+  10: '', // Novembre
+  11: '', // Décembre
+};
+const AVP_CSV_URL = AVP_CSV_URLS[new Date().getMonth()] || '';
 
 let currentUser = null;
 let state = { reminders: [], dayOffset: 0, editing: null, avpEvents: [], inscriptions: {} };
