@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planning AVP — Impression</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --vert: #1a5c4a;
+    --vert-clair: #e8f5f0;
+    --bleu: #2563a8;
+    --bleu-clair: #deeaf8;
+    --orange: #e07b2a;
+    --gris: #f5f5f5;
+    --texte: #1a1a2e;
+    --blanc: #ffffff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: #e8e8e8;
+    color: var(--texte);
+    padding: 20px;
+  }
+
+  /* CONTROLES (masqués à l'impression) */
+  .controls {
+    max-width: 1100px;
+    margin: 0 auto 20px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .controls label {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--vert);
+  }
+
+  .controls select {
+    padding: 8px 14px;
+    border: 2px solid var(--vert);
+    border-radius: 8px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--vert);
+    background: white;
+    cursor: pointer;
+  }
+
+  .btn-print {
+    margin-left: auto;
+    padding: 10px 24px;
+    background: var(--vert);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-print:hover { background: #144a3b; }
+
+  /* PAGE */
+  .page {
+    max-width: 1100px;
+    margin: 0 auto 30px;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  }
+
+  /* EN-TETE */
+  .entete {
+    background: var(--vert);
+    color: white;
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .entete-titre {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+  }
+
+  .entete-sous {
+    font-size: 13px;
+    opacity: 0.85;
+    margin-top: 2px;
+  }
+
+  .entete-animateur {
+    background: rgba(255,255,255,0.2);
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  /* GRILLE */
+  .grille {
+    padding: 16px;
+  }
+
+  /* SEMAINE */
+  .semaine {
+    margin-bottom: 14px;
+  }
+
+  .semaine-titre {
+    display: none;
+  }
+
+  .jours-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+
+  /* JOUR */
+  .jour {
+    border: 1.5px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    min-height: 90px;
+  }
+
+  .jour-header {
+    background: var(--vert);
+    color: white;
+    text-align: center;
+    padding: 6px 4px;
+  }
+
+  .jour-nom {
+    font-size: 16px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .jour-num {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+
+  .jour-vide .jour-header {
+    background: #ccc;
+  }
+
+  .jour-ferie .jour-header {
+    background: #888;
+  }
+
+  /* CRENEAUX */
+  .creneaux {
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .creneau {
+    background: var(--bleu-clair);
+    border-left: 3px solid var(--bleu);
+    border-radius: 4px;
+    padding: 4px 6px;
+  }
+
+  .creneau-heure {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--bleu);
+  }
+
+  .creneau-activite {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--texte);
+    line-height: 1.3;
+  }
+
+  .jour-vide .creneaux, .jour-ferie .creneaux {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60px;
+    color: #aaa;
+    font-size: 11px;
+    font-style: italic;
+  }
+
+  /* PIED */
+  .pied {
+    border-top: 1.5px solid #eee;
+    padding: 10px 28px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #888;
+  }
+
+  /* LOADING */
+  .loading {
+    text-align: center;
+    padding: 60px;
+    font-size: 16px;
+    color: var(--vert);
+    font-weight: 600;
+  }
+
+  .erreur {
+    text-align: center;
+    padding: 40px;
+    color: #c0392b;
+    font-weight: 600;
+  }
+
+  /* IMPRESSION */
+  @media print {
+    @page { size: A4 landscape; margin: 10mm; }
+    body { background: white; padding: 0; }
+    .controls { display: none !important; }
+    .page {
+      box-shadow: none;
+      border-radius: 0;
+      margin: 0;
+      max-width: 100%;
+      page-break-after: always;
+    }
+    .page:last-child { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <label>Animateur :</label>
+  <select id="selectAnimateur" onchange="chargerPlanning()">
+    <option value="steve">📋 Planning Steve</option>
+    <option value="greg">📋 Planning Greg</option>
+  </select>
+
+  <label>Mois :</label>
+  <select id="selectMois" onchange="chargerPlanning()">
+    <option value="avril">Avril 2026</option>
+    <option value="mai">Mai 2026</option>
+    <option value="juin">Juin 2026</option>
+    <option value="juillet">Juillet 2026</option>
+    <option value="aout">Août 2026</option>
+    <option value="septembre">Septembre 2026</option>
+    <option value="octobre">Octobre 2026</option>
+    <option value="novembre">Novembre 2026</option>
+    <option value="decembre">Décembre 2026</option>
+  </select>
+
+  <button class="btn-print" onclick="window.print()">🖨️ Imprimer</button>
+</div>
+
+<div id="contenu">
+  <div class="loading">⏳ Chargement du planning...</div>
+</div>
+
+<script>
+// URLs CSV des Sheets — à compléter pour Greg
+const CSV_URLS = {
+  steve: {
+    avril:      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiMQSY5bkzgEsLV58rkPeAxuAffVuw0qPuehrTL_92BdlYDgL_QMjHZTzd5KF_IhhPm3pfmQJsXB7T/pub?gid=382746303&single=true&output=csv",
+    mai:        "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiMQSY5bkzgEsLV58rkPeAxuAffVuw0qPuehrTL_92BdlYDgL_QMjHZTzd5KF_IhhPm3pfmQJsXB7T/pub?gid=506017650&single=true&output=csv",
+    juin:       "https://docs.google.com/spreadsheets/d/e/2PACX-1vQiMQSY5bkzgEsLV58rkPeAxuAffVuw0qPuehrTL_92BdlYDgL_QMjHZTzd5KF_IhhPm3pfmQJsXB7T/pub?gid=382746303&single=true&output=csv",
+  },
+  greg: {
+    avril:      "", // à remplir plus tard
+  }
+};
+
+// Noms des mois
+const MOIS_NOMS = {
+  avril: "Avril 2026", mai: "Mai 2026", juin: "Juin 2026",
+  juillet: "Juillet 2026", aout: "Août 2026", septembre: "Septembre 2026",
+  octobre: "Octobre 2026", novembre: "Novembre 2026", decembre: "Décembre 2026"
+};
+
+function chargerPlanning() {
+  const animateur = document.getElementById('selectAnimateur').value;
+  const mois = document.getElementById('selectMois').value;
+  const url = (CSV_URLS[animateur] || {})[mois];
+
+  if (!url) {
+    document.getElementById('contenu').innerHTML = `<div class="erreur">⚠️ Ce planning n'est pas encore disponible.<br>Ajoute l'URL CSV pour ${animateur} / ${mois}.</div>`;
+    return;
+  }
+
+  document.getElementById('contenu').innerHTML = '<div class="loading">⏳ Chargement...</div>';
+
+  const proxy = "https://corsproxy.io/?" + encodeURIComponent(url);
+  fetch(proxy)
+    .then(r => r.text())
+    .then(csv => afficherPlanning(csv, animateur, mois))
+    .catch(() => {
+      // Fallback direct
+      fetch(url)
+        .then(r => r.text())
+        .then(csv => afficherPlanning(csv, animateur, mois))
+        .catch(e => {
+          document.getElementById('contenu').innerHTML = `<div class="erreur">❌ Impossible de charger le planning.<br>Vérifie que le Sheet est bien publié en CSV.</div>`;
+        });
+    });
+}
+
+function parseCSV(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+  return lines.map(line => {
+    const cols = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQuotes = !inQuotes; }
+      else if (c === ',' && !inQuotes) { cols.push(current.trim()); current = ''; }
+      else { current += c; }
+    }
+    cols.push(current.trim());
+    return cols;
+  });
+}
+
+function nettoyer(txt) {
+  if (!txt) return '';
+  // Garder les emojis, juste nettoyer les espaces
+  return txt.trim();
+}
+
+function afficherPlanning(csv, animateur, mois) {
+  const rows = parseCSV(csv);
+  if (!rows || rows.length < 3) {
+    document.getElementById('contenu').innerHTML = '<div class="erreur">❌ Données CSV vides ou incorrectes.</div>';
+    return;
+  }
+
+  // Titre depuis ligne 1
+  const titreMois = MOIS_NOMS[mois] || mois;
+  const nomAnimateur = animateur === 'steve' ? 'Steve' : 'Greg';
+
+  // Parser la structure du Sheet AVP
+  // Structure : colonnes par paires (Heure, Activité) pour chaque jour
+  // Lignes : semaines avec en-têtes de jours
+
+  const semaines = [];
+  let semaineCourante = null;
+  const joursNoms = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const cell0 = (row[0] || '').trim();
+
+    // Ligne de semaine (contient "Lundi X")
+    if (cell0 === '' && row.some(c => /^Lundi\s+\d/.test(c))) {
+      semaineCourante = { jours: [] };
+      semaines.push(semaineCourante);
+
+      // Extraire les jours et leurs numéros
+      for (let j = 0; j < row.length; j++) {
+        const val = (row[j] || '').trim();
+        const matchJour = val.match(/^(Lundi|Mardi|Mercredi|Jeudi|Vendredi)\s+(\d+)$/);
+        if (matchJour) {
+          semaineCourante.jours.push({
+            nom: matchJour[1],
+            num: parseInt(matchJour[2]),
+            col: j,
+            creneaux: [],
+            ferie: false
+          });
+        }
+      }
+      continue;
+    }
+
+    // Lignes Matin / Après-midi
+    if (semaineCourante && (cell0 === 'Matin' || cell0 === 'Après-midi' || /matin/i.test(cell0) || /apr/i.test(cell0))) {
+      const periode = /matin/i.test(cell0) ? 'Matin' : 'Après-midi';
+      
+      // Récupérer heure et activité pour chaque jour
+      semaineCourante.jours.forEach(jour => {
+        const colHeure = jour.col;
+        const colActiv = jour.col + 1;
+        const heure = (row[colHeure] || '').trim();
+        const activite = nettoyer((row[colActiv] || '').trim());
+
+        if (activite && activite !== '-' && activite !== '') {
+          // Vérifier si férié
+          if (/f[eé]ri[eé]/i.test(activite)) {
+            jour.ferie = true;
+          } else {
+            jour.creneaux.push({ heure, activite, periode });
+          }
+        } else if (/f[eé]ri[eé]/i.test(heure)) {
+          jour.ferie = true;
+        }
+      });
+      continue;
+    }
+
+    // Lignes de données supplémentaires (2ème créneau du matin/après-midi)
+    if (semaineCourante && cell0 === '') {
+      semaineCourante.jours.forEach(jour => {
+        const colHeure = jour.col;
+        const colActiv = jour.col + 1;
+        const heure = (row[colHeure] || '').trim();
+        const activite = nettoyer((row[colActiv] || '').trim());
+        if (activite && activite !== '-' && activite !== '' && heure) {
+          jour.creneaux.push({ heure, activite, periode: '' });
+        }
+      });
+    }
+
+    // Mercredi 1, Jeudi 2, Vendredi 3 (début de mois décalé)
+    if (cell0 === '' && row.some(c => /^(Mercredi|Jeudi|Vendredi)\s+\d/.test(c))) {
+      if (!semaineCourante) {
+        semaineCourante = { jours: [] };
+        semaines.push(semaineCourante);
+      }
+      for (let j = 0; j < row.length; j++) {
+        const val = (row[j] || '').trim();
+        const matchJour = val.match(/^(Mercredi|Jeudi|Vendredi)\s+(\d+)$/);
+        if (matchJour && !semaineCourante.jours.find(d => d.num === parseInt(matchJour[2]))) {
+          semaineCourante.jours.push({
+            nom: matchJour[1],
+            num: parseInt(matchJour[2]),
+            col: j,
+            creneaux: [],
+            ferie: false
+          });
+        }
+      }
+    }
+  }
+
+  // Construire le HTML
+  let html = `
+  <div class="page">
+    <div class="entete">
+      <div>
+        <div class="entete-titre">📅 Planning ${titreMois}</div>
+        <div class="entete-sous">Service AVP — Aide à la Vie Partagée | AVP La Clé, Rouen</div>
+      </div>
+      <div class="entete-animateur">👤 Animateur : ${nomAnimateur}</div>
+    </div>
+    <div class="grille">`;
+
+  const joursOrdre = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'];
+
+  semaines.forEach((semaine, idx) => {
+    const joursParNom = {};
+    semaine.jours.forEach(j => joursParNom[j.nom] = j);
+
+    html += `<div class="semaine">`;
+    if (idx > 0 || semaine.jours.length > 0) {
+      const nums = semaine.jours.map(j => j.num).sort((a,b) => a-b);
+      html += `<div class="semaine-titre">Semaine du ${nums[0]} au ${nums[nums.length-1]} ${titreMois.split(' ')[0]}</div>`;
+    }
+    html += `<div class="jours-row">`;
+
+    joursOrdre.forEach(nomJour => {
+      const jour = joursParNom[nomJour];
+      if (!jour) {
+        // Jour absent (début/fin de mois)
+        html += `<div class="jour jour-vide">
+          <div class="jour-header"><div class="jour-nom">${nomJour}</div><div class="jour-num">—</div></div>
+          <div class="creneaux" style="color:#ddd;font-size:10px;text-align:center;padding:10px;">-</div>
+        </div>`;
+      } else if (jour.ferie) {
+        html += `<div class="jour jour-ferie">
+          <div class="jour-header"><div class="jour-nom">${nomJour}</div><div class="jour-num">${jour.num}</div></div>
+          <div class="creneaux" style="color:#999;font-size:11px;text-align:center;padding:10px;">🎌 Jour férié</div>
+        </div>`;
+      } else {
+        html += `<div class="jour">
+          <div class="jour-header"><div class="jour-nom">${nomJour}</div><div class="jour-num">${jour.num}</div></div>
+          <div class="creneaux">`;
+        
+        if (jour.creneaux.length === 0) {
+          html += `<div style="color:#bbb;font-size:10px;text-align:center;padding:8px 0;">Pas d'atelier</div>`;
+        } else {
+          jour.creneaux.forEach(c => {
+            html += `<div class="creneau">
+              ${c.heure ? `<div class="creneau-heure">🕐 ${c.heure}</div>` : ''}
+              <div class="creneau-activite">${c.activite}</div>
+            </div>`;
+          });
+        }
+        html += `</div></div>`;
+      }
+    });
+
+    html += `</div></div>`;
+  });
+
+  html += `</div>
+    <div class="pied">
+      <span>Service AVP — Aide à la Vie Partagée | AVP La Clé</span>
+      <span>Imprimé le ${new Date().toLocaleDateString('fr-FR')}</span>
+    </div>
+  </div>`;
+
+  document.getElementById('contenu').innerHTML = html;
+}
+
+// Chargement initial
+chargerPlanning();
+</script>
+</body>
+</html>
