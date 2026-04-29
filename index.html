@@ -309,6 +309,7 @@
     .tutorial-btn-prev:active { background: rgba(255,255,255,0.4); }
     .tutorial-btn-prev.hidden, .tutorial-btn-next.final { display: none; }
     .tutorial-btn-finish { background: #ffc107; color: #1a2340; }
+    .copyright { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 11px; color: #a0aac4; padding: 4px 0 calc(4px + env(safe-area-inset-bottom)); background: rgba(241,243,248,0.9); z-index: 50; pointer-events: none; letter-spacing: 0.3px; }
   </style>
 </head>
 <body>
@@ -588,21 +589,7 @@ const AVP_LOCATIONS = {
   'rue de paris': { address: 'Rue de Paris, Rouen', query: 'Rue+de+Paris,+Rouen' },
 };
 
-const AVP_CSV_URLS = {
-  0:  '', // Janvier
-  1:  '', // Février
-  2:  '', // Mars
-  3:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiMQSY5bkzgEsLV58rkPeAxuAffVuw0qPuehrTL_92BdlYDgL_QMjHZTzd5KF_IhhPm3pfmQJsXB7T/pub?gid=382746303&single=true&output=csv', // Avril
-  4:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiMQSY5bkzgEsLV58rkPeAxuAffVuw0qPuehrTL_92BdlYDgL_QMjHZTzd5KF_IhhPm3pfmQJsXB7T/pub?gid=506017650&single=true&output=csv', // Mai
-  5:  '', // Juin
-  6:  '', // Juillet
-  7:  '', // Août
-  8:  '', // Septembre
-  9:  '', // Octobre
-  10: '', // Novembre
-  11: '', // Décembre
-};
-const AVP_CSV_URL = AVP_CSV_URLS[new Date().getMonth()] || '';
+const AVP_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiMQSY5bkzgEsLV58rkPeAxuAffVuw0qPuehrTL_92BdlYDgL_QMjHZTzd5KF_IhhPm3pfmQJsXB7T/pub?gid=382746303&single=true&output=csv';
 
 let currentUser = null;
 let state = { reminders: [], dayOffset: 0, editing: null, avpEvents: [], inscriptions: {} };
@@ -922,5 +909,6 @@ async function init(){
 
 init();
 </script>
+<div class="copyright">Application créée par Steve Legendre © 2026</div>
 </body>
 </html>
