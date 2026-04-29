@@ -1,0 +1,22 @@
+{
+  "name": "Ma Journée AVP",
+  "short_name": "AVP",
+  "description": "Application de gestion du quotidien pour les bénéficiaires AVP La Clé",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#2c3e91",
+  "theme_color": "#2c3e91",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%232c3e91'/%3E%3Ctext y='140' x='96' text-anchor='middle' font-size='120'%3E🏠%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%232c3e91'/%3E%3Ctext y='380' x='256' text-anchor='middle' font-size='320'%3E🏠%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -20,6 +20,9 @@
       await OneSignal.Slidedown.promptPush();
     });
   </script>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%232c3e91'/%3E%3Ctext y='140' x='96' text-anchor='middle' font-size='120'%3E🏠%3C/text%3E%3C/svg%3E">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🗓️%3C/text%3E%3C/svg%3E">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -912,5 +915,14 @@ async function init(){
 init();
 </script>
 <div class="copyright">Application créée par Steve Legendre © 2026</div>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('AVP: Service Worker actif', reg.scope))
+      .catch(err => console.log('AVP: Service Worker erreur', err));
+  });
+}
+</script>
 </body>
 </html>
