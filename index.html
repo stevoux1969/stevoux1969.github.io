@@ -812,8 +812,9 @@ async function adminAddReminder(uid, prenom) {
   const today=dateKey(new Date());document.getElementById('f-date').value=today;document.getElementById('f-event-date').value=today;
   state.editingAdminMode=true;state.editingAdminPrenom=prenom;
   showScreen('edit-screen');
-  if(typeof populateIconGrid==='function')populateIconGrid();
-  if(typeof createTimePicker==='function'){createTimePicker('f-time','09:00',5);createTimePicker('f-event-time','09:00',5);}
+  renderIcons(null);
+  createTimePicker('f-time','09:00',5);
+  createTimePicker('f-event-time','09:00',5);
   const onceBtn=document.querySelector('[data-rec="once"]');if(onceBtn)onceBtn.click();
 }
 
