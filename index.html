@@ -813,8 +813,12 @@ async function adminAddReminder(uid, prenom) {
   state.editingAdminMode=true;state.editingAdminPrenom=prenom;
   showScreen('edit-screen');
   renderIcons(null);
-  createTimePicker('f-time','09:00',5);
-  createTimePicker('f-event-time','09:00',5);
+  var nowH2 = new Date().getHours();
+  var nowM2 = Math.ceil(new Date().getMinutes() / 5) * 5;
+  if (nowM2 >= 60) { nowM2 = 0; nowH2 = (nowH2 + 1) % 24; }
+  var defTime = String(nowH2).padStart(2,'0') + ':' + String(nowM2).padStart(2,'0');
+  createTimePicker('f-time', defTime, 5);
+  createTimePicker('f-event-time', defTime, 5);
   const onceBtn=document.querySelector('[data-rec="once"]');if(onceBtn)onceBtn.click();
 }
 
@@ -949,8 +953,14 @@ function checkReminders(){if(!currentUser)return;const now=new Date(),ct=`${Stri
 document.body.addEventListener('click',()=>{const c=getAudioContext();if(c&&c.state==='suspended')c.resume().catch(()=>{});},{once:true});
 
 async function init(){
-  createTimePicker('f-time','08:00',5);
-  createTimePicker('f-event-time','14:00',5);
+  // Démarrer à l'heure actuelle arrondie aux 5 min
+  var nowH = new Date().getHours();
+  var nowM = Math.ceil(new Date().getMinutes() / 5) * 5;
+  if (nowM >= 60) { nowM = 0; nowH = (nowH + 1) % 24; }
+  var defaultTime = String(nowH).padStart(2,'0') + ':' + String(nowM).padStart(2,'0');
+  var defaultEventTime = String((nowH + 1) % 24).padStart(2,'0') + ':' + String(nowM).padStart(2,'0');
+  createTimePicker('f-time', defaultTime, 5);
+  createTimePicker('f-event-time', defaultEventTime, 5);
   updatePinDots();
   document.getElementById('field-prenom').style.display='none';
   const session=loadSession();
