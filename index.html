@@ -259,6 +259,14 @@
     .admin-reminder-del { background: #fdf0f2; border: 1px solid #f3c3ca; color: #d63447; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
     .admin-empty { text-align: center; padding: 20px; color: #8590ad; font-style: italic; font-size: 14px; background: white; border-radius: 12px; }
     .btn-admin-danger { width: calc(100% - 32px); margin: 20px 16px 0; padding: 16px; background: white; color: #d63447; border: 2px solid #f3c3ca; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .inscrire-atelier-card { background: white; border-radius: 14px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(26,35,64,0.06); }
+    .inscrire-atelier-title { font-size: 16px; font-weight: 800; color: #1a2340; margin-bottom: 4px; }
+    .inscrire-atelier-date { font-size: 13px; color: #5e6b8a; margin-bottom: 12px; }
+    .inscrire-beneficiaire-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f1f3f8; }
+    .inscrire-beneficiaire-row:last-child { border-bottom: none; }
+    .inscrire-beneficiaire-name { flex: 1; font-size: 16px; font-weight: 600; color: #1a2340; }
+    .inscrire-checkbox { width: 26px; height: 26px; accent-color: #22a559; cursor: pointer; }
+    .btn-inscrire-valider { width: 100%; padding: 16px; background: #22a559; color: white; border: none; border-radius: 14px; font-size: 17px; font-weight: 800; cursor: pointer; font-family: inherit; margin-top: 20px; }
     .atelier-group { background: white; border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
     .atelier-group-header { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #e5e9f2; margin-bottom: 10px; }
     .atelier-group-date { background: #2c3e91; color: white; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
@@ -457,6 +465,7 @@
   </div>
   <button class="btn-new-user" id="admin-new-user-btn">+ Créer un compte bénéficiaire</button>
   <button class="btn-admin-action" id="admin-ateliers-btn">📋 Voir les inscrits aux ateliers</button>
+  <button class="btn-admin-action" id="admin-inscrire-groupe-btn" style="background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;">👥 Inscrire des bénéficiaires aux ateliers</button>
   <button class="btn-admin-action" id="admin-annuler-btn" style="background:#fdf0f2;color:#d63447;border-color:#f3c3ca;">🚫 Annuler un atelier</button>
   <div class="admin-list" id="admin-user-list"></div>
 </div>
@@ -702,6 +711,8 @@ document.getElementById('admin-user-list').addEventListener('click',e=>{const ca
 document.getElementById('admin-ateliers-btn').addEventListener('click',()=>showAdminAteliers(new Date().toISOString().slice(0,7)));
 document.getElementById('admin-annuler-btn').addEventListener('click',()=>showAdminAnnulerAtelier());
 document.getElementById('admin-ateliers-back').addEventListener('click',()=>showAdminScreen());
+document.getElementById('admin-inscrire-groupe-back').addEventListener('click',()=>showAdminScreen());
+document.getElementById('admin-inscrire-groupe-btn').addEventListener('click',()=>showAdminInscrireGroupe());
 document.getElementById('admin-detail-back').addEventListener('click',()=>showAdminScreen());
 
 let adminEditingUid=null;
@@ -972,6 +983,79 @@ async function retablirAtelier(ek) {
       showConfirm({icon:'✅', title:'Atelier rétabli !', text:'L\'atelier est à nouveau disponible.', okText:'OK', hideCancel:true});
     }
   });
+}
+
+async function showAdminInscrireGroupe(){
+  showScreen('admin-inscrire-groupe-screen');
+  const body=document.getElementById('admin-inscrire-groupe-body');
+  body.innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';
+  
+  // Charger les bénéficiaires
+  let users=[];
+  try{
+    const snap=await db.collection('users').get();
+    snap.forEach(doc=>{const d=doc.data();if(!d.isAdmin)users.push({uid:doc.id,prenom:d.prenom,inscriptions:d.inscriptions||{}});});
+    users.sort((a,b)=>a.prenom.localeCompare(b.prenom));
+  }catch(e){body.innerHTML='<div class="planning-empty">Erreur chargement bénéficiaires.</div>';return;}
+  
+  // Charger les ateliers du mois en cours depuis le planning
+  if(!state.avpEvents||state.avpEvents.length===0)await loadAVPPlanning();
+  const now=new Date();
+  const ateliers=(state.avpEvents||[]).filter(ev=>{
+    const d=new Date(ev.date);
+    return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&ev.isAtelier&&!ev.cancelled;
+  }).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  
+  if(ateliers.length===0){body.innerHTML='<div class="planning-empty">Aucun atelier ce mois-ci.</div>';return;}
+  
+  let html='<p style="color:#5e6b8a;font-size:14px;margin-bottom:16px;">Cochez les bénéficiaires à inscrire pour chaque atelier puis appuyez sur Valider.</p>';
+  
+  ateliers.forEach((ev,idx)=>{
+    const dateStr=new Date(ev.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+    const atelierKey='atelier_'+ev.date.replace(/-/g,'_')+'_'+ev.time.replace(':','_')+'_'+ev.title.replace(/[^a-zA-Z0-9]/g,'_').slice(0,20);
+    
+    html+=`<div class="inscrire-atelier-card">
+      <div class="inscrire-atelier-title">${ev.emoji||'📅'} ${ev.title}</div>
+      <div class="inscrire-atelier-date">${dateStr} à ${ev.time}</div>`;
+    
+    users.forEach(u=>{
+      const checked=(u.inscriptions[atelierKey]==='1')?'checked':'';
+      html+=`<div class="inscrire-beneficiaire-row">
+        <span class="inscrire-beneficiaire-name">${u.prenom}</span>
+        <input type="checkbox" class="inscrire-checkbox" data-uid="${u.uid}" data-key="${atelierKey}" ${checked}>
+      </div>`;
+    });
+    
+    html+=`<button class="btn-inscrire-valider" onclick="validerInscriptionsGroupe(this,'${atelierKey}')">✅ Valider les inscriptions</button>
+    </div>`;
+  });
+  
+  body.innerHTML=html;
+}
+
+async function validerInscriptionsGroupe(btn, atelierKey){
+  btn.disabled=true;
+  btn.textContent='⏳ Enregistrement...';
+  const card=btn.closest('.inscrire-atelier-card');
+  const checkboxes=card.querySelectorAll('.inscrire-checkbox');
+  let ok=0,err=0;
+  
+  for(const cb of checkboxes){
+    const uid=cb.dataset.uid;
+    const key=cb.dataset.key;
+    try{
+      const snap=await db.collection('users').doc(uid).get();
+      const u=snap.data();
+      const inscriptions=u.inscriptions||{};
+      if(cb.checked){inscriptions[key]='1';}else{delete inscriptions[key];}
+      await db.collection('users').doc(uid).update({inscriptions});
+      ok++;
+    }catch(e){err++;}
+  }
+  
+  btn.textContent='✅ Enregistré !';
+  btn.style.background='#2c3e91';
+  setTimeout(()=>{btn.disabled=false;btn.textContent='✅ Valider les inscriptions';btn.style.background='#22a559';},2000);
 }
 
 async function showAdminAteliers(selectedMonth){
