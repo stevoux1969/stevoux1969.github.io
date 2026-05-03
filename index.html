@@ -1011,7 +1011,7 @@ async function showAdminInscrireGroupe(){
   const now=new Date();
   const ateliers=(state.avpEvents||[]).filter(ev=>{
     const d=new Date(ev.date);
-    return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&ev.isAtelier&&!ev.cancelled;
+    return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&!ev.cancelled;
   }).sort((a,b)=>new Date(a.date)-new Date(b.date));
   
   if(ateliers.length===0){body.innerHTML='<div class="planning-empty">Aucun atelier ce mois-ci.</div>';return;}
