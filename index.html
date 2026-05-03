@@ -815,10 +815,10 @@ async function adminAddReminder(uid, prenom) {
   state.editingAdminMode=true;state.editingAdminPrenom=prenom;
   showScreen('edit-screen');
   renderIcons(null);
-  var nowH2 = new Date().getHours();
-  var nowM2 = Math.ceil(new Date().getMinutes() / 5) * 5;
-  if (nowM2 >= 60) { nowM2 = 0; nowH2 = (nowH2 + 1) % 24; }
-  var defTime = String(nowH2).padStart(2,'0') + ':' + String(nowM2).padStart(2,'0');
+  var _now2 = new Date();
+  var _h2 = _now2.getHours(), _m2 = Math.ceil(_now2.getMinutes() / 5) * 5;
+  if (_m2 >= 60) { _m2 = 0; _h2 = (_h2 + 1) % 24; }
+  var defTime = String(_h2).padStart(2,'0') + ':' + String(_m2).padStart(2,'0');
   createTimePicker('f-time', defTime, 5);
   createTimePicker('f-event-time', defTime, 5);
   const onceBtn=document.querySelector('[data-rec="once"]');if(onceBtn)onceBtn.click();
@@ -1154,14 +1154,14 @@ function checkReminders(){if(!currentUser)return;const now=new Date(),ct=`${Stri
 document.body.addEventListener('click',()=>{const c=getAudioContext();if(c&&c.state==='suspended')c.resume().catch(()=>{});},{once:true});
 
 async function init(){
-  // Démarrer à l'heure actuelle arrondie aux 5 min
-  var nowH = new Date().getHours();
-  var nowM = Math.ceil(new Date().getMinutes() / 5) * 5;
-  if (nowM >= 60) { nowM = 0; nowH = (nowH + 1) % 24; }
-  var defaultTime = String(nowH).padStart(2,'0') + ':' + String(nowM).padStart(2,'0');
-  var defaultEventTime = String((nowH + 1) % 24).padStart(2,'0') + ':' + String(nowM).padStart(2,'0');
+  // Démarrer à l'heure actuelle + 1h arrondie aux 5 min
+  var _now = new Date();
+  var _h = _now.getHours(), _m = Math.ceil(_now.getMinutes() / 5) * 5;
+  if (_m >= 60) { _m = 0; _h = (_h + 1) % 24; }
+  // Heure de sonnerie = heure actuelle arrondie (pas +1h)
+  var defaultTime = String(_h).padStart(2,'0') + ':' + String(_m).padStart(2,'0');
   createTimePicker('f-time', defaultTime, 5);
-  createTimePicker('f-event-time', defaultEventTime, 5);
+  createTimePicker('f-event-time', defaultTime, 5);
   updatePinDots();
   document.getElementById('field-prenom').style.display='none';
   const session=loadSession();
