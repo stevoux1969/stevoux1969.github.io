@@ -834,7 +834,9 @@ async function showAdminAteliers(selectedMonth){
       const today=dateKey(new Date());
       const currentMonth=today.slice(0,7);
       const moisDispo=[...new Set(items.map(g=>g.date.slice(0,7)))].sort();
-      const moisActif=selectedMonth||currentMonth||moisDispo[moisDispo.length-1];
+      // Chercher d'abord le mois en cours, sinon le plus récent
+      const moisEnCours = moisDispo.find(m => m === currentMonth);
+      const moisActif = selectedMonth || moisEnCours || moisDispo[moisDispo.length-1];
       const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
       function formatMois(ym){const[y,m]=ym.split('-');return monthNames[parseInt(m)-1]+' '+y;}
       const menuHTML='<div style="padding:12px 16px;background:white;border-bottom:1px solid #e5e9f2;position:sticky;top:0;z-index:10;">'
