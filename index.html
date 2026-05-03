@@ -834,6 +834,9 @@ async function showAdminAteliers(selectedMonth){
       const today=dateKey(new Date());
       const currentMonth=today.slice(0,7);
       const moisDispo=[...new Set(items.map(g=>g.date.slice(0,7)))].sort();
+      // Ajouter le mois en cours s'il n'est pas déjà dedans
+      if(!moisDispo.includes(currentMonth))moisDispo.push(currentMonth);
+      moisDispo.sort();
       // Chercher d'abord le mois en cours, sinon le plus récent
       const moisEnCours = moisDispo.find(m => m === currentMonth);
       const moisActif = selectedMonth || moisEnCours || moisDispo[moisDispo.length-1];
