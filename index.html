@@ -686,7 +686,7 @@ function enterApp(){
 
 function openUserMenu(){document.getElementById('um-name').textContent=currentUser.prenom;document.getElementById('um-role').textContent='Mon compte AVP';document.getElementById('user-menu').classList.add('active');}
 document.getElementById('user-menu').addEventListener('click',e=>{if(e.target===document.getElementById('user-menu'))document.getElementById('user-menu').classList.remove('active');});
-document.getElementById('um-planning').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';renderPlanning();showScreen('planning-screen');});
+document.getElementById('um-planning').addEventListener('click',async()=>{document.getElementById('user-menu').classList.remove('active');state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');if(!state.avpEvents||state.avpEvents.length===0)await loadAVPPlanning();renderPlanning();});
 document.getElementById('um-notif').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');requestNotifPermission();});
 document.getElementById('um-tutorial').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');startTutorial();});
 document.getElementById('um-logout').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');showConfirm({icon:'🚪',title:'Se déconnecter ?',text:'Vous devrez vous reconnecter la prochaine fois.',okText:'Déconnecter',danger:true,onOk:()=>{clearSession();currentUser=null;state.reminders=[];state.inscriptions={};pinValue='';updatePinDots();showScreen('login-screen');}});});
@@ -1186,7 +1186,7 @@ function renderPlanningInner(content,events){const grouped={};events.forEach(e=>
 document.getElementById('prev-day').addEventListener('click',()=>{state.dayOffset--;render();});
 document.getElementById('next-day').addEventListener('click',()=>{state.dayOffset++;render();});
 document.getElementById('back-to-today').addEventListener('click',()=>{state.dayOffset=0;render();});
-document.getElementById('open-planning-steve').addEventListener('click',()=>{state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';renderPlanning();showScreen('planning-screen');});
+document.getElementById('open-planning-steve').addEventListener('click',async()=>{state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');if(!state.avpEvents||state.avpEvents.length===0)await loadAVPPlanning();renderPlanning();});
 document.getElementById('open-planning-greg').addEventListener('click',()=>{showConfirm({icon:'🚧',title:'Planning Greg bientôt disponible',text:"Le planning de Greg n'est pas encore activé.",okText:'OK',hideCancel:true});});
 document.getElementById('planning-back-btn').addEventListener('click',()=>showScreen('main-screen'));
 
