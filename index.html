@@ -686,7 +686,7 @@ function enterApp(){
 
 function openUserMenu(){document.getElementById('um-name').textContent=currentUser.prenom;document.getElementById('um-role').textContent='Mon compte AVP';document.getElementById('user-menu').classList.add('active');}
 document.getElementById('user-menu').addEventListener('click',e=>{if(e.target===document.getElementById('user-menu'))document.getElementById('user-menu').classList.remove('active');});
-document.getElementById('um-planning').addEventListener('click',async()=>{document.getElementById('user-menu').classList.remove('active');state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');if(!state.avpEvents||state.avpEvents.length===0)await loadAVPPlanning();renderPlanning();});
+document.getElementById('um-planning').addEventListener('click',async()=>{document.getElementById('user-menu').classList.remove('active');state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';await loadAVPPlanning();renderPlanning();});
 document.getElementById('um-notif').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');requestNotifPermission();});
 document.getElementById('um-tutorial').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');startTutorial();});
 document.getElementById('um-logout').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');showConfirm({icon:'🚪',title:'Se déconnecter ?',text:'Vous devrez vous reconnecter la prochaine fois.',okText:'Déconnecter',danger:true,onOk:()=>{clearSession();currentUser=null;state.reminders=[];state.inscriptions={};pinValue='';updatePinDots();showScreen('login-screen');}});});
@@ -1140,16 +1140,23 @@ function render(){const d=getCurrentDate();const key=dateKey(d);document.getElem
 
 async function loadAVPPlanning(){
   try{
-    const r=await fetch(getAVPCsvUrl()+'&_='+Date.now());
+    const url=getAVPCsvUrl()+'&_='+Date.now();
+    const r=await fetch(url,{cache:'no-store'});
+    if(!r.ok)throw new Error('HTTP '+r.status);
     const csv=await r.text();
-    state.avpEvents=parseAVPPlanning(csv);
+    const parsed=parseAVPPlanning(csv);
+    state.avpEvents=parsed;
     try{
       const snap=await db.collection('annulations').get();
       state.annulations={};
       snap.docs.forEach(doc=>{state.annulations[doc.id]=doc.data();});
     }catch(e){}
     render();
-  }catch(e){console.log('AVP planning offline',e);}
+    return parsed;
+  }catch(e){
+    console.error('AVP planning erreur:',e);
+    return [];
+  }
 }
 
 function parseAVPPlanning(csv){const events=[];const lines=csv.split('\n');if(lines.length<2)return events;let year=2026;const ym=lines[0].match(/(\d{4})/);if(ym)year=parseInt(ym[1]);const monthNames=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];let monthIndex=-1;const titleLc=lines[0].toLowerCase();for(let i=0;i<monthNames.length;i++){if(titleLc.includes(monthNames[i])){monthIndex=i;break;}}if(monthIndex===-1)return events;function parseCSVLine(line){const result=[];let cur='';let inQuote=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'){inQuote=!inQuote;}else if(c===','&&!inQuote){result.push(cur.trim());cur='';}else{cur+=c;}}result.push(cur.trim());return result;}const rows=lines.map(l=>parseCSVLine(l));for(let r=0;r<rows.length;r++){const row=rows[r],rowStr=row.join(' ');const dateMatches=rowStr.match(/(lundi|mardi|mercredi|jeudi|vendredi)\s+(\d{1,2})/gi);if(!dateMatches||dateMatches.length===0)continue;const dayMap={};for(let c=0;c<row.length;c++){const cell=String(row[c]||'');const dm=cell.match(/(lundi|mardi|mercredi|jeudi|vendredi)\s+(\d{1,2})/i);if(dm)dayMap[c]=parseInt(dm[2]);}for(let offset=1;offset<=2&&(r+offset)<rows.length;offset++){const dRow=rows[r+offset];if(!dRow)continue;const dayCols=Object.keys(dayMap).map(Number).sort((a,b)=>a-b);for(const startCol of dayCols){const dayNum=dayMap[startCol];let hour='',activity='';for(let cc=startCol;cc<Math.min(startCol+3,dRow.length);cc++){const cell=String(dRow[cc]||'').trim();if(!cell||cell==='-'||cell==='—')continue;const hm=cell.match(/(\d{1,2})\s*[hH:\.]\s*(\d{0,2})/),justH=cell.match(/^(\d{1,2})$/);if(hm&&!hour){const hh=parseInt(hm[1]),mm=hm[2]?parseInt(hm[2]):0;hour=(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm;}else if(justH&&parseInt(justH[1])>=6&&parseInt(justH[1])<=22&&!hour){hour=(parseInt(justH[1])<10?'0':'')+parseInt(justH[1])+':00';}else if(cell.length>2&&!activity){activity=cell;}}if(activity){const mo=monthIndex+1;const dateStr=`${year}-${(mo<10?'0':'')+mo}-${(dayNum<10?'0':'')+dayNum}`;let cleanTitle=activity.replace(/^[\s\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F\u200D]+/gu,'').trim();if(cleanTitle===activity){cleanTitle=activity.replace(/^[^a-zA-ZÀ-ÿ0-9]+/,'').trim();}let limite=null;const limMatch=cleanTitle.match(/\s*\((\d{1,2})\)\s*$/);if(limMatch){limite=parseInt(limMatch[1]);cleanTitle=cleanTitle.replace(/\s*\(\d{1,2}\)\s*$/,'').trim();}// Ignorer les jours fériés, vacances et cellules vides
@@ -1186,7 +1193,7 @@ function renderPlanningInner(content,events){const grouped={};events.forEach(e=>
 document.getElementById('prev-day').addEventListener('click',()=>{state.dayOffset--;render();});
 document.getElementById('next-day').addEventListener('click',()=>{state.dayOffset++;render();});
 document.getElementById('back-to-today').addEventListener('click',()=>{state.dayOffset=0;render();});
-document.getElementById('open-planning-steve').addEventListener('click',async()=>{state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');if(!state.avpEvents||state.avpEvents.length===0)await loadAVPPlanning();renderPlanning();});
+document.getElementById('open-planning-steve').addEventListener('click',async()=>{state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';await loadAVPPlanning();renderPlanning();});
 document.getElementById('open-planning-greg').addEventListener('click',()=>{showConfirm({icon:'🚧',title:'Planning Greg bientôt disponible',text:"Le planning de Greg n'est pas encore activé.",okText:'OK',hideCancel:true});});
 document.getElementById('planning-back-btn').addEventListener('click',()=>showScreen('main-screen'));
 
