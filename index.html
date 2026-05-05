@@ -1020,7 +1020,7 @@ async function showAdminInscrireGroupe(){
   
   ateliers.forEach((ev,idx)=>{
     const dateStr=new Date(ev.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-    const atelierKey='atelier_'+ev.date.replace(/-/g,'_')+'_'+ev.time.replace(':','_')+'_'+ev.title.replace(/[^a-zA-Z0-9]/g,'_').slice(0,20);
+    const atelierKey=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');
     
     html+=`<div class="inscrire-atelier-card">
       <div class="inscrire-atelier-title">${ev.emoji||'📅'} ${ev.title}</div>
