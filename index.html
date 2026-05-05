@@ -1161,103 +1161,85 @@ async function loadAVPPlanning(){
 
 function parseAVPPlanning(csv){
   const events=[];
-  const lines=csv.split('\n').map(l=>l.replace(/\r/g,''));
+  const lines=csv.replace(/\r/g,'').split('\n');
   const year=new Date().getFullYear();
   const month=new Date().getMonth()+1;
-  
+
   function parseRow(line){
     const result=[];let cur='';let inQ=false;
     for(let i=0;i<line.length;i++){
       const c=line[i];
-      if(c==='"'){inQ=!inQ;}
+      if(c==='"')inQ=!inQ;
       else if(c===','&&!inQ){result.push(cur.trim());cur='';}
-      else{cur+=c;}
+      else cur+=c;
     }
     result.push(cur.trim());
     return result;
   }
-  
+
   function parseHeure(s){
     if(!s)return null;
     const m=s.match(/(\d{1,2})[hH:](\d{0,2})/);
-    if(m){const hh=parseInt(m[1]);const mm=m[2]?parseInt(m[2]):0;if(hh>=6&&hh<=22)return (hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm;}
+    if(m){const hh=parseInt(m[1]);const mm=m[2]?parseInt(m[2]):0;if(hh>=6&&hh<=22)return(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm;}
     return null;
   }
-  
-  function cleanTitle(s){
-    if(!s)return '';
-    return s.replace(/^[\s\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F\u200D]+/gu,'').replace(/^[^a-zA-ZÀ-ÿ0-9(]+/,'').trim();
-  }
 
-  // Structure : ligne "Lundi X, Mardi X..." puis lignes Matin/Après-midi avec heure+activité
+  const dayNames=['lundi','mardi','mercredi','jeudi','vendredi'];
   let i=0;
   while(i<lines.length){
     const row=parseRow(lines[i]);
-    // Cherche une ligne avec des jours + numéros ex: "Lundi 4", "Mardi 5"...
-    const dayMap={}; // colIndex -> {jour, num, date}
-    const dayNames=['lundi','mardi','mercredi','jeudi','vendredi'];
+    const dayMap={};
     let found=false;
     for(let c=0;c<row.length;c++){
-      const cell=row[c].toLowerCase();
+      const cl=row[c].toLowerCase();
       for(const d of dayNames){
-        const m=cell.match(new RegExp(d+'\\s*(\\d{1,2})'));
+        const m=cl.match(new RegExp(d+'\\s*(\\d{1,2})'));
         if(m){
           const dayNum=parseInt(m[1]);
           const mo=month<10?'0'+month:''+month;
           const dd=dayNum<10?'0'+dayNum:''+dayNum;
-          dayMap[c]={date:`${year}-${mo}-${dd}`,time:null,title:null};
+          dayMap[c]=year+'-'+mo+'-'+dd;
           found=true;
         }
       }
     }
-    
+
     if(found){
-      // Lire les lignes suivantes jusqu'à la prochaine ligne de jours
+      const cols=Object.keys(dayMap).map(Number).sort((a,b)=>a-b);
       let j=i+1;
       while(j<lines.length){
         const r2=parseRow(lines[j]);
         const r2str=r2.join(' ').toLowerCase();
-        // Stop si c'est une nouvelle ligne de jours
         let isNewWeek=false;
         for(const d of dayNames){if(new RegExp(d+'\\s*\\d').test(r2str)){isNewWeek=true;break;}}
         if(isNewWeek)break;
-        
-        // Pour chaque colonne de jour, cherche heure+activité dans col et col+1
-        const cols=Object.keys(dayMap).map(Number).sort((a,b)=>a-b);
+
         for(let ci=0;ci<cols.length;ci++){
           const col=cols[ci];
-          const nextCol=cols[ci+1]||col+2;
-          let heure=null,activite=null,limite=null;
+          const nextCol=ci+1<cols.length?cols[ci+1]:col+2;
+          let heure=null,activite=null;
           for(let cc=col;cc<Math.min(nextCol,r2.length);cc++){
             const cell=r2[cc];
-            if(!cell||cell==='-'||/^[🌅🌆]/.test(cell))continue;
+            if(!cell||cell==='-')continue;
+            if(/^[🌅🌆]/.test(cell))continue;
             const h=parseHeure(cell);
-            if(h&&!heure){heure=h;}
-            else if(cell.length>2&&!activite&&!parseHeure(cell)){activite=cell;}
+            if(h&&!heure)heure=h;
+            else if(cell.length>2&&!activite&&!parseHeure(cell))activite=cell;
           }
           if(activite){
             const tl=activite.toLowerCase();
-            if(tl.includes('férié')||tl.includes('ferie')||tl.includes('vacance')||tl.includes('ferié'))continue;
+            if(['férié','ferie','vacance','ferié','pas d\'atelier'].some(x=>tl.includes(x)))continue;
             const limM=activite.match(/\((\d{1,2})\)\s*$/);
-            if(limM){limite=parseInt(limM[1]);}
-            const title=cleanTitle(activite).replace(/\(\d{1,2}\)\s*$/,'').trim();
+            const limite=limM?parseInt(limM[1]):null;
+            const title=activite.replace(/^[^\wÀ-ÿ(]+/,'').replace(/\(\d{1,2}\)\s*$/,'').trim();
             if(!title)continue;
-            const emoji=activite.match(/^([\p{Emoji_Presentation}\p{Extended_Pictographic}]+)/u);
-            events.push({
-              date:dayMap[col].date,
-              time:heure||'09:00',
-              title:title,
-              icon:emoji?emoji[1]:'📅',
-              limite:limite
-            });
+            events.push({date:dayMap[col],time:heure||'09:00',title:title,limite:limite});
           }
         }
         j++;
       }
       i=j;
-    } else {
-      i++;
-    }
+    }else{i++;}
   }
   return events;
 }
