@@ -1165,6 +1165,7 @@ async function togglePresence(presKey,atelier,prenom,nouveauStatut){try{const cu
 
 function isInscrit(eventKey){return!!(state.inscriptions&&state.inscriptions[eventKey]);}
 async function toggleInscription(event){const key=event.date+'_'+event.time+'_'+event.title.slice(0,20).replace(/\s/g,'_');if(isInscrit(key)){delete state.inscriptions[key];state.reminders=state.reminders.filter(r=>r.id!=='atelier_'+key);tagOneSignalAtelier(key,false);}else{
+  alert('inscriptions: '+JSON.stringify(Object.keys(state.inscriptions||{}))+'\ndate: '+event.date+'\nheure: '+event.time);
   // Vérifier conflit créneau matin/après-midi
   const eventHour=parseInt(event.time.split(':')[0]);
   const eventMatin=eventHour<12;
