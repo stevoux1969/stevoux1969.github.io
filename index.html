@@ -1169,7 +1169,7 @@ async function toggleInscription(event){const key=event.date+'_'+event.time+'_'+
   const eventHour=parseInt(event.time.split(':')[0]);
   const eventMatin=eventHour<12;
   try{
-    const freshSnap=await db.collection('users').doc(currentUser.uid).get();
+    const freshSnap=await db.collection('users').doc(currentUser.id).get();
     const freshReminders=(freshSnap.data().reminders||[]);
     const conflit=freshReminders.find(r=>{
       if(r.source!=='atelier'||r.date!==event.date)return false;
