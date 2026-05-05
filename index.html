@@ -636,7 +636,7 @@ function formatShortDate(ds) { const d=new Date(ds+'T12:00:00'); const j=['Dim.'
 function buildGoogleCalendarLink(r) { const eventDate=r.eventDate||r.date; const eventTime=r.eventTime||r.time; const d=new Date(eventDate+'T'+eventTime+':00'); const dEnd=new Date(d.getTime()+60*60*1000); const fmt=dt=>dt.getUTCFullYear()+String(dt.getUTCMonth()+1).padStart(2,'0')+String(dt.getUTCDate()).padStart(2,'0')+'T'+String(dt.getUTCHours()).padStart(2,'0')+String(dt.getUTCMinutes()).padStart(2,'0')+'00Z'; const title=encodeURIComponent(r.title||'Rendez-vous'); const details=encodeURIComponent(r.note||''); return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(d)}/${fmt(dEnd)}&details=${details}&reminder=120`; }
 function timeToSpeech(t) { const[h,m]=t.split(':').map(Number); return m?`${h} heures ${m}`:`${h} heures`; }
 function reminderAppliesToDay(r, key) { if(r.recurrence==='daily')return true; return r.date===key; }
-function getActivityIcon(name) { const lc=(name||'').toLowerCase().trim(); for(const[key,icon] of Object.entries(ACTIVITY_ICONS)){if(lc.includes(key))return icon;} return '📋'; }
+function getActivityIcon(name,csvEmoji) { if(csvEmoji)return csvEmoji; const lc=(name||'').toLowerCase().trim(); for(const[key,icon] of Object.entries(ACTIVITY_ICONS)){if(lc.includes(key))return icon;} return '📋'; }
 function getAVPLocation(title) { const lc=(title||'').toLowerCase(); for(const[key,loc] of Object.entries(AVP_LOCATIONS)){if(lc.includes(key))return loc;} return null; }
 function iconHTML(ic) { if(!ic)return''; if(typeof ic==='string'&&ic.startsWith('svg:')){const name=ic.slice(4);const svgMap={HDJ:SVG_HDJ,CMP:SVG_CMP,AUX:SVG_AUX,MAISON:SVG_MAISON,CLE:SVG_CLE};if(svgMap[name])return`<img src="data:image/svg+xml,${encodeURIComponent(svgMap[name])}" style="width:40px;height:40px" alt="${name}">`;}if(typeof ic==='string'&&ic.startsWith('txt:')){const rest=ic.slice(4),pipe=rest.indexOf('|');const big=pipe>=0?rest.slice(0,pipe):rest;const small=pipe>=0?rest.slice(pipe+1):'';return`<span class="icon-badge"><span class="ib-big">${esc(big)}</span>${small?`<span class="ib-small">${esc(small)}</span>`:''}</span>`;}return esc(ic||''); }
 function showScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
@@ -1231,9 +1231,12 @@ function parseAVPPlanning(csv){
             if(['férié','ferie','vacance','ferié','pas d\'atelier'].some(x=>tl.includes(x)))continue;
             const limM=activite.match(/\((\d{1,2})\)\s*$/);
             const limite=limM?parseInt(limM[1]):null;
+            // Extraire emoji du début du titre
+            const emojiMatch=activite.match(/^(\p{Emoji_Presentation}+)/u);
+            const csvEmoji=emojiMatch?emojiMatch[1].trim():'';
             const title=activite.replace(/^[^\wÀ-ÿ(]+/,'').replace(/\(\d{1,2}\)\s*$/,'').trim();
             if(!title)continue;
-            events.push({date:dayMap[col],time:heure||'09:00',title:title,limite:limite});
+            events.push({date:dayMap[col],time:heure||'09:00',title:title,emoji:csvEmoji,limite:limite});
           }
         }
         j++;
