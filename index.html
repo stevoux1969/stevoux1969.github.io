@@ -1048,15 +1048,40 @@ async function validerInscriptionsGroupe(btn, atelierKey){
   const checkboxes=card.querySelectorAll('.inscrire-checkbox');
   let ok=0,err=0;
   
+  // Trouver l'événement correspondant
+  const ev=state.avpEvents.find(e=>{
+    const k=e.date+'_'+e.time+'_'+e.title.slice(0,20).replace(/\s/g,'_');
+    return k===atelierKey;
+  });
+  
   for(const cb of checkboxes){
     const uid=cb.dataset.uid;
-    const key=cb.dataset.key;
     try{
       const snap=await db.collection('users').doc(uid).get();
       const u=snap.data();
-      const inscriptions=u.inscriptions||{};
-      if(cb.checked){inscriptions[key]='1';}else{delete inscriptions[key];}
-      await db.collection('users').doc(uid).update({inscriptions});
+      let reminders=u.reminders||[];
+      const remId='atelier_'+atelierKey;
+      const dejaInscrit=reminders.some(r=>r.id===remId);
+      
+      if(cb.checked&&!dejaInscrit&&ev){
+        // Ajouter le rappel atelier
+        reminders.push({
+          id:remId,
+          title:ev.title,
+          icon:ev.icon||'📋',
+          time:ev.time,
+          date:ev.date,
+          recurrence:'once',
+          note:'',
+          done:{},
+          source:'atelier'
+        });
+      } else if(!cb.checked&&dejaInscrit){
+        // Retirer le rappel atelier
+        reminders=reminders.filter(r=>r.id!==remId);
+      }
+      
+      await db.collection('users').doc(uid).update({reminders});
       ok++;
     }catch(e){err++;}
   }
