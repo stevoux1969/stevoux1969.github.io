@@ -1221,7 +1221,7 @@ function parseAVPPlanning(csv){
           for(let cc=col;cc<Math.min(nextCol,r2.length);cc++){
             const cell=r2[cc];
             if(!cell||cell==='-')continue;
-            if(/^[🌅🌆]/.test(cell))continue;
+            if(/matin|après-midi|apres-midi/i.test(cell.slice(0,30)))continue;
             const h=parseHeure(cell);
             if(h&&!heure)heure=h;
             else if(cell.length>2&&!activite&&!parseHeure(cell))activite=cell;
