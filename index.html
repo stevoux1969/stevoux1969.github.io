@@ -386,7 +386,7 @@
   </div>
   <div class="planning-btns-row">
     <button class="planning-btn-split" id="open-planning-steve" data-anim="Steve">📋 Planning Steve</button>
-    <button class="planning-btn-split disabled" id="open-planning-greg" data-anim="Greg">📋 Planning Greg</button>
+    <button class="planning-btn-split" id="open-planning-greg" data-anim="Greg">📋 Planning Greg</button>
   </div>
   <div class="list-wrap">
     <div id="reminders-list"></div>
@@ -614,6 +614,10 @@ const AVP_CSV_URLS = {
   4: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiMQSY5bkzgEsLV58rkPeAxuAffVuw0qPuehrTL_92BdlYDgL_QMjHZTzd5KF_IhhPm3pfmQJsXB7T/pub?gid=382746303&single=true&output=csv',
   5: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiMQSY5bkzgEsLV58rkPeAxuAffVuw0qPuehrTL_92BdlYDgL_QMjHZTzd5KF_IhhPm3pfmQJsXB7T/pub?gid=506017650&single=true&output=csv',
 };
+const GREG_CSV_URLS = {
+  5: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTVyClhrJco5OxlQhnGeJ3wDpxvu-h5ZzHyN5Z-GrHb8ekkwtobyKxFFXevdr1QDDk4wZo-mtyirB8y/pub?gid=506017650&single=true&output=csv',
+};
+
 function getAVPCsvUrl() {
   const month = new Date().getMonth() + 1; // 1=jan, 5=mai
   return AVP_CSV_URLS[month] || AVP_CSV_URLS[4]; // fallback avril
@@ -1297,7 +1301,7 @@ document.getElementById('prev-day').addEventListener('click',()=>{state.dayOffse
 document.getElementById('next-day').addEventListener('click',()=>{state.dayOffset++;render();});
 document.getElementById('back-to-today').addEventListener('click',()=>{state.dayOffset=0;render();});
 document.getElementById('open-planning-steve').addEventListener('click',async()=>{state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';await loadAVPPlanning();renderPlanning();});
-document.getElementById('open-planning-greg').addEventListener('click',()=>{showConfirm({icon:'🚧',title:'Planning Greg bientôt disponible',text:"Le planning de Greg n'est pas encore activé.",okText:'OK',hideCancel:true});});
+document.getElementById('open-planning-greg').addEventListener('click',async()=>{state.currentAnim='Greg';document.getElementById('planning-anim-label').textContent='👤 Planning de Greg';showScreen('planning-screen');document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';await loadAVPPlanning();renderPlanning();});
 document.getElementById('planning-back-btn').addEventListener('click',()=>showScreen('main-screen'));
 
 document.getElementById('reminders-list').addEventListener('click',e=>{if(e.target.closest('a'))return;const checkId=e.target.closest('[data-check]')?.dataset.check;const card=e.target.closest('.card, .card-sonnerie, .card-rdv');if(checkId){toggleDone(checkId);e.stopPropagation();return;}if(card){const source=card.dataset.source;const id=card.dataset.id;if(source==='avp'){const avpItem=state.avpEvents.find(e=>('avp_'+e.date+'_'+e.time+'_'+e.title.slice(0,10))===id);if(avpItem)speak(`${avpItem.title}, à ${timeToSpeech(avpItem.time)}`);}else{const r=state.reminders.find(x=>x.id===id);if(r){speak(`${r.title}. ${r.note||''}`);if(r.source!=='atelier')openEdit(id);}}}});
