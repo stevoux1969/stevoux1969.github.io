@@ -1232,11 +1232,11 @@ function parseAVPPlanning(csv){
             const limM=activite.match(/\((\d{1,2})\)\s*$/);
             const limite=limM?parseInt(limM[1]):null;
             // Extraire emoji du début du titre
-            const emojiMatch=activite.match(/^(\p{Emoji_Presentation}+)/u);
+            const emojiMatch=activite.match(/^((?:[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]|[\u2300-\u23FF])+)/);
             const csvEmoji=emojiMatch?emojiMatch[1].trim():'';
             const title=activite.replace(/^[^\wÀ-ÿ(]+/,'').replace(/\(\d{1,2}\)\s*$/,'').trim();
             if(!title)continue;
-            events.push({date:dayMap[col],time:heure||'09:00',title:title,emoji:csvEmoji,limite:limite});
+            events.push({date:dayMap[col],time:heure||'09:00',title:title,icon:csvEmoji||getActivityIcon(title),limite:limite});
           }
         }
         j++;
