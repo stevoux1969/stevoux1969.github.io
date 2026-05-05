@@ -619,8 +619,9 @@ const GREG_CSV_URLS = {
 };
 
 function getAVPCsvUrl() {
-  const month = new Date().getMonth() + 1; // 1=jan, 5=mai
-  return AVP_CSV_URLS[month] || AVP_CSV_URLS[4]; // fallback avril
+  const month = new Date().getMonth() + 1;
+  if(state && state.currentAnim === 'Greg') return GREG_CSV_URLS[month] || GREG_CSV_URLS[5];
+  return AVP_CSV_URLS[month] || AVP_CSV_URLS[4];
 }
 
 let currentUser = null;
