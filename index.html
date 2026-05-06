@@ -1165,9 +1165,21 @@ async function togglePresence(presKey,atelier,prenom,nouveauStatut){try{const cu
 
 function isInscrit(eventKey){return!!(state.inscriptions&&state.inscriptions[eventKey]);}
 async function toggleInscription(event){const key=event.date+'_'+event.time+'_'+event.title.slice(0,20).replace(/\s/g,'_');if(isInscrit(key)){delete state.inscriptions[key];state.reminders=state.reminders.filter(r=>r.id!=='atelier_'+key);tagOneSignalAtelier(key,false);}else{
-  // DEBUG
-  showConfirm({icon:'🔍',title:'DEBUG',text:'inscriptions: '+JSON.stringify(Object.keys(state.inscriptions||{}))+' | date: '+event.date+' | heure: '+event.time,okText:'OK',hideCancel:true});
-  return;
+  // Vérifier conflit depuis Firebase
+  if(currentUser&&currentUser.id&&!currentUser.isAdmin){
+    try{
+      const snap=await db.collection('users').doc(currentUser.id).get();
+      const reminders=(snap.data()&&snap.data().reminders)||[];
+      const eventHour=parseInt(event.time.split(':')[0]);
+      const eventMatin=eventHour<12;
+      const conflit=reminders.find(r=>{
+        if(r.source!=='atelier'||r.date!==event.date)return false;
+        const rHour=parseInt((r.time||'0').split(':')[0]);
+        return (rHour<12)===eventMatin;
+      });
+      if(conflit){showConfirm({icon:'⚠️',title:'Conflit d\'horaire',text:`Tu es déjà inscrit à "${conflit.title}" sur ce créneau ${eventMatin?'matin':'après-midi'}.`,okText:'OK',hideCancel:true});return;}
+    }catch(e){}
+  }
   // Vérifier conflit créneau matin/après-midi
   const eventHour=parseInt(event.time.split(':')[0]);
   const eventMatin=eventHour<12;
