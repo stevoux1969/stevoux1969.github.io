@@ -551,6 +551,7 @@ firebase.initializeApp({
 });
 const db = firebase.firestore();
 const ADMIN_CODE = '196969';
+const ADMIN_GREG_CODE = '555888';
 
 const SVG_HDJ = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="60" cy="14" r="10" fill="#FFD93D"/><line x1="60" y1="2" x2="60" y2="4" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><line x1="60" y1="24" x2="60" y2="26" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><line x1="48" y1="14" x2="50" y2="14" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><line x1="70" y1="14" x2="72" y2="14" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><circle cx="30" cy="18" r="8" fill="#F5DEB3"/><rect x="22" y="28" width="16" height="24" rx="3" fill="#2AA198"/><rect x="18" y="28" width="8" height="18" rx="2" fill="#2AA198"/><rect x="34" y="28" width="8" height="18" rx="2" fill="#2AA198"/><rect x="24" y="52" width="6" height="14" rx="2" fill="#3B6B8A"/><rect x="32" y="52" width="6" height="14" rx="2" fill="#3B6B8A"/><rect x="26" y="32" width="8" height="3" rx="1" fill="white"/><rect x="29" y="30" width="2" height="7" rx="1" fill="white"/><circle cx="30" cy="14" r="2" fill="#2AA198"/></svg>`;
 const SVG_CMP = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><polygon points="40,8 8,35 72,35" fill="#E85D4A"/><rect x="14" y="35" width="52" height="32" fill="#FFF5E6"/><rect x="14" y="35" width="52" height="3" fill="#D44A3A"/><rect x="30" y="45" width="20" height="22" rx="2" fill="#8B6914"/><circle cx="46" cy="57" r="2" fill="#FFD93D"/><rect x="18" y="40" width="10" height="10" rx="1" fill="#87CEEB"/><line x1="23" y1="40" x2="23" y2="50" stroke="white" stroke-width="1"/><line x1="18" y1="45" x2="28" y2="45" stroke="white" stroke-width="1"/><rect x="52" y="40" width="10" height="10" rx="1" fill="#87CEEB"/><line x1="57" y1="40" x2="57" y2="50" stroke="white" stroke-width="1"/><line x1="52" y1="45" x2="62" y2="45" stroke="white" stroke-width="1"/><text x="40" y="76" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#2c3e91">CMP</text></svg>`;
@@ -656,7 +657,8 @@ async function handleLogin() {
   const code=pinValue;
   document.getElementById('login-error').classList.remove('visible');
   if(code.length<6){showError('Entrez vos 4 chiffres.');return;}
-  if(code===ADMIN_CODE&&loginMode==='login'){currentUser={id:'admin',prenom:'Admin',isAdmin:true};saveSession();showAdminScreen();return;}
+  if(code===ADMIN_CODE&&loginMode==='login'){currentUser={id:'admin',prenom:'Admin',isAdmin:true,isGreg:false};saveSession();showAdminScreen();return;}
+  if(code===ADMIN_GREG_CODE&&loginMode==='login'){currentUser={id:'adminGreg',prenom:'Greg',isAdmin:true,isGreg:true};saveSession();showAdminScreen();return;}
   if(loginMode==='register'){
     if(!prenom){showError('Entrez votre prénom.');return;}
     try{const snap=await db.collection('users').get();const existing=snap.docs.find(d=>d.data().prenom.toLowerCase()===prenom.toLowerCase());if(existing){showError('Ce prénom existe déjà. Connectez-vous.');return;}const userId=uid();await db.collection('users').doc(userId).set({prenom,code,createdAt:Date.now(),reminders:[],inscriptions:{}});currentUser={id:userId,prenom,isAdmin:false};saveSession();tagOneSignalUser(prenom);state.reminders=[];state.inscriptions={};enterApp();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
@@ -715,7 +717,13 @@ async function queueNotification(title,message,sendAtDate,sendAtTime,targetTag){
 
 async function queueAtelierNotifications(atelier,atelierKey){const atelierDate=new Date(atelier.date+'T'+atelier.time+':00');const tagKey="atelier_"+atelierKey.replace(/[^a-z0-9_]/gi,'_').slice(0,60);const target={key:tagKey,value:"1"};const veille=new Date(atelierDate);veille.setDate(veille.getDate()-1);await queueNotification('📅 Demain : '+atelier.title,'Rappel : demain à '+atelier.time.replace(':','h')+' — '+atelier.title,dateKey(veille),'15:00',target);const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const hh=String(avant2h.getHours()).padStart(2,'0');const mm=String(avant2h.getMinutes()).padStart(2,'0');await queueNotification('🔔 Dans 2h : '+atelier.title,'Rappel : '+atelier.title+' à '+atelier.time.replace(':','h'),dateKey(avant2h),hh+':'+mm,target);}
 
-async function showAdminScreen(){showScreen('admin-screen');await loadAdminUsers();if(!state.avpEvents||state.avpEvents.length===0)loadAVPPlanning();}
+async function showAdminScreen(){
+  showScreen('admin-screen');
+  await loadAdminUsers();
+  state.avpEvents=[];
+  if(currentUser.isGreg){state.currentAnim='Greg';}else{state.currentAnim='Steve';}
+  await loadAVPPlanning();
+}
 async function loadAdminUsers(){const list=document.getElementById('admin-user-list');list.innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';try{const snap=await db.collection('users').get();if(snap.empty){list.innerHTML='<div class="planning-empty">Aucun compte créé.</div>';return;}list.innerHTML=snap.docs.map(d=>{const u=d.data();const nb=(u.reminders||[]).length;return`<div class="admin-user-card" data-uid="${d.id}"><div class="user-avatar">${u.prenom.slice(0,1).toUpperCase()}</div><div class="admin-user-info"><div class="admin-user-name">${esc(u.prenom)}</div><div class="admin-user-meta">${nb} rappel${nb>1?'s':''} · Code : ${u.code}</div></div><span style="font-size:22px;color:#5e6b8a">›</span></div>`;}).join('');}catch(e){list.innerHTML='<div class="planning-empty">Erreur de chargement.</div>';}}
 
 document.getElementById('admin-back-btn').addEventListener('click',()=>{clearSession();currentUser=null;showScreen('login-screen');});
