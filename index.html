@@ -461,7 +461,7 @@
 <div id="admin-screen" class="screen">
   <div class="admin-header">
     <button class="back-btn" id="admin-back-btn" style="color:white">‹</button>
-    <h1>👑 Espace Admin</h1>
+    <h1 id="admin-titre">👑 Espace Admin</h1>
   </div>
   <button class="btn-new-user" id="admin-new-user-btn">+ Créer un compte bénéficiaire</button>
   <button class="btn-admin-action" id="admin-ateliers-btn">📋 Voir les inscrits aux ateliers</button>
@@ -719,6 +719,7 @@ async function queueAtelierNotifications(atelier,atelierKey){const atelierDate=n
 
 async function showAdminScreen(){
   showScreen('admin-screen');
+  document.getElementById('admin-titre').textContent = currentUser.isGreg ? '👑 Espace Admin Greg' : '👑 Espace Admin';
   await loadAdminUsers();
   state.avpEvents=[];
   if(currentUser.isGreg){state.currentAnim='Greg';}else{state.currentAnim='Steve';}
@@ -1110,7 +1111,7 @@ async function showAdminAteliers(selectedMonth){
   list.innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';
   try{const[usersSnap,presSnap,annulSnap]=await Promise.all([db.collection('users').get(),db.collection('presences').get(),db.collection('annulations').get()]);
     const annulations={};
-    annulSnap.docs.forEach(doc=>{annulations[doc.id]=doc.data();});const presences={};presSnap.docs.forEach(doc=>{presences[doc.id]=doc.data();});state.presences=presences;const groupes={};usersSnap.docs.forEach(doc=>{const u=doc.data();if(!u.prenom)return;(u.reminders||[]).filter(r=>r.source==='atelier').forEach(r=>{const key=r.date+'_'+r.time+'_'+(r.title||'').slice(0,30);if(!groupes[key])groupes[key]={date:r.date,time:r.time,title:r.title,icon:r.icon,inscrits:[]};groupes[key].inscrits.push(u.prenom);});});const items=Object.values(groupes).sort((a,b)=>{if(a.date!==b.date)return(a.date||'').localeCompare(b.date||'');return(a.time||'').localeCompare(b.time||'');});if(items.length===0){list.innerHTML='<div class="planning-empty">Aucune inscription pour le moment.</div>';return;}
+    annulSnap.docs.forEach(doc=>{annulations[doc.id]=doc.data();});const presences={};presSnap.docs.forEach(doc=>{presences[doc.id]=doc.data();});state.presences=presences;const groupes={};usersSnap.docs.forEach(doc=>{const u=doc.data();if(!u.prenom)return;(u.reminders||[]).filter(r=>r.source==='atelier').forEach(r=>{const dansAnim=state.avpEvents.some(e=>e.date===r.date&&e.time===r.time&&e.title===r.title);if(!dansAnim)return;const key=r.date+'_'+r.time+'_'+(r.title||'').slice(0,30);if(!groupes[key])groupes[key]={date:r.date,time:r.time,title:r.title,icon:r.icon,inscrits:[]};groupes[key].inscrits.push(u.prenom);});});const items=Object.values(groupes).sort((a,b)=>{if(a.date!==b.date)return(a.date||'').localeCompare(b.date||'');return(a.time||'').localeCompare(b.time||'');});if(items.length===0){list.innerHTML='<div class="planning-empty">Aucune inscription pour le moment.</div>';return;}
       const today=dateKey(new Date());
       const currentMonth=today.slice(0,7);
       const moisDispo=[...new Set(items.map(g=>g.date.slice(0,7)))].sort();
