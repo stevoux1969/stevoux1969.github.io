@@ -467,6 +467,7 @@
   <button class="btn-admin-action" id="admin-ateliers-btn">📋 Voir les inscrits aux ateliers</button>
   <button class="btn-admin-action" id="admin-inscrire-groupe-btn" style="background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;">👥 Inscrire des bénéficiaires aux ateliers</button>
   <button class="btn-admin-action" id="admin-annuler-btn" style="background:#fdf0f2;color:#d63447;border-color:#f3c3ca;">🚫 Annuler un atelier</button>
+  <button class="btn-admin-action" id="admin-notif-btn" style="background:#f0f4ff;color:#2c3e91;border-color:#c7d2fe;">🔔 Activer mes notifications</button>
   <div class="admin-list" id="admin-user-list"></div>
 </div>
 
@@ -731,6 +732,7 @@ document.getElementById('admin-back-btn').addEventListener('click',()=>{clearSes
 document.getElementById('admin-new-user-btn').addEventListener('click',()=>{showScreen('login-screen');loginMode='register';document.getElementById('login-card-title').textContent='Créer un compte';document.getElementById('field-prenom').style.display='block';document.getElementById('login-switch-text').textContent='';document.getElementById('login-switch-btn').textContent='';pinValue='';updatePinDots();});
 document.getElementById('admin-user-list').addEventListener('click',e=>{const card=e.target.closest('.admin-user-card');if(!card)return;showAdminUserDetail(card.dataset.uid);});
 document.getElementById('admin-ateliers-btn').addEventListener('click',()=>showAdminAteliers(new Date().toISOString().slice(0,7)));
+document.getElementById('admin-notif-btn').addEventListener('click',async()=>{await requestNotifPermission();tagOneSignalUser(currentUser.prenom);});
 document.getElementById('admin-annuler-btn').addEventListener('click',()=>showAdminAnnulerAtelier());
 document.getElementById('admin-ateliers-back').addEventListener('click',()=>showAdminScreen());
 document.getElementById('admin-inscrire-groupe-back').addEventListener('click',()=>showAdminScreen());
