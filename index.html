@@ -1183,6 +1183,7 @@ async function toggleInscription(event){const key=event.date+'_'+event.time+'_'+
       const eventMatin=eventHour<12;
       const conflit=reminders.find(r=>{
         if(r.source!=='atelier'||r.date!==event.date)return false;
+        if(r.title===event.title&&r.time===event.time)return false; // même atelier commun = pas un conflit
         const rHour=parseInt((r.time||'0').split(':')[0]);
         return (rHour<12)===eventMatin;
       });
