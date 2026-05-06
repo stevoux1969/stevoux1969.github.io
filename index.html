@@ -1426,9 +1426,46 @@ async function init(){
 init();
 </script>
 <div class="copyright">Application créée par Steve Legendre © 2026</div>
+
+<!-- Bannière installation PWA -->
+<div id="pwa-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#2c3e91;color:white;padding:12px 16px;display:none;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+  <span style="font-size:22px">📲</span>
+  <span style="flex:1;font-size:14px;font-weight:600">Installer l'application sur votre téléphone</span>
+  <button id="pwa-install-btn" style="background:white;color:#2c3e91;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;">Installer</button>
+  <button id="pwa-dismiss-btn" style="background:transparent;color:white;border:none;font-size:20px;cursor:pointer;padding:0 4px;">✕</button>
+</div>
+
 <script>
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Afficher seulement si pas déjà installé et pas déjà refusé
+  if(!localStorage.getItem('pwa-dismissed')) {
+    const banner = document.getElementById('pwa-banner');
+    banner.style.display = 'flex';
+    // Ajouter un padding en haut du contenu pour ne pas cacher le contenu
+    document.body.style.paddingTop = '56px';
+  }
+});
+
+document.getElementById('pwa-install-btn').addEventListener('click', async () => {
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const result = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('pwa-banner').style.display = 'none';
+  document.body.style.paddingTop = '0';
+});
+
+document.getElementById('pwa-dismiss-btn').addEventListener('click', () => {
+  document.getElementById('pwa-banner').style.display = 'none';
+  document.body.style.paddingTop = '0';
+  localStorage.setItem('pwa-dismissed', '1');
+});
+
 if ('serviceWorker' in navigator) {
-  // D'abord désinstaller les anciens SW puis enregistrer le nouveau
   navigator.serviceWorker.getRegistrations().then(regs => {
     regs.forEach(reg => reg.unregister());
   }).then(() => {
