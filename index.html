@@ -724,16 +724,18 @@ async function notifyAnimateur(action, event){
     // L'animateur cible dépend du planning affiché
     const animPrenom=(state.currentAnim==='Greg')?'greg':'steve';
     const benefPrenom=currentUser?currentUser.prenom:'Quelqu\'un';
-    // Envoi dans 1 minute (queueNotification refuse les dates passées)
-    const sendDate=new Date(Date.now()+60000);
+    // Envoi dans 2 minutes pour éviter tout problème de timing
+    const sendDate=new Date(Date.now()+120000);
     const sendDateKey=dateKey(sendDate);
     const hh=String(sendDate.getHours()).padStart(2,'0');
     const mm=String(sendDate.getMinutes()).padStart(2,'0');
     const isInscription=(action==='inscription');
     const titre=isInscription?'✅ '+benefPrenom+' — '+event.title:'❌ '+benefPrenom+' — '+event.title;
     const msg=benefPrenom+(isInscription?' s\'est inscrit(e)':' s\'est désinscrit(e)')+' — '+formatShortDate(event.date)+' à '+event.time.replace(':','h');
+    console.log('[AVP] notifyAnimateur → animPrenom:',animPrenom,'sendAt:',sendDateKey,hh+':'+mm,'titre:',titre);
     await queueNotification(titre,msg,sendDateKey,hh+':'+mm,{key:'prenom',value:animPrenom});
-  }catch(e){}
+    console.log('[AVP] notifyAnimateur → Firebase écrit OK');
+  }catch(e){console.error('[AVP] notifyAnimateur erreur:',e);}
 }
 
 async function showAdminScreen(){
