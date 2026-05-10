@@ -793,41 +793,51 @@ document.getElementById('admin-msg-atelier-btn').addEventListener('click',()=>sh
 
 async function showAdminMessageModal(mode){
   const signataire=currentUser.isGreg?'Greg':'Steve';
-  let atelierChoix='';
 
-  // Si mode atelier, d'abord choisir l'atelier
   if(mode==='atelier'){
-    // Récupérer les ateliers depuis le planning affiché
+    // Récupérer les ateliers depuis les inscriptions
     const snap=await db.collection('users').get();
     const inscriptions={};
-    snap.docs.forEach(d=>{
-      const data=d.data();
-      if(data.inscriptions){Object.keys(data.inscriptions).forEach(k=>{inscriptions[k]=(inscriptions[k]||0)+1;});}
-    });
+    snap.docs.forEach(d=>{const data=d.data();if(data.inscriptions){Object.keys(data.inscriptions).forEach(k=>{inscriptions[k]=(inscriptions[k]||0)+1;});}});
     const ateliers=Object.keys(inscriptions);
     if(ateliers.length===0){showConfirm({icon:'ℹ️',title:'Aucun atelier',text:'Aucun bénéficiaire inscrit pour le moment.',okText:'OK',hideCancel:true});return;}
-    // Créer une liste simplifiée
-    const liste=ateliers.map(k=>{const parts=k.split('_');const date=parts[0]+'_'+parts[1]+'_'+parts[2];const time=parts[3]+'_'+parts[4];const titre=parts.slice(5).join(' ');return{key:k,label:titre.replace(/_/g,' ')+' ('+parts[2]+'/'+parts[1]+')'};});
-    atelierChoix=await new Promise(resolve=>{
-      const opts=liste.map((a,i)=>`<option value="${a.key}">${a.label}</option>`).join('');
-      showConfirm({icon:'🎯',title:'Choisir un atelier',text:`<select id="choix-atelier" style="width:100%;padding:10px;font-size:16px;border-radius:10px;border:2px solid #e5e9f2;margin-top:8px">${opts}</select>`,okText:'Suivant',onOk:()=>resolve(document.getElementById('choix-atelier')?.value||''),onCancel:()=>resolve('')});
-    });
-    if(!atelierChoix)return;
-  }
 
-  // Saisir le message
-  showConfirm({
-    icon:'📢',
-    title:'Message de '+signataire,
-    text:`<textarea id="admin-msg-text" placeholder="Votre message..." style="width:100%;height:100px;padding:10px;font-size:16px;border-radius:10px;border:2px solid #e5e9f2;margin-top:8px;resize:none;font-family:inherit"></textarea>`,
-    okText:'Envoyer',
-    onOk:async()=>{
-      const texte=document.getElementById('admin-msg-text')?.value?.trim();
-      if(!texte){showConfirm({icon:'⚠️',title:'Message vide',text:'Écrivez un message avant d\'envoyer.',okText:'OK',hideCancel:true});return;}
-      const msgComplet=texte+'\n— '+signataire;
-      await envoyerMessageAdmin(mode,msgComplet,atelierChoix,signataire);
-    }
-  });
+    // Modal sélection atelier
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
+    const box=document.createElement('div');
+    box.style.cssText='background:white;border-radius:20px;padding:24px;width:100%;max-width:360px;';
+    const opts=ateliers.map(k=>{const parts=k.split('_');const titre=parts.slice(5).join(' ').replace(/_/g,' ');const date=parts[2]+'/'+parts[1];return`<option value="${k}">${titre} (${date})</option>`;}).join('');
+    box.innerHTML=`<div style="font-size:32px;text-align:center">🎯</div><h3 style="text-align:center;margin:12px 0;font-size:20px">Choisir un atelier</h3><select id="choix-atelier" style="width:100%;padding:12px;font-size:16px;border-radius:10px;border:2px solid #e5e9f2;margin-bottom:16px">${opts}</select><div style="display:flex;gap:12px"><button id="msg-atelier-cancel" style="flex:1;padding:14px;border:2px solid #e5e9f2;border-radius:12px;font-size:16px;background:white;cursor:pointer">Annuler</button><button id="msg-atelier-ok" style="flex:1;padding:14px;border:none;border-radius:12px;font-size:16px;background:#2c3e91;color:white;font-weight:700;cursor:pointer">Suivant</button></div>`;
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    document.getElementById('msg-atelier-cancel').onclick=()=>document.body.removeChild(overlay);
+    document.getElementById('msg-atelier-ok').onclick=()=>{
+      const atelierChoix=document.getElementById('choix-atelier').value;
+      document.body.removeChild(overlay);
+      showMessageTextModal(signataire,mode,atelierChoix);
+    };
+  }else{
+    showMessageTextModal(signataire,mode,'');
+  }
+}
+
+function showMessageTextModal(signataire,mode,atelierKey){
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
+  const box=document.createElement('div');
+  box.style.cssText='background:white;border-radius:20px;padding:24px;width:100%;max-width:360px;';
+  box.innerHTML=`<div style="font-size:32px;text-align:center">📢</div><h3 style="text-align:center;margin:12px 0;font-size:20px">Message de ${signataire}</h3><textarea id="admin-msg-text" placeholder="Votre message..." style="width:100%;height:100px;padding:12px;font-size:16px;border-radius:10px;border:2px solid #e5e9f2;margin-bottom:16px;resize:none;font-family:inherit"></textarea><div style="display:flex;gap:12px"><button id="msg-cancel" style="flex:1;padding:14px;border:2px solid #e5e9f2;border-radius:12px;font-size:16px;background:white;cursor:pointer">Annuler</button><button id="msg-ok" style="flex:1;padding:14px;border:none;border-radius:12px;font-size:16px;background:#2c3e91;color:white;font-weight:700;cursor:pointer">Envoyer</button></div>`;
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  document.getElementById('msg-cancel').onclick=()=>document.body.removeChild(overlay);
+  document.getElementById('msg-ok').onclick=async()=>{
+    const texte=document.getElementById('admin-msg-text').value.trim();
+    if(!texte){alert('Écrivez un message avant d\'envoyer.');return;}
+    document.body.removeChild(overlay);
+    const msgComplet=texte+'\n— '+signataire;
+    await envoyerMessageAdmin(mode,msgComplet,atelierKey,signataire);
+  };
 }
 
 async function envoyerMessageAdmin(mode,message,atelierKey,signataire){
