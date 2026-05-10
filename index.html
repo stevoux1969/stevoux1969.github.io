@@ -703,7 +703,7 @@ async function checkMessagesAdmin(){
     showConfirm({
       icon:'📢',
       title:'Message de vos animateurs',
-      text:esc(msg.texte),
+      text:msg.texte,
       okText:'J\'ai lu',
       hideCancel:true,
       onOk:async()=>{
@@ -807,7 +807,7 @@ async function showAdminMessageModal(mode){
     overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
     const box=document.createElement('div');
     box.style.cssText='background:white;border-radius:20px;padding:24px;width:100%;max-width:360px;';
-    const opts=ateliers.map(k=>{const parts=k.split('_');const titre=parts.slice(5).join(' ').replace(/_/g,' ');const date=parts[2]+'/'+parts[1];return`<option value="${k}">${titre} (${date})</option>`;}).join('');
+    const opts=ateliers.map(k=>{const idx1=k.indexOf('_');const idx2=k.indexOf('_',idx1+1);const date=k.substring(0,idx1);const time=k.substring(idx1+1,idx2);const titre=k.substring(idx2+1).replace(/_/g,' ');const [y,m,d]=date.split('-');return`<option value="${k}">${titre} — ${d}/${m} à ${time}</option>`;}).join('');
     box.innerHTML=`<div style="font-size:32px;text-align:center">🎯</div><h3 style="text-align:center;margin:12px 0;font-size:20px">Choisir un atelier</h3><select id="choix-atelier" style="width:100%;padding:12px;font-size:16px;border-radius:10px;border:2px solid #e5e9f2;margin-bottom:16px">${opts}</select><div style="display:flex;gap:12px"><button id="msg-atelier-cancel" style="flex:1;padding:14px;border:2px solid #e5e9f2;border-radius:12px;font-size:16px;background:white;cursor:pointer">Annuler</button><button id="msg-atelier-ok" style="flex:1;padding:14px;border:none;border-radius:12px;font-size:16px;background:#2c3e91;color:white;font-weight:700;cursor:pointer">Suivant</button></div>`;
     overlay.appendChild(box);
     document.body.appendChild(overlay);
