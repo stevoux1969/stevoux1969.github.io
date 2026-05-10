@@ -723,7 +723,7 @@ async function queueAtelierNotifications(atelier,atelierKey){const atelierDate=n
 async function notifyAnimateur(action, event){
   try{
     // L'animateur cible dépend du planning affiché
-    const animPrenom=(state.currentAnim==='Greg')?'Greg':'Steve';
+    const animPrenom=(state.currentAnim==='Greg')?'greg':'steve';
     const benefPrenom=currentUser?currentUser.prenom:'Quelqu\'un';
     // Envoi dans 2 minutes pour éviter tout problème de timing
     const sendDate=new Date(Date.now()+120000);
@@ -753,7 +753,7 @@ document.getElementById('admin-back-btn').addEventListener('click',()=>{clearSes
 document.getElementById('admin-new-user-btn').addEventListener('click',()=>{showScreen('login-screen');loginMode='register';document.getElementById('login-card-title').textContent='Créer un compte';document.getElementById('field-prenom').style.display='block';document.getElementById('login-switch-text').textContent='';document.getElementById('login-switch-btn').textContent='';pinValue='';updatePinDots();});
 document.getElementById('admin-user-list').addEventListener('click',e=>{const card=e.target.closest('.admin-user-card');if(!card)return;showAdminUserDetail(card.dataset.uid);});
 document.getElementById('admin-ateliers-btn').addEventListener('click',()=>showAdminAteliers(new Date().toISOString().slice(0,7)));
-document.getElementById('admin-notif-btn').addEventListener('click',async()=>{await requestNotifPermission();tagOneSignalUser(currentUser.isGreg?'Greg':'Steve');});
+document.getElementById('admin-notif-btn').addEventListener('click',async()=>{await requestNotifPermission();tagOneSignalUser(currentUser.isGreg?'greg':'steve');});
 document.getElementById('admin-annuler-btn').addEventListener('click',()=>showAdminAnnulerAtelier());
 document.getElementById('admin-ateliers-back').addEventListener('click',()=>showAdminScreen());
 document.getElementById('admin-inscrire-groupe-back').addEventListener('click',()=>showAdminScreen());
