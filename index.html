@@ -468,6 +468,8 @@
   <button class="btn-admin-action" id="admin-inscrire-groupe-btn" style="background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;">👥 Inscrire des bénéficiaires aux ateliers</button>
   <button class="btn-admin-action" id="admin-annuler-btn" style="background:#fdf0f2;color:#d63447;border-color:#f3c3ca;">🚫 Annuler un atelier</button>
   <button class="btn-admin-action" id="admin-notif-btn" style="background:#f0f4ff;color:#2c3e91;border-color:#c7d2fe;">🔔 Activer mes notifications</button>
+  <button class="btn-admin-action" id="admin-msg-tous-btn" style="background:#fff7ed;color:#c2410c;border-color:#fed7aa;">📢 Message à tous les bénéficiaires</button>
+  <button class="btn-admin-action" id="admin-msg-atelier-btn" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0;">🎯 Message aux inscrits d'un atelier</button>
   <div class="admin-list" id="admin-user-list"></div>
 </div>
 
@@ -665,7 +667,7 @@ async function handleLogin() {
     if(!prenom){showError('Entrez votre prénom.');return;}
     try{const snap=await db.collection('users').get();const existing=snap.docs.find(d=>d.data().prenom.toLowerCase()===prenom.toLowerCase());if(existing){showError('Ce prénom existe déjà. Connectez-vous.');return;}const userId=uid();await db.collection('users').doc(userId).set({prenom,code,createdAt:Date.now(),reminders:[],inscriptions:{}});currentUser={id:userId,prenom,isAdmin:false};saveSession();tagOneSignalUser(prenom);state.reminders=[];state.inscriptions={};enterApp();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
   }else{
-    try{const snap=await db.collection('users').get();let found=null;snap.docs.forEach(d=>{if(d.data().code===code)found={id:d.id,...d.data()};});if(!found){showError('Code incorrect.');pinValue='';updatePinDots();return;}currentUser={id:found.id,prenom:found.prenom,isAdmin:false};saveSession();tagOneSignalUser(found.prenom);await loadUserData();enterApp();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
+    try{const snap=await db.collection('users').get();let found=null;snap.docs.forEach(d=>{if(d.data().code===code)found={id:d.id,...d.data()};});if(!found){showError('Code incorrect.');pinValue='';updatePinDots();return;}currentUser={id:found.id,prenom:found.prenom,isAdmin:false};saveSession();tagOneSignalUser(found.prenom);tagOneSignalAvpUser();await loadUserData();enterApp();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
   }
 }
 
@@ -682,6 +684,38 @@ async function saveUserData(){
   try{await db.collection('users').doc(currentUser.id).update({reminders:state.reminders,inscriptions:state.inscriptions});}catch(e){}
 }
 
+async function checkMessagesAdmin(){
+  if(!currentUser||currentUser.isAdmin)return;
+  try{
+    const snap=await db.collection('messages_admin').get();
+    const messages=[];
+    snap.docs.forEach(doc=>{
+      const d=doc.data();
+      const dejaLu=d.lu&&d.lu[currentUser.id];
+      if(dejaLu)return;
+      // Vérifier si le message est pour ce bénéficiaire
+      if(d.mode==='tous'){messages.push({id:doc.id,...d});}
+      else if(d.mode==='atelier'&&d.atelierKey&&state.inscriptions&&state.inscriptions[d.atelierKey]){messages.push({id:doc.id,...d});}
+    });
+    if(messages.length===0)return;
+    // Afficher le premier message non lu
+    const msg=messages[0];
+    showConfirm({
+      icon:'📢',
+      title:'Message de vos animateurs',
+      text:esc(msg.texte),
+      okText:'J\'ai lu',
+      hideCancel:true,
+      onOk:async()=>{
+        // Marquer comme lu
+        await db.collection('messages_admin').doc(msg.id).update({['lu.'+currentUser.id]:true});
+        // S'il y en a d'autres, les afficher
+        if(messages.length>1){setTimeout(()=>checkMessagesAdmin(),500);}
+      }
+    });
+  }catch(e){}
+}
+
 function enterApp(){
   const header=document.querySelector('#main-screen .header');
   let userBtn=document.getElementById('header-user-btn');
@@ -689,7 +723,7 @@ function enterApp(){
   const initials=currentUser.prenom.slice(0,1).toUpperCase();
   userBtn.innerHTML=`<div class="user-avatar" style="width:36px;height:36px;font-size:16px">${initials}</div><span class="header-user-name">${esc(currentUser.prenom)}</span>`;
   userBtn.onclick=()=>openUserMenu();
-  showScreen('main-screen');render();loadAVPPlanning();checkReminders();
+  showScreen('main-screen');render();loadAVPPlanning();checkReminders();checkMessagesAdmin();
   if(shouldShowTutorial())setTimeout(()=>startTutorial(),800);
 }
 
@@ -712,6 +746,7 @@ function shouldShowTutorial(){try{return!localStorage.getItem('avp_tutorial_seen
 
 async function requestNotifPermission(){if(!('Notification' in window)){showConfirm({icon:'❌',title:'Non disponible',text:"Les notifications ne sont pas disponibles sur ce navigateur.",okText:'OK',hideCancel:true});return;}const perm=await Notification.requestPermission();if(perm==='granted'){showConfirm({icon:'🔔',title:'Notifications activées !',text:"Vous recevrez des rappels quand l'application est ouverte.",okText:'Super',hideCancel:true});}else{showConfirm({icon:'⚠️',title:'Notifications refusées',text:"Autorisez les notifications dans les paramètres de votre téléphone.",okText:'OK',hideCancel:true});}}
 
+async function tagOneSignalAvpUser(){try{if(window.OneSignalDeferred){window.OneSignalDeferred.push(async function(OneSignal){await OneSignal.User.addTag("avp_user","1");});}}catch(e){}}
 async function tagOneSignalUser(prenom){if(!prenom)return;try{if(window.OneSignalDeferred){window.OneSignalDeferred.push(async function(OneSignal){await OneSignal.User.addTag("prenom",prenom.toLowerCase());});}}catch(e){}}
 async function tagOneSignalAtelier(atelierKey,inscrit){try{if(window.OneSignalDeferred){window.OneSignalDeferred.push(async function(OneSignal){const tagKey="atelier_"+atelierKey.replace(/[^a-z0-9_]/gi,'_').slice(0,60);if(inscrit){await OneSignal.User.addTag(tagKey,"1");}else{await OneSignal.User.removeTag(tagKey);}});}}catch(e){}}
 
@@ -753,7 +788,77 @@ document.getElementById('admin-back-btn').addEventListener('click',()=>{clearSes
 document.getElementById('admin-new-user-btn').addEventListener('click',()=>{showScreen('login-screen');loginMode='register';document.getElementById('login-card-title').textContent='Créer un compte';document.getElementById('field-prenom').style.display='block';document.getElementById('login-switch-text').textContent='';document.getElementById('login-switch-btn').textContent='';pinValue='';updatePinDots();});
 document.getElementById('admin-user-list').addEventListener('click',e=>{const card=e.target.closest('.admin-user-card');if(!card)return;showAdminUserDetail(card.dataset.uid);});
 document.getElementById('admin-ateliers-btn').addEventListener('click',()=>showAdminAteliers(new Date().toISOString().slice(0,7)));
-document.getElementById('admin-notif-btn').addEventListener('click',async()=>{await requestNotifPermission();tagOneSignalUser(currentUser.isGreg?'greg':'steve');});
+document.getElementById('admin-msg-tous-btn').addEventListener('click',()=>showAdminMessageModal('tous'));
+document.getElementById('admin-msg-atelier-btn').addEventListener('click',()=>showAdminMessageModal('atelier'));
+
+async function showAdminMessageModal(mode){
+  const signataire=currentUser.isGreg?'Greg':'Steve';
+  let atelierChoix='';
+
+  // Si mode atelier, d'abord choisir l'atelier
+  if(mode==='atelier'){
+    // Récupérer les ateliers depuis le planning affiché
+    const snap=await db.collection('users').get();
+    const inscriptions={};
+    snap.docs.forEach(d=>{
+      const data=d.data();
+      if(data.inscriptions){Object.keys(data.inscriptions).forEach(k=>{inscriptions[k]=(inscriptions[k]||0)+1;});}
+    });
+    const ateliers=Object.keys(inscriptions);
+    if(ateliers.length===0){showConfirm({icon:'ℹ️',title:'Aucun atelier',text:'Aucun bénéficiaire inscrit pour le moment.',okText:'OK',hideCancel:true});return;}
+    // Créer une liste simplifiée
+    const liste=ateliers.map(k=>{const parts=k.split('_');const date=parts[0]+'_'+parts[1]+'_'+parts[2];const time=parts[3]+'_'+parts[4];const titre=parts.slice(5).join(' ');return{key:k,label:titre.replace(/_/g,' ')+' ('+parts[2]+'/'+parts[1]+')'};});
+    atelierChoix=await new Promise(resolve=>{
+      const opts=liste.map((a,i)=>`<option value="${a.key}">${a.label}</option>`).join('');
+      showConfirm({icon:'🎯',title:'Choisir un atelier',text:`<select id="choix-atelier" style="width:100%;padding:10px;font-size:16px;border-radius:10px;border:2px solid #e5e9f2;margin-top:8px">${opts}</select>`,okText:'Suivant',onOk:()=>resolve(document.getElementById('choix-atelier')?.value||''),onCancel:()=>resolve('')});
+    });
+    if(!atelierChoix)return;
+  }
+
+  // Saisir le message
+  showConfirm({
+    icon:'📢',
+    title:'Message de '+signataire,
+    text:`<textarea id="admin-msg-text" placeholder="Votre message..." style="width:100%;height:100px;padding:10px;font-size:16px;border-radius:10px;border:2px solid #e5e9f2;margin-top:8px;resize:none;font-family:inherit"></textarea>`,
+    okText:'Envoyer',
+    onOk:async()=>{
+      const texte=document.getElementById('admin-msg-text')?.value?.trim();
+      if(!texte){showConfirm({icon:'⚠️',title:'Message vide',text:'Écrivez un message avant d\'envoyer.',okText:'OK',hideCancel:true});return;}
+      const msgComplet=texte+'\n— '+signataire;
+      await envoyerMessageAdmin(mode,msgComplet,atelierChoix,signataire);
+    }
+  });
+}
+
+async function envoyerMessageAdmin(mode,message,atelierKey,signataire){
+  try{
+    // Stocker dans Firebase pour affichage dans l'app
+    await db.collection('messages_admin').add({
+      texte:message,
+      auteur:signataire,
+      mode:mode,
+      atelierKey:atelierKey||null,
+      createdAt:Date.now(),
+      lu:{}
+    });
+    // Notif push immédiate via queueNotification
+    const sendDate=new Date(Date.now()+60000);
+    const sendDateKey=dateKey(sendDate);
+    const hh=String(sendDate.getHours()).padStart(2,'0');
+    const mm=String(sendDate.getMinutes()).padStart(2,'0');
+    const titre='📢 Message de '+signataire;
+    if(mode==='tous'){
+      // Cibler tous — on utilise un tag spécial "avp_user=1" qu'on va ajouter à tous les users
+      await queueNotification(titre,message,sendDateKey,hh+':'+mm,{key:'avp_user',value:'1'});
+    }else{
+      // Cibler les inscrits à l'atelier
+      await queueNotification(titre,message,sendDateKey,hh+':'+mm,{key:atelierKey,value:'1'});
+    }
+    showConfirm({icon:'✅',title:'Message envoyé !',text:'Les bénéficiaires recevront votre message.',okText:'Super !',hideCancel:true});
+  }catch(e){
+    showConfirm({icon:'❌',title:'Erreur',text:'Impossible d\'envoyer le message.',okText:'OK',hideCancel:true});
+  }
+}
 document.getElementById('admin-annuler-btn').addEventListener('click',()=>showAdminAnnulerAtelier());
 document.getElementById('admin-ateliers-back').addEventListener('click',()=>showAdminScreen());
 document.getElementById('admin-inscrire-groupe-back').addEventListener('click',()=>showAdminScreen());
