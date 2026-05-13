@@ -8,18 +8,17 @@
   <meta name="apple-mobile-web-app-title" content="Ma Journée AVP">
   <meta name="theme-color" content="#2c3e91">
   <title>Ma Journée AVP</title>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
-    // OneSignal uniquement sur navigateur web (pas dans l'APK)
-    if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
-      const s = document.createElement('script');
-      s.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
-      s.defer = true;
-      document.head.appendChild(s);
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({ appId: "a89f967a-eddf-4a83-b654-4e34f0b95141", notifyButton: { enable: false } });
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "a89f967a-eddf-4a83-b654-4e34f0b95141",
+        notifyButton: { enable: false },
+        promptOptions: { slidedown: { prompts: [{ type: "push", autoPrompt: true, text: { actionMessage: "Ma Journée AVP souhaite vous envoyer des notifications pour vos rappels.", acceptButton: "Autoriser", cancelButton: "Non merci" }, delay: { pageViews: 1, timeDelay: 2 } }] } }
       });
-    }
+      await OneSignal.Slidedown.promptPush();
+    });
   </script>
   <link rel="manifest" href="/manifest.json">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -28,7 +27,7 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body { height: 100%; overflow: hidden; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f3f8; color: #1a2340; font-size: clamp(14px, 4vw, 18px); line-height: 1.4; -webkit-font-smoothing: antialiased; user-select: none; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f3f8; color: #1a2340; font-size: 18px; line-height: 1.4; -webkit-font-smoothing: antialiased; user-select: none; }
     .screen { position: fixed; inset: 0; display: none; flex-direction: column; background: #f1f3f8; }
     .screen.active { display: flex; }
     .login-wrap { flex: 1; overflow-y: auto; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
@@ -94,10 +93,10 @@
     .btn-inscrit:active { background: #1d8b4b; }
     .btn-inscrit.inscrit { background: #eef1fb; color: #2c3e91; border: 2px solid #2c3e91; }
     .planning-empty { text-align: center; padding: 40px 20px; color: #6c7a99; font-size: 17px; }
-    .list-wrap { flex: 1; overflow-y: auto; padding: 12px 12px 100px; -webkit-overflow-scrolling: touch; }
-    .empty { text-align: center; padding: 30px 20px; color: #6c7a99; }
-    .empty-icon { font-size: 48px; margin-bottom: 12px; }
-    .empty-text { font-size: clamp(14px, 4vw, 18px); line-height: 1.5; }
+    .list-wrap { flex: 1; overflow-y: auto; padding: 16px 16px 120px; -webkit-overflow-scrolling: touch; }
+    .empty { text-align: center; padding: 60px 20px; color: #6c7a99; }
+    .empty-icon { font-size: 64px; margin-bottom: 16px; }
+    .empty-text { font-size: 18px; line-height: 1.5; }
     .card { background: white; border-radius: 18px; padding: 18px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(26,35,64,0.06); display: flex; align-items: center; gap: 14px; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
     .card:active { transform: scale(0.98); }
     .card.done { opacity: 0.55; }
@@ -153,7 +152,7 @@
     .icon-badge { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; padding: 4px 6px; background: #eef1fb; border-radius: 10px; border: 2px solid #2c3e91; min-width: 52px; }
     .ib-big { font-size: 15px; font-weight: 800; color: #2c3e91; letter-spacing: 0.5px; }
     .ib-small { font-size: 8px; font-weight: 600; color: #5e6b8a; margin-top: 2px; text-align: center; text-transform: lowercase; }
-    .btn-add { position: fixed; bottom: 12px; left: 12px; right: 12px; padding: 16px; background: #22a559; color: white; border: none; border-radius: 40px; font-size: clamp(16px, 4.5vw, 20px); font-weight: 700; cursor: pointer; box-shadow: 0 6px 20px rgba(34,165,89,0.35); font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 10px; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+    .btn-add { position: fixed; bottom: 20px; left: 16px; right: 16px; padding: 20px; background: #22a559; color: white; border: none; border-radius: 40px; font-size: 20px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 20px rgba(34,165,89,0.35); font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 10px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
     .btn-add:active { background: #1d8b4b; }
     .btn-add .plus { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: white; color: #22a559; font-size: 24px; line-height: 1; font-weight: 700; }
     .edit-header { background: white; padding: 18px 16px; padding-top: calc(18px + env(safe-area-inset-top)); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e5e9f2; flex-shrink: 0; }
@@ -568,69 +567,6 @@ const db = firebase.firestore();
 const ADMIN_CODE = '196969';
 const ADMIN_GREG_CODE = '555888';
 
-// ===== NOTIFICATIONS LOCALES CAPACITOR =====
-function isCapacitor(){return window.Capacitor&&window.Capacitor.isNativePlatform();}
-
-function reminderIdToInt(id){let h=0;for(let i=0;i<id.length;i++){const c=id.charCodeAt(i);h=((h<<5)-h)+c;h=h&h;}return Math.abs(h)||1;}
-
-async function requestCapacitorNotifPermission(){
-  if(!isCapacitor())return;
-  try{
-    const {LocalNotifications}=Capacitor.Plugins;
-    const r=await LocalNotifications.requestPermissions();
-    if(r.display==='granted'){showConfirm({icon:'🔔',title:'Notifications activées !',text:"Vous recevrez vos rappels même application fermée.",okText:'Super',hideCancel:true});}
-  }catch(e){console.error('NotifPerm:',e);}
-}
-
-async function scheduleLocalNotification(reminder){
-  if(!isCapacitor())return;
-  try{
-    const {LocalNotifications}=Capacitor.Plugins;
-    const[h,mn]=reminder.time.split(':').map(Number);
-    const notifId=reminderIdToInt(reminder.id);
-    let scheduleObj;
-    if(reminder.recurrence==='daily'){
-      // Notification quotidienne à cette heure
-      const next=new Date();next.setSeconds(0,0);next.setHours(h,mn,0,0);
-      if(next<=new Date())next.setDate(next.getDate()+1);
-      scheduleObj={at:next,every:'day',count:365};
-    }else{
-      if(!reminder.date)return;
-      const[y,m,d]=reminder.date.split('-').map(Number);
-      const at=new Date(y,m-1,d,h,mn,0);
-      if(at<=new Date())return;
-      scheduleObj={at};
-    }
-    await LocalNotifications.schedule({notifications:[{
-      id:notifId,
-      title:'🔔 '+reminder.title,
-      body:reminder.note||(reminder.time.replace(':','h')+' — Appuyez pour ouvrir'),
-      schedule:scheduleObj,
-      sound:'default',
-      extra:{reminderId:reminder.id}
-    }]});
-  }catch(e){console.error('ScheduleNotif:',e);}
-}
-
-async function cancelLocalNotification(reminderId){
-  if(!isCapacitor())return;
-  try{const {LocalNotifications}=Capacitor.Plugins;await LocalNotifications.cancel({notifications:[{id:reminderIdToInt(reminderId)}]});}catch(e){}
-}
-
-async function rescheduleAllNotifications(){
-  if(!isCapacitor())return;
-  try{
-    const {LocalNotifications}=Capacitor.Plugins;
-    const pending=await LocalNotifications.getPending();
-    if(pending.notifications.length>0)await LocalNotifications.cancel({notifications:pending.notifications});
-    const today=dateKey(new Date());
-    for(const r of state.reminders){
-      if(r.source==='atelier')continue;
-      if(r.recurrence==='daily'||r.date>=today)await scheduleLocalNotification(r);
-    }
-  }catch(e){console.error('Reschedule:',e);}
-}
-
 const SVG_HDJ = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="60" cy="14" r="10" fill="#FFD93D"/><line x1="60" y1="2" x2="60" y2="4" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><line x1="60" y1="24" x2="60" y2="26" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><line x1="48" y1="14" x2="50" y2="14" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><line x1="70" y1="14" x2="72" y2="14" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><circle cx="30" cy="18" r="8" fill="#F5DEB3"/><rect x="22" y="28" width="16" height="24" rx="3" fill="#2AA198"/><rect x="18" y="28" width="8" height="18" rx="2" fill="#2AA198"/><rect x="34" y="28" width="8" height="18" rx="2" fill="#2AA198"/><rect x="24" y="52" width="6" height="14" rx="2" fill="#3B6B8A"/><rect x="32" y="52" width="6" height="14" rx="2" fill="#3B6B8A"/><rect x="26" y="32" width="8" height="3" rx="1" fill="white"/><rect x="29" y="30" width="2" height="7" rx="1" fill="white"/><circle cx="30" cy="14" r="2" fill="#2AA198"/></svg>`;
 const SVG_CMP = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><polygon points="40,8 8,35 72,35" fill="#E85D4A"/><rect x="14" y="35" width="52" height="32" fill="#FFF5E6"/><rect x="14" y="35" width="52" height="3" fill="#D44A3A"/><rect x="30" y="45" width="20" height="22" rx="2" fill="#8B6914"/><circle cx="46" cy="57" r="2" fill="#FFD93D"/><rect x="18" y="40" width="10" height="10" rx="1" fill="#87CEEB"/><line x1="23" y1="40" x2="23" y2="50" stroke="white" stroke-width="1"/><line x1="18" y1="45" x2="28" y2="45" stroke="white" stroke-width="1"/><rect x="52" y="40" width="10" height="10" rx="1" fill="#87CEEB"/><line x1="57" y1="40" x2="57" y2="50" stroke="white" stroke-width="1"/><line x1="52" y1="45" x2="62" y2="45" stroke="white" stroke-width="1"/><text x="40" y="76" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#2c3e91">CMP</text></svg>`;
 const SVG_AUX = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="28" cy="16" r="7" fill="#E8D5C4"/><rect x="22" y="25" width="12" height="20" rx="3" fill="#D4A0D0"/><rect x="18" y="25" width="6" height="15" rx="2" fill="#D4A0D0"/><rect x="34" y="25" width="6" height="15" rx="2" fill="#D4A0D0"/><rect x="23" y="45" width="5" height="16" rx="2" fill="#8B7355"/><rect x="30" y="45" width="5" height="16" rx="2" fill="#8B7355"/><line x1="20" y1="42" x2="14" y2="62" stroke="#8B6914" stroke-width="2.5" stroke-linecap="round"/><circle cx="52" cy="18" r="7" fill="#F5DEB3"/><rect x="46" y="27" width="12" height="20" rx="3" fill="#64B5F6"/><rect x="42" y="27" width="6" height="15" rx="2" fill="#64B5F6"/><rect x="58" y="27" width="6" height="15" rx="2" fill="#64B5F6"/><rect x="47" y="47" width="5" height="16" rx="2" fill="#3B6B8A"/><rect x="54" y="47" width="5" height="16" rx="2" fill="#3B6B8A"/><path d="M36,36 Q40,34 44,36" stroke="#D4A0D0" stroke-width="2" fill="none"/></svg>`;
@@ -799,8 +735,6 @@ function enterApp(){
   userBtn.innerHTML=`<div class="user-avatar" style="width:36px;height:36px;font-size:16px">${initials}</div><span class="header-user-name">${esc(currentUser.prenom)}</span>`;
   userBtn.onclick=()=>openUserMenu();
   showScreen('main-screen');render();loadAVPPlanning();checkReminders();checkMessagesAdmin();
-  if(isCapacitor()){requestCapacitorNotifPermission().then(()=>rescheduleAllNotifications());}
-  startAnimateurListener();
   if(shouldShowTutorial())setTimeout(()=>startTutorial(),800);
 }
 
@@ -834,56 +768,21 @@ async function queueAtelierNotifications(atelier,atelierKey){const atelierDate=n
 // Notifie l'animateur (Steve ou Greg) quand un bénéficiaire s'inscrit ou se désinscrit
 async function notifyAnimateur(action, event){
   try{
+    // L'animateur cible dépend du planning affiché
     const animPrenom=(state.currentAnim==='Greg')?'greg':'steve';
     const benefPrenom=currentUser?currentUser.prenom:'Quelqu\'un';
+    // Envoi dans 2 minutes pour éviter tout problème de timing
+    const sendDate=new Date(Date.now()+120000);
+    const sendDateKey=dateKey(sendDate);
+    const hh=String(sendDate.getHours()).padStart(2,'0');
+    const mm=String(sendDate.getMinutes()).padStart(2,'0');
     const isInscription=(action==='inscription');
     const titre=isInscription?'✅ '+benefPrenom+' — '+event.title:'❌ '+benefPrenom+' — '+event.title;
     const msg=benefPrenom+(isInscription?' s\'est inscrit(e)':' s\'est désinscrit(e)')+' — '+formatShortDate(event.date)+' à '+event.time.replace(':','h');
-    // Envoyer immédiatement (sendAtMs = maintenant)
-    const now=Date.now();
-    await db.collection('notifications').add({
-      title:titre,message:msg,
-      sendAt:new Date().toISOString(),sendAtMs:now,
-      targetTagKey:'prenom',targetTagValue:animPrenom,
-      sent:false,createdAt:now,createdBy:benefPrenom
-    });
+    console.log('[AVP] notifyAnimateur → animPrenom:',animPrenom,'sendAt:',sendDateKey,hh+':'+mm,'titre:',titre);
+    await queueNotification(titre,msg,sendDateKey,hh+':'+mm,{key:'prenom',value:animPrenom});
+    console.log('[AVP] notifyAnimateur → Firebase écrit OK');
   }catch(e){console.error('[AVP] notifyAnimateur erreur:',e);}
-}
-
-// Écoute Firebase en temps réel pour Steve/Greg → notification locale immédiate
-let _animListener=null;
-function startAnimateurListener(){
-  if(_animListener)return;
-  const prenom=currentUser.prenom.toLowerCase();
-  if(prenom!=='steve'&&prenom!=='greg'&&!currentUser.isAdmin)return;
-  const targetPrenom=currentUser.isGreg?'greg':'steve';
-  _animListener=db.collection('notifications')
-    .where('targetTagValue','==',targetPrenom)
-    .where('sent','==',false)
-    .onSnapshot(async snapshot=>{
-      snapshot.docChanges().forEach(async change=>{
-        if(change.type!=='added')return;
-        const data=change.doc.data();
-        // Ne pas notifier si c'est une notif plus vieille de 30s (déjà existante)
-        if(Date.now()-data.sendAtMs>30000)return;
-        // Notification locale immédiate
-        if(isCapacitor()){
-          try{
-            const {LocalNotifications}=Capacitor.Plugins;
-            await LocalNotifications.schedule({notifications:[{
-              id:Math.abs(Math.random()*2147483647|0)||1,
-              title:data.title,
-              body:data.message,
-              schedule:{at:new Date(Date.now()+1000)},
-              sound:'default'
-            }]});
-          }catch(e){}
-        }
-        // Marquer comme envoyé
-        try{await db.collection('notifications').doc(change.doc.id).update({sent:true,sentAt:Date.now(),sentStatus:'local'});}catch(e){}
-      });
-    });
-}
 }
 
 async function showAdminScreen(){
@@ -894,7 +793,7 @@ async function showAdminScreen(){
   if(currentUser.isGreg){state.currentAnim='Greg';}else{state.currentAnim='Steve';}
   await loadAVPPlanning();
 }
-async function loadAdminUsers(){const list=document.getElementById('admin-user-list');list.innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';try{const snap=await db.collection('users').get();if(snap.empty){list.innerHTML='<div class="planning-empty">Aucun compte créé.</div>';return;}const docs=snap.docs.filter(d=>{const code=d.data().code;return code!=='196969'&&code!=='555888';});if(docs.length===0){list.innerHTML='<div class="planning-empty">Aucun bénéficiaire.</div>';return;}list.innerHTML=docs.map(d=>{const u=d.data();const nb=(u.reminders||[]).length;return`<div class="admin-user-card" data-uid="${d.id}"><div class="user-avatar">${u.prenom.slice(0,1).toUpperCase()}</div><div class="admin-user-info"><div class="admin-user-name">${esc(u.prenom)}</div><div class="admin-user-meta">${nb} rappel${nb>1?'s':''} · Code : ${u.code}</div></div><span style="font-size:22px;color:#5e6b8a">›</span></div>`;}).join('');}catch(e){list.innerHTML='<div class="planning-empty">Erreur de chargement.</div>';}}
+async function loadAdminUsers(){const list=document.getElementById('admin-user-list');list.innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';try{const snap=await db.collection('users').get();if(snap.empty){list.innerHTML='<div class="planning-empty">Aucun compte créé.</div>';return;}list.innerHTML=snap.docs.map(d=>{const u=d.data();const nb=(u.reminders||[]).length;return`<div class="admin-user-card" data-uid="${d.id}"><div class="user-avatar">${u.prenom.slice(0,1).toUpperCase()}</div><div class="admin-user-info"><div class="admin-user-name">${esc(u.prenom)}</div><div class="admin-user-meta">${nb} rappel${nb>1?'s':''} · Code : ${u.code}</div></div><span style="font-size:22px;color:#5e6b8a">›</span></div>`;}).join('');}catch(e){list.innerHTML='<div class="planning-empty">Erreur de chargement.</div>';}}
 
 document.getElementById('admin-back-btn').addEventListener('click',()=>{clearSession();currentUser=null;showScreen('login-screen');});
 document.getElementById('admin-new-user-btn').addEventListener('click',()=>{showScreen('login-screen');loginMode='register';document.getElementById('login-card-title').textContent='Créer un compte';document.getElementById('field-prenom').style.display='block';document.getElementById('login-switch-text').textContent='';document.getElementById('login-switch-btn').textContent='';pinValue='';updatePinDots();});
@@ -1461,7 +1360,7 @@ async function toggleInscription(event){const key=event.date+'_'+event.time+'_'+
   }
   state.inscriptions[key]=true;const loc=getAVPLocation(event.title);state.reminders.push({id:'atelier_'+key,title:event.title,icon:event.icon||'📋',time:event.time,date:event.date,recurrence:'once',note:loc?loc.address:'',mapLink:loc?`https://www.google.com/maps/search/?api=1&query=${loc.query}`:null,done:{},source:'atelier'});speak(`Inscrit à ${event.title} !`);try{tagOneSignalAtelier(key,true);}catch(e){} queueAtelierNotifications(event,key);notifyAnimateur('inscription',event);}await saveUserData();render();}
 
-function render(){const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key)).map(r=>({...r,_source:'personal'}));const items=[...personal].sort((a,b)=>a.time.localeCompare(b.time));if(items.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:36px;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;return;}const now=new Date();const isToday=state.dayOffset===0;const nowMinutes=now.getHours()*60+now.getMinutes();let upcomingId=null;if(isToday){const up=items.find(r=>{const[h,m]=r.time.split(':').map(Number);return(h*60+m)>=nowMinutes&&!(r.done&&r.done[key]);});if(up)upcomingId=up.id;}list.innerHTML=items.map(r=>{const isDone=r.done&&r.done[key];const isAVP=r._source==='avp';const isAtelier=r.source==='atelier';const eventDate=r.eventDate||r.date;const eventTime=r.eventTime||r.time;const dateDiffers=r.recurrence==='once'&&eventDate&&eventDate!==r.date;const timeDiffers=r.recurrence==='once'&&eventTime&&eventTime!==r.time;const hasDiffEvent=dateDiffers||timeDiffers;let noteText='';if(r.note){if(r.mapLink){noteText=`<a href="${r.mapLink}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{const iconDef=ICONS.find(ic=>ic.title===r.title||(r.icon&&ic.emoji===r.icon));if(iconDef&&iconDef.address){noteText=`<a href="https://www.google.com/maps/search/?api=1&query=${iconDef.address}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{noteText=esc(r.note);}}}const checkHTML=(isAVP||isAtelier)?'':`<div class="card-check ${isDone?'':'unchecked'}" data-check="${r.id}" style="position:absolute;top:12px;right:12px;">${isDone?'✓':'○'}</div>`;if(hasDiffEvent||isAtelier){const agendaLink=buildGoogleCalendarLink(r);let sonnerieText;if(isAtelier){const atelierDate=new Date(r.date+'T'+r.time+':00');const veille=new Date(atelierDate);veille.setDate(veille.getDate()-1);const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const h2=String(avant2h.getHours()).padStart(2,'0');const m2=String(avant2h.getMinutes()).padStart(2,'0');sonnerieText=`🔔 <strong>2 sonneries prévues :</strong><br>• La veille (${formatShortDate(veille.toISOString().slice(0,10))}) à <strong>15h00</strong><br>• 2h avant, à <strong>${h2}h${m2}</strong>`;}else if(dateDiffers){sonnerieText=`🔔 Sonnerie le <strong>${formatRelativeDate(r.date)} à ${r.time.replace(':','h')}</strong>`;}else{sonnerieText=`🔔 Sonnerie à <strong>${r.time.replace(':','h')}</strong>`;}const typeLabel=isAtelier?'Atelier AVP':'Rendez-vous';const badgeAtelier=isAtelier?'<span style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">✅ Je participe</span>':'';return`<div class="card-rdv ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="rdv-top"><div class="rdv-left"><div class="rdv-date">${formatShortDate(eventDate)}</div><div class="rdv-heure">${eventTime.replace(':','h')}</div></div><div class="rdv-image">${iconHTML(r.icon)}</div><div class="rdv-body"><div class="rdv-type">${typeLabel}</div><div class="rdv-titre">${esc(r.title)}</div>${noteText?`<div class="rdv-note">${noteText}</div>`:''} ${badgeAtelier}</div></div><div class="rdv-sonnerie">${sonnerieText}</div><a href="${agendaLink}" target="_blank" class="btn-agenda" onclick="event.stopPropagation()">📅 Ajouter à mon agenda Google</a></div>`;}const badge=isAVP?'<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">📋 Planning AVP</span>':'';const sonnerieType=isAVP?'Atelier':'Sonnerie';const sonnerieDateLabel=r.recurrence==='daily'?'Tous les jours':(r.date?formatShortDate(r.date):'');return`<div class="card-sonnerie ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="sonnerie-left"><div class="sonnerie-date">${sonnerieDateLabel}</div><div class="sonnerie-heure">${r.time.replace(':','h')}</div></div><div class="sonnerie-icon">${iconHTML(r.icon)}</div><div class="sonnerie-body"><div class="sonnerie-type">${sonnerieType}</div><div class="sonnerie-titre">${esc(r.title)}</div>${noteText?`<div class="sonnerie-note">${noteText}</div>`:''}${badge}</div></div>`;}).join('');}
+function render(){const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key)).map(r=>({...r,_source:'personal'}));const items=[...personal].sort((a,b)=>a.time.localeCompare(b.time));if(items.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:36px;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;return;}const now=new Date();const isToday=state.dayOffset===0;const nowMinutes=now.getHours()*60+now.getMinutes();let upcomingId=null;if(isToday){const up=items.find(r=>{const[h,m]=r.time.split(':').map(Number);return(h*60+m)>=nowMinutes&&!(r.done&&r.done[key]);});if(up)upcomingId=up.id;}list.innerHTML=items.map(r=>{const isDone=r.done&&r.done[key];const isAVP=r._source==='avp';const isAtelier=r.source==='atelier';const eventDate=r.eventDate||r.date;const eventTime=r.eventTime||r.time;const dateDiffers=r.recurrence==='once'&&eventDate&&eventDate!==r.date;const timeDiffers=r.recurrence==='once'&&eventTime&&eventTime!==r.time;const hasDiffEvent=dateDiffers||timeDiffers;let noteText='';if(r.note){if(r.mapLink){noteText=`<a href="${r.mapLink}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{const iconDef=ICONS.find(ic=>ic.title===r.title||(r.icon&&ic.emoji===r.icon));if(iconDef&&iconDef.address){noteText=`<a href="https://www.google.com/maps/search/?api=1&query=${iconDef.address}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{noteText=esc(r.note);}}}const checkHTML=(isAVP||isAtelier)?'':`<div class="card-check ${isDone?'':'unchecked'}" data-check="${r.id}" style="position:absolute;top:12px;right:12px;">${isDone?'✓':'○'}</div>`;if(hasDiffEvent||isAtelier){const agendaLink=buildGoogleCalendarLink(r);let sonnerieText;if(isAtelier){const atelierDate=new Date(r.date+'T'+r.time+':00');const veille=new Date(atelierDate);veille.setDate(veille.getDate()-1);const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const h2=String(avant2h.getHours()).padStart(2,'0');const m2=String(avant2h.getMinutes()).padStart(2,'0');sonnerieText=`🔔 <strong>2 sonneries prévues :</strong><br>• La veille (${formatShortDate(veille.toISOString().slice(0,10))}) à <strong>15h00</strong><br>• 2h avant, à <strong>${h2}h${m2}</strong>`;}else if(dateDiffers){sonnerieText=`🔔 Sonnerie le <strong>${formatRelativeDate(r.date)} à ${r.time.replace(':','h')}</strong>`;}else{sonnerieText=`🔔 Sonnerie à <strong>${r.time.replace(':','h')}</strong>`;}const typeLabel=isAtelier?'Atelier AVP':'Rendez-vous';const badgeAtelier=isAtelier?'<span style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">✅ Je participe</span>':'';return`<div class="card-rdv ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="rdv-top"><div class="rdv-left"><div class="rdv-date">${formatShortDate(eventDate)}</div><div class="rdv-heure">${eventTime.replace(':','h')}</div></div><div class="rdv-image">${iconHTML(r.icon)}</div><div class="rdv-body"><div class="rdv-type">${typeLabel}</div><div class="rdv-titre">${esc(r.title)}</div>${noteText?`<div class="rdv-note">${noteText}</div>`:''} ${badgeAtelier}</div></div><div class="rdv-sonnerie">${sonnerieText}</div><a href="${agendaLink}" target="_blank" class="btn-agenda" onclick="event.stopPropagation()">📅 Ajouter à mon agenda Google</a></div>`;}const badge=isAVP?'<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">📋 Planning AVP</span>':'';const sonnerieType=isAVP?'Atelier':'Sonnerie';return`<div class="card-sonnerie ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="sonnerie-left"><div class="sonnerie-date">${formatShortDate(r.date)}</div><div class="sonnerie-heure">${r.time.replace(':','h')}</div></div><div class="sonnerie-icon">${iconHTML(r.icon)}</div><div class="sonnerie-body"><div class="sonnerie-type">${sonnerieType}</div><div class="sonnerie-titre">${esc(r.title)}</div>${noteText?`<div class="sonnerie-note">${noteText}</div>`:''}${badge}</div></div>`;}).join('');}
 
 async function loadAVPPlanning(){
   try{
@@ -1622,15 +1521,9 @@ document.getElementById('save-btn').addEventListener('click',async()=>{const tit
 const sonnAvant=calcSonnerieAvant2h(rdvDate,rdvTime);const sonnVeille=calcSonnerieVeille(rdvDate);if(choix==='avant2h'){data.date=sonnAvant.date;data.time=sonnAvant.time;}else if(choix==='veille'){data.date=sonnVeille.date;data.time=sonnVeille.time;}else{// Les deux : sonnerie principale = 2h avant
 data.date=sonnAvant.date;data.time=sonnAvant.time;}if(!data.date){showConfirm({icon:'⚠️',title:'Date manquante',text:'Choisissez la date du rendez-vous.',okText:'OK',hideCancel:true});return;}if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}});}// Pour "les deux" : ajouter aussi la sonnerie veille
 if(choix==='les2'&&!state.editing){state.reminders.push({id:uid(),...data,date:sonnVeille.date,time:sonnVeille.time,done:{}});}
-}else{data.date=null;data.eventDate=null;data.eventTime=null;if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}}); }}await saveUserData();
-  // Notifications locales APK
-  if(isCapacitor()){
-    const saved=state.editing?state.reminders.find(x=>x.id===state.editing):state.reminders[state.reminders.length-1];
-    if(saved){if(state.editing)await cancelLocalNotification(state.editing);await scheduleLocalNotification(saved);}
-  }
-  if(state.editingAdminMode&&adminEditingUid){const targetUid=adminEditingUid;const prenom=state.editingAdminPrenom;if(rec==='once'&&data.date&&prenom){queueNotification('🔔 '+data.title,data.note?('📍 '+data.note+'\n⏰ '+data.date+' à '+data.time.replace(':','h')):('⏰ '+data.date+' à '+data.time.replace(':','h')+' · Appuyez pour ouvrir l\'app'),data.date,data.time,{key:'prenom',value:prenom.toLowerCase()});}state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showConfirm({icon:'✅',title:'Rappel ajouté !',text:`Le rappel a été ajouté pour ${prenom}.`,okText:'OK',hideCancel:true,onOk:()=>showAdminUserDetail(targetUid)});return;}render();showScreen('main-screen');if(rec==='once'&&data.date){const userPrenom=currentUser?currentUser.prenom.toLowerCase():null;if(userPrenom){queueNotification('🔔 '+data.title,data.note?('📍 '+data.note+'\n⏰ Aujourd\'hui à '+data.time.replace(':','h')):('⏰ Aujourd\'hui à '+data.time.replace(':','h')+' · Appuyez pour ouvrir l\'app'),data.date,data.time,{key:'prenom',value:userPrenom});}const rdvHeure=data.eventTime?data.eventTime.replace(':','h'):data.time.replace(':','h');showConfirm({icon:'✅',title:'Rappel enregistré !',text:`Votre rendez-vous du ${formatRelativeDate(data.eventDate||data.date)} à ${rdvHeure} est bien enregistré.`,okText:'Super !',hideCancel:true});}});
+}else{data.date=null;data.eventDate=null;data.eventTime=null;if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}}); }}await saveUserData();if(state.editingAdminMode&&adminEditingUid){const targetUid=adminEditingUid;const prenom=state.editingAdminPrenom;if(rec==='once'&&data.date&&prenom){queueNotification('🔔 '+data.title,data.note?('📍 '+data.note+'\n⏰ '+data.date+' à '+data.time.replace(':','h')):('⏰ '+data.date+' à '+data.time.replace(':','h')+' · Appuyez pour ouvrir l\'app'),data.date,data.time,{key:'prenom',value:prenom.toLowerCase()});}state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showConfirm({icon:'✅',title:'Rappel ajouté !',text:`Le rappel a été ajouté pour ${prenom}.`,okText:'OK',hideCancel:true,onOk:()=>showAdminUserDetail(targetUid)});return;}render();showScreen('main-screen');if(rec==='once'&&data.date){const userPrenom=currentUser?currentUser.prenom.toLowerCase():null;if(userPrenom){queueNotification('🔔 '+data.title,data.note?('📍 '+data.note+'\n⏰ Aujourd\'hui à '+data.time.replace(':','h')):('⏰ Aujourd\'hui à '+data.time.replace(':','h')+' · Appuyez pour ouvrir l\'app'),data.date,data.time,{key:'prenom',value:userPrenom});}const rdvHeure=data.eventTime?data.eventTime.replace(':','h'):data.time.replace(':','h');showConfirm({icon:'✅',title:'Rappel enregistré !',text:`Votre rendez-vous du ${formatRelativeDate(data.eventDate||data.date)} à ${rdvHeure} est bien enregistré.`,okText:'Super !',hideCancel:true});}});
 
-document.getElementById('delete-btn').addEventListener('click',()=>{showConfirm({icon:'🗑️',title:'Supprimer ce rappel ?',text:'Cette action ne peut pas être annulée.',okText:'Supprimer',danger:true,onOk:async()=>{if(isCapacitor())await cancelLocalNotification(state.editing);state.reminders=state.reminders.filter(x=>x.id!==state.editing);await saveUserData();render();showScreen('main-screen');}});});
+document.getElementById('delete-btn').addEventListener('click',()=>{showConfirm({icon:'🗑️',title:'Supprimer ce rappel ?',text:'Cette action ne peut pas être annulée.',okText:'Supprimer',danger:true,onOk:async()=>{state.reminders=state.reminders.filter(x=>x.id!==state.editing);await saveUserData();render();showScreen('main-screen');}});});
 
 function createTimePicker(hostId,val,step){const orig=document.getElementById(hostId);if(!orig)return;const host=orig.cloneNode(false);orig.parentNode.replaceChild(host,orig);host.dataset.step=step||5;host.dataset.value=val||'08:00';host.innerHTML=`<div class="tp-col"><button type="button" class="tp-btn" data-dir="up" data-part="h">▲</button><div class="tp-val" data-part="h">00</div><button type="button" class="tp-btn" data-dir="down" data-part="h">▼</button><div class="tp-label">heures</div></div><div class="tp-sep">:</div><div class="tp-col"><button type="button" class="tp-btn" data-dir="up" data-part="m">▲</button><div class="tp-val" data-part="m">00</div><button type="button" class="tp-btn" data-dir="down" data-part="m">▼</button><div class="tp-label">minutes</div></div>`;renderTP(host);host.addEventListener('touchend',e=>{e.preventDefault();const btn=e.target.closest('.tp-btn');if(!btn)return;changeTP(host,btn.dataset.part,btn.dataset.dir==='up'?1:-1);if('vibrate' in navigator)try{navigator.vibrate(15)}catch(e){} });host.addEventListener('click',e=>{const btn=e.target.closest('.tp-btn');if(!btn)return;if(e.detail===0)return;changeTP(host,btn.dataset.part,btn.dataset.dir==='up'?1:-1);});}
 function renderTP(h){const[hr,mn]=h.dataset.value.split(':').map(Number);h.querySelector('.tp-val[data-part="h"]').textContent=String(hr).padStart(2,'0');h.querySelector('.tp-val[data-part="m"]').textContent=String(mn).padStart(2,'0');}
