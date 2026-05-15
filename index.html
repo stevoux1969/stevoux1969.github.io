@@ -990,7 +990,15 @@ async function loadAndRenderStats(){
 
 function setStatsFilter(val){statsFilter=val;loadAndRenderStats();}
 
-function toggleBenefDetail(uid){statsExpandedUid=statsExpandedUid===uid?null:uid;loadAndRenderStats();}
+function toggleBenefDetail(uid){
+  const body=document.getElementById('stats-content');
+  const scrollPos=body?body.scrollTop:0;
+  statsExpandedUid=statsExpandedUid===uid?null:uid;
+  loadAndRenderStats().then(()=>{
+    const b=document.getElementById('stats-content');
+    if(b)b.scrollTop=scrollPos;
+  });
+}
 
 async function toggleBenefStatus(uid,prenom){
   try{
