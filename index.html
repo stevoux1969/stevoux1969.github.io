@@ -865,61 +865,45 @@ async function loadAndRenderStats(){
       db.collection('user_statuses').get()
     ]);
     const mNames=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
-    const curYM=new Date().toISOString().slice(0,7);
+    const today=new Date().toISOString().slice(0,10);
+    const curYM=today.slice(0,7);
     const statuses={};
     statusSnap.docs.forEach(d=>{statuses[d.id]={...d.data()};});
-    const allPresences=presSnap.docs.map(d=>({id:d.id,...d.data()}));
+    const presencesMap={};
+    presSnap.docs.forEach(d=>{presencesMap[d.id]={...d.data()};});
     const users=usersSnap.docs.filter(d=>{const u=d.data();return u.prenom&&u.code!=='196969'&&u.code!==196969&&u.code!=='555888'&&u.code!==555888;}).map(d=>({uid:d.id,...d.data()}));
-    const prenomToUid={};
-    users.forEach(u=>{prenomToUid[u.prenom]=u.uid;});
     const monthSet=new Set([curYM]);
-    allPresences.forEach(pr=>{const d=pr.atelier?pr.atelier.split('_')[0]:'';if(d&&/^\d{4}-\d{2}/.test(d))monthSet.add(d.slice(0,7));});
+    users.forEach(u=>{(u.reminders||[]).filter(r=>r.source==='atelier'&&r.date&&r.date<=today).forEach(r=>{if(/^\d{4}-\d{2}/.test(r.date))monthSet.add(r.date.slice(0,7));});});
     const months=[...monthSet].sort().reverse();
     if(!statsFilter.startsWith('month_')&&statsFilter!=='all')statsFilter='month_'+curYM;
     const activeYM=statsFilter==='all'?null:statsFilter.replace('month_','');
-    function filterPres(pr){if(!activeYM)return true;const d=pr.atelier?pr.atelier.split('_')[0]:'';return d&&d.startsWith(activeYM);}
-    const filtered=allPresences.filter(filterPres);
     const benefMap={};
     users.forEach(u=>{benefMap[u.prenom]={p:0,a:0,uid:u.uid,ateliers:[]};});
-    filtered.forEach(pr=>{
-      const nm=pr.prenom;if(!nm)return;
-      if(!benefMap[nm])benefMap[nm]={p:0,a:0,uid:prenomToUid[nm]||null,ateliers:[]};
-      const uid=benefMap[nm].uid;
-      const st=uid?statuses[uid]:null;
-      const parts=(pr.atelier||'').split('_');
-      const atelierDate=parts[0]||'';
-      const atelierTitle=parts.slice(2).join(' ')||'?';
-      let exclu=false;
-      if(st&&st.status&&st.statusFrom&&pr.statut==='absent'&&atelierDate>=st.statusFrom)exclu=true;
-      if(!exclu){if(pr.statut==='absent')benefMap[nm].a++;else benefMap[nm].p++;}
-      benefMap[nm].ateliers.push({title:atelierTitle,date:atelierDate,statut:pr.statut,exclu});
+    const atelierMap={};
+    users.forEach(u=>{
+      const st=u.uid?statuses[u.uid]:null;
+      (u.reminders||[]).filter(r=>r.source==='atelier'&&r.date&&r.date<=today).forEach(r=>{
+        if(activeYM&&!r.date.startsWith(activeYM))return;
+        const atelierKey=r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');
+        const presKey=sanitizePresKey(atelierKey+'__'+u.prenom);
+        const pres=presencesMap[presKey];
+        const isAbsent=pres&&pres.statut==='absent';
+        let exclu=false;
+        if(st&&st.status&&st.statusFrom&&isAbsent&&r.date>=st.statusFrom)exclu=true;
+        if(!exclu){if(isAbsent)benefMap[u.prenom].a++;else benefMap[u.prenom].p++;}
+        benefMap[u.prenom].ateliers.push({title:r.title||'?',date:r.date,statut:isAbsent?'absent':'present',exclu});
+        const normalTitle=(r.title||'?').replace(/\s*\(\d+\)\s*$/,'').trim();
+        if(!atelierMap[normalTitle])atelierMap[normalTitle]={p:0,a:0,seances:new Set()};
+        atelierMap[normalTitle].seances.add(r.date+'_'+r.time);
+        if(isAbsent)atelierMap[normalTitle].a++;else atelierMap[normalTitle].p++;
+      });
     });
-    const benefList=Object.entries(benefMap).map(([nm,s])=>{
-      const st=s.uid?statuses[s.uid]:null;
-      return{name:nm,p:s.p,a:s.a,uid:s.uid,ateliers:s.ateliers,status:st?.status,statusFrom:st?.statusFrom};
-    }).sort((a,b)=>(b.p+b.a)-(a.p+a.a)||b.p-a.p);
+    const benefList=Object.entries(benefMap).map(([nm,s])=>{const st=s.uid?statuses[s.uid]:null;return{name:nm,p:s.p,a:s.a,uid:s.uid,ateliers:s.ateliers,status:st?.status,statusFrom:st?.statusFrom};}).sort((a,b)=>(b.p+b.a)-(a.p+a.a)||b.p-a.p);
     const totalP=benefList.filter(b=>!b.status).reduce((s,b)=>s+b.p,0);
     const totalA=benefList.filter(b=>!b.status).reduce((s,b)=>s+b.a,0);
-    const atelierMap={};
-    filtered.forEach(pr=>{
-      if(!pr.atelier)return;
-      const parts=pr.atelier.split('_');
-      const atelierDate=parts[0]||'';
-      const atelierTime=parts[1]||'';
-      const title=parts.slice(2).join(' ').replace(/\s*\(\d+\)\s*$/,'').trim()||'?';
-      if(!atelierMap[title])atelierMap[title]={p:0,a:0,seances:new Set()};
-      atelierMap[title].seances.add(atelierDate+'_'+atelierTime);
-      if(pr.statut==='absent')atelierMap[title].a++;else atelierMap[title].p++;
-    });
     const atelierList=Object.entries(atelierMap).map(([nm,s])=>({name:nm,p:s.p,a:s.a,seances:s.seances.size})).sort((a,b)=>b.seances-a.seances||(b.p+b.a)-(a.p+a.a));
     const monthlyData={};
-    allPresences.forEach(pr=>{
-      const d=pr.atelier?pr.atelier.split('_')[0]:'';
-      if(!d||!/^\d{4}-\d{2}/.test(d))return;
-      const ym=d.slice(0,7);
-      if(!monthlyData[ym])monthlyData[ym]={p:0,a:0};
-      if(pr.statut==='absent')monthlyData[ym].a++;else monthlyData[ym].p++;
-    });
+    users.forEach(u=>{(u.reminders||[]).filter(r=>r.source==='atelier'&&r.date&&r.date<=today).forEach(r=>{const ym=r.date.slice(0,7);if(!monthlyData[ym])monthlyData[ym]={p:0,a:0};const atelierKey=r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');const presKey=sanitizePresKey(atelierKey+'__'+u.prenom);const pres=presencesMap[presKey];if(pres&&pres.statut==='absent')monthlyData[ym].a++;else monthlyData[ym].p++;});});
     const monthKeys=Object.keys(monthlyData).sort();
     const monthLabels=monthKeys.map(k=>mNames[parseInt(k.split('-')[1])-1]);
     const monthPresences=monthKeys.map(k=>monthlyData[k].p);
@@ -969,24 +953,22 @@ async function loadAndRenderStats(){
       const tot=a.p+a.a;
       const taux=tot?Math.round(a.p/tot*100):0;
       const barColor=taux>=70?'#16a34a':taux>=40?'#f59e0b':'#ef4444';
-      const seanceTxt=`${a.seances} séance${a.seances>1?'s':''}`;
       const border=idx<atelierList.length-1?'border-bottom:0.5px solid var(--color-border-tertiary);':'';
-      html+=`<div style="padding:10px 12px;${border}"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px;"><div><div style="font-size:13px;font-weight:700;color:#1a2340;">${esc(a.name)}</div><div style="font-size:11px;color:#5e6b8a;margin-top:1px;">${seanceTxt} · ${a.p} présence${a.p>1?'s':''} / ${tot} pointé${tot>1?'s':''}</div></div><span style="font-size:13px;font-weight:800;color:${barColor};white-space:nowrap;margin-left:8px;">${taux}%</span></div><div style="height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden;margin-top:5px;"><div style="width:${taux}%;height:100%;background:${barColor};border-radius:2px;"></div></div></div>`;
+      html+=`<div style="padding:10px 12px;${border}"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px;"><div><div style="font-size:13px;font-weight:700;color:#1a2340;">${esc(a.name)}</div><div style="font-size:11px;color:#5e6b8a;margin-top:1px;">${a.seances} séance${a.seances>1?'s':''} · ${a.p} présence${a.p>1?'s':''} / ${tot} inscrit${tot>1?'s':''}</div></div><span style="font-size:13px;font-weight:800;color:${barColor};white-space:nowrap;margin-left:8px;">${taux}%</span></div><div style="height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden;margin-top:5px;"><div style="width:${taux}%;height:100%;background:${barColor};border-radius:2px;"></div></div></div>`;
     });
     if(atelierList.length===0)html+=`<div style="padding:20px;text-align:center;color:#9ca3af;font-style:italic;font-size:13px;">Aucune activité sur cette période</div>`;
     html+=`</div>`;
     content.innerHTML=html;
     if(monthKeys.length>0){
       if(statsChart){statsChart.destroy();statsChart=null;}
-      const renderChart=()=>{
-        const canvas=document.getElementById('stats-chart-canvas');if(!canvas)return;
-        statsChart=new Chart(canvas,{type:'bar',data:{labels:monthLabels,datasets:[{data:monthPresences,backgroundColor:monthKeys.map(k=>k===curYM?'#2d6a4f':'#d1fae5'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#8590ad'},border:{display:false}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:10},color:'#8590ad',stepSize:1},border:{display:false}}}}});
-      };
+      const renderChart=()=>{const canvas=document.getElementById('stats-chart-canvas');if(!canvas)return;statsChart=new Chart(canvas,{type:'bar',data:{labels:monthLabels,datasets:[{data:monthPresences,backgroundColor:monthKeys.map(k=>k===curYM?'#2d6a4f':'#d1fae5'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#8590ad'},border:{display:false}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:10},color:'#8590ad',stepSize:1},border:{display:false}}}}});};
       if(typeof Chart!=='undefined')renderChart();
       else{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js';s.onload=renderChart;document.head.appendChild(s);}
     }
   }catch(e){document.getElementById('stats-content').innerHTML='<div class="planning-empty">Erreur de chargement.</div>';console.error(e);}
 }
+
+
 
 function setStatsFilter(val){statsFilter=val;loadAndRenderStats();}
 
