@@ -844,12 +844,14 @@ document.getElementById('admin-stats-btn').addEventListener('click',()=>showAdmi
 document.getElementById('stats-back-btn').addEventListener('click',()=>showScreen('admin-screen'));
 document.getElementById('stats-export-btn').addEventListener('click',()=>{window.print();});
 
-let statsFilter='month';
+let statsFilter='month_'+new Date().toISOString().slice(0,7);
 let statsChart=null;
+let statsExpandedUid=null;
 
 async function showAdminStats(){
   showScreen('admin-stats-screen');
-  statsFilter='month';
+  statsFilter='month_'+new Date().toISOString().slice(0,7);
+  statsExpandedUid=null;
   await loadAndRenderStats();
 }
 
@@ -862,163 +864,149 @@ async function loadAndRenderStats(){
       db.collection('presences').get(),
       db.collection('user_statuses').get()
     ]);
-    const now=new Date();
-    const curYear=now.getFullYear();
-    const curMonth=now.getMonth()+1;
+    const mNames=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+    const curYM=new Date().toISOString().slice(0,7);
     const statuses={};
     statusSnap.docs.forEach(d=>{statuses[d.id]={...d.data()};});
     const allPresences=presSnap.docs.map(d=>({id:d.id,...d.data()}));
-    const users=usersSnap.docs.filter(d=>d.data().prenom&&d.data().prenom!=='Admin'&&d.data().code!=='196969'&&d.data().code!==196969&&d.data().code!=='555888'&&d.data().code!==555888).map(d=>({uid:d.id,...d.data()}));
-    function filterPres(pres){
-      if(statsFilter==='month'){
-        const d=pres.atelier?(pres.atelier.split('_')[0]||''):'';
-        if(!d)return false;
-        const [y,m]=d.split('-').map(Number);
-        return y===curYear&&m===curMonth;
-      }
-      if(statsFilter==='year'){
-        const d=pres.atelier?(pres.atelier.split('_')[0]||''):'';
-        if(!d)return false;
-        const [y]=d.split('-').map(Number);
-        return y===curYear;
-      }
-      return true;
-    }
+    const users=usersSnap.docs.filter(d=>{const u=d.data();return u.prenom&&u.code!=='196969'&&u.code!==196969&&u.code!=='555888'&&u.code!==555888;}).map(d=>({uid:d.id,...d.data()}));
+    const prenomToUid={};
+    users.forEach(u=>{prenomToUid[u.prenom]=u.uid;});
+    const monthSet=new Set([curYM]);
+    allPresences.forEach(pr=>{const d=pr.atelier?pr.atelier.split('_')[0]:'';if(d&&/^\d{4}-\d{2}/.test(d))monthSet.add(d.slice(0,7));});
+    const months=[...monthSet].sort().reverse();
+    if(!statsFilter.startsWith('month_')&&statsFilter!=='all')statsFilter='month_'+curYM;
+    const activeYM=statsFilter==='all'?null:statsFilter.replace('month_','');
+    function filterPres(pr){if(!activeYM)return true;const d=pr.atelier?pr.atelier.split('_')[0]:'';return d&&d.startsWith(activeYM);}
     const filtered=allPresences.filter(filterPres);
-    const benefStats={};
-    users.forEach(u=>{benefStats[u.prenom]={p:0,a:0,uid:u.uid};});
+    const benefMap={};
+    users.forEach(u=>{benefMap[u.prenom]={p:0,a:0,uid:u.uid,ateliers:[]};});
     filtered.forEach(pr=>{
-      const nm=pr.prenom;
-      if(!nm)return;
-      if(!benefStats[nm])benefStats[nm]={p:0,a:0,uid:null};
-      if(pr.statut==='absent')benefStats[nm].a++;
-      else benefStats[nm].p++;
-    });
-    const activeExclus=Object.values(statuses).filter(s=>s.status).length;
-    const benefList=Object.entries(benefStats).map(([nm,s])=>{
-      const st=Object.entries(statuses).find(([uid])=>users.find(u=>u.uid===uid&&u.prenom===nm));
-      const statusData=st?st[1]:null;
-      const exclu=statusData&&statusData.status;
-      return{name:nm,p:s.p,a:s.a,uid:s.uid,exclu,status:statusData?.status,statusNote:statusData?.statusNote};
-    }).sort((a,b)=>(b.p+b.a)-(a.p+a.a)||(b.p-a.p));
-    const inclus=benefList.filter(b=>!b.exclu);
-    const totalP=inclus.reduce((s,b)=>s+b.p,0);
-    const totalA=inclus.reduce((s,b)=>s+b.a,0);
-    const total=totalP+totalA;
-    const tauxGlobal=total?Math.round(totalP/total*100):0;
-    const atelierStats={};
-    filtered.forEach(pr=>{
-      const atel=pr.atelier||(pr.prenom?'':'');
+      const nm=pr.prenom;if(!nm)return;
+      if(!benefMap[nm])benefMap[nm]={p:0,a:0,uid:prenomToUid[nm]||null,ateliers:[]};
+      const uid=benefMap[nm].uid;
+      const st=uid?statuses[uid]:null;
       const parts=(pr.atelier||'').split('_');
-      const titre=parts.slice(2).join('_').replace(/_/g,' ')||pr.atelier||'?';
-      if(!atelierStats[titre])atelierStats[titre]={p:0,a:0};
-      if(pr.statut==='absent')atelierStats[titre].a++;
-      else atelierStats[titre].p++;
+      const atelierDate=parts[0]||'';
+      const atelierTitle=parts.slice(2).join(' ')||'?';
+      let exclu=false;
+      if(st&&st.status&&st.statusFrom&&pr.statut==='absent'&&atelierDate>=st.statusFrom)exclu=true;
+      if(!exclu){if(pr.statut==='absent')benefMap[nm].a++;else benefMap[nm].p++;}
+      benefMap[nm].ateliers.push({title:atelierTitle,date:atelierDate,statut:pr.statut,exclu});
     });
-    const atelierList=Object.entries(atelierStats).map(([nm,s])=>({name:nm,...s})).sort((a,b)=>(b.p+b.a)-(a.p+a.a));
+    const benefList=Object.entries(benefMap).map(([nm,s])=>{
+      const st=s.uid?statuses[s.uid]:null;
+      return{name:nm,p:s.p,a:s.a,uid:s.uid,ateliers:s.ateliers,status:st?.status,statusFrom:st?.statusFrom};
+    }).sort((a,b)=>(b.p+b.a)-(a.p+a.a)||b.p-a.p);
+    const totalP=benefList.filter(b=>!b.status).reduce((s,b)=>s+b.p,0);
+    const totalA=benefList.filter(b=>!b.status).reduce((s,b)=>s+b.a,0);
+    const atelierMap={};
+    filtered.forEach(pr=>{
+      if(!pr.atelier)return;
+      const parts=pr.atelier.split('_');
+      const atelierDate=parts[0]||'';
+      const atelierTime=parts[1]||'';
+      const title=parts.slice(2).join(' ').replace(/\s*\(\d+\)\s*$/,'').trim()||'?';
+      if(!atelierMap[title])atelierMap[title]={p:0,a:0,seances:new Set()};
+      atelierMap[title].seances.add(atelierDate+'_'+atelierTime);
+      if(pr.statut==='absent')atelierMap[title].a++;else atelierMap[title].p++;
+    });
+    const atelierList=Object.entries(atelierMap).map(([nm,s])=>({name:nm,p:s.p,a:s.a,seances:s.seances.size})).sort((a,b)=>b.seances-a.seances||(b.p+b.a)-(a.p+a.a));
     const monthlyData={};
     allPresences.forEach(pr=>{
-      const d=pr.atelier?(pr.atelier.split('_')[0]||''):'';
-      if(!d)return;
-      const [y,m]=d.split('-').map(Number);
-      if(!y||!m)return;
-      const key=y+'-'+String(m).padStart(2,'0');
-      if(!monthlyData[key])monthlyData[key]={p:0,a:0};
-      if(pr.statut==='absent')monthlyData[key].a++;
-      else monthlyData[key].p++;
+      const d=pr.atelier?pr.atelier.split('_')[0]:'';
+      if(!d||!/^\d{4}-\d{2}/.test(d))return;
+      const ym=d.slice(0,7);
+      if(!monthlyData[ym])monthlyData[ym]={p:0,a:0};
+      if(pr.statut==='absent')monthlyData[ym].a++;else monthlyData[ym].p++;
     });
-    const monthNames=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
     const monthKeys=Object.keys(monthlyData).sort();
-    const monthLabels=monthKeys.map(k=>{const[y,m]=k.split('-');return monthNames[parseInt(m)-1];});
-    const monthTaux=monthKeys.map(k=>{const d=monthlyData[k];const t=d.p+d.a;return t?Math.round(d.p/t*100):0;});
-    const filterLabel=statsFilter==='month'?`${monthNames[curMonth-1]} ${curYear}`:statsFilter==='year'?`Année ${curYear}`:'Tout';
-    let html=`<div class="stats-filter-bar">
-      <button class="stats-filter-btn${statsFilter==='month'?' active':''}" onclick="setStatsFilter('month')">Ce mois</button>
-      <button class="stats-filter-btn${statsFilter==='year'?' active':''}" onclick="setStatsFilter('year')">Année ${curYear}</button>
-      <button class="stats-filter-btn${statsFilter==='all'?' active':''}" onclick="setStatsFilter('all')">Tout</button>
-    </div>
+    const monthLabels=monthKeys.map(k=>mNames[parseInt(k.split('-')[1])-1]);
+    const monthPresences=monthKeys.map(k=>monthlyData[k].p);
+    const monthOptions=months.map(ym=>{const[y,m]=ym.split('-');return`<option value="month_${ym}"${statsFilter==='month_'+ym?' selected':''}>${mNames[parseInt(m)-1]} ${y}</option>`;}).join('');
+    let html=`<div class="stats-filter-bar"><select style="flex:1;font-size:12px;padding:7px 8px;border-radius:8px;border:1.5px solid #2d6a4f;background:white;color:#1a2340;font-weight:600;" onchange="setStatsFilter(this.value)">${monthOptions}<option value="all"${statsFilter==='all'?' selected':''}>Toute la période</option></select></div>
     <div class="stats-kpi-grid">
       <div class="stats-kpi"><div class="stats-kpi-label">Bénéficiaires</div><div class="stats-kpi-value">${users.length}</div></div>
-      <div class="stats-kpi"><div class="stats-kpi-label">Taux présence</div><div class="stats-kpi-value" style="color:${tauxGlobal>=70?'#16a34a':tauxGlobal>=50?'#d97706':'#dc2626'}">${tauxGlobal}%</div></div>
+      <div class="stats-kpi"><div class="stats-kpi-label">Activités</div><div class="stats-kpi-value">${atelierList.length}</div></div>
       <div class="stats-kpi"><div class="stats-kpi-label">Présences</div><div class="stats-kpi-value" style="color:#16a34a">${totalP}</div></div>
       <div class="stats-kpi"><div class="stats-kpi-label">Absences</div><div class="stats-kpi-value" style="color:#dc2626">${totalA}</div></div>
     </div>`;
-    if(monthKeys.length>1){
-      html+=`<div class="stats-section">Évolution mensuelle</div>
-      <div style="position:relative;width:100%;height:110px;margin-bottom:14px;"><canvas id="stats-chart-canvas" role="img" aria-label="Évolution du taux de présence par mois"></canvas></div>`;
-    }
-    html+=`<div class="stats-section">Par bénéficiaire</div>`;
-    benefList.forEach(b=>{
-      const tot=b.p+b.a;
-      const taux=tot?Math.round(b.p/tot*100):null;
-      const barColor=b.exclu?'#d1d5db':taux===null?'#d1d5db':taux>=70?'#16a34a':taux>=40?'#f59e0b':'#ef4444';
-      const tauxTxt=b.exclu?'<span style="color:#9ca3af;font-size:11px;">exclu</span>':taux===null?'<span style="color:#9ca3af;font-size:11px;">—</span>':`<span style="color:${barColor};font-weight:700;font-size:12px;">${taux}%</span>`;
-      const badgeHtml=b.status==='hospitalise'?`<span class="stats-badge-hosp">🏥 Hosp.</span>`:b.status==='absence_prolongee'?`<span class="stats-badge-autre">⏸ Absent</span>`:'';
+    if(monthKeys.length>0){html+=`<div style="border-top:1.5px solid #e5e7eb;margin-bottom:12px;"></div><div class="stats-section">— Évolution des présences par mois —</div><div style="position:relative;width:100%;height:110px;margin-bottom:14px;"><canvas id="stats-chart-canvas" role="img" aria-label="Nombre de présences par mois"></canvas></div>`;}
+    html+=`<div style="border-top:1.5px solid #e5e7eb;margin-bottom:12px;"></div><div class="stats-section">— Présences des bénéficiaires aux activités —</div><div style="border:0.5px solid var(--color-border-tertiary);border-radius:10px;overflow:hidden;margin-bottom:14px;">`;
+    benefList.forEach((b,idx)=>{
       const initiales=b.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      const badgeHtml=b.status==='hospitalise'?'<span class="stats-badge-hosp">🏥 Hosp.</span>':b.status==='absence_prolongee'?'<span class="stats-badge-autre">⏸ Absent</span>':'';
       const statusBtnLabel=b.status==='hospitalise'?'🏥 Hospitalisé':b.status==='absence_prolongee'?'⏸ Abs. prolongée':'+ Statut';
       const statusBtnClass=b.status==='hospitalise'?'stats-status-btn hosp':b.status==='absence_prolongee'?'stats-status-btn autre':'stats-status-btn';
-      html+=`<div class="stats-benef-row">
+      const isExp=statsExpandedUid===b.uid;
+      const border=idx<benefList.length-1||isExp?'border-bottom:0.5px solid var(--color-border-tertiary);':'';
+      html+=`<div style="${border}"><div style="display:flex;align-items:center;padding:10px 12px;cursor:pointer;" onclick="toggleBenefDetail('${b.uid}')">
         <div class="stats-avatar">${initiales}</div>
-        <div class="stats-benef-info">
+        <div class="stats-benef-info" style="margin-left:10px;">
           <div class="stats-benef-name">${esc(b.name)} ${badgeHtml}</div>
-          <div class="stats-bar-wrap">
-            <div class="stats-bar-bg"><div class="stats-bar-fill" style="width:${b.exclu||taux===null?0:taux}%;background:${barColor};"></div></div>
-            ${tauxTxt}
-          </div>
+          <div style="font-size:11px;margin-top:2px;"><span style="color:#16a34a;font-weight:700;">✅ ${b.p} présence${b.p>1?'s':''}</span> · <span style="color:#dc2626;font-weight:700;">❌ ${b.a} absence${b.a>1?'s':''}</span>${b.status?'<br><span style="color:#9ca3af;font-style:italic;font-size:10px;">exclu du calcul global</span>':''}</div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-          <span class="stats-counts">${b.p}P · ${b.a}A</span>
-          ${b.uid?`<button class="${statusBtnClass}" onclick="toggleBenefStatus('${b.uid}','${b.name}')">${statusBtnLabel}</button>`:''}
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-left:8px;flex-shrink:0;">
+          ${b.uid?`<button class="${statusBtnClass}" onclick="event.stopPropagation();toggleBenefStatus('${b.uid}','${b.name.replace(/'/g,"\\'")}')">${statusBtnLabel}</button>`:''}
+          <i class="ti ti-chevron-${isExp?'up':'down'}" style="font-size:14px;color:#9ca3af;" aria-hidden="true"></i>
         </div>
       </div>`;
+      if(isExp){
+        if(b.ateliers.length>0){
+          html+=`<div style="padding:8px 12px 10px 52px;background:#f9fafb;border-top:0.5px solid var(--color-border-tertiary);">`;
+          b.ateliers.sort((x,y)=>x.date.localeCompare(y.date)).forEach(at=>{
+            const icon=at.statut==='absent'?'❌':'✅';
+            const excluNote=at.exclu?' <span style="color:#9ca3af;font-size:10px;">(excusé)</span>':'';
+            html+=`<div style="font-size:12px;color:#374151;padding:3px 0;">${icon} ${esc(at.title)}${excluNote}</div>`;
+          });
+          html+=`</div>`;
+        }else{html+=`<div style="padding:10px 52px;background:#f9fafb;font-size:12px;color:#9ca3af;font-style:italic;">Aucune activité sur cette période</div>`;}
+      }
+      html+=`</div>`;
     });
-    html+=`<div class="stats-section">Par atelier</div>`;
-    atelierList.forEach(a=>{
+    html+=`</div><div style="border-top:1.5px solid #e5e7eb;margin-bottom:12px;"></div><div class="stats-section">— Taux de présence par activité —</div><div style="border:0.5px solid var(--color-border-tertiary);border-radius:10px;overflow:hidden;margin-bottom:14px;">`;
+    atelierList.forEach((a,idx)=>{
       const tot=a.p+a.a;
       const taux=tot?Math.round(a.p/tot*100):0;
       const barColor=taux>=70?'#16a34a':taux>=40?'#f59e0b':'#ef4444';
-      html+=`<div class="stats-atelier-row">
-        <div class="stats-atelier-name">${esc(a.name)}</div>
-        <div class="stats-bar-wrap">
-          <div class="stats-bar-bg"><div class="stats-bar-fill" style="width:${taux}%;background:${barColor};"></div></div>
-          <span style="font-size:12px;font-weight:700;color:${barColor};min-width:34px;text-align:right;">${taux}%</span>
-          <span class="stats-counts">${a.p}P · ${a.a}A</span>
-        </div>
-      </div>`;
+      const seanceTxt=`${a.seances} séance${a.seances>1?'s':''}`;
+      const border=idx<atelierList.length-1?'border-bottom:0.5px solid var(--color-border-tertiary);':'';
+      html+=`<div style="padding:10px 12px;${border}"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px;"><div><div style="font-size:13px;font-weight:700;color:#1a2340;">${esc(a.name)}</div><div style="font-size:11px;color:#5e6b8a;margin-top:1px;">${seanceTxt} · ${a.p} présence${a.p>1?'s':''} / ${tot} pointé${tot>1?'s':''}</div></div><span style="font-size:13px;font-weight:800;color:${barColor};white-space:nowrap;margin-left:8px;">${taux}%</span></div><div style="height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden;margin-top:5px;"><div style="width:${taux}%;height:100%;background:${barColor};border-radius:2px;"></div></div></div>`;
     });
-    if(activeExclus>0){html+=`<p style="font-size:11px;color:#9ca3af;text-align:center;margin-top:8px;">${activeExclus} bénéficiaire(s) exclu(s) du calcul global (statut actif)</p>`;}
+    if(atelierList.length===0)html+=`<div style="padding:20px;text-align:center;color:#9ca3af;font-style:italic;font-size:13px;">Aucune activité sur cette période</div>`;
+    html+=`</div>`;
     content.innerHTML=html;
-    if(monthKeys.length>1){
+    if(monthKeys.length>0){
       if(statsChart){statsChart.destroy();statsChart=null;}
-      if(typeof Chart!=='undefined'){
-        statsChart=new Chart(document.getElementById('stats-chart-canvas'),{type:'line',data:{labels:monthLabels,datasets:[{data:monthTaux,borderColor:'#2d6a4f',backgroundColor:'#d1fae5',fill:true,tension:0.4,pointRadius:3,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#8590ad'},border:{display:false}},y:{min:0,max:100,grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:10},color:'#8590ad',callback:v=>v+'%'},border:{display:false}}}}});
-      } else {
-        const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js';
-        s.onload=()=>{statsChart=new Chart(document.getElementById('stats-chart-canvas'),{type:'line',data:{labels:monthLabels,datasets:[{data:monthTaux,borderColor:'#2d6a4f',backgroundColor:'#d1fae5',fill:true,tension:0.4,pointRadius:3,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#8590ad'},border:{display:false}},y:{min:0,max:100,grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:10},color:'#8590ad',callback:v=>v+'%'},border:{display:false}}}}});};
-        document.head.appendChild(s);
-      }
+      const renderChart=()=>{
+        const canvas=document.getElementById('stats-chart-canvas');if(!canvas)return;
+        statsChart=new Chart(canvas,{type:'bar',data:{labels:monthLabels,datasets:[{data:monthPresences,backgroundColor:monthKeys.map(k=>k===curYM?'#2d6a4f':'#d1fae5'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#8590ad'},border:{display:false}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:10},color:'#8590ad',stepSize:1},border:{display:false}}}}});
+      };
+      if(typeof Chart!=='undefined')renderChart();
+      else{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js';s.onload=renderChart;document.head.appendChild(s);}
     }
   }catch(e){document.getElementById('stats-content').innerHTML='<div class="planning-empty">Erreur de chargement.</div>';console.error(e);}
 }
 
-function setStatsFilter(f){statsFilter=f;loadAndRenderStats();}
+function setStatsFilter(val){statsFilter=val;loadAndRenderStats();}
+
+function toggleBenefDetail(uid){statsExpandedUid=statsExpandedUid===uid?null:uid;loadAndRenderStats();}
 
 async function toggleBenefStatus(uid,prenom){
   try{
     const snap=await db.collection('user_statuses').doc(uid).get();
     const current=snap.exists?snap.data().status:null;
-    let newStatus=null;
-    if(!current){newStatus='hospitalise';}
-    else if(current==='hospitalise'){newStatus='absence_prolongee';}
-    else{newStatus=null;}
-    if(newStatus){
-      const label=newStatus==='hospitalise'?'🏥 Hospitalisé':'⏸ Absence prolongée';
-      await db.collection('user_statuses').doc(uid).set({status:newStatus,statusNote:'',updatedAt:Date.now()});
-      showConfirm({icon:'✅',title:'Statut mis à jour',text:`${prenom} : ${label}`,okText:'OK',hideCancel:true,onOk:()=>loadAndRenderStats()});
-    }else{
+    if(current){
       showConfirm({icon:'🗑️',title:'Retirer le statut ?',text:`Retirer le statut de ${prenom} ?`,okText:'Retirer',danger:true,onOk:async()=>{await db.collection('user_statuses').doc(uid).delete();await loadAndRenderStats();}});
+    }else{
+      showConfirm({icon:'📋',title:`Statut de ${prenom}`,text:'Quel statut appliquer ?',okText:'🏥 Hospitalisé',cancelText:'⏸ Abs. prolongée',
+        onOk:async()=>{const d=prompt('Date de début (JJ/MM/AAAA) :',new Date().toLocaleDateString('fr-FR'));if(!d)return;const p=d.split('/');const iso=p.length===3?`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`:'';await db.collection('user_statuses').doc(uid).set({status:'hospitalise',statusFrom:iso,updatedAt:Date.now()});await loadAndRenderStats();},
+        onCancel:async()=>{const d=prompt('Date de début (JJ/MM/AAAA) :',new Date().toLocaleDateString('fr-FR'));if(!d)return;const p=d.split('/');const iso=p.length===3?`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`:'';await db.collection('user_statuses').doc(uid).set({status:'absence_prolongee',statusFrom:iso,updatedAt:Date.now()});await loadAndRenderStats();}
+      });
     }
-  }catch(e){alert('Erreur statut.');}}
+  }catch(e){alert('Erreur statut.');}
+}
+
 
 
 async function showAdminMessageModal(mode){
@@ -1750,7 +1738,7 @@ function changeTP(h,part,dir){const step=parseInt(h.dataset.step)||5;let[hr,mn]=
 function getTPVal(id){const h=document.getElementById(id);return h?h.dataset.value:'08:00';}
 function setTPVal(id,v){const h=document.getElementById(id);if(!h)return;h.dataset.value=v||'08:00';renderTP(h);}
 
-function showConfirm({icon,title,text,okText,cancelText,danger,hideCancel,onOk}){document.getElementById('confirm-icon').textContent=icon||'❓';document.getElementById('confirm-title').textContent=title;document.getElementById('confirm-text').textContent=text;const ok=document.getElementById('confirm-ok'),ca=document.getElementById('confirm-cancel');ok.textContent=okText||'OK';ok.className=danger?'btn-danger':'btn-primary';ca.textContent=cancelText||'Annuler';ca.style.display=hideCancel?'none':'block';document.getElementById('confirm-modal').classList.add('active');ok.onclick=()=>{document.getElementById('confirm-modal').classList.remove('active');if(onOk)onOk();};ca.onclick=()=>document.getElementById('confirm-modal').classList.remove('active');}
+function showConfirm({icon,title,text,okText,cancelText,danger,hideCancel,onOk,onCancel}){document.getElementById('confirm-icon').textContent=icon||'❓';document.getElementById('confirm-title').textContent=title;document.getElementById('confirm-text').textContent=text;const ok=document.getElementById('confirm-ok'),ca=document.getElementById('confirm-cancel');ok.textContent=okText||'OK';ok.className=danger?'btn-danger':'btn-primary';ca.textContent=cancelText||'Annuler';ca.style.display=hideCancel?'none':'block';document.getElementById('confirm-modal').classList.add('active');ok.onclick=()=>{document.getElementById('confirm-modal').classList.remove('active');if(onOk)onOk();};ca.onclick=()=>{document.getElementById('confirm-modal').classList.remove('active');if(onCancel)onCancel();};}
 
 function speak(text){if(!('speechSynthesis' in window))return;try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='fr-FR';u.rate=0.95;u.volume=1;window.speechSynthesis.speak(u);}catch(e){}}
 
