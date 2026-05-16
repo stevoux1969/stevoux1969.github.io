@@ -1798,14 +1798,20 @@ function parseAVPPlanning(csv){
       i=j;
     }else{i++;}
   }
-  // Passe 1 : déduplication stricte date+heure+titre
+  // Dédup ultra-agressive : normalise titres (lowercase + suppression espaces/ponctuation/unicode invisible)
+  const norm=t=>(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
   const seen=new Set();
-  const step1=events.filter(e=>{const k=e.date+'_'+e.time+'_'+e.title;if(seen.has(k))return false;seen.add(k);return true;});
-  // Passe 2 : si même date+titre apparaît avec heure réelle ET heure par défaut "09:00",
-  // supprimer la version à 09:00 (résidu de ligne sans heure dans le CSV)
+  const step1=events.filter(e=>{const k=e.date+'_'+e.time+'_'+norm(e.title);if(seen.has(k))return false;seen.add(k);return true;});
+  // Passe 2 : si même date+titre apparaît avec heure réelle ET heure par défaut "09:00", supprimer la version à 09:00
   const realTimes=new Set();
-  step1.forEach(e=>{if(e.time!=='09:00')realTimes.add(e.date+'_'+e.title);});
-  return step1.filter(e=>{if(e.time==='09:00'&&realTimes.has(e.date+'_'+e.title))return false;return true;});
+  step1.forEach(e=>{if(e.time!=='09:00')realTimes.add(e.date+'_'+norm(e.title));});
+  const result=step1.filter(e=>{if(e.time==='09:00'&&realTimes.has(e.date+'_'+norm(e.title)))return false;return true;});
+  console.log('[AVP parseAVPPlanning] events bruts:',events.length,'après dédup:',result.length);
+  if(events.length!==result.length){
+    const titles=events.map(e=>e.date+' '+e.time+' ['+e.title+']');
+    console.log('[AVP] Détail tous les events :',titles);
+  }
+  return result;
 }
 
 function renderPlanning(){const content=document.getElementById('planning-content');const events=state.avpEvents;if(events.length===0){content.innerHTML='<div class="planning-empty">📋 Aucune activité trouvée dans le planning.</div>';return;}const firstDate=events[0].date;const[y,m]=firstDate.split('-').map(Number);const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];document.getElementById('planning-month-title').textContent=`Planning ${monthNames[m-1]} ${y}`;if(!state.atelierDescs){db.collection('atelier_descriptions').get().then(snap=>{state.atelierDescs={};snap.docs.forEach(d=>{state.atelierDescs[d.id]={...d.data()};});});}loadAllInscriptions().then(inscritsByEvent=>{state.allInscriptions=inscritsByEvent;renderPlanningInner(content,events);scrollToToday(content);});}
