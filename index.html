@@ -1706,7 +1706,6 @@ async function loadAVPPlanning(){
       state.annulations={};
       snap.docs.forEach(doc=>{state.annulations[doc.id]=doc.data();});
     }catch(e){}
-    render();
     return parsed;
   }catch(e){
     console.error('AVP planning erreur:',e);
