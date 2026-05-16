@@ -1798,9 +1798,14 @@ function parseAVPPlanning(csv){
       i=j;
     }else{i++;}
   }
-  // Déduplication par clé date+heure+titre
+  // Passe 1 : déduplication stricte date+heure+titre
   const seen=new Set();
-  return events.filter(e=>{const k=e.date+'_'+e.time+'_'+e.title;if(seen.has(k))return false;seen.add(k);return true;});
+  const step1=events.filter(e=>{const k=e.date+'_'+e.time+'_'+e.title;if(seen.has(k))return false;seen.add(k);return true;});
+  // Passe 2 : si même date+titre apparaît avec heure réelle ET heure par défaut "09:00",
+  // supprimer la version à 09:00 (résidu de ligne sans heure dans le CSV)
+  const realTimes=new Set();
+  step1.forEach(e=>{if(e.time!=='09:00')realTimes.add(e.date+'_'+e.title);});
+  return step1.filter(e=>{if(e.time==='09:00'&&realTimes.has(e.date+'_'+e.title))return false;return true;});
 }
 
 function renderPlanning(){const content=document.getElementById('planning-content');const events=state.avpEvents;if(events.length===0){content.innerHTML='<div class="planning-empty">📋 Aucune activité trouvée dans le planning.</div>';return;}const firstDate=events[0].date;const[y,m]=firstDate.split('-').map(Number);const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];document.getElementById('planning-month-title').textContent=`Planning ${monthNames[m-1]} ${y}`;if(!state.atelierDescs){db.collection('atelier_descriptions').get().then(snap=>{state.atelierDescs={};snap.docs.forEach(d=>{state.atelierDescs[d.id]={...d.data()};});});}loadAllInscriptions().then(inscritsByEvent=>{state.allInscriptions=inscritsByEvent;renderPlanningInner(content,events);scrollToToday(content);});}
