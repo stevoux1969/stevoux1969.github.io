@@ -1798,12 +1798,23 @@ function parseAVPPlanning(csv){
       i=j;
     }else{i++;}
   }
-  // Déduplication par clé date+heure+titre
+  // Dédup ultra-agressive : normalise titres (lowercase + suppression espaces/ponctuation/unicode invisible)
+  const norm=t=>(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
   const seen=new Set();
-  return events.filter(e=>{const k=e.date+'_'+e.time+'_'+e.title;if(seen.has(k))return false;seen.add(k);return true;});
+  const step1=events.filter(e=>{const k=e.date+'_'+e.time+'_'+norm(e.title);if(seen.has(k))return false;seen.add(k);return true;});
+  // Passe 2 : si même date+titre apparaît avec heure réelle ET heure par défaut "09:00", supprimer la version à 09:00
+  const realTimes=new Set();
+  step1.forEach(e=>{if(e.time!=='09:00')realTimes.add(e.date+'_'+norm(e.title));});
+  const result=step1.filter(e=>{if(e.time==='09:00'&&realTimes.has(e.date+'_'+norm(e.title)))return false;return true;});
+  console.log('[AVP parseAVPPlanning] events bruts:',events.length,'après dédup:',result.length);
+  if(events.length!==result.length){
+    const titles=events.map(e=>e.date+' '+e.time+' ['+e.title+']');
+    console.log('[AVP] Détail tous les events :',titles);
+  }
+  return result;
 }
 
-function renderPlanning(){const content=document.getElementById('planning-content');const events=state.avpEvents;if(events.length===0){content.innerHTML='<div class="planning-empty">📋 Aucune activité trouvée dans le planning.</div>';return;}const firstDate=events[0].date;const[y,m]=firstDate.split('-').map(Number);const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];document.getElementById('planning-month-title').textContent=`Planning ${monthNames[m-1]} ${y}`;Promise.all([loadAllInscriptions(),db.collection('atelier_descriptions').get()]).then(([inscritsByEvent,descSnap])=>{state.allInscriptions=inscritsByEvent;state.atelierDescs={};descSnap.docs.forEach(d=>{state.atelierDescs[d.id]={...d.data()};});renderPlanningInner(content,events);scrollToToday(content);});}
+function renderPlanning(){const content=document.getElementById('planning-content');const events=state.avpEvents;if(events.length===0){content.innerHTML='<div class="planning-empty">📋 Aucune activité trouvée dans le planning.</div>';return;}const firstDate=events[0].date;const[y,m]=firstDate.split('-').map(Number);const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];document.getElementById('planning-month-title').textContent=`Planning ${monthNames[m-1]} ${y}`;if(!state.atelierDescs){db.collection('atelier_descriptions').get().then(snap=>{state.atelierDescs={};snap.docs.forEach(d=>{state.atelierDescs[d.id]={...d.data()};});});}loadAllInscriptions().then(inscritsByEvent=>{state.allInscriptions=inscritsByEvent;renderPlanningInner(content,events);scrollToToday(content);});}
 
 function scrollToToday(content){const tryScroll=(attempt)=>{const today=dateKey(new Date());let target=content.querySelector(`[data-date="${today}"]`);if(!target){const allHeaders=content.querySelectorAll('[data-date]');for(const h of allHeaders){if(h.dataset.date>=today){target=h;break;}}if(!target&&allHeaders.length>0){target=allHeaders[allHeaders.length-1];}}if(target){target.scrollIntoView({behavior:'smooth',block:'start'});}else if(attempt<5){setTimeout(()=>tryScroll(attempt+1),200);}};setTimeout(()=>tryScroll(1),300);}
 
@@ -1822,7 +1833,6 @@ function renderPlanningInner(content,events){const seen=new Set();const uniqueEv
         </div>`;
       } else {
       const titreNormalise=e.title.replace(/\s*\(\d+\)\s*$/,'').trim();const hasDesc=state.atelierDescs&&state.atelierDescs[titreNormalise]&&state.atelierDescs[titreNormalise].description;const infoBtnHTML=hasDesc?`<button class="btn-atelier-info" data-titre="${titreNormalise.replace(/"/g,'&quot;')}" style="flex-shrink:0;font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;border:1.5px solid #2c3e91;background:#eef1fb;color:#2c3e91;cursor:pointer;font-family:inherit;">Infos</button>`:'';
-      html+=`<div class="planning-item ${complet?'planning-item-complet':''}"><div class="planning-item-time">${e.time}</div><div class="planning-item-icon">${iconHTML(e.icon)}</div><div class="planning-item-body"><div class="planning-item-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span>${esc(e.title)}</span>${infoBtnHTML}</div>${inscrit?'<div class="planning-item-meta">✅ Vous participez</div>':''}${compteurHTML}${inscritsHTML}</div>${btnHTML}</div>`;
       html+=`<div class="planning-item ${complet?'planning-item-complet':''}"><div class="planning-item-time">${e.time}</div><div class="planning-item-icon">${iconHTML(e.icon)}</div><div class="planning-item-body"><div class="planning-item-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span>${esc(e.title)}</span>${infoBtnHTML}</div>${inscrit?'<div class="planning-item-meta">✅ Vous participez</div>':''}${compteurHTML}${inscritsHTML}</div>${btnHTML}</div>`;
       }});});content.innerHTML=html;content.querySelectorAll('.btn-atelier-info').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();showAtelierInfo(btn.dataset.titre);});});content.querySelectorAll('.btn-inscrit:not(.btn-complet)').forEach(btn=>{btn.addEventListener('click',async e=>{e.stopPropagation();if(btn.disabled)return;const ev={date:btn.dataset.edate,time:btn.dataset.etime,title:btn.dataset.etitle,icon:btn.dataset.eicon};const limite=btn.dataset.elimite?parseInt(btn.dataset.elimite):null;const ek=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');const dejaInscrit=isInscrit(ek);if(!dejaInscrit&&limite!==null){btn.disabled=true;btn.textContent='⏳ Vérification...';const freshInscriptions=await loadAllInscriptions();const currentCount=(freshInscriptions[ek]||[]).length;if(currentCount>=limite){showConfirm({icon:'😔',title:'Atelier complet',text:`Désolé, les ${limite} places pour "${ev.title}" viennent d'être prises.`,okText:'OK',hideCancel:true});state.allInscriptions=freshInscriptions;renderPlanningInner(content,events);return;}}await toggleInscription(ev);state.allInscriptions=await loadAllInscriptions();renderPlanningInner(content,events);});});}
 
