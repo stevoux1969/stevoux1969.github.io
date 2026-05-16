@@ -903,7 +903,7 @@ async function showAdminDescriptions(){
     tousLesTitres.forEach(t=>{
       const d=descs[t];
       const hasDesc=d&&d.description;
-      html+=`<div onclick="editDescription('${t.replace(/'/g,"\\'")}') " style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);cursor:pointer;display:flex;align-items:center;gap:12px;">
+      html+=`<div class="btn-desc-item" data-titre="${esc(t)}" style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);cursor:pointer;display:flex;align-items:center;gap:12px;">
         <div style="width:36px;height:36px;border-radius:50%;background:${hasDesc?'#ede9fe':'#f1f3f8'};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${hasDesc?'📝':'➕'}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:14px;font-weight:700;color:#1a2340;">${esc(t)}</div>
@@ -913,6 +913,7 @@ async function showAdminDescriptions(){
       </div>`;
     });
     content.innerHTML=html;
+    content.querySelectorAll('.btn-desc-item').forEach(el=>{el.addEventListener('click',()=>editDescription(el.dataset.titre));});
   }catch(e){content.innerHTML='<div class="planning-empty">Erreur.</div>';}
 }
 
@@ -1797,9 +1798,10 @@ function renderPlanningInner(content,events){const grouped={};events.forEach(e=>
           </div>
         </div>`;
       } else {
-      const titreNormalise=e.title.replace(/\s*\(\d+\)\s*$/,'').trim();const hasDesc=state.atelierDescs&&state.atelierDescs[titreNormalise]&&state.atelierDescs[titreNormalise].description;const infoBtnHTML=hasDesc?`<button onclick="event.stopPropagation();showAtelierInfo('${titreNormalise.replace(/'/g,"\\'")}'')" style="flex-shrink:0;font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;border:1.5px solid #2c3e91;background:#eef1fb;color:#2c3e91;cursor:pointer;font-family:inherit;">Infos</button>`:'';
+      const titreNormalise=e.title.replace(/\s*\(\d+\)\s*$/,'').trim();const hasDesc=state.atelierDescs&&state.atelierDescs[titreNormalise]&&state.atelierDescs[titreNormalise].description;const infoBtnHTML=hasDesc?`<button class="btn-atelier-info" data-titre="${titreNormalise.replace(/"/g,'&quot;')}" style="flex-shrink:0;font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;border:1.5px solid #2c3e91;background:#eef1fb;color:#2c3e91;cursor:pointer;font-family:inherit;">Infos</button>`:'';
       html+=`<div class="planning-item ${complet?'planning-item-complet':''}"><div class="planning-item-time">${e.time}</div><div class="planning-item-icon">${iconHTML(e.icon)}</div><div class="planning-item-body"><div class="planning-item-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span>${esc(e.title)}</span>${infoBtnHTML}</div>${inscrit?'<div class="planning-item-meta">✅ Vous participez</div>':''}${compteurHTML}${inscritsHTML}</div>${btnHTML}</div>`;
-      }});});content.innerHTML=html;content.querySelectorAll('.btn-inscrit:not(.btn-complet)').forEach(btn=>{btn.addEventListener('click',async e=>{e.stopPropagation();if(btn.disabled)return;const ev={date:btn.dataset.edate,time:btn.dataset.etime,title:btn.dataset.etitle,icon:btn.dataset.eicon};const limite=btn.dataset.elimite?parseInt(btn.dataset.elimite):null;const ek=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');const dejaInscrit=isInscrit(ek);if(!dejaInscrit&&limite!==null){btn.disabled=true;btn.textContent='⏳ Vérification...';const freshInscriptions=await loadAllInscriptions();const currentCount=(freshInscriptions[ek]||[]).length;if(currentCount>=limite){showConfirm({icon:'😔',title:'Atelier complet',text:`Désolé, les ${limite} places pour "${ev.title}" viennent d'être prises.`,okText:'OK',hideCancel:true});state.allInscriptions=freshInscriptions;renderPlanningInner(content,events);return;}}await toggleInscription(ev);state.allInscriptions=await loadAllInscriptions();renderPlanningInner(content,events);});});}
+      html+=`<div class="planning-item ${complet?'planning-item-complet':''}"><div class="planning-item-time">${e.time}</div><div class="planning-item-icon">${iconHTML(e.icon)}</div><div class="planning-item-body"><div class="planning-item-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span>${esc(e.title)}</span>${infoBtnHTML}</div>${inscrit?'<div class="planning-item-meta">✅ Vous participez</div>':''}${compteurHTML}${inscritsHTML}</div>${btnHTML}</div>`;
+      }});});content.innerHTML=html;content.querySelectorAll('.btn-atelier-info').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();showAtelierInfo(btn.dataset.titre);});});content.querySelectorAll('.btn-inscrit:not(.btn-complet)').forEach(btn=>{btn.addEventListener('click',async e=>{e.stopPropagation();if(btn.disabled)return;const ev={date:btn.dataset.edate,time:btn.dataset.etime,title:btn.dataset.etitle,icon:btn.dataset.eicon};const limite=btn.dataset.elimite?parseInt(btn.dataset.elimite):null;const ek=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');const dejaInscrit=isInscrit(ek);if(!dejaInscrit&&limite!==null){btn.disabled=true;btn.textContent='⏳ Vérification...';const freshInscriptions=await loadAllInscriptions();const currentCount=(freshInscriptions[ek]||[]).length;if(currentCount>=limite){showConfirm({icon:'😔',title:'Atelier complet',text:`Désolé, les ${limite} places pour "${ev.title}" viennent d'être prises.`,okText:'OK',hideCancel:true});state.allInscriptions=freshInscriptions;renderPlanningInner(content,events);return;}}await toggleInscription(ev);state.allInscriptions=await loadAllInscriptions();renderPlanningInner(content,events);});});}
 
 document.getElementById('prev-day').addEventListener('click',()=>{state.dayOffset--;render();});
 document.getElementById('next-day').addEventListener('click',()=>{state.dayOffset++;render();});
