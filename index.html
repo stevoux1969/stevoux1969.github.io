@@ -509,7 +509,30 @@
   <button class="btn-admin-action" id="admin-msg-tous-btn" style="background:#fff7ed;color:#c2410c;border-color:#fed7aa;">📢 Message à tous les bénéficiaires</button>
   <button class="btn-admin-action" id="admin-msg-atelier-btn" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0;">🎯 Message aux inscrits d'un atelier</button>
   <button class="btn-admin-action" id="admin-stats-btn" style="background:#f0fdf9;color:#2d6a4f;border-color:#6ee7b7;">📊 Statistiques de présence</button>
+  <button class="btn-admin-action" id="admin-descriptions-btn" style="background:#f5f3ff;color:#6d28d9;border-color:#c4b5fd;">📝 Descriptions des ateliers</button>
   <div class="admin-list" id="admin-user-list"></div>
+</div>
+
+<!-- Modale info atelier -->
+<div id="atelier-info-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:flex-end;justify-content:center;">
+  <div style="background:white;border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-height:80vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 id="info-modal-title" style="font-size:18px;font-weight:800;color:#1a2340;margin:0;"></h2>
+      <button onclick="document.getElementById('atelier-info-modal').style.display='none'" style="background:#f1f3f8;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;color:#5e6b8a;">✕</button>
+    </div>
+    <div id="info-modal-body" style="font-size:15px;color:#374151;line-height:1.6;"></div>
+  </div>
+</div>
+
+<!-- Écran descriptions ateliers -->
+<div id="admin-descriptions-screen" class="screen">
+  <div class="admin-header">
+    <button class="back-btn" id="descriptions-back-btn" style="color:white">‹</button>
+    <h1>📝 Descriptions ateliers</h1>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:14px 14px 100px;" id="descriptions-content">
+    <div style="text-align:center;padding:40px;color:#5e6b8a">Chargement…</div>
+  </div>
 </div>
 
 <div id="admin-stats-screen" class="screen">
@@ -842,6 +865,92 @@ document.getElementById('admin-msg-tous-btn').addEventListener('click',()=>showA
 document.getElementById('admin-msg-atelier-btn').addEventListener('click',()=>showAdminMessageModal('atelier'));
 document.getElementById('admin-stats-btn').addEventListener('click',()=>showAdminStats());
 document.getElementById('stats-back-btn').addEventListener('click',()=>showScreen('admin-screen'));
+document.getElementById('admin-descriptions-btn').addEventListener('click',()=>showAdminDescriptions());
+document.getElementById('descriptions-back-btn').addEventListener('click',()=>showScreen('admin-screen'));
+
+async function showAtelierInfo(titre){
+  const modal=document.getElementById('atelier-info-modal');
+  document.getElementById('info-modal-title').textContent=titre;
+  const bodyEl=document.getElementById('info-modal-body');
+  bodyEl.innerHTML='<div style="color:#9ca3af">Chargement…</div>';
+  modal.style.display='flex';
+  try{
+    const snap=await db.collection('atelier_descriptions').doc(titre).get();
+    if(snap.exists&&snap.data().description){
+      const d=snap.data();
+      let html=`<p style="margin:0 0 12px;">${esc(d.description).replace(/\n/g,'<br>')}</p>`;
+      if(d.adresse){html+=`<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.adresse)}" target="_blank" style="display:flex;align-items:center;gap:8px;background:#eef1fb;padding:10px 14px;border-radius:10px;color:#2c3e91;font-weight:700;text-decoration:none;font-size:14px;">📍 ${esc(d.adresse)}</a>`;}
+      bodyEl.innerHTML=html;
+    }else{
+      bodyEl.innerHTML='<p style="color:#9ca3af;font-style:italic;">Aucune description disponible pour cet atelier.</p>';
+    }
+  }catch(e){bodyEl.innerHTML='<p style="color:#dc2626;">Erreur.</p>';}
+}
+
+async function showAdminDescriptions(){
+  showScreen('admin-descriptions-screen');
+  const content=document.getElementById('descriptions-content');
+  content.innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement…</div>';
+  try{
+    const snap=await db.collection('atelier_descriptions').get();
+    const descs={};
+    snap.docs.forEach(d=>{descs[d.id]={...d.data()};});
+    const titres=Object.keys(descs).sort();
+    let html=`<p style="font-size:13px;color:#5e6b8a;margin-bottom:16px;">Description affichée quand un bénéficiaire clique sur "Infos" dans le planning.</p>
+    <button onclick="showAddDescriptionForm()" style="width:100%;padding:12px;background:#6d28d9;color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:16px;">➕ Ajouter un atelier</button>`;
+    if(titres.length===0)html+='<div style="text-align:center;color:#9ca3af;font-style:italic;padding:20px;">Aucune description enregistrée.</div>';
+    titres.forEach(t=>{
+      const d=descs[t];
+      html+=`<div style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <div style="font-size:14px;font-weight:700;color:#1a2340;">${esc(t)}</div>
+          <div style="display:flex;gap:6px;">
+            <button onclick="editDescription('${t.replace(/'/g,"\\'")}')" style="font-size:12px;padding:4px 10px;border-radius:8px;border:1px solid #c4b5fd;background:#f5f3ff;color:#6d28d9;cursor:pointer;font-weight:600;">✏️</button>
+            <button onclick="deleteDescription('${t.replace(/'/g,"\\'")}')" style="font-size:12px;padding:4px 10px;border-radius:8px;border:1px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-weight:600;">🗑️</button>
+          </div>
+        </div>
+        ${d.description?`<p style="font-size:13px;color:#374151;margin:0 0 4px;">${esc(d.description.slice(0,100))}${d.description.length>100?'…':''}</p>`:''}
+        ${d.adresse?`<p style="font-size:12px;color:#6d28d9;margin:0;">📍 ${esc(d.adresse)}</p>`:''}
+      </div>`;
+    });
+    content.innerHTML=html;
+  }catch(e){content.innerHTML='<div class="planning-empty">Erreur.</div>';}
+}
+
+function showAddDescriptionForm(titre='',desc='',adresse=''){
+  document.getElementById('descriptions-content').innerHTML=`
+    <h3 style="font-size:16px;font-weight:800;color:#1a2340;margin:0 0 16px;">${titre?'Modifier':'Nouvel atelier'}</h3>
+    <div style="margin-bottom:12px;"><label style="font-size:13px;font-weight:700;color:#5e6b8a;display:block;margin-bottom:6px;">Nom de l'atelier</label>
+    <input id="desc-titre" value="${esc(titre)}" placeholder="Ex: Pique-nique" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:15px;box-sizing:border-box;font-family:inherit;" ${titre?'readonly':''}></div>
+    <div style="margin-bottom:12px;"><label style="font-size:13px;font-weight:700;color:#5e6b8a;display:block;margin-bottom:6px;">Description</label>
+    <textarea id="desc-texte" placeholder="Ex: Rendez-vous à la petite maison. Prévoir des chaussures confortables." style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:15px;box-sizing:border-box;font-family:inherit;min-height:100px;">${esc(desc)}</textarea></div>
+    <div style="margin-bottom:20px;"><label style="font-size:13px;font-weight:700;color:#5e6b8a;display:block;margin-bottom:6px;">Adresse (facultatif)</label>
+    <input id="desc-adresse" value="${esc(adresse)}" placeholder="Ex: 12 rue de la Paix, Petit-Quevilly" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:15px;box-sizing:border-box;font-family:inherit;"></div>
+    <button onclick="saveDescription('${titre.replace(/'/g,"\\'")}')" style="width:100%;padding:14px;background:#6d28d9;color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;">💾 Enregistrer</button>
+    <button onclick="showAdminDescriptions()" style="width:100%;padding:12px;background:#f1f3f8;color:#5e6b8a;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Annuler</button>`;
+}
+
+async function saveDescription(ancienTitre){
+  const titre=document.getElementById('desc-titre').value.trim();
+  const desc=document.getElementById('desc-texte').value.trim();
+  const adresse=document.getElementById('desc-adresse').value.trim();
+  if(!titre){alert('Le nom est obligatoire.');return;}
+  try{
+    if(ancienTitre&&ancienTitre!==titre)await db.collection('atelier_descriptions').doc(ancienTitre).delete();
+    await db.collection('atelier_descriptions').doc(titre).set({description:desc,adresse,updatedAt:Date.now()});
+    await showAdminDescriptions();
+  }catch(e){alert('Erreur sauvegarde.');}
+}
+
+async function editDescription(titre){
+  const snap=await db.collection('atelier_descriptions').doc(titre).get();
+  const d=snap.exists?snap.data():{};
+  showAddDescriptionForm(titre,d.description||'',d.adresse||'');
+}
+
+async function deleteDescription(titre){
+  showConfirm({icon:'🗑️',title:'Supprimer ?',text:`Supprimer la description de "${titre}" ?`,okText:'Supprimer',danger:true,onOk:async()=>{await db.collection('atelier_descriptions').doc(titre).delete();await showAdminDescriptions();}});
+}
 document.getElementById('stats-export-btn').addEventListener('click',()=>{window.print();});
 
 let statsFilter='month_'+new Date().toISOString().slice(0,7);
@@ -1560,7 +1669,7 @@ async function toggleInscription(event){const key=event.date+'_'+event.time+'_'+
   }
   state.inscriptions[key]=true;const loc=getAVPLocation(event.title);state.reminders.push({id:'atelier_'+key,title:event.title,icon:event.icon||'📋',time:event.time,date:event.date,recurrence:'once',note:loc?loc.address:'',mapLink:loc?`https://www.google.com/maps/search/?api=1&query=${loc.query}`:null,done:{},source:'atelier'});speak(`Inscrit à ${event.title} !`);try{tagOneSignalAtelier(key,true);}catch(e){} queueAtelierNotifications(event,key);notifyAnimateur('inscription',event);}await saveUserData();render();}
 
-function render(){const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key)).map(r=>({...r,_source:'personal'}));const items=[...personal].sort((a,b)=>a.time.localeCompare(b.time));if(items.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:36px;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;return;}const now=new Date();const isToday=state.dayOffset===0;const nowMinutes=now.getHours()*60+now.getMinutes();let upcomingId=null;if(isToday){const up=items.find(r=>{const[h,m]=r.time.split(':').map(Number);return(h*60+m)>=nowMinutes&&!(r.done&&r.done[key]);});if(up)upcomingId=up.id;}list.innerHTML=items.map(r=>{const isDone=r.done&&r.done[key];const isAVP=r._source==='avp';const isAtelier=r.source==='atelier';const eventDate=r.eventDate||r.date;const eventTime=r.eventTime||r.time;const dateDiffers=r.recurrence==='once'&&eventDate&&eventDate!==r.date;const timeDiffers=r.recurrence==='once'&&eventTime&&eventTime!==r.time;const hasDiffEvent=dateDiffers||timeDiffers;let noteText='';if(r.note){if(r.mapLink){noteText=`<a href="${r.mapLink}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{const iconDef=ICONS.find(ic=>ic.title===r.title||(r.icon&&ic.emoji===r.icon));if(iconDef&&iconDef.address){noteText=`<a href="https://www.google.com/maps/search/?api=1&query=${iconDef.address}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{noteText=esc(r.note);}}}const checkHTML=(isAVP||isAtelier)?'':`<div class="card-check ${isDone?'':'unchecked'}" data-check="${r.id}" style="position:absolute;top:12px;right:12px;">${isDone?'✓':'○'}</div>`;if(hasDiffEvent||isAtelier){const agendaLink=buildGoogleCalendarLink(r);let sonnerieText;if(isAtelier){const atelierDate=new Date(r.date+'T'+r.time+':00');const veille=new Date(atelierDate);veille.setDate(veille.getDate()-1);const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const h2=String(avant2h.getHours()).padStart(2,'0');const m2=String(avant2h.getMinutes()).padStart(2,'0');sonnerieText=`🔔 <strong>2 sonneries prévues :</strong><br>• La veille (${formatShortDate(veille.toISOString().slice(0,10))}) à <strong>15h00</strong><br>• 2h avant, à <strong>${h2}h${m2}</strong>`;}else if(dateDiffers){sonnerieText=`🔔 Sonnerie le <strong>${formatRelativeDate(r.date)} à ${r.time.replace(':','h')}</strong>`;}else{sonnerieText=`🔔 Sonnerie à <strong>${r.time.replace(':','h')}</strong>`;}const typeLabel=isAtelier?'Atelier AVP':'Rendez-vous';const badgeAtelier=isAtelier?'<span style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">✅ Je participe</span>':'';return`<div class="card-rdv ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="rdv-top"><div class="rdv-left"><div class="rdv-date">${formatShortDate(eventDate)}</div><div class="rdv-heure">${eventTime.replace(':','h')}</div></div><div class="rdv-image">${iconHTML(r.icon)}</div><div class="rdv-body"><div class="rdv-type">${typeLabel}</div><div class="rdv-titre">${esc(r.title)}</div>${noteText?`<div class="rdv-note">${noteText}</div>`:''} ${badgeAtelier}</div></div><div class="rdv-sonnerie">${sonnerieText}</div><a href="${agendaLink}" target="_blank" class="btn-agenda" onclick="event.stopPropagation()">📅 Ajouter à mon agenda Google</a></div>`;}const badge=isAVP?'<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">📋 Planning AVP</span>':'';const sonnerieType=isAVP?'Atelier':'Sonnerie';return`<div class="card-sonnerie ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="sonnerie-left"><div class="sonnerie-date">${formatShortDate(r.date)}</div><div class="sonnerie-heure">${r.time.replace(':','h')}</div></div><div class="sonnerie-icon">${iconHTML(r.icon)}</div><div class="sonnerie-body"><div class="sonnerie-type">${sonnerieType}</div><div class="sonnerie-titre">${esc(r.title)}</div>${noteText?`<div class="sonnerie-note">${noteText}</div>`:''}${badge}</div></div>`;}).join('');}
+function render(){const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key)).map(r=>({...r,_source:'personal'}));const items=[...personal].sort((a,b)=>a.time.localeCompare(b.time));if(items.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:36px;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;return;}const now=new Date();const isToday=state.dayOffset===0;const nowMinutes=now.getHours()*60+now.getMinutes();let upcomingId=null;if(isToday){const up=items.find(r=>{const[h,m]=r.time.split(':').map(Number);return(h*60+m)>=nowMinutes&&!(r.done&&r.done[key]);});if(up)upcomingId=up.id;}list.innerHTML=items.map(r=>{const isDone=r.done&&r.done[key];const isAVP=r._source==='avp';const isAtelier=r.source==='atelier';const eventDate=r.eventDate||r.date;const eventTime=r.eventTime||r.time;const dateDiffers=r.recurrence==='once'&&eventDate&&eventDate!==r.date;const timeDiffers=r.recurrence==='once'&&eventTime&&eventTime!==r.time;const hasDiffEvent=dateDiffers||timeDiffers;let noteText='';if(r.note){if(r.mapLink){noteText=`<a href="${r.mapLink}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{const iconDef=ICONS.find(ic=>ic.title===r.title||(r.icon&&ic.emoji===r.icon));if(iconDef&&iconDef.address){noteText=`<a href="https://www.google.com/maps/search/?api=1&query=${iconDef.address}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{noteText=esc(r.note);}}}const checkHTML=(isAVP||isAtelier)?'':`<div class="card-check ${isDone?'':'unchecked'}" data-check="${r.id}" style="position:absolute;top:12px;right:12px;">${isDone?'✓':'○'}</div>`;if(hasDiffEvent||isAtelier){const agendaLink=buildGoogleCalendarLink(r);let sonnerieText;if(isAtelier){const atelierDate=new Date(r.date+'T'+r.time+':00');const veille=new Date(atelierDate);veille.setDate(veille.getDate()-1);const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const h2=String(avant2h.getHours()).padStart(2,'0');const m2=String(avant2h.getMinutes()).padStart(2,'0');sonnerieText=`🔔 <strong>2 sonneries prévues :</strong><br>• La veille (${formatShortDate(veille.toISOString().slice(0,10))}) à <strong>15h00</strong><br>• 2h avant, à <strong>${h2}h${m2}</strong>`;}else if(dateDiffers){sonnerieText=`🔔 Sonnerie le <strong>${formatRelativeDate(r.date)} à ${r.time.replace(':','h')}</strong>`;}else{sonnerieText=`🔔 Sonnerie à <strong>${r.time.replace(':','h')}</strong>`;}const typeLabel=isAtelier?'Atelier AVP':'Rendez-vous';const badgeAtelier=isAtelier?'<span style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">✅ Je participe</span>':'';return`<div class="card-rdv ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="rdv-top"><div class="rdv-left"><div class="rdv-date">${formatShortDate(eventDate)}</div><div class="rdv-heure">${eventTime.replace(':','h')}</div></div><div class="rdv-image">${iconHTML(r.icon)}</div><div class="rdv-body"><div class="rdv-type">${typeLabel}</div><div class="rdv-titre">${esc(r.title)}</div>${noteText?`<div class="rdv-note">${noteText}</div>`:''} ${badgeAtelier}</div></div><div class="rdv-sonnerie">${sonnerieText}</div><a href="${agendaLink}" target="_blank" class="btn-agenda" onclick="event.stopPropagation()">📅 Ajouter à mon agenda Google</a></div>`;}const badge=isAVP?'<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">📋 Planning AVP</span>':'';const sonnerieType=isAVP?'Atelier':'Sonnerie';return`<div class="card-sonnerie ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="sonnerie-left"><div class="sonnerie-date">${r.recurrence==='daily'?'Tous les jours':(r.date?formatShortDate(r.date):'')}</div><div class="sonnerie-heure">${r.time.replace(':','h')}</div></div><div class="sonnerie-icon">${iconHTML(r.icon)}</div><div class="sonnerie-body"><div class="sonnerie-type">${sonnerieType}</div><div class="sonnerie-titre">${esc(r.title)}</div>${noteText?`<div class="sonnerie-note">${noteText}</div>`:''}${badge}</div></div>`;}).join('');}
 
 async function loadAVPPlanning(){
   try{
@@ -1689,7 +1798,7 @@ function renderPlanningInner(content,events){const grouped={};events.forEach(e=>
           </div>
         </div>`;
       } else {
-      html+=`<div class="planning-item ${complet?'planning-item-complet':''}"><div class="planning-item-time">${e.time}</div><div class="planning-item-icon">${iconHTML(e.icon)}</div><div class="planning-item-body"><div class="planning-item-title">${esc(e.title)}</div>${inscrit?'<div class="planning-item-meta">✅ Vous participez</div>':''}${compteurHTML}${inscritsHTML}</div>${btnHTML}</div>`;
+      html+=`<div class="planning-item ${complet?'planning-item-complet':''}"><div class="planning-item-time">${e.time}</div><div class="planning-item-icon">${iconHTML(e.icon)}</div><div class="planning-item-body"><div class="planning-item-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span>${esc(e.title)}</span><button onclick="event.stopPropagation();showAtelierInfo('${esc(e.title).replace(/'/g,"\\'")}','${esc(e.date)}')" style="flex-shrink:0;font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;border:1.5px solid #2c3e91;background:#eef1fb;color:#2c3e91;cursor:pointer;font-family:inherit;">Infos</button></div>${inscrit?'<div class="planning-item-meta">✅ Vous participez</div>':''}${compteurHTML}${inscritsHTML}</div>${btnHTML}</div>`;
       }});});content.innerHTML=html;content.querySelectorAll('.btn-inscrit:not(.btn-complet)').forEach(btn=>{btn.addEventListener('click',async e=>{e.stopPropagation();if(btn.disabled)return;const ev={date:btn.dataset.edate,time:btn.dataset.etime,title:btn.dataset.etitle,icon:btn.dataset.eicon};const limite=btn.dataset.elimite?parseInt(btn.dataset.elimite):null;const ek=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');const dejaInscrit=isInscrit(ek);if(!dejaInscrit&&limite!==null){btn.disabled=true;btn.textContent='⏳ Vérification...';const freshInscriptions=await loadAllInscriptions();const currentCount=(freshInscriptions[ek]||[]).length;if(currentCount>=limite){showConfirm({icon:'😔',title:'Atelier complet',text:`Désolé, les ${limite} places pour "${ev.title}" viennent d'être prises.`,okText:'OK',hideCancel:true});state.allInscriptions=freshInscriptions;renderPlanningInner(content,events);return;}}await toggleInscription(ev);state.allInscriptions=await loadAllInscriptions();renderPlanningInner(content,events);});});}
 
 document.getElementById('prev-day').addEventListener('click',()=>{state.dayOffset--;render();});
