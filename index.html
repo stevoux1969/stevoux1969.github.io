@@ -1521,53 +1521,47 @@ async function validerInscriptionsGroupe(btn, atelierKey){
   btn.disabled=true;
   btn.textContent='⏳ Enregistrement...';
   const card=btn.closest('.inscrire-atelier-card');
-  const checkboxes=card.querySelectorAll('.inscrire-checkbox');
-  let ok=0,err=0;
-  
-  // Trouver l'événement correspondant
+  const checkboxes=Array.from(card.querySelectorAll('.inscrire-checkbox'));
   const ev=state.avpEvents.find(e=>{
     const k=e.date+'_'+e.time+'_'+e.title.slice(0,20).replace(/\s/g,'_');
     return k===atelierKey;
   });
   
-  for(const cb of checkboxes){
+  // Sauvegarde en parallèle (plus rapide, résistant aux timeouts)
+  const results=await Promise.allSettled(checkboxes.map(async cb=>{
     const uid=cb.dataset.uid;
-    try{
-      const snap=await db.collection('users').doc(uid).get();
-      const u=snap.data();
-      let reminders=u.reminders||[];
-      const remId='atelier_'+atelierKey;
-      const dejaInscrit=reminders.some(r=>r.id===remId);
-      
-      if(cb.checked&&!dejaInscrit&&ev){
-        // Ajouter le rappel atelier
-        reminders.push({
-          id:remId,
-          title:ev.title,
-          icon:ev.icon||'📋',
-          time:ev.time,
-          date:ev.date,
-          recurrence:'once',
-          note:'',
-          done:{},
-          source:'atelier'
-        });
-      } else if(!cb.checked&&dejaInscrit){
-        // Retirer le rappel atelier
-        reminders=reminders.filter(r=>r.id!==remId);
-      }
-      
-      const updateData={reminders};
-      if(cb.checked&&!dejaInscrit)updateData['inscriptions.'+atelierKey]=true;
-      else if(!cb.checked&&dejaInscrit)updateData['inscriptions.'+atelierKey]=firebase.firestore.FieldValue.delete();
-      await db.collection('users').doc(uid).update(updateData);
-      ok++;
-    }catch(e){err++;}
-  }
+    const snap=await db.collection('users').doc(uid).get();
+    const u=snap.data()||{};
+    let reminders=u.reminders||[];
+    const remId='atelier_'+atelierKey;
+    const dejaInscrit=reminders.some(r=>r.id===remId);
+    
+    if(cb.checked&&!dejaInscrit&&ev){
+      reminders.push({id:remId,title:ev.title,icon:ev.icon||'📋',time:ev.time,date:ev.date,recurrence:'once',note:'',done:{},source:'atelier'});
+    } else if(!cb.checked&&dejaInscrit){
+      reminders=reminders.filter(r=>r.id!==remId);
+    }
+    
+    const updateData={reminders};
+    if(cb.checked)updateData['inscriptions.'+atelierKey]=true;
+    else updateData['inscriptions.'+atelierKey]=firebase.firestore.FieldValue.delete();
+    await db.collection('users').doc(uid).update(updateData);
+    return uid;
+  }));
   
-  btn.textContent='✅ Enregistré !';
-  btn.style.background='#2c3e91';
-  setTimeout(()=>{btn.disabled=false;btn.textContent='✅ Valider les inscriptions';btn.style.background='#22a559';},2000);
+  const ok=results.filter(r=>r.status==='fulfilled').length;
+  const err=results.filter(r=>r.status==='rejected').length;
+  
+  if(err>0){
+    console.error('[Inscription groupe] Erreurs :',results.filter(r=>r.status==='rejected').map(r=>r.reason));
+    btn.textContent=`⚠️ ${ok} OK, ${err} erreur${err>1?'s':''}`;
+    btn.style.background='#d63447';
+    setTimeout(()=>{showAdminInscrireGroupe();},2500);
+  } else {
+    btn.textContent='✅ Enregistré !';
+    btn.style.background='#2c3e91';
+    setTimeout(()=>{showAdminInscrireGroupe();},1000);
+  }
 }
 
 async function showAdminAteliers(selectedMonth){
