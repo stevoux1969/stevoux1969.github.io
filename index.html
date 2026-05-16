@@ -1499,7 +1499,7 @@ async function showAdminInscrireGroupe(){
       <div class="inscrire-atelier-date">${dateStr} à ${ev.time}</div>`;
     
     users.forEach(u=>{
-      const checked=(u.inscriptions[atelierKey]==='1')?'checked':'';
+      const checked=(u.inscriptions[atelierKey]===true||u.inscriptions[atelierKey]==='1'||u.reminders&&u.reminders.some(r=>r.id==='atelier_'+atelierKey))?'checked':'';
       html+=`<div class="inscrire-beneficiaire-row">
         <span class="inscrire-beneficiaire-name">${u.prenom}</span>
         <input type="checkbox" class="inscrire-checkbox" data-uid="${u.uid}" data-key="${atelierKey}" ${checked}>
@@ -1553,7 +1553,10 @@ async function validerInscriptionsGroupe(btn, atelierKey){
         reminders=reminders.filter(r=>r.id!==remId);
       }
       
-      await db.collection('users').doc(uid).update({reminders});
+      const updateData={reminders};
+      if(cb.checked&&!dejaInscrit)updateData['inscriptions.'+atelierKey]=true;
+      else if(!cb.checked&&dejaInscrit)updateData['inscriptions.'+atelierKey]=firebase.firestore.FieldValue.delete();
+      await db.collection('users').doc(uid).update(updateData);
       ok++;
     }catch(e){err++;}
   }
