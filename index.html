@@ -1798,7 +1798,9 @@ function parseAVPPlanning(csv){
       i=j;
     }else{i++;}
   }
-  return events;
+  // Déduplication par clé date+heure+titre
+  const seen=new Set();
+  return events.filter(e=>{const k=e.date+'_'+e.time+'_'+e.title;if(seen.has(k))return false;seen.add(k);return true;});
 }
 
 function renderPlanning(){const content=document.getElementById('planning-content');const events=state.avpEvents;if(events.length===0){content.innerHTML='<div class="planning-empty">📋 Aucune activité trouvée dans le planning.</div>';return;}const firstDate=events[0].date;const[y,m]=firstDate.split('-').map(Number);const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];document.getElementById('planning-month-title').textContent=`Planning ${monthNames[m-1]} ${y}`;Promise.all([loadAllInscriptions(),db.collection('atelier_descriptions').get()]).then(([inscritsByEvent,descSnap])=>{state.allInscriptions=inscritsByEvent;state.atelierDescs={};descSnap.docs.forEach(d=>{state.atelierDescs[d.id]={...d.data()};});renderPlanningInner(content,events);scrollToToday(content);});}
