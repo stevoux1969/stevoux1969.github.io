@@ -892,25 +892,24 @@ async function showAdminDescriptions(){
   const content=document.getElementById('descriptions-content');
   content.innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement…</div>';
   try{
-    const snap=await db.collection('atelier_descriptions').get();
+    const [descSnap]=await Promise.all([db.collection('atelier_descriptions').get()]);
     const descs={};
-    snap.docs.forEach(d=>{descs[d.id]={...d.data()};});
-    const titres=Object.keys(descs).sort();
-    let html=`<p style="font-size:13px;color:#5e6b8a;margin-bottom:16px;">Description affichée quand un bénéficiaire clique sur "Infos" dans le planning.</p>
-    <button onclick="showAddDescriptionForm()" style="width:100%;padding:12px;background:#6d28d9;color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:16px;">➕ Ajouter un atelier</button>`;
-    if(titres.length===0)html+='<div style="text-align:center;color:#9ca3af;font-style:italic;padding:20px;">Aucune description enregistrée.</div>';
-    titres.forEach(t=>{
+    descSnap.docs.forEach(d=>{descs[d.id]={...d.data()};});
+    const events=state.avpEvents&&state.avpEvents.length>0?state.avpEvents:[];
+    const titresPlanning=[...new Set(events.map(e=>e.title.replace(/\s*\(\d+\)\s*$/,'').trim()))].sort();
+    const tousLesTitres=[...new Set([...titresPlanning,...Object.keys(descs)])].sort();
+    let html=`<p style="font-size:13px;color:#5e6b8a;margin-bottom:16px;">Clique sur un atelier pour ajouter ou modifier sa description.</p>`;
+    if(tousLesTitres.length===0){html+='<div style="text-align:center;color:#9ca3af;font-style:italic;padding:20px;">Aucun atelier trouvé. Charge d\'abord le planning du mois.</div>';}
+    tousLesTitres.forEach(t=>{
       const d=descs[t];
-      html+=`<div style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      const hasDesc=d&&d.description;
+      html+=`<div onclick="editDescription('${t.replace(/'/g,"\\'")}') " style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);cursor:pointer;display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:${hasDesc?'#ede9fe':'#f1f3f8'};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${hasDesc?'📝':'➕'}</div>
+        <div style="flex:1;min-width:0;">
           <div style="font-size:14px;font-weight:700;color:#1a2340;">${esc(t)}</div>
-          <div style="display:flex;gap:6px;">
-            <button onclick="editDescription('${t.replace(/'/g,"\\'")}')" style="font-size:12px;padding:4px 10px;border-radius:8px;border:1px solid #c4b5fd;background:#f5f3ff;color:#6d28d9;cursor:pointer;font-weight:600;">✏️</button>
-            <button onclick="deleteDescription('${t.replace(/'/g,"\\'")}')" style="font-size:12px;padding:4px 10px;border-radius:8px;border:1px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-weight:600;">🗑️</button>
-          </div>
+          ${hasDesc?`<div style="font-size:12px;color:#6d28d9;margin-top:2px;">${esc(d.description.slice(0,60))}${d.description.length>60?'…':''}</div>`:'<div style="font-size:12px;color:#9ca3af;font-style:italic;">Pas encore de description</div>'}
         </div>
-        ${d.description?`<p style="font-size:13px;color:#374151;margin:0 0 4px;">${esc(d.description.slice(0,100))}${d.description.length>100?'…':''}</p>`:''}
-        ${d.adresse?`<p style="font-size:12px;color:#6d28d9;margin:0;">📍 ${esc(d.adresse)}</p>`:''}
+        <i class="ti ti-chevron-right" style="color:#9ca3af;font-size:16px;"></i>
       </div>`;
     });
     content.innerHTML=html;
