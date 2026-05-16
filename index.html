@@ -243,6 +243,8 @@
     .btn-new-user { margin: 0 16px 16px; padding: 18px; background: #d63447; color: white; border: none; border-radius: 16px; font-size: 18px; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 10px; }
     .btn-new-user:active { background: #b02a3e; }
     .btn-admin-action { margin: 0 16px 10px; padding: 16px; background: #eef1fb; color: #2c3e91; border: 2px solid #8fa3df; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .admin-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px 12px; }
+    .admin-actions-grid .btn-admin-action { margin: 0; padding: 10px 6px; font-size: 12px; border-radius: 12px; min-height: 56px; text-align: center; line-height: 1.2; }
     .btn-admin-action:active { background: #dde3f7; }
     .admin-detail-body { flex: 1; overflow-y: auto; padding: 16px 16px 100px; }
     .admin-detail-top { background: white; border-radius: 16px; padding: 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(26,35,64,0.06); }
@@ -502,14 +504,16 @@
     <h1 id="admin-titre">👑 Espace Admin</h1>
   </div>
   <button class="btn-new-user" id="admin-new-user-btn">+ Créer un compte bénéficiaire</button>
-  <button class="btn-admin-action" id="admin-ateliers-btn">📋 Voir les inscrits aux ateliers</button>
-  <button class="btn-admin-action" id="admin-inscrire-groupe-btn" style="background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;">👥 Inscrire des bénéficiaires aux ateliers</button>
-  <button class="btn-admin-action" id="admin-annuler-btn" style="background:#fdf0f2;color:#d63447;border-color:#f3c3ca;">🚫 Annuler un atelier</button>
-  <button class="btn-admin-action" id="admin-notif-btn" style="background:#f0f4ff;color:#2c3e91;border-color:#c7d2fe;">🔔 Activer mes notifications</button>
-  <button class="btn-admin-action" id="admin-msg-tous-btn" style="background:#fff7ed;color:#c2410c;border-color:#fed7aa;">📢 Message à tous les bénéficiaires</button>
-  <button class="btn-admin-action" id="admin-msg-atelier-btn" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0;">🎯 Message aux inscrits d'un atelier</button>
-  <button class="btn-admin-action" id="admin-stats-btn" style="background:#f0fdf9;color:#2d6a4f;border-color:#6ee7b7;">📊 Statistiques de présence</button>
-  <button class="btn-admin-action" id="admin-descriptions-btn" style="background:#f5f3ff;color:#6d28d9;border-color:#c4b5fd;">📝 Descriptions des ateliers</button>
+  <div class="admin-actions-grid">
+  <button class="btn-admin-action" id="admin-ateliers-btn">📋 Inscrits aux ateliers</button>
+  <button class="btn-admin-action" id="admin-inscrire-groupe-btn" style="background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;">👥 Inscrire au groupe</button>
+  <button class="btn-admin-action" id="admin-annuler-btn" style="background:#fdf0f2;color:#d63447;border-color:#f3c3ca;">🚫 Annuler atelier</button>
+  <button class="btn-admin-action" id="admin-notif-btn" style="background:#f0f4ff;color:#2c3e91;border-color:#c7d2fe;">🔔 Mes notifications</button>
+  <button class="btn-admin-action" id="admin-msg-tous-btn" style="background:#fff7ed;color:#c2410c;border-color:#fed7aa;">📢 Message à tous</button>
+  <button class="btn-admin-action" id="admin-msg-atelier-btn" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0;">🎯 Message aux inscrits</button>
+  <button class="btn-admin-action" id="admin-stats-btn" style="background:#f0fdf9;color:#2d6a4f;border-color:#6ee7b7;">📊 Statistiques</button>
+  <button class="btn-admin-action" id="admin-descriptions-btn" style="background:#f5f3ff;color:#6d28d9;border-color:#c4b5fd;">📝 Descriptions</button>
+  </div>
   <div class="admin-list" id="admin-user-list"></div>
 </div>
 
