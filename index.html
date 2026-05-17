@@ -847,12 +847,57 @@ async function notifyAnimateur(action, event){
     const titre=isInscription?'✅ '+benefPrenom+' — '+event.title:'❌ '+benefPrenom+' — '+event.title;
     const msg=benefPrenom+(isInscription?' s\'est inscrit(e)':' s\'est désinscrit(e)')+' — '+formatShortDate(event.date)+' à '+event.time.replace(':','h');
     console.log('[AVP] notifyAnimateur → animPrenom:',animPrenom,'sendAt:',sendDateKey,hh+':'+mm,'titre:',titre);
+    // OneSignal (web)
     await queueNotification(titre,msg,sendDateKey,hh+':'+mm,{key:'prenom',value:animPrenom});
-    console.log('[AVP] notifyAnimateur → Firebase écrit OK');
+    // FCM (APK) — écrit dans notifs_animateur, lu par Google Apps Script
+    await db.collection('notifs_animateur').add({
+      animId:animPrenom,
+      titre:titre,
+      msg:msg,
+      createdAt:Date.now(),
+      sent:false
+    });
+    console.log('[AVP] notifyAnimateur → Firebase écrit OK (notifications + notifs_animateur)');
   }catch(e){console.error('[AVP] notifyAnimateur erreur:',e);}
 }
 
+// ============ FCM NOTIFICATIONS ANIMATEURS (APK Capacitor) ============
+async function registerAnimateurFCM(){
+  try{
+    // Vérifier qu'on est dans l'APK Capacitor avec le plugin FCM
+    if(!window.Capacitor||!window.Capacitor.Plugins||!window.Capacitor.Plugins.FirebaseMessaging){
+      console.log('[FCM] Pas dans Capacitor ou plugin absent — version web');
+      return;
+    }
+    const FCM=window.Capacitor.Plugins.FirebaseMessaging;
+    // Demander permission
+    const perm=await FCM.requestPermissions();
+    console.log('[FCM] Permission:',perm);
+    if(perm.receive!=='granted'){
+      console.warn('[FCM] Permission refusée');
+      return;
+    }
+    // Récupérer le token
+    const{token}=await FCM.getToken();
+    if(!token){console.warn('[FCM] Pas de token reçu');return;}
+    console.log('[FCM] Token reçu (début):',token.slice(0,20)+'...');
+    // Identifier l'animateur (steve ou greg)
+    const animDocId=currentUser.isGreg?'greg':'steve';
+    // Sauvegarder dans Firebase
+    await db.collection('animateurs').doc(animDocId).set({
+      fcmToken:token,
+      updatedAt:Date.now(),
+      prenom:currentUser.isGreg?'Greg':'Steve'
+    },{merge:true});
+    console.log('[FCM] Token sauvegardé dans animateurs/'+animDocId);
+  }catch(e){
+    console.error('[FCM] Erreur registerAnimateurFCM:',e);
+  }
+}
+
 async function showAdminScreen(){
+  // Au login admin : récupérer et sauvegarder le token FCM (APK seulement)
+  registerAnimateurFCM();
   showScreen('admin-screen');
   document.getElementById('admin-titre').textContent = currentUser.isGreg ? '👑 Espace Admin Greg' : '👑 Espace Admin';
   await loadAdminUsers();
