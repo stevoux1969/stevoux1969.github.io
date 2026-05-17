@@ -354,6 +354,8 @@
     .tutorial-btn-finish { background: #ffc107; color: #1a2340; }
     .copyright { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 11px; color: #a0aac4; padding: 4px 0 calc(4px + env(safe-area-inset-bottom)); background: rgba(241,243,248,0.9); z-index: 50; pointer-events: none; letter-spacing: 0.3px; }
   </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -954,7 +956,41 @@ async function editDescription(titre){
 async function deleteDescription(titre){
   showConfirm({icon:'🗑️',title:'Supprimer ?',text:`Supprimer la description de "${titre}" ?`,okText:'Supprimer',danger:true,onOk:async()=>{await db.collection('atelier_descriptions').doc(titre).delete();await showAdminDescriptions();}});
 }
-document.getElementById('stats-export-btn').addEventListener('click',()=>{window.print();});
+document.getElementById('stats-export-btn').addEventListener('click',async()=>{
+  const btn=document.getElementById('stats-export-btn');
+  const oldText=btn.textContent;
+  btn.textContent='⏳';btn.disabled=true;
+  try{
+    const screen=document.getElementById('admin-stats-screen');
+    const body=screen.querySelector('.stats-body');
+    if(!body){alert('Écran stats introuvable');return;}
+    // Capturer le contenu stats uniquement (pas le header)
+    const canvas=await html2canvas(body,{scale:1.5,backgroundColor:'#ffffff',useCORS:true,scrollY:-window.scrollY});
+    const imgData=canvas.toDataURL('image/png');
+    const{jsPDF}=window.jspdf;
+    const pdf=new jsPDF('p','mm','a4');
+    const pageW=210,pageH=297;
+    const imgW=pageW-20;
+    const imgH=canvas.height*imgW/canvas.width;
+    let heightLeft=imgH;
+    let position=10;
+    pdf.addImage(imgData,'PNG',10,position,imgW,imgH);
+    heightLeft-=(pageH-20);
+    while(heightLeft>0){
+      position=heightLeft-imgH+10;
+      pdf.addPage();
+      pdf.addImage(imgData,'PNG',10,position,imgW,imgH);
+      heightLeft-=(pageH-20);
+    }
+    const mois=document.getElementById('stats-month-filter')?.selectedOptions[0]?.textContent||'stats';
+    pdf.save(`AVP_Statistiques_${mois.replace(/\s/g,'_')}.pdf`);
+  }catch(e){
+    console.error('PDF erreur:',e);
+    alert('Erreur génération PDF : '+e.message);
+  }finally{
+    btn.textContent=oldText;btn.disabled=false;
+  }
+});
 
 let statsFilter='month_'+new Date().toISOString().slice(0,7);
 let statsChart=null;
