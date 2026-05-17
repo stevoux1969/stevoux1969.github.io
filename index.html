@@ -366,6 +366,11 @@
 
 <div id="login-screen" class="screen">
   <div class="login-wrap">
+    <div id="apk-download-banner" style="display:none;background:linear-gradient(135deg,#22a559,#1c8e4a);color:white;padding:14px 16px;border-radius:14px;margin:0 0 16px;box-shadow:0 4px 12px rgba(34,165,89,0.3);text-align:center;">
+      <div style="font-size:15px;font-weight:700;margin-bottom:8px;">📲 Installez l'application sur votre téléphone</div>
+      <div style="font-size:13px;opacity:0.95;margin-bottom:10px;">Pour recevoir les rappels et notifications</div>
+      <a href="majourneeavp.apk" download style="display:inline-block;background:white;color:#1c8e4a;padding:10px 24px;border-radius:10px;font-weight:700;text-decoration:none;font-size:15px;">⬇️ Télécharger</a>
+    </div>
     <div class="login-logo" style="font-size:48px; background:#2c3e91; color:white; width:90px; height:90px; border-radius:20px; display:flex; align-items:center; justify-content:center; margin:0 auto;">🏠</div>
     <div class="login-title">Bienvenue dans l'application AVP</div>
     <div class="login-subtitle" style="font-weight:700; color:#22a559; font-size:17px;">Animateurs Steve et Greg — La Clé</div>
@@ -2026,6 +2031,14 @@ async function init(){
   createTimePicker('f-event-time', defaultTime, 5);
   updatePinDots();
   document.getElementById('field-prenom').style.display='none';
+  // Afficher bouton téléchargement APK uniquement sur navigateur Android (pas dans l'APK Capacitor)
+  try{
+    const isCapacitor=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+    const isAndroid=/android/i.test(navigator.userAgent);
+    if(isAndroid&&!isCapacitor){
+      document.getElementById('apk-download-banner').style.display='block';
+    }
+  }catch(e){}
   const session=loadSession();
   if(session){currentUser=session;if(currentUser.isAdmin){showAdminScreen();}else{tagOneSignalUser(currentUser.prenom);await loadUserData();enterApp();loadAVPPlanning();}}else{showScreen('login-screen');}
   setInterval(checkReminders,30000);
