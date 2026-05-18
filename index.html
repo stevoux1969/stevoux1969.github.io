@@ -1,4 +1,87 @@
 <!DOCTYPE html>
+<!--
+========================================================================
+  MA JOURNÉE AVP — index.html (version de référence)
+  Dernière mise à jour : 17 mai 2026
+  
+  ⚠️ FICHIER UNIQUE : ce fichier doit être identique aux 3 endroits :
+     1. GitHub (stevoux1969/stevoux1969.github.io)
+     2. C:\Users\samsah32\Desktop\majourneeavp\www\index.html (pour l'APK)
+     3. Le projet Claude (épinglé en pièce jointe)
+  
+  Si tu modifies ici, mets à jour les 3 endroits.
+========================================================================
+  
+  FONCTIONNALITÉS DOIVENT EXISTER :
+  
+  -- Côté bénéficiaire --
+  [✓] Login prénom + PIN 4 chiffres
+  [✓] Création de comptes bénéficiaires
+  [✓] Rappels personnels (sonnerie + rendez-vous)
+  [✓] Dictée vocale pour créer un rappel
+  [✓] Synthèse vocale qui lit le rappel quand on appuie sur la carte
+       → utilise plugin @capacitor-community/text-to-speech sur APK
+       → utilise speechSynthesis natif sur web
+  [✓] Plein écran avec voix quand une sonnerie se déclenche
+  [✓] Planning Steve / Planning Greg (depuis Google Sheets CSV)
+  [✓] Inscription / désinscription aux ateliers
+  [✓] Liste des inscrits visible
+  [✓] Bouton agenda Google sur rendez-vous
+  [✓] Tutoriel 7 pages au premier login
+  [✓] Permission notifications locales Capacitor demandée au login (APK)
+  [✓] OneSignal pour les notifs web (bénéficiaires sur Chrome)
+  [✓] Notifications locales Capacitor pour APK (rappels persos + ateliers)
+  
+  -- Côté admin (Steve / Greg) --
+  [✓] Code admin Steve : 196969
+  [✓] Code admin Greg : 555888
+  [✓] Grille 2 colonnes des boutons admin
+  [✓] Créer un compte bénéficiaire
+  [✓] Voir / éditer / supprimer un bénéficiaire
+  [✓] Voir les inscrits aux ateliers
+  [✓] Inscrire des bénéficiaires aux ateliers (en parallèle, avec erreurs visibles)
+  [✓] Annuler un atelier
+  [✓] Message à tous / Message aux inscrits d'un atelier
+  [✓] Statistiques de présence avec export PDF (jsPDF + html2canvas)
+  [✓] Descriptions des ateliers (collection atelier_descriptions)
+  [✓] Pointage présence/absence (collection presences)
+  [✓] FCM token sauvegardé au login admin (collection animateurs)
+  [✓] Notifs animateur quand bénéficiaire s'inscrit/désinscrit
+       → écrit dans 2 collections : notifications (OneSignal) + notifs_animateur (FCM)
+  
+  -- Côté web (navigateur Chrome) --
+  [✓] Bannière verte de téléchargement APK sur écran de login
+       (visible uniquement sur Android navigateur, pas dans l'APK)
+  
+  -- Système de mise à jour APK --
+  [✓] Constante APP_VERSION en haut du JS (à incrémenter à chaque rebuild)
+  [✓] checkUpdate() compare APP_VERSION avec version.txt sur GitHub
+  [✓] Popup "Mise à jour disponible" si version distante > locale
+  [✓] Bouton "Plus tard" pour reporter à 24h (localStorage)
+  [✓] Fichier version.txt à mettre à jour sur GitHub avec le nouveau numéro
+  
+  COLLECTIONS FIREBASE UTILISÉES :
+  - users (comptes + reminders + inscriptions)
+  - presences (pointages)
+  - atelier_descriptions
+  - user_statuses (hospitalisé / absence prolongée)
+  - annulations
+  - notifications (OneSignal — bénéficiaires + animateurs web)
+  - notifs_animateur (FCM — animateurs APK)
+  - animateurs (tokens FCM steve / greg)
+  - messages_admin
+  
+  PLUGINS CAPACITOR REQUIS (APK) :
+  - @capacitor/local-notifications
+  - @capacitor-firebase/messaging
+  - @capacitor-community/text-to-speech
+  
+  CDN UTILISÉS :
+  - Firebase (firestore, app, messaging)
+  - OneSignal SDK
+  - jsPDF + html2canvas (export PDF stats)
+========================================================================
+-->
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
@@ -799,7 +882,22 @@ async function checkMessagesAdmin(){
   }catch(e){}
 }
 
+// Demande permission notifications locales Capacitor pour bénéficiaires (APK seulement)
+async function requestBenefNotifPermission(){
+  try{
+    if(!window.Capacitor||!window.Capacitor.Plugins||!window.Capacitor.Plugins.LocalNotifications){
+      console.log('[Notif] Pas dans Capacitor — version web');
+      return;
+    }
+    const LN=window.Capacitor.Plugins.LocalNotifications;
+    const perm=await LN.requestPermissions();
+    console.log('[Notif] Permission bénéficiaire:',perm);
+  }catch(e){console.error('[Notif] Erreur permission bénéficiaire:',e);}
+}
+
 function enterApp(){
+  // Demande permission notifications (APK seulement) si bénéficiaire
+  if(currentUser&&!currentUser.isAdmin)requestBenefNotifPermission();
   const header=document.querySelector('#main-screen .header');
   let userBtn=document.getElementById('header-user-btn');
   if(!userBtn){userBtn=document.createElement('button');userBtn.id='header-user-btn';userBtn.className='header-user';header.appendChild(userBtn);}
@@ -2020,6 +2118,60 @@ function checkReminders(){if(!currentUser)return;const now=new Date(),ct=`${Stri
 
 document.body.addEventListener('click',()=>{const c=getAudioContext();if(c&&c.state==='suspended')c.resume().catch(()=>{});},{once:true});
 
+// Version actuelle de l'APK — à incrémenter à chaque rebuild
+const APP_VERSION='1.0.0';
+const VERSION_URL='https://stevoux1969.github.io/version.txt';
+const APK_URL='https://stevoux1969.github.io/majourneeavp.apk';
+
+async function checkUpdate(){
+  try{
+    // Uniquement dans l'APK Capacitor
+    if(!window.Capacitor||!window.Capacitor.isNativePlatform||!window.Capacitor.isNativePlatform())return;
+    const r=await fetch(VERSION_URL+'?_='+Date.now(),{cache:'no-store'});
+    if(!r.ok)return;
+    const remote=(await r.text()).trim();
+    if(!remote||remote===APP_VERSION)return;
+    if(compareVersions(remote,APP_VERSION)<=0)return;
+    console.log('[Update] Version locale:',APP_VERSION,'distante:',remote);
+    // Afficher popup mise à jour
+    showUpdatePopup(remote);
+  }catch(e){console.error('[Update] Erreur:',e);}
+}
+
+function compareVersions(a,b){
+  const aa=a.split('.').map(Number);
+  const bb=b.split('.').map(Number);
+  for(let i=0;i<3;i++){
+    if((aa[i]||0)>(bb[i]||0))return 1;
+    if((aa[i]||0)<(bb[i]||0))return -1;
+  }
+  return 0;
+}
+
+function showUpdatePopup(remoteVersion){
+  // Évite de spammer si déjà vu cette version aujourd'hui
+  const today=new Date().toISOString().slice(0,10);
+  const seen=localStorage.getItem('update_seen_'+remoteVersion);
+  if(seen===today)return;
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML=`
+    <div style="background:white;border-radius:18px;padding:28px 22px;max-width:380px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,0.3);">
+      <div style="font-size:48px;margin-bottom:8px;">🆕</div>
+      <h2 style="margin:0 0 12px;color:#2c3e91;font-size:22px;">Mise à jour disponible</h2>
+      <p style="margin:0 0 6px;color:#444;font-size:15px;line-height:1.4;">Une nouvelle version de l'application est disponible.</p>
+      <p style="margin:0 0 20px;color:#888;font-size:13px;">Version ${remoteVersion} (vous avez ${APP_VERSION})</p>
+      <a href="${APK_URL}" download style="display:block;background:#22a559;color:white;padding:14px;border-radius:12px;font-weight:700;text-decoration:none;font-size:16px;margin-bottom:10px;">⬇️ Télécharger la mise à jour</a>
+      <button id="update-later" style="background:none;border:none;color:#888;font-size:14px;padding:8px;cursor:pointer;">Plus tard</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  document.getElementById('update-later').addEventListener('click',()=>{
+    localStorage.setItem('update_seen_'+remoteVersion,today);
+    overlay.remove();
+  });
+}
+
 async function init(){
   // Démarrer à l'heure actuelle + 1h arrondie aux 5 min
   var _now = new Date();
@@ -2031,6 +2183,8 @@ async function init(){
   createTimePicker('f-event-time', defaultTime, 5);
   updatePinDots();
   document.getElementById('field-prenom').style.display='none';
+  // Vérifier les mises à jour APK (APK seulement)
+  checkUpdate();
   // Afficher bouton téléchargement APK uniquement sur navigateur Android (pas dans l'APK Capacitor)
   try{
     const isCapacitor=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
