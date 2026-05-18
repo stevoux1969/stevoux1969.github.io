@@ -2090,7 +2090,30 @@ function setTPVal(id,v){const h=document.getElementById(id);if(!h)return;h.datas
 
 function showConfirm({icon,title,text,okText,cancelText,danger,hideCancel,onOk,onCancel}){document.getElementById('confirm-icon').textContent=icon||'❓';document.getElementById('confirm-title').textContent=title;document.getElementById('confirm-text').textContent=text;const ok=document.getElementById('confirm-ok'),ca=document.getElementById('confirm-cancel');ok.textContent=okText||'OK';ok.className=danger?'btn-danger':'btn-primary';ca.textContent=cancelText||'Annuler';ca.style.display=hideCancel?'none':'block';document.getElementById('confirm-modal').classList.add('active');ok.onclick=()=>{document.getElementById('confirm-modal').classList.remove('active');if(onOk)onOk();};ca.onclick=()=>{document.getElementById('confirm-modal').classList.remove('active');if(onCancel)onCancel();};}
 
-function speak(text){if(!('speechSynthesis' in window))return;try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='fr-FR';u.rate=0.95;u.volume=1;window.speechSynthesis.speak(u);}catch(e){}}
+function speak(text){
+  if(!text)return;
+  try{
+    // APK Capacitor : utiliser le plugin TextToSpeech
+    if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech){
+      window.Capacitor.Plugins.TextToSpeech.speak({
+        text:text,
+        lang:'fr-FR',
+        rate:1.0,
+        pitch:1.0,
+        volume:1.0,
+        category:'ambient'
+      }).catch(e=>console.error('[TTS] Erreur:',e));
+      return;
+    }
+    // Web : utiliser speechSynthesis natif
+    if('speechSynthesis' in window){
+      window.speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance(text);
+      u.lang='fr-FR';u.rate=0.95;u.volume=1;
+      window.speechSynthesis.speak(u);
+    }
+  }catch(e){console.error('[Speak] Erreur:',e);}
+}
 
 let recognition=null;
 function getSR(){const S=window.SpeechRecognition||window.webkitSpeechRecognition;if(!S)return null;if(!recognition){recognition=new S();recognition.lang='fr-FR';recognition.continuous=false;recognition.interimResults=false;}return recognition;}
@@ -2111,7 +2134,7 @@ function startChime(){stopChime();playChimeOnce();chimeInterval=setInterval(play
 function stopChime(){if(chimeInterval){clearInterval(chimeInterval);chimeInterval=null;}if('vibrate' in navigator)try{navigator.vibrate(0)}catch(e){}}
 
 function fireAlert(r){document.getElementById('alert-icon').innerHTML=iconHTML(r.icon);document.getElementById('alert-time').textContent=r.time;document.getElementById('alert-title').textContent=r.title;document.getElementById('alert-note').textContent=r.note||'';const eD=r.eventDate||r.date,eT=r.eventTime||r.time;const dd=r.recurrence==='once'&&eD&&eD!==r.date,td=r.recurrence==='once'&&eT&&eT!==r.time,hd=dd||td;const ae=document.getElementById('alert-eventtime');if(hd){ae.textContent=`🗓️ Rendez-vous${dd?' '+formatRelativeDate(eD):''} à ${eT.replace(':','h')}`;ae.style.display='block';}else{ae.style.display='none';}document.getElementById('alert').classList.add('active');startChime();let phrase=`Il est ${timeToSpeech(r.time)}. ${r.title}`;if(hd){if(dd)phrase+=`, ${formatRelativeDate(eD)}`;phrase+=`, à ${timeToSpeech(eT)}`;}phrase+=`. ${r.note||''}`;setTimeout(()=>speak(phrase),1400);if('Notification' in window&&Notification.permission==='granted')try{new Notification('Ma Journée AVP',{body:`${r.time} — ${r.title}`})}catch(e){}}
-document.getElementById('alert-dismiss').addEventListener('click',()=>{document.getElementById('alert').classList.remove('active');stopChime();window.speechSynthesis?.cancel();});
+document.getElementById('alert-dismiss').addEventListener('click',()=>{document.getElementById('alert').classList.remove('active');stopChime();try{window.speechSynthesis?.cancel();}catch(e){}try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech)window.Capacitor.Plugins.TextToSpeech.stop();}catch(e){}});
 
 let firedToday=new Set();
 function checkReminders(){if(!currentUser)return;const now=new Date(),ct=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,tk=dateKey(new Date());state.reminders.forEach(r=>{if(!reminderAppliesToDay(r,tk))return;const fk=`${tk}_${r.id}_${r.time}`;if(r.time===ct&&!firedToday.has(fk)&&!(r.done&&r.done[tk])){firedToday.add(fk);fireAlert(r);}});}
@@ -2183,6 +2206,9 @@ async function init(){
   createTimePicker('f-event-time', defaultTime, 5);
   updatePinDots();
   document.getElementById('field-prenom').style.display='none';
+  // Afficher numéro de version dans le footer
+  const verEl=document.getElementById('app-version-display');
+  if(verEl)verEl.textContent=APP_VERSION;
   // Vérifier les mises à jour APK (APK seulement)
   checkUpdate();
   // Afficher bouton téléchargement APK uniquement sur navigateur Android (pas dans l'APK Capacitor)
@@ -2203,7 +2229,7 @@ async function init(){
 
 init();
 </script>
-<div class="copyright">Application créée par Steve Legendre © 2026</div>
+<div class="copyright">Application créée par Steve Legendre © 2026 · v<span id="app-version-display">1.0.0</span></div>
 
 <!-- Bannière installation PWA -->
 <div id="pwa-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#2c3e91;color:white;padding:12px 16px;display:none;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
