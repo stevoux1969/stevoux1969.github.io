@@ -1200,8 +1200,11 @@ async function loadAndRenderStats(){
     const presencesMap={};
     presSnap.docs.forEach(d=>{presencesMap[d.id]={...d.data()};});
     const users=usersSnap.docs.filter(d=>{const u=d.data();return u.prenom&&u.code!=='196969'&&u.code!==196969&&u.code!=='555888'&&u.code!==555888;}).map(d=>({uid:d.id,...d.data()}));
+    // Index des ateliers de l'animateur connecté (pour filtrer les stats)
+    const animEvents=new Set((state.avpEvents||[]).map(e=>e.date+'_'+e.time+'_'+(e.title||'').slice(0,20).replace(/\s/g,'_')));
+    const isAnimAtelier=r=>{const k=r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');return animEvents.has(k);};
     const monthSet=new Set([curYM]);
-    users.forEach(u=>{(u.reminders||[]).filter(r=>r.source==='atelier'&&r.date&&r.date<=today).forEach(r=>{if(/^\d{4}-\d{2}/.test(r.date))monthSet.add(r.date.slice(0,7));});});
+    users.forEach(u=>{(u.reminders||[]).filter(r=>r.source==='atelier'&&r.date&&r.date<=today&&isAnimAtelier(r)).forEach(r=>{if(/^\d{4}-\d{2}/.test(r.date))monthSet.add(r.date.slice(0,7));});});
     const months=[...monthSet].sort().reverse();
     if(!statsFilter.startsWith('month_')&&statsFilter!=='all')statsFilter='month_'+curYM;
     const activeYM=statsFilter==='all'?null:statsFilter.replace('month_','');
@@ -1210,7 +1213,7 @@ async function loadAndRenderStats(){
     const atelierMap={};
     users.forEach(u=>{
       const st=u.uid?statuses[u.uid]:null;
-      (u.reminders||[]).filter(r=>r.source==='atelier'&&r.date&&r.date<=today).forEach(r=>{
+      (u.reminders||[]).filter(r=>r.source==='atelier'&&r.date&&r.date<=today&&isAnimAtelier(r)).forEach(r=>{
         if(activeYM&&!r.date.startsWith(activeYM))return;
         const atelierKey=r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');
         const presKey=sanitizePresKey(atelierKey+'__'+u.prenom);
@@ -1231,7 +1234,7 @@ async function loadAndRenderStats(){
     const totalA=benefList.filter(b=>!b.status).reduce((s,b)=>s+b.a,0);
     const atelierList=Object.entries(atelierMap).map(([nm,s])=>({name:nm,p:s.p,a:s.a,seances:s.seances.size})).sort((a,b)=>b.seances-a.seances||(b.p+b.a)-(a.p+a.a));
     const monthlyData={};
-    users.forEach(u=>{(u.reminders||[]).filter(r=>r.source==='atelier'&&r.date&&r.date<=today).forEach(r=>{const ym=r.date.slice(0,7);if(!monthlyData[ym])monthlyData[ym]={p:0,a:0};const atelierKey=r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');const presKey=sanitizePresKey(atelierKey+'__'+u.prenom);const pres=presencesMap[presKey];if(pres&&pres.statut==='absent')monthlyData[ym].a++;else monthlyData[ym].p++;});});
+    users.forEach(u=>{(u.reminders||[]).filter(r=>r.source==='atelier'&&r.date&&r.date<=today&&isAnimAtelier(r)).forEach(r=>{const ym=r.date.slice(0,7);if(!monthlyData[ym])monthlyData[ym]={p:0,a:0};const atelierKey=r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');const presKey=sanitizePresKey(atelierKey+'__'+u.prenom);const pres=presencesMap[presKey];if(pres&&pres.statut==='absent')monthlyData[ym].a++;else monthlyData[ym].p++;});});
     const monthKeys=Object.keys(monthlyData).sort();
     const monthLabels=monthKeys.map(k=>mNames[parseInt(k.split('-')[1])-1]);
     const monthPresences=monthKeys.map(k=>monthlyData[k].p);
@@ -1859,41 +1862,8 @@ async function toggleInscription(event){const key=event.date+'_'+event.time+'_'+
     await db.collection('users').doc(currentUser.id).update(upd);
   }catch(e){try{await db.collection('users').doc(currentUser.id).update({reminders:state.reminders});}catch(e2){}}
 }else{
-  // Vérifier conflit depuis Firebase
-  if(currentUser&&currentUser.id&&!currentUser.isAdmin){
-    try{
-      const snap=await db.collection('users').doc(currentUser.id).get();
-      const reminders=(snap.data()&&snap.data().reminders)||[];
-      const eventHour=parseInt(event.time.split(':')[0]);
-      const eventMatin=eventHour<12;
-      const conflit=reminders.find(r=>{
-        if(r.source!=='atelier'||r.date!==event.date)return false;
-        if(r.title===event.title&&r.time===event.time)return false; // même atelier commun = pas un conflit
-        const rHour=parseInt((r.time||'0').split(':')[0]);
-        return (rHour<12)===eventMatin;
-      });
-      if(conflit){showConfirm({icon:'⚠️',title:'Conflit d\'horaire',text:`Tu es déjà inscrit à "${conflit.title}" sur ce créneau ${eventMatin?'matin':'après-midi'}.`,okText:'OK',hideCancel:true});return;}
-    }catch(e){}
-  }
-  // Vérifier conflit créneau matin/après-midi
-  const eventHour=parseInt(event.time.split(':')[0]);
-  const eventMatin=eventHour<12;
-  const conflitKey=Object.keys(state.inscriptions||{}).find(k=>{
-    if(!state.inscriptions[k])return false;
-    const parts=k.split('_');
-    if(parts.length<2)return false;
-    const date=parts[0];
-    const time=parts[1];
-    if(date!==event.date)return false;
-    const rHour=parseInt((time||'0').split(':')[0]);
-    const rMatin=rHour<12;
-    return eventMatin===rMatin;
-  });
-  if(conflitKey){
-    const conflitTitle=conflitKey.split('_').slice(2).join(' ');
-    showConfirm({icon:'⚠️',title:'Conflit d\'horaire',text:`Tu es déjà inscrit à un atelier ce ${eventMatin?'matin':'après-midi'}. Tu ne peux pas t'inscrire à deux ateliers sur le même créneau.`,okText:'OK',hideCancel:true});
-    return;
-  }
+  // Pas de vérification de conflit horaire — le bénéficiaire peut s'inscrire à plusieurs ateliers par jour
+  // Seule restriction : même atelier commun Steve+Greg = déjà géré par la dédup du CSV
   state.inscriptions[key]=true;const loc=getAVPLocation(event.title);state.reminders.push({id:'atelier_'+key,title:event.title,icon:event.icon||'📋',time:event.time,date:event.date,recurrence:'once',note:loc?loc.address:'',mapLink:loc?`https://www.google.com/maps/search/?api=1&query=${loc.query}`:null,done:{},source:'atelier'});speak(`Inscrit à ${event.title} !`);try{tagOneSignalAtelier(key,true);}catch(e){} queueAtelierNotifications(event,key);notifyAnimateur('inscription',event);}
   // Update atomique Firebase
   try{
