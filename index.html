@@ -2187,8 +2187,8 @@ const APK_URL='https://stevoux1969.github.io/majourneeavp.apk';
 
 async function checkUpdate(){
   try{
-    // Uniquement dans l'APK Capacitor
-    if(!window.Capacitor||!window.Capacitor.isNativePlatform||!window.Capacitor.isNativePlatform())return;
+    // Uniquement sur navigateur web (pas dans l'APK Capacitor)
+    if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())return;
     const r=await fetch(VERSION_URL+'?_='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;
     const remote=(await r.text()).trim();
