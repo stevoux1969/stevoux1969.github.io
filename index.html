@@ -606,6 +606,7 @@
   <button class="btn-admin-action" id="admin-msg-atelier-btn" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0;">🎯 Message aux inscrits</button>
   <button class="btn-admin-action" id="admin-stats-btn" style="background:#f0fdf9;color:#2d6a4f;border-color:#6ee7b7;">📊 Statistiques</button>
   <button class="btn-admin-action" id="admin-descriptions-btn" style="background:#f5f3ff;color:#6d28d9;border-color:#c4b5fd;">📝 Descriptions</button>
+  <button class="btn-admin-action" id="admin-mois-suivant-btn" style="background:#fff7ed;color:#b45309;border-color:#fcd34d;display:none;">🗓️ Activer mois suivant</button>
   </div>
   <div class="admin-list" id="admin-user-list"></div>
 </div>
@@ -795,10 +796,10 @@ const GREG_CSV_URLS = {
   6: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTVyCIhrJco50xlQhnGeJ3wDpxvu-h5ZzHyN5Z-GrHb8ekkwtobyKxFFXevdr1QDDk4wZo-mtyirB8y/pub?gid=723271460&single=true&output=csv',
 };
 
-function getAVPCsvUrl() {
-  const month = new Date().getMonth() + 1;
-  if(state && state.currentAnim === 'Greg') return GREG_CSV_URLS[month] || GREG_CSV_URLS[5];
-  return AVP_CSV_URLS[month] || AVP_CSV_URLS[4];
+function getAVPCsvUrl(mois) {
+  const month = mois || new Date().getMonth() + 1;
+  if(state && state.currentAnim === 'Greg') return GREG_CSV_URLS[month] || null;
+  return AVP_CSV_URLS[month] || null;
 }
 
 let currentUser = null;
@@ -1012,7 +1013,19 @@ async function showAdminScreen(){
   await loadAdminUsers();
   state.avpEvents=[];
   if(currentUser.isGreg){state.currentAnim='Greg';}else{state.currentAnim='Steve';}
+  // Bouton mois suivant : seulement pour Steve
+  const btnMs = document.getElementById('admin-mois-suivant-btn');
+  if(btnMs) btnMs.style.display = currentUser.isGreg ? 'none' : '';
   await loadAVPPlanning();
+  // Mettre à jour le label du bouton mois suivant
+  try{
+    const moisNoms={1:'Janvier',2:'Février',3:'Mars',4:'Avril',5:'Mai',6:'Juin',7:'Juillet',8:'Août',9:'Septembre',10:'Octobre',11:'Novembre',12:'Décembre'};
+    const moisSuivant = new Date().getMonth()===11?1:new Date().getMonth()+2;
+    const flagSnap = await db.collection('config').doc('planning').get();
+    const actif = flagSnap.exists && flagSnap.data().moisSuivantActif;
+    const btn = document.getElementById('admin-mois-suivant-btn');
+    if(btn) btn.textContent = actif ? '✅ '+moisNoms[moisSuivant]+' activé — Désactiver' : '🗓️ Activer '+moisNoms[moisSuivant];
+  }catch(e){}
 }
 async function loadAdminUsers(){const list=document.getElementById('admin-user-list');list.innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';try{const snap=await db.collection('users').get();if(snap.empty){list.innerHTML='<div class="planning-empty">Aucun compte créé.</div>';return;}list.innerHTML=snap.docs.map(d=>{const u=d.data();const nb=(u.reminders||[]).length;return`<div class="admin-user-card" data-uid="${d.id}"><div class="user-avatar">${u.prenom.slice(0,1).toUpperCase()}</div><div class="admin-user-info"><div class="admin-user-name">${esc(u.prenom)}</div><div class="admin-user-meta">${nb} rappel${nb>1?'s':''} · Code : ${u.code}</div></div><span style="font-size:22px;color:#5e6b8a">›</span></div>`;}).join('');}catch(e){list.innerHTML='<div class="planning-empty">Erreur de chargement.</div>';}}
 
@@ -1025,6 +1038,28 @@ document.getElementById('admin-msg-atelier-btn').addEventListener('click',()=>sh
 document.getElementById('admin-stats-btn').addEventListener('click',()=>showAdminStats());
 document.getElementById('stats-back-btn').addEventListener('click',()=>showScreen('admin-screen'));
 document.getElementById('admin-descriptions-btn').addEventListener('click',()=>showAdminDescriptions());
+document.getElementById('admin-mois-suivant-btn').addEventListener('click', async()=>{
+  try{
+    const flagSnap = await db.collection('config').doc('planning').get();
+    const actif = flagSnap.exists && flagSnap.data().moisSuivantActif;
+    const moisNoms={1:'Janvier',2:'Février',3:'Mars',4:'Avril',5:'Mai',6:'Juin',7:'Juillet',8:'Août',9:'Septembre',10:'Octobre',11:'Novembre',12:'Décembre'};
+    const moisActuel = new Date().getMonth()+1;
+    const moisSuivant = moisActuel===12?1:moisActuel+1;
+    if(actif){
+      if(confirm('Désactiver le mois de '+moisNoms[moisSuivant]+' pour les bénéficiaires ?')){
+        await db.collection('config').doc('planning').set({moisSuivantActif:false},{merge:true});
+        document.getElementById('admin-mois-suivant-btn').textContent='🗓️ Activer mois suivant';
+        alert(moisNoms[moisSuivant]+' désactivé.');
+      }
+    } else {
+      if(confirm('Activer le planning de '+moisNoms[moisSuivant]+' pour tous les bénéficiaires ?')){
+        await db.collection('config').doc('planning').set({moisSuivantActif:true},{merge:true});
+        document.getElementById('admin-mois-suivant-btn').textContent='✅ '+moisNoms[moisSuivant]+' activé — Désactiver';
+        alert(moisNoms[moisSuivant]+' activé pour tous !');
+      }
+    }
+  }catch(e){ alert('Erreur : '+e.message); }
+});
 document.getElementById('descriptions-back-btn').addEventListener('click',()=>showScreen('admin-screen'));
 
 async function showAtelierInfo(titre){
@@ -1951,18 +1986,42 @@ function render(){const d=getCurrentDate();const key=dateKey(d);document.getElem
 
 async function loadAVPPlanning(){
   try{
-    const url=getAVPCsvUrl()+'&_='+Date.now();
-    const r=await fetch(url,{cache:'no-store'});
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    const csv=await r.text();
-    const parsed=parseAVPPlanning(csv);
-    state.avpEvents=parsed;
+    // Vérifier si le mois suivant est activé dans Firebase
+    let moisSuivantActif = false;
+    try{
+      const flagSnap = await db.collection('config').doc('planning').get();
+      if(flagSnap.exists && flagSnap.data().moisSuivantActif) moisSuivantActif = true;
+    }catch(e){}
+
+    const moisActuel = new Date().getMonth() + 1;
+    const moisSuivant = moisActuel === 12 ? 1 : moisActuel + 1;
+
+    // Charger le mois actuel
+    let allEvents = [];
+    const url = getAVPCsvUrl(moisActuel);
+    if(url){
+      const r = await fetch(url+'&_='+Date.now(),{cache:'no-store'});
+      if(r.ok){ const csv=await r.text(); allEvents=parseAVPPlanning(csv); }
+    }
+
+    // Si le mois suivant est activé, charger et fusionner
+    if(moisSuivantActif){
+      const urlSuivant = getAVPCsvUrl(moisSuivant);
+      if(urlSuivant){
+        try{
+          const r2 = await fetch(urlSuivant+'&_='+Date.now(),{cache:'no-store'});
+          if(r2.ok){ const csv2=await r2.text(); const parsed2=parseAVPPlanning(csv2); allEvents=[...allEvents,...parsed2]; }
+        }catch(e){}
+      }
+    }
+
+    state.avpEvents = allEvents;
     try{
       const snap=await db.collection('annulations').get();
       state.annulations={};
       snap.docs.forEach(doc=>{state.annulations[doc.id]=doc.data();});
     }catch(e){}
-    return parsed;
+    return allEvents;
   }catch(e){
     console.error('AVP planning erreur:',e);
     return [];
