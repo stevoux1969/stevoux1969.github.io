@@ -603,9 +603,9 @@
   <button class="btn-admin-action" id="admin-inscrire-groupe-btn" style="background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;">👥 Inscrire au groupe</button>
   <button class="btn-admin-action" id="admin-annuler-btn" style="background:#fdf0f2;color:#d63447;border-color:#f3c3ca;">🚫 Annuler atelier</button>
   <button class="btn-admin-action" id="admin-msg-tous-btn" style="background:#fff7ed;color:#c2410c;border-color:#fed7aa;">📢 Message à tous</button>
-  <button class="btn-admin-action" id="admin-msg-atelier-btn" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0;">🎯 Message aux inscrits</button>
+  <button class="btn-admin-action" id="admin-msg-atelier-btn" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0;">🔔 Parler aux inscrits</button>
   <button class="btn-admin-action" id="admin-stats-btn" style="background:#f0fdf9;color:#2d6a4f;border-color:#6ee7b7;">📊 Statistiques</button>
-  <button class="btn-admin-action" id="admin-descriptions-btn" style="background:#f5f3ff;color:#6d28d9;border-color:#c4b5fd;">📝 Descriptions</button>
+  <button class="btn-admin-action" id="admin-descriptions-btn" style="background:#f5f3ff;color:#6d28d9;border-color:#c4b5fd;">📝 Description de l'atelier</button>
   <button class="btn-admin-action" id="admin-mois-suivant-btn" style="background:#fff7ed;color:#b45309;border-color:#fcd34d;display:none;">🗓️ Activer mois suivant</button>
   </div>
   <div class="admin-list" id="admin-user-list"></div>
@@ -626,7 +626,7 @@
 <div id="admin-descriptions-screen" class="screen">
   <div class="admin-header">
     <button class="back-btn" id="descriptions-back-btn" style="color:white">‹</button>
-    <h1>📝 Descriptions ateliers</h1>
+    <h1>📝 Description de l'atelier</h1>
   </div>
   <div style="flex:1;overflow-y:auto;padding:14px 14px 100px;" id="descriptions-content">
     <div style="text-align:center;padding:40px;color:#5e6b8a">Chargement…</div>
@@ -1062,14 +1062,20 @@ document.getElementById('admin-mois-suivant-btn').addEventListener('click', asyn
 });
 document.getElementById('descriptions-back-btn').addEventListener('click',()=>showScreen('admin-screen'));
 
-async function showAtelierInfo(titre){
+// Clé de description par occurrence datée : titre normalisé | date | heure
+function descKey(titre,date,time){
+  const t=(titre||'').replace(/\s*\(\d+\)\s*$/,'').trim();
+  return t+'|'+(date||'')+'|'+(time||'');
+}
+
+async function showAtelierInfo(cle,titreAffiche){
   const modal=document.getElementById('atelier-info-modal');
-  document.getElementById('info-modal-title').textContent=titre;
+  document.getElementById('info-modal-title').textContent=titreAffiche||cle;
   const bodyEl=document.getElementById('info-modal-body');
   bodyEl.innerHTML='<div style="color:#9ca3af">Chargement…</div>';
   modal.style.display='flex';
   try{
-    const snap=await db.collection('atelier_descriptions').doc(titre).get();
+    const snap=await db.collection('atelier_descriptions').doc(cle).get();
     if(snap.exists&&snap.data().description){
       const d=snap.data();
       let html=`<p style="margin:0 0 12px;">${esc(d.description).replace(/\n/g,'<br>')}</p>`;
@@ -1086,60 +1092,72 @@ async function showAdminDescriptions(){
   const content=document.getElementById('descriptions-content');
   content.innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement…</div>';
   try{
+    // Recharger le planning (mois courant + suivant si activé)
+    await loadAVPPlanning();
     const [descSnap]=await Promise.all([db.collection('atelier_descriptions').get()]);
     const descs={};
     descSnap.docs.forEach(d=>{descs[d.id]={...d.data()};});
-    const events=state.avpEvents&&state.avpEvents.length>0?state.avpEvents:[];
-    const titresPlanning=[...new Set(events.map(e=>e.title.replace(/\s*\(\d+\)\s*$/,'').trim()))].sort();
-    const tousLesTitres=[...new Set([...titresPlanning,...Object.keys(descs)])].sort();
-    let html=`<p style="font-size:13px;color:#5e6b8a;margin-bottom:16px;">Clique sur un atelier pour ajouter ou modifier sa description.</p>`;
-    if(tousLesTitres.length===0){html+='<div style="text-align:center;color:#9ca3af;font-style:italic;padding:20px;">Aucun atelier trouvé. Charge d\'abord le planning du mois.</div>';}
-    tousLesTitres.forEach(t=>{
-      const d=descs[t];
+    const today=dateKey(new Date());
+    // Une ligne par atelier daté à venir (clé titre|date|heure)
+    const events=(state.avpEvents&&state.avpEvents.length>0?state.avpEvents:[]).filter(e=>e.date>=today);
+    events.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+    const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    let html=`<p style="font-size:13px;color:#5e6b8a;margin-bottom:16px;">Chaque atelier daté a sa propre description. Clique pour ajouter ou modifier.</p>`;
+    if(events.length===0){html+='<div style="text-align:center;color:#9ca3af;font-style:italic;padding:20px;">Aucun atelier à venir. Charge d\'abord le planning du mois.</div>';}
+    let dernierMois='';
+    events.forEach(e=>{
+      const titre=e.title.replace(/\s*\(\d+\)\s*$/,'').trim();
+      const cle=descKey(titre,e.date,e.time);
+      const d=descs[cle];
       const hasDesc=d&&d.description;
-      html+=`<div class="btn-desc-item" data-titre="${esc(t)}" style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);cursor:pointer;display:flex;align-items:center;gap:12px;">
+      const [yy,mm,dd]=e.date.split('-');
+      const moisLabel=monthNames[parseInt(mm)-1]+' '+yy;
+      if(moisLabel!==dernierMois){html+=`<div style="font-size:12px;font-weight:800;color:#6d28d9;text-transform:uppercase;letter-spacing:1px;margin:18px 4px 8px;">${moisLabel}</div>`;dernierMois=moisLabel;}
+      const dateCourte=formatShortDate(e.date)+' · '+e.time.replace(':','h');
+      html+=`<div class="btn-desc-item" data-cle="${esc(cle)}" data-titre="${esc(titre)}" style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);cursor:pointer;display:flex;align-items:center;gap:12px;">
         <div style="width:36px;height:36px;border-radius:50%;background:${hasDesc?'#ede9fe':'#f1f3f8'};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${hasDesc?'📝':'➕'}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:14px;font-weight:700;color:#1a2340;">${esc(t)}</div>
+          <div style="font-size:14px;font-weight:700;color:#1a2340;">${esc(titre)}</div>
+          <div style="font-size:12px;color:#8590ad;margin-top:1px;">${dateCourte}</div>
           ${hasDesc?`<div style="font-size:12px;color:#6d28d9;margin-top:2px;">${esc(d.description.slice(0,60))}${d.description.length>60?'…':''}</div>`:'<div style="font-size:12px;color:#9ca3af;font-style:italic;">Pas encore de description</div>'}
         </div>
         <i class="ti ti-chevron-right" style="color:#9ca3af;font-size:16px;"></i>
       </div>`;
     });
     content.innerHTML=html;
-    content.querySelectorAll('.btn-desc-item').forEach(el=>{el.addEventListener('click',()=>editDescription(el.dataset.titre));});
+    content.querySelectorAll('.btn-desc-item').forEach(el=>{el.addEventListener('click',()=>editDescription(el.dataset.cle,el.dataset.titre));});
   }catch(e){content.innerHTML='<div class="planning-empty">Erreur.</div>';}
 }
 
-function showAddDescriptionForm(titre='',desc='',adresse=''){
+function showAddDescriptionForm(cle,titre,dateLabel,desc='',adresse=''){
   document.getElementById('descriptions-content').innerHTML=`
-    <h3 style="font-size:16px;font-weight:800;color:#1a2340;margin:0 0 16px;">${titre?'Modifier':'Nouvel atelier'}</h3>
-    <div style="margin-bottom:12px;"><label style="font-size:13px;font-weight:700;color:#5e6b8a;display:block;margin-bottom:6px;">Nom de l'atelier</label>
-    <input id="desc-titre" value="${esc(titre)}" placeholder="Ex: Pique-nique" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:15px;box-sizing:border-box;font-family:inherit;" ${titre?'readonly':''}></div>
-    <div style="margin-bottom:12px;"><label style="font-size:13px;font-weight:700;color:#5e6b8a;display:block;margin-bottom:6px;">Description</label>
+    <h3 style="font-size:16px;font-weight:800;color:#1a2340;margin:0 0 4px;">${esc(titre)}</h3>
+    <div style="font-size:13px;color:#8590ad;margin-bottom:16px;">${esc(dateLabel)}</div>
+    <div style="margin-bottom:12px;"><label style="font-size:13px;font-weight:700;color:#5e6b8a;display:block;margin-bottom:6px;">Description pour cette date</label>
     <textarea id="desc-texte" placeholder="Ex: Rendez-vous à la petite maison. Prévoir des chaussures confortables." style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:15px;box-sizing:border-box;font-family:inherit;min-height:100px;">${esc(desc)}</textarea></div>
     <div style="margin-bottom:20px;"><label style="font-size:13px;font-weight:700;color:#5e6b8a;display:block;margin-bottom:6px;">Adresse (facultatif)</label>
     <input id="desc-adresse" value="${esc(adresse)}" placeholder="Ex: 12 rue de la Paix, Petit-Quevilly" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:15px;box-sizing:border-box;font-family:inherit;"></div>
-    <button onclick="saveDescription('${titre.replace(/'/g,"\\'")}')" style="width:100%;padding:14px;background:#6d28d9;color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;">💾 Enregistrer</button>
+    <button id="desc-save-btn" style="width:100%;padding:14px;background:#6d28d9;color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;">💾 Enregistrer</button>
     <button onclick="showAdminDescriptions()" style="width:100%;padding:12px;background:#f1f3f8;color:#5e6b8a;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Annuler</button>`;
+  document.getElementById('desc-save-btn').onclick=()=>saveDescription(cle);
 }
 
-async function saveDescription(ancienTitre){
-  const titre=document.getElementById('desc-titre').value.trim();
+async function saveDescription(cle){
   const desc=document.getElementById('desc-texte').value.trim();
   const adresse=document.getElementById('desc-adresse').value.trim();
-  if(!titre){alert('Le nom est obligatoire.');return;}
   try{
-    if(ancienTitre&&ancienTitre!==titre)await db.collection('atelier_descriptions').doc(ancienTitre).delete();
-    await db.collection('atelier_descriptions').doc(titre).set({description:desc,adresse,updatedAt:Date.now()});
+    await db.collection('atelier_descriptions').doc(cle).set({description:desc,adresse,updatedAt:Date.now()});
     await showAdminDescriptions();
   }catch(e){alert('Erreur sauvegarde.');}
 }
 
-async function editDescription(titre){
-  const snap=await db.collection('atelier_descriptions').doc(titre).get();
+async function editDescription(cle,titre){
+  const snap=await db.collection('atelier_descriptions').doc(cle).get();
   const d=snap.exists?snap.data():{};
-  showAddDescriptionForm(titre,d.description||'',d.adresse||'');
+  // Libellé date à partir de la clé titre|date|heure
+  const parts=cle.split('|');
+  const dateLabel=parts.length>=3?(formatShortDate(parts[1])+' · '+parts[2].replace(':','h')):'';
+  showAddDescriptionForm(cle,titre||parts[0],dateLabel,d.description||'',d.adresse||'');
 }
 
 async function deleteDescription(titre){
@@ -1378,20 +1396,49 @@ async function showAdminMessageModal(mode){
   const signataire=currentUser.isGreg?'Greg':'Steve';
 
   if(mode==='atelier'){
-    // Récupérer les ateliers depuis les inscriptions
-    const snap=await db.collection('users').get();
-    const inscriptions={};
-    snap.docs.forEach(d=>{const data=d.data();if(data.inscriptions){Object.keys(data.inscriptions).forEach(k=>{inscriptions[k]=(inscriptions[k]||0)+1;});}});
-    const ateliers=Object.keys(inscriptions);
-    if(ateliers.length===0){showConfirm({icon:'ℹ️',title:'Aucun atelier',text:'Aucun bénéficiaire inscrit pour le moment.',okText:'OK',hideCancel:true});return;}
+    // Recharger le planning (mois courant + suivant si activé)
+    await loadAVPPlanning();
+    const today=dateKey(new Date());
+    const ateliers=(state.avpEvents||[]).filter(e=>e.date>=today)
+      .sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+    if(ateliers.length===0){showConfirm({icon:'ℹ️',title:'Aucun atelier',text:'Aucun atelier à venir dans le planning.',okText:'OK',hideCancel:true});return;}
 
-    // Modal sélection atelier
+    // Compter les inscrits par atelier
+    const inscritsParAtelier=await loadAllInscriptions();
+
+    // Construire les options groupées par mois
+    const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    let optsHTML='';let dernierMois='';
+    ateliers.forEach(e=>{
+      const ek=e.date+'_'+e.time+'_'+e.title.slice(0,20).replace(/\s/g,'_');
+      const nb=(inscritsParAtelier[ek]||[]).length;
+      const [yy,mm]=e.date.split('-');
+      const moisLabel=monthNames[parseInt(mm)-1]+' '+yy;
+      if(moisLabel!==dernierMois){
+        if(dernierMois!=='')optsHTML+='</optgroup>';
+        optsHTML+=`<optgroup label="${moisLabel}">`;dernierMois=moisLabel;
+      }
+      const dateCourte=formatShortDate(e.date)+' · '+e.time.replace(':','h');
+      const nbLabel=nb>0?`(${nb} inscrit${nb>1?'s':''})`:'(0 inscrit)';
+      optsHTML+=`<option value="${esc(ek)}">${esc(e.title)} — ${dateCourte} ${nbLabel}</option>`;
+    });
+    if(dernierMois!=='')optsHTML+='</optgroup>';
+
+    // Modal sélection atelier — design propre
     const overlay=document.createElement('div');
-    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(26,35,64,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
     const box=document.createElement('div');
-    box.style.cssText='background:white;border-radius:20px;padding:24px;width:100%;max-width:360px;';
-    const opts=ateliers.map(k=>{const idx1=k.indexOf('_');const idx2=k.indexOf('_',idx1+1);const date=k.substring(0,idx1);const time=k.substring(idx1+1,idx2);const titre=k.substring(idx2+1).replace(/_/g,' ');const [y,m,d]=date.split('-');return`<option value="${k}">${titre} — ${d}/${m} à ${time}</option>`;}).join('');
-    box.innerHTML=`<div style="font-size:32px;text-align:center">🎯</div><h3 style="text-align:center;margin:12px 0;font-size:20px">Choisir un atelier</h3><select id="choix-atelier" style="width:100%;padding:12px;font-size:16px;border-radius:10px;border:2px solid #e5e9f2;margin-bottom:16px">${opts}</select><div style="display:flex;gap:12px"><button id="msg-atelier-cancel" style="flex:1;padding:14px;border:2px solid #e5e9f2;border-radius:12px;font-size:16px;background:white;cursor:pointer">Annuler</button><button id="msg-atelier-ok" style="flex:1;padding:14px;border:none;border-radius:12px;font-size:16px;background:#2c3e91;color:white;font-weight:700;cursor:pointer">Suivant</button></div>`;
+    box.style.cssText='background:white;border-radius:20px;padding:24px 22px;width:100%;max-width:380px;box-shadow:0 12px 40px rgba(0,0,0,0.25);';
+    box.innerHTML=`
+      <div style="font-size:40px;text-align:center;margin-bottom:6px;">🎯</div>
+      <h3 style="text-align:center;margin:0 0 6px;font-size:20px;font-weight:800;color:#1a2340;">Parler aux inscrits</h3>
+      <p style="text-align:center;margin:0 0 18px;font-size:14px;color:#5e6b8a;">Choisissez l'atelier concerné</p>
+      <label style="font-size:13px;font-weight:700;color:#5e6b8a;display:block;margin-bottom:6px;">ATELIER</label>
+      <select id="choix-atelier" style="width:100%;padding:14px 12px;font-size:15px;border-radius:12px;border:2px solid #8fa3df;background:white;color:#1a2340;font-family:inherit;margin-bottom:20px;">${optsHTML}</select>
+      <div style="display:flex;gap:10px;">
+        <button id="msg-atelier-cancel" style="flex:1;padding:14px;border:2px solid #e5e9f2;border-radius:12px;font-size:16px;font-weight:700;background:white;color:#5e6b8a;cursor:pointer;font-family:inherit;">Annuler</button>
+        <button id="msg-atelier-ok" style="flex:1;padding:14px;border:none;border-radius:12px;font-size:16px;font-weight:700;background:#2c3e91;color:white;cursor:pointer;font-family:inherit;">Suivant →</button>
+      </div>`;
     overlay.appendChild(box);
     document.body.appendChild(overlay);
     document.getElementById('msg-atelier-cancel').onclick=()=>document.body.removeChild(overlay);
@@ -1585,7 +1632,8 @@ async function adminDeleteReminder(uid,reminderId){showConfirm({icon:'🗑️',t
 
 // ========== ADMIN : ANNULER UN ATELIER ==========
 async function showAdminAnnulerAtelier() {
-  // Charger les ateliers depuis les inscriptions existantes + planning
+  // Recharger le planning (mois courant + mois suivant si activé) avant d'afficher
+  await loadAVPPlanning();
   if (!state.avpEvents || state.avpEvents.length === 0) {
     showConfirm({icon:'⏳', title:'Chargement...', text:'Le planning se charge, réessaie dans quelques secondes.', okText:'OK', hideCancel:true});
     return;
@@ -1743,11 +1791,10 @@ async function showAdminInscrireGroupe(){
   
   // Charger les ateliers du mois en cours depuis le planning
   await loadAVPPlanning();
-  const now=new Date();
-  const ateliers=(state.avpEvents||[]).filter(ev=>{
-    const d=new Date(ev.date);
-    return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&!ev.cancelled;
-  }).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  // Tous les ateliers chargés (mois courant + mois suivant si activé), à partir d'aujourd'hui
+  const todayG=dateKey(new Date());
+  const ateliers=(state.avpEvents||[]).filter(ev=>ev.date>=todayG&&!ev.cancelled)
+    .sort((a,b)=>new Date(a.date)-new Date(b.date));
   
   if(ateliers.length===0){body.innerHTML='<div class="planning-empty">Aucun atelier ce mois-ci.</div>';return;}
   
@@ -2148,9 +2195,9 @@ function renderPlanningInner(content,events){const seen=new Set();const uniqueEv
           </div>
         </div>`;
       } else {
-      const titreNormalise=e.title.replace(/\s*\(\d+\)\s*$/,'').trim();const hasDesc=state.atelierDescs&&state.atelierDescs[titreNormalise]&&state.atelierDescs[titreNormalise].description;const infoBtnHTML=hasDesc?`<button class="btn-atelier-info" data-titre="${titreNormalise.replace(/"/g,'&quot;')}" style="flex-shrink:0;font-size:13px;font-weight:700;padding:5px 12px;border-radius:8px;border:1.5px solid #d63447;background:#fff0f2;color:#d63447;cursor:pointer;font-family:inherit;">En savoir +</button>`:'';
+      const titreNormalise=e.title.replace(/\s*\(\d+\)\s*$/,'').trim();const cleDesc=descKey(titreNormalise,e.date,e.time);const hasDesc=state.atelierDescs&&state.atelierDescs[cleDesc]&&state.atelierDescs[cleDesc].description;const infoBtnHTML=hasDesc?`<button class="btn-atelier-info" data-cle="${cleDesc.replace(/"/g,'&quot;')}" data-titre="${titreNormalise.replace(/"/g,'&quot;')}" style="flex-shrink:0;font-size:13px;font-weight:700;padding:5px 12px;border-radius:8px;border:1.5px solid #d63447;background:#fff0f2;color:#d63447;cursor:pointer;font-family:inherit;">En savoir +</button>`:'';
       html+=`<div class="planning-item ${complet?'planning-item-complet':''}"><div class="planning-item-time">${e.time}</div><div class="planning-item-icon">${iconHTML(e.icon)}</div><div class="planning-item-body"><div class="planning-item-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span>${esc(e.title)}</span>${infoBtnHTML}</div>${inscrit?'<div class="planning-item-meta">✅ Vous participez</div>':''}${compteurHTML}${inscritsHTML}</div>${btnHTML}</div>`;
-      }});});content.innerHTML=html;content.querySelectorAll('.btn-atelier-info').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();showAtelierInfo(btn.dataset.titre);});});content.querySelectorAll('.btn-inscrit:not(.btn-complet)').forEach(btn=>{btn.addEventListener('click',async e=>{e.stopPropagation();if(btn.disabled)return;const ev={date:btn.dataset.edate,time:btn.dataset.etime,title:btn.dataset.etitle,icon:btn.dataset.eicon};const limite=btn.dataset.elimite?parseInt(btn.dataset.elimite):null;const anim=btn.dataset.eanim||'Steve';const ek=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');const dejaInscrit=isInscrit(ek);if(dejaInscrit){await demanderDesinscription(ev,ek,anim,content,events);return;}if(!dejaInscrit&&limite!==null){btn.disabled=true;btn.textContent='⏳ Vérification...';const freshInscriptions=await loadAllInscriptions();const currentCount=(freshInscriptions[ek]||[]).length;if(currentCount>=limite){showConfirm({icon:'😔',title:'Atelier complet',text:`Désolé, les ${limite} places pour "${ev.title}" viennent d'être prises.`,okText:'OK',hideCancel:true});state.allInscriptions=freshInscriptions;renderPlanningInner(content,events);return;}}await toggleInscription(ev);state.allInscriptions=await loadAllInscriptions();renderPlanningInner(content,events);});});}
+      }});});content.innerHTML=html;content.querySelectorAll('.btn-atelier-info').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();showAtelierInfo(btn.dataset.cle,btn.dataset.titre);});});content.querySelectorAll('.btn-inscrit:not(.btn-complet)').forEach(btn=>{btn.addEventListener('click',async e=>{e.stopPropagation();if(btn.disabled)return;const ev={date:btn.dataset.edate,time:btn.dataset.etime,title:btn.dataset.etitle,icon:btn.dataset.eicon};const limite=btn.dataset.elimite?parseInt(btn.dataset.elimite):null;const anim=btn.dataset.eanim||'Steve';const ek=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');const dejaInscrit=isInscrit(ek);if(dejaInscrit){await demanderDesinscription(ev,ek,anim,content,events);return;}if(!dejaInscrit&&limite!==null){btn.disabled=true;btn.textContent='⏳ Vérification...';const freshInscriptions=await loadAllInscriptions();const currentCount=(freshInscriptions[ek]||[]).length;if(currentCount>=limite){showConfirm({icon:'😔',title:'Atelier complet',text:`Désolé, les ${limite} places pour "${ev.title}" viennent d'être prises.`,okText:'OK',hideCancel:true});state.allInscriptions=freshInscriptions;renderPlanningInner(content,events);return;}}await toggleInscription(ev);state.allInscriptions=await loadAllInscriptions();renderPlanningInner(content,events);});});}
 
 document.getElementById('prev-day').addEventListener('click',()=>{state.dayOffset--;render();});
 document.getElementById('next-day').addEventListener('click',()=>{state.dayOffset++;render();});
