@@ -15,7 +15,7 @@
   FONCTIONNALITÉS DOIVENT EXISTER :
   
   -- Côté bénéficiaire --
-  [✓] Login prénom + PIN 4 chiffres
+  [✓] Login prénom + PIN 6 chiffres
   [✓] Création de comptes bénéficiaires
   [✓] Rappels personnels (sonnerie + rendez-vous)
   [✓] Dictée vocale pour créer un rappel
@@ -833,7 +833,7 @@ async function handleLogin() {
   const prenom=document.getElementById('login-prenom').value.trim();
   const code=pinValue;
   document.getElementById('login-error').classList.remove('visible');
-  if(code.length<6){showError('Entrez vos 4 chiffres.');return;}
+  if(code.length<6){showError('Entrez vos 6 chiffres.');return;}
   if(code===ADMIN_CODE&&loginMode==='login'){currentUser={id:'admin',prenom:'Admin',isAdmin:true,isGreg:false};saveSession();showAdminScreen();return;}
   if(code===ADMIN_GREG_CODE&&loginMode==='login'){currentUser={id:'adminGreg',prenom:'Greg',isAdmin:true,isGreg:true};saveSession();showAdminScreen();return;}
   if(loginMode==='register'){
@@ -1578,7 +1578,7 @@ async function adminAddReminder(uid, prenom) {
   const onceBtn=document.querySelector('[data-rec="once"]');if(onceBtn)onceBtn.click();
 }
 
-async function adminChangePin(uid,prenom){const newCode=prompt(`Nouveau code PIN à 4 chiffres pour ${prenom} :`);if(!newCode)return;if(!/^\d{4}$/.test(newCode)){showConfirm({icon:'⚠️',title:'Code invalide',text:'Le code doit contenir exactement 4 chiffres.',okText:'OK',hideCancel:true});return;}try{await db.collection('users').doc(uid).update({code:newCode});showConfirm({icon:'✅',title:'Code modifié',text:`Le nouveau code de ${prenom} est : ${newCode}`,okText:'OK',hideCancel:true});showAdminUserDetail(uid);}catch(e){showConfirm({icon:'❌',title:'Erreur',text:"Impossible de modifier le code.",okText:'OK',hideCancel:true});}}
+async function adminChangePin(uid,prenom){const newCode=prompt(`Nouveau code PIN à 6 chiffres pour ${prenom} :`);if(!newCode)return;if(!/^\d{6}$/.test(newCode)){showConfirm({icon:'⚠️',title:'Code invalide',text:'Le code doit contenir exactement 6 chiffres.',okText:'OK',hideCancel:true});return;}try{await db.collection('users').doc(uid).update({code:newCode});showConfirm({icon:'✅',title:'Code modifié',text:`Le nouveau code de ${prenom} est : ${newCode}`,okText:'OK',hideCancel:true});showAdminUserDetail(uid);}catch(e){showConfirm({icon:'❌',title:'Erreur',text:"Impossible de modifier le code.",okText:'OK',hideCancel:true});}}
 function adminDeleteUser(uid,prenom){showConfirm({icon:'⚠️',title:'Supprimer ce compte ?',text:`Le compte de ${prenom} et tous ses rappels seront définitivement supprimés.`,okText:'Supprimer',danger:true,onOk:async()=>{try{await db.collection('users').doc(uid).delete();showAdminScreen();}catch(e){showConfirm({icon:'❌',title:'Erreur',text:'Impossible de supprimer.',okText:'OK',hideCancel:true});}}});}
 async function adminDeleteReminder(uid,reminderId){showConfirm({icon:'🗑️',title:'Supprimer ce rappel ?',text:'Cette action ne peut pas être annulée.',okText:'Supprimer',danger:true,onOk:async()=>{try{const snap=await db.collection('users').doc(uid).get();const u=snap.data();const newReminders=(u.reminders||[]).filter(r=>r.id!==reminderId);await db.collection('users').doc(uid).update({reminders:newReminders});showAdminUserDetail(uid);}catch(e){showConfirm({icon:'❌',title:'Erreur',text:'Impossible de supprimer.',okText:'OK',hideCancel:true});}}}); }
 
@@ -2001,7 +2001,7 @@ async function loadAVPPlanning(){
     const url = getAVPCsvUrl(moisActuel);
     if(url){
       const r = await fetch(url+'&_='+Date.now(),{cache:'no-store'});
-      if(r.ok){ const csv=await r.text(); allEvents=parseAVPPlanning(csv); }
+      if(r.ok){ const csv=await r.text(); allEvents=parseAVPPlanning(csv,moisActuel); }
     }
 
     // Si le mois suivant est activé, charger et fusionner
@@ -2010,7 +2010,7 @@ async function loadAVPPlanning(){
       if(urlSuivant){
         try{
           const r2 = await fetch(urlSuivant+'&_='+Date.now(),{cache:'no-store'});
-          if(r2.ok){ const csv2=await r2.text(); const parsed2=parseAVPPlanning(csv2); allEvents=[...allEvents,...parsed2]; }
+          if(r2.ok){ const csv2=await r2.text(); const parsed2=parseAVPPlanning(csv2,moisSuivant); allEvents=[...allEvents,...parsed2]; }
         }catch(e){}
       }
     }
@@ -2028,11 +2028,12 @@ async function loadAVPPlanning(){
   }
 }
 
-function parseAVPPlanning(csv){
+function parseAVPPlanning(csv,moisCible){
   const events=[];
   const lines=csv.replace(/\r/g,'').split('\n');
   const year=new Date().getFullYear();
-  const month=new Date().getMonth()+1;
+  // Mois du CSV en cours de lecture (mai, juin...) — pas forcément le mois courant
+  const month=moisCible||(new Date().getMonth()+1);
 
   function parseRow(line){
     const result=[];let cur='';let inQ=false;
@@ -2244,7 +2245,7 @@ function checkReminders(){if(!currentUser)return;const now=new Date(),ct=`${Stri
 document.body.addEventListener('click',()=>{const c=getAudioContext();if(c&&c.state==='suspended')c.resume().catch(()=>{});},{once:true});
 
 // Version actuelle de l'APK — à incrémenter à chaque rebuild
-const APP_VERSION='1.0.2';
+const APP_VERSION='1.0.3';
 const VERSION_URL='https://stevoux1969.github.io/version.txt';
 const APK_URL='https://stevoux1969.github.io/majourneeavp.apk';
 
