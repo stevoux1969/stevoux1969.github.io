@@ -873,19 +873,30 @@ async function checkMessagesAdmin(){
     if(messages.length===0)return;
     // Afficher le premier message non lu
     const msg=messages[0];
-    showConfirm({
-      icon:'📢',
-      title:'Message de vos animateurs',
-      text:msg.texte,
-      okText:'J\'ai lu',
-      hideCancel:true,
-      onOk:async()=>{
-        // Marquer comme lu
-        await db.collection('messages_admin').doc(msg.id).update({['lu.'+currentUser.id]:true});
-        // S'il y en a d'autres, les afficher
-        if(messages.length>1){setTimeout(()=>checkMessagesAdmin(),500);}
-      }
-    });
+    // Fenêtre dédiée avec lecture vocale automatique + bouton réécouter
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(26,35,64,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.innerHTML=`
+      <div style="background:white;border-radius:20px;padding:26px 22px;max-width:360px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,0.25);">
+        <div style="font-size:44px;margin-bottom:6px;">📢</div>
+        <h2 style="margin:0 0 14px;color:#2c3e91;font-size:20px;font-weight:800;">Message de vos animateurs</h2>
+        <p style="margin:0 0 18px;color:#1a2340;font-size:16px;line-height:1.5;white-space:pre-wrap;">${esc(msg.texte)}</p>
+        <button id="msg-relire" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:#eef1fb;color:#2c3e91;border:2px solid #8fa3df;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;">🔊 Réécouter</button>
+        <button id="msg-lu" style="width:100%;padding:14px;background:#22a559;color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;">J'ai lu</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    // Lecture automatique (voix masculine FR si dispo)
+    setTimeout(()=>speakVoix(msg.texte),400);
+    document.getElementById('msg-relire').onclick=()=>speakVoix(msg.texte);
+    document.getElementById('msg-lu').onclick=async()=>{
+      try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){}
+      try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech)window.Capacitor.Plugins.TextToSpeech.stop();}catch(e){}
+      overlay.remove();
+      // Marquer comme lu
+      await db.collection('messages_admin').doc(msg.id).update({['lu.'+currentUser.id]:true});
+      // S'il y en a d'autres, les afficher
+      if(messages.length>1){setTimeout(()=>checkMessagesAdmin(),500);}
+    };
   }catch(e){}
 }
 
@@ -2263,6 +2274,31 @@ function speak(text){
       window.speechSynthesis.speak(u);
     }
   }catch(e){console.error('[Speak] Erreur:',e);}
+}
+
+// Lecture vocale en privilégiant une voix masculine française (si dispo sur l'appareil)
+function speakVoix(text){
+  if(!text)return;
+  try{
+    // APK Capacitor : le plugin choisit la voix système ; on demande fr-FR, pitch un peu bas pour un rendu plus grave
+    if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech){
+      window.Capacitor.Plugins.TextToSpeech.speak({text:text,lang:'fr-FR',rate:1.0,pitch:0.8,volume:1.0,category:'ambient'}).catch(e=>console.error('[TTS] Erreur:',e));
+      return;
+    }
+    // Web : chercher une voix masculine française parmi les voix installées
+    if('speechSynthesis' in window){
+      window.speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance(text);
+      u.lang='fr-FR';u.rate=0.95;u.volume=1;
+      const voices=window.speechSynthesis.getVoices()||[];
+      // Mots-clés courants des voix masculines FR selon les navigateurs/OS
+      const motsMasculins=['male','homme','thomas','paul','nicolas','daniel','henri'];
+      const voixMasc=voices.find(v=>/fr/i.test(v.lang)&&motsMasculins.some(m=>v.name.toLowerCase().includes(m)));
+      if(voixMasc){u.voice=voixMasc;}
+      else{const voixFr=voices.find(v=>/fr/i.test(v.lang));if(voixFr)u.voice=voixFr;u.pitch=0.8;}
+      window.speechSynthesis.speak(u);
+    }
+  }catch(e){console.error('[SpeakVoix] Erreur:',e);}
 }
 
 let recognition=null;
