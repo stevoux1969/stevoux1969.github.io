@@ -111,7 +111,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🗓️%3C/text%3E%3C/svg%3E">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    html, body { height: 100%; overflow: hidden; }
+    html, body { height: 100%; overflow: hidden; -webkit-text-size-adjust: 100%; -moz-text-size-adjust: 100%; text-size-adjust: 100%; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f3f8; color: #1a2340; font-size: 18px; line-height: 1.4; -webkit-font-smoothing: antialiased; user-select: none; }
     .screen { position: fixed; inset: 0; display: none; flex-direction: column; background: #f1f3f8; }
     .screen.active { display: flex; }
@@ -159,10 +159,10 @@
     .planning-header-anim { background: #22a559; color: white; padding: 10px 16px; text-align: center; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
     .planning-day-header { background: #2c3e91; color: white; padding: 12px 16px; margin: 16px 0 8px; border-radius: 12px; font-size: 17px; font-weight: 700; text-transform: capitalize; }
     .planning-day-header:first-child { margin-top: 0; }
-    .planning-item { display: flex; align-items: center; gap: 12px; background: white; border-left: 4px solid #22a559; border-radius: 12px; padding: 14px 14px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+    .planning-item { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; background: white; border-left: 4px solid #22a559; border-radius: 12px; padding: 14px 14px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); overflow: hidden; }
     .planning-item-time { font-size: 18px; font-weight: 700; color: #2c3e91; min-width: 54px; }
     .planning-item-icon { font-size: 28px; line-height: 1; }
-    .planning-item-body { flex: 1; }
+    .planning-item-body { flex: 1; min-width: 0; }
     .planning-item-title { font-size: 16px; font-weight: 600; color: #1a2340; }
     .planning-item-meta { font-size: 13px; color: #5e6b8a; margin-top: 2px; }
     .planning-inscrits { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e5e9f2; font-size: 12px; color: #5e6b8a; line-height: 1.6; }
@@ -174,7 +174,7 @@
     .planning-item-complet { opacity: 0.75; }
     .btn-inscrit.btn-complet { background: #d63447; color: white; border: none; cursor: not-allowed; opacity: 0.85; }
     .btn-inscrit.btn-complet:active { transform: none; }
-    .btn-inscrit { background: #22a559; color: white; border: none; border-radius: 20px; padding: 8px 16px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; flex-shrink: 0; }
+    .btn-inscrit { background: #22a559; color: white; border: none; border-radius: 20px; padding: 8px 16px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; flex-shrink: 0; margin-left: auto; }
     .btn-inscrit:active { background: #1d8b4b; }
     .btn-inscrit.inscrit { background: #eef1fb; color: #2c3e91; border: 2px solid #2c3e91; }
     .planning-empty { text-align: center; padding: 40px 20px; color: #6c7a99; font-size: 17px; }
@@ -2188,7 +2188,7 @@ function parseAVPPlanning(csv,moisCible){
   return result;
 }
 
-function renderPlanning(){const content=document.getElementById('planning-content');const events=state.avpEvents;if(events.length===0){content.innerHTML='<div class="planning-empty">📋 Aucune activité trouvée dans le planning.</div>';return;}const firstDate=events[0].date;const[y,m]=firstDate.split('-').map(Number);const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];document.getElementById('planning-month-title').textContent=`Planning ${monthNames[m-1]} ${y}`;if(!state.atelierDescs){db.collection('atelier_descriptions').get().then(snap=>{state.atelierDescs={};snap.docs.forEach(d=>{state.atelierDescs[d.id]={...d.data()};});});}loadAllInscriptions().then(inscritsByEvent=>{state.allInscriptions=inscritsByEvent;renderPlanningInner(content,events);scrollToToday(content);});}
+function renderPlanning(){const content=document.getElementById('planning-content');const events=state.avpEvents;if(events.length===0){content.innerHTML='<div class="planning-empty">📋 Aucune activité trouvée dans le planning.</div>';return;}const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];const today=dateKey(new Date());const refDate=(events.find(e=>e.date>=today)||events[0]).date;const[y,m]=refDate.split('-').map(Number);document.getElementById('planning-month-title').textContent=`Planning ${monthNames[m-1]} ${y}`;if(!state.atelierDescs){db.collection('atelier_descriptions').get().then(snap=>{state.atelierDescs={};snap.docs.forEach(d=>{state.atelierDescs[d.id]={...d.data()};});});}loadAllInscriptions().then(inscritsByEvent=>{state.allInscriptions=inscritsByEvent;renderPlanningInner(content,events);scrollToToday(content);});}
 
 function scrollToToday(content){const tryScroll=(attempt)=>{const today=dateKey(new Date());let target=content.querySelector(`[data-date="${today}"]`);if(!target){const allHeaders=content.querySelectorAll('[data-date]');for(const h of allHeaders){if(h.dataset.date>=today){target=h;break;}}if(!target&&allHeaders.length>0){target=allHeaders[allHeaders.length-1];}}if(target){target.scrollIntoView({behavior:'smooth',block:'start'});}else if(attempt<5){setTimeout(()=>tryScroll(attempt+1),200);}};setTimeout(()=>tryScroll(1),300);}
 
@@ -2383,6 +2383,12 @@ function showUpdatePopup(remoteVersion){
 }
 
 async function init(){
+  // Neutraliser l'agrandissement de police système (APK Android) : on fixe la taille de base en px réels
+  try{
+    // Si le système agrandit la police, on ramène la taille racine à une valeur fixe
+    document.documentElement.style.fontSize='16px';
+    document.body.style.fontSize='18px';
+  }catch(e){}
   // Démarrer à l'heure actuelle + 1h arrondie aux 5 min
   var _now = new Date();
   var _h = _now.getHours(), _m = Math.ceil(_now.getMinutes() / 5) * 5;
