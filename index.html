@@ -111,7 +111,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🗓️%3C/text%3E%3C/svg%3E">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    html, body { height: 100%; overflow: hidden; -webkit-text-size-adjust: 100%; -moz-text-size-adjust: 100%; text-size-adjust: 100%; }
+    html, body { height: 100%; overflow: hidden; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f3f8; color: #1a2340; font-size: 18px; line-height: 1.4; -webkit-font-smoothing: antialiased; user-select: none; }
     .screen { position: fixed; inset: 0; display: none; flex-direction: column; background: #f1f3f8; }
     .screen.active { display: flex; }
@@ -633,6 +633,16 @@
   </div>
 </div>
 
+<div id="admin-parler-screen" class="screen">
+  <div class="admin-header">
+    <button class="back-btn" id="parler-back-btn" style="color:white">‹</button>
+    <h1>🔔 Parler aux inscrits</h1>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:14px 14px 100px;" id="parler-content">
+    <div style="text-align:center;padding:40px;color:#5e6b8a">Chargement…</div>
+  </div>
+</div>
+
 <div id="admin-stats-screen" class="screen">
   <div class="stats-header">
     <button class="back-btn" id="stats-back-btn" style="color:white">‹</button>
@@ -1072,6 +1082,7 @@ document.getElementById('admin-mois-suivant-btn').addEventListener('click', asyn
   }catch(e){ alert('Erreur : '+e.message); }
 });
 document.getElementById('descriptions-back-btn').addEventListener('click',()=>showScreen('admin-screen'));
+document.getElementById('parler-back-btn').addEventListener('click',()=>showScreen('admin-screen'));
 
 // Clé de description par occurrence datée : titre normalisé | date | heure
 function descKey(titre,date,time){
@@ -1407,60 +1418,51 @@ async function showAdminMessageModal(mode){
   const signataire=currentUser.isGreg?'Greg':'Steve';
 
   if(mode==='atelier'){
-    // Recharger le planning (mois courant + suivant si activé)
+    showAdminParlerScreen(signataire);
+  }else{
+    showMessageTextModal(signataire,mode,'');
+  }
+}
+
+// Écran "Parler aux inscrits" — liste de cartes par date (style Description)
+async function showAdminParlerScreen(signataire){
+  showScreen('admin-parler-screen');
+  const content=document.getElementById('parler-content');
+  content.innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement…</div>';
+  try{
     await loadAVPPlanning();
     const today=dateKey(new Date());
     const ateliers=(state.avpEvents||[]).filter(e=>e.date>=today)
       .sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
-    if(ateliers.length===0){showConfirm({icon:'ℹ️',title:'Aucun atelier',text:'Aucun atelier à venir dans le planning.',okText:'OK',hideCancel:true});return;}
-
-    // Compter les inscrits par atelier
+    if(ateliers.length===0){content.innerHTML='<div class="planning-empty">Aucun atelier à venir dans le planning.</div>';return;}
     const inscritsParAtelier=await loadAllInscriptions();
-
-    // Construire les options groupées par mois
     const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-    let optsHTML='';let dernierMois='';
+    let html='<p style="font-size:13px;color:#5e6b8a;margin-bottom:16px;">Choisis l\'atelier, puis écris ton message.</p>';
+    let dernierMois='';
     ateliers.forEach(e=>{
       const ek=e.date+'_'+e.time+'_'+e.title.slice(0,20).replace(/\s/g,'_');
       const nb=(inscritsParAtelier[ek]||[]).length;
       const [yy,mm]=e.date.split('-');
       const moisLabel=monthNames[parseInt(mm)-1]+' '+yy;
-      if(moisLabel!==dernierMois){
-        if(dernierMois!=='')optsHTML+='</optgroup>';
-        optsHTML+=`<optgroup label="${moisLabel}">`;dernierMois=moisLabel;
-      }
+      if(moisLabel!==dernierMois){html+=`<div style="font-size:12px;font-weight:800;color:#6d28d9;text-transform:uppercase;letter-spacing:1px;margin:18px 4px 8px;">${moisLabel}</div>`;dernierMois=moisLabel;}
       const dateCourte=formatShortDate(e.date)+' · '+e.time.replace(':','h');
-      const nbLabel=nb>0?`(${nb} inscrit${nb>1?'s':''})`:'(0 inscrit)';
-      optsHTML+=`<option value="${esc(ek)}">${esc(e.title)} — ${dateCourte} ${nbLabel}</option>`;
-    });
-    if(dernierMois!=='')optsHTML+='</optgroup>';
-
-    // Modal sélection atelier — design propre
-    const overlay=document.createElement('div');
-    overlay.style.cssText='position:fixed;inset:0;background:rgba(26,35,64,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
-    const box=document.createElement('div');
-    box.style.cssText='background:white;border-radius:20px;padding:24px 22px;width:100%;max-width:380px;box-shadow:0 12px 40px rgba(0,0,0,0.25);';
-    box.innerHTML=`
-      <div style="font-size:40px;text-align:center;margin-bottom:6px;">🎯</div>
-      <h3 style="text-align:center;margin:0 0 6px;font-size:20px;font-weight:800;color:#1a2340;">Parler aux inscrits</h3>
-      <p style="text-align:center;margin:0 0 18px;font-size:14px;color:#5e6b8a;">Choisissez l'atelier concerné</p>
-      <label style="font-size:13px;font-weight:700;color:#5e6b8a;display:block;margin-bottom:6px;">ATELIER</label>
-      <select id="choix-atelier" style="width:100%;padding:14px 12px;font-size:15px;border-radius:12px;border:2px solid #8fa3df;background:white;color:#1a2340;font-family:inherit;margin-bottom:20px;">${optsHTML}</select>
-      <div style="display:flex;gap:10px;">
-        <button id="msg-atelier-cancel" style="flex:1;padding:14px;border:2px solid #e5e9f2;border-radius:12px;font-size:16px;font-weight:700;background:white;color:#5e6b8a;cursor:pointer;font-family:inherit;">Annuler</button>
-        <button id="msg-atelier-ok" style="flex:1;padding:14px;border:none;border-radius:12px;font-size:16px;font-weight:700;background:#2c3e91;color:white;cursor:pointer;font-family:inherit;">Suivant →</button>
+      const nbColor=nb>0?'#0a6e31':'#8590ad';
+      const nbLabel=nb>0?(nb+' inscrit'+(nb>1?'s':'')):'0 inscrit';
+      html+=`<div class="btn-parler-item" data-ek="${esc(ek)}" style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);cursor:pointer;display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:#eef1fb;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${iconHTML(e.icon||'📋')}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:15px;font-weight:700;color:#1a2340;">${esc(e.title)}</div>
+          <div style="font-size:12px;color:#8590ad;margin-top:1px;">${dateCourte}</div>
+          <div style="font-size:12px;color:${nbColor};margin-top:2px;font-weight:600;">${nbLabel}</div>
+        </div>
+        <span style="color:#9ca3af;font-size:18px;">›</span>
       </div>`;
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
-    document.getElementById('msg-atelier-cancel').onclick=()=>document.body.removeChild(overlay);
-    document.getElementById('msg-atelier-ok').onclick=()=>{
-      const atelierChoix=document.getElementById('choix-atelier').value;
-      document.body.removeChild(overlay);
-      showMessageTextModal(signataire,mode,atelierChoix);
-    };
-  }else{
-    showMessageTextModal(signataire,mode,'');
-  }
+    });
+    content.innerHTML=html;
+    content.querySelectorAll('.btn-parler-item').forEach(el=>{
+      el.addEventListener('click',()=>showMessageTextModal(signataire,'atelier',el.dataset.ek));
+    });
+  }catch(e){content.innerHTML='<div class="planning-empty">Erreur de chargement.</div>';}
 }
 
 function showMessageTextModal(signataire,mode,atelierKey){
@@ -2383,12 +2385,6 @@ function showUpdatePopup(remoteVersion){
 }
 
 async function init(){
-  // Neutraliser l'agrandissement de police système (APK Android) : on fixe la taille de base en px réels
-  try{
-    // Si le système agrandit la police, on ramène la taille racine à une valeur fixe
-    document.documentElement.style.fontSize='16px';
-    document.body.style.fontSize='18px';
-  }catch(e){}
   // Démarrer à l'heure actuelle + 1h arrondie aux 5 min
   var _now = new Date();
   var _h = _now.getHours(), _m = Math.ceil(_now.getMinutes() / 5) * 5;
