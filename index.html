@@ -1946,13 +1946,15 @@ async function showAdminAteliers(selectedMonth){
   try{const[usersSnap,presSnap,annulSnap]=await Promise.all([db.collection('users').get(),db.collection('presences').get(),db.collection('annulations').get()]);
     const annulations={};
     annulSnap.docs.forEach(doc=>{annulations[doc.id]=doc.data();});const presences={};presSnap.docs.forEach(doc=>{presences[doc.id]=doc.data();});state.presences=presences;const groupes={};
-      // Ateliers du planning de l'animateur connecté, indexés par la clé d'inscription (date_heure_titre, slice 20).
-      // Ne contient que SES ateliers + les ateliers communs (présents aussi dans son CSV) → sépare Steve/Greg.
+      // SOURCE UNIQUE = state.allInscriptions, exactement comme la vue bénéficiaire (déjà dédoublonné par prénom).
+      // Rechargé ici pour être à jour au moment du pointage → admin et bénéficiaire affichent strictement les mêmes inscrits.
+      state.allInscriptions = await loadAllInscriptions();
+      const allIns = state.allInscriptions || {};
+      // On ne garde que les ateliers du planning de l'animateur connecté (sépare Steve/Greg).
+      // Les ateliers communs sont aussi dans son CSV, donc la même clé → inscrits partagés des deux côtés.
       const evByKey={};
       (state.avpEvents||[]).forEach(e=>{const k=e.date+'_'+e.time+'_'+(e.title||'').slice(0,20).replace(/\s/g,'_');if(!evByKey[k])evByKey[k]=e;});
-      // SOURCE DE VÉRITÉ = le map "inscriptions" de chaque bénéficiaire (clé unique → aucun doublon possible).
-      // La clé ne contient pas l'animateur : pour un atelier commun, tous les inscrits (Steve + Greg) apparaissent des deux côtés.
-      usersSnap.docs.forEach(doc=>{const u=doc.data();if(!u.prenom||!u.inscriptions)return;Object.keys(u.inscriptions).forEach(key=>{if(u.inscriptions[key]!==true)return;const e=evByKey[key];if(!e)return;if(!groupes[key])groupes[key]={date:e.date,time:e.time,title:e.title,icon:e.icon,inscrits:[]};groupes[key].inscrits.push(u.prenom);});});const items=Object.values(groupes).sort((a,b)=>{if(a.date!==b.date)return(a.date||'').localeCompare(b.date||'');return(a.time||'').localeCompare(b.time||'');});if(items.length===0){list.innerHTML='<div class="planning-empty">Aucune inscription pour le moment.</div>';return;}
+      Object.keys(evByKey).forEach(key=>{const list=allIns[key]||[];if(!list.length)return;const e=evByKey[key];groupes[key]={date:e.date,time:e.time,title:e.title,icon:e.icon,inscrits:list.slice()};});const items=Object.values(groupes).sort((a,b)=>{if(a.date!==b.date)return(a.date||'').localeCompare(b.date||'');return(a.time||'').localeCompare(b.time||'');});if(items.length===0){list.innerHTML='<div class="planning-empty">Aucune inscription pour le moment.</div>';return;}
       const today=dateKey(new Date());
       const currentMonth=today.slice(0,7);
       const moisDispo=[...new Set(items.map(g=>g.date.slice(0,7)))].sort();
