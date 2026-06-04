@@ -6,264 +6,74 @@
 <title>Planning AVP — Impression</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --vert: #1a5c4a;
-    --vert-clair: #e8f5f0;
-    --bleu: #2563a8;
-    --bleu-clair: #deeaf8;
-    --orange: #e07b2a;
-    --gris: #f5f5f5;
-    --texte: #1a1a2e;
-    --blanc: #ffffff;
+  :root{
+    --bleu:#1f5fa8; --bleu-fonce:#16487f;
+    --matin:#fff4e6; --matin-txt:#c2620f; --matin-bord:#f3ddc2;
+    --aprem:#efeafe; --aprem-txt:#6d28d9; --aprem-bord:#dccdf7;
+    --texte:#1a1a2e;
   }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    font-family: 'Nunito', sans-serif;
-    background: #e8e8e8;
-    color: var(--texte);
-    padding: 20px;
-  }
-
-  /* CONTROLES (masqués à l'impression) */
-  .controls {
-    max-width: 1100px;
-    margin: 0 auto 20px;
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-
-  .controls label {
-    font-weight: 700;
-    font-size: 14px;
-    color: var(--vert);
-  }
-
-  .controls select {
-    padding: 8px 14px;
-    border: 2px solid var(--vert);
-    border-radius: 8px;
-    font-family: 'Nunito', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--vert);
-    background: white;
-    cursor: pointer;
-  }
-
-  .btn-print {
-    margin-left: auto;
-    padding: 10px 24px;
-    background: var(--vert);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-family: 'Nunito', sans-serif;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .btn-print:hover { background: #144a3b; }
-
-  /* PAGE */
-  .page {
-    max-width: 1100px;
-    margin: 0 auto 30px;
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-  }
-
-  /* EN-TETE */
-  .entete {
-    background: var(--vert);
-    color: white;
-    padding: 10px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .entete-titre {
-    font-size: 16px;
-    font-weight: 800;
-    letter-spacing: 0.3px;
-  }
-
-  .entete-sous {
-    font-size: 11px;
-    opacity: 0.85;
-    margin-top: 2px;
-  }
-
-  .entete-animateur {
-    background: rgba(255,255,255,0.2);
-    padding: 8px 18px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 700;
-  }
-
-  /* GRILLE */
-  .grille {
-    padding: 10px;
-  }
-
-  /* SEMAINE */
-  .semaine {
-    margin-bottom: 8px;
-  }
-
-  .semaine-titre {
-    display: none;
-  }
-
-  .jours-row {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
-  }
-
-  /* JOUR */
-  .jour {
-    border: 1.5px solid #e0e0e0;
-    border-radius: 8px;
-    overflow: hidden;
-    min-height: 70px;
-  }
-
-  .jour-header {
-    background: var(--vert);
-    color: white;
-    text-align: center;
-    padding: 4px 4px;
-  }
-
-  .jour-nom {
-    font-size: 12px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .jour-num {
-    font-size: 22px;
-    font-weight: 800;
-    line-height: 1.1;
-  }
-
-  .jour-vide .jour-header {
-    background: #ccc;
-  }
-
-  .jour-ferie .jour-header {
-    background: #888;
-  }
-
-  /* CRENEAUX */
-  .creneaux {
-    padding: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .creneau {
-    background: var(--bleu-clair);
-    border-left: 3px solid var(--bleu);
-    border-radius: 4px;
-    padding: 3px 5px;
-  }
-
-  .creneau-heure {
-    font-size: 12px;
-    font-weight: 800;
-    color: var(--bleu);
-  }
-
-  .creneau-activite {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--texte);
-    line-height: 1.3;
-  }
-
-  .jour-vide .creneaux, .jour-ferie .creneaux {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 60px;
-    color: #aaa;
-    font-size: 11px;
-    font-style: italic;
-  }
-
-  /* PIED */
-  .pied {
-    border-top: 1.5px solid #eee;
-    padding: 10px 28px;
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    color: #888;
-  }
-
-  /* LOADING */
-  .loading {
-    text-align: center;
-    padding: 60px;
-    font-size: 16px;
-    color: var(--vert);
-    font-weight: 600;
-  }
-
-  .erreur {
-    text-align: center;
-    padding: 40px;
-    color: #c0392b;
-    font-weight: 600;
-  }
-
-  /* IMPRESSION */
-  @media print {
-    @page { size: A4 landscape; margin: 5mm; }
-    body { background: white; padding: 0; margin: 0; }
-    .controls { display: none !important; }
-    .page {
-      box-shadow: none;
-      border-radius: 0;
-      margin: 0;
-      width: 277mm;
-      max-width: 277mm;
-      page-break-after: always;
-      transform-origin: top left;
-      font-size: 10px;
-    }
-    .page:last-child { page-break-after: avoid; }
-    .entete { padding: 6px 14px; }
-    .entete-titre { font-size: 13px; }
-    .entete-sous { font-size: 9px; }
-    .entete-animateur { font-size: 10px; padding: 4px 10px; }
-    .grille { padding: 6px; }
-    .semaine { margin-bottom: 5px; }
-    .jours-row { gap: 4px; }
-    .jour { min-height: 50px; }
-    .jour-header { padding: 3px 2px; }
-    .jour-nom { font-size: 9px; }
-    .jour-num { font-size: 16px; }
-    .creneaux { padding: 3px; gap: 2px; }
-    .creneau { padding: 2px 4px; }
-    .creneau-heure { font-size: 9px; }
-    .creneau-activite { font-size: 10px; line-height: 1.2; }
-    .pied { padding: 4px 14px; font-size: 8px; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Nunito',sans-serif;background:#e8e8e8;color:var(--texte);padding:20px;}
+  .controls{max-width:1100px;margin:0 auto 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+  .controls label{font-weight:700;font-size:14px;color:var(--bleu);}
+  .controls select{padding:8px 14px;border:2px solid var(--bleu);border-radius:8px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;color:var(--bleu);background:white;cursor:pointer;}
+  .btn-print{margin-left:auto;padding:10px 24px;background:var(--bleu);color:white;border:none;border-radius:8px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;}
+  .btn-print:hover{background:var(--bleu-fonce);}
+  .page{max-width:1100px;margin:0 auto 30px;background:white;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.12);}
+  .entete{background:var(--bleu);color:white;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
+  .entete-titre{font-size:20px;font-weight:800;letter-spacing:0.3px;}
+  .entete-sous{font-size:11px;opacity:0.9;margin-top:2px;}
+  .entete-animateur{background:rgba(255,255,255,0.2);padding:8px 18px;border-radius:20px;font-size:13px;font-weight:800;}
+  .grille{padding:10px;}
+  .semaine{margin-bottom:8px;}
+  .semaine-titre{display:none;}
+  .jours-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+  .jour{border:1.5px solid #e3e8ef;border-radius:10px;overflow:hidden;min-height:70px;}
+  .jour-header{background:var(--bleu);color:white;text-align:center;padding:5px 4px;}
+  .jour-nom{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;}
+  .jour-num{font-size:22px;font-weight:800;line-height:1.1;}
+  .jour-vide .jour-header{background:#c3cdd9;}
+  .jour-ferie .jour-header{background:#8a93a0;}
+  .creneaux{padding:6px;display:flex;flex-direction:column;gap:6px;}
+  .creneau{border-radius:9px;padding:7px 6px;text-align:center;background:#f3f5f8;}
+  .creneau-matin{background:var(--matin);}
+  .creneau-aprem{background:var(--aprem);}
+  .creneau-ico{font-size:24px;line-height:1;}
+  .creneau-titre{font-size:13px;font-weight:800;color:var(--texte);margin-top:3px;line-height:1.15;}
+  .creneau-heure{font-size:12px;font-weight:800;margin-top:2px;color:#555;}
+  .creneau-matin .creneau-heure{color:var(--matin-txt);}
+  .creneau-aprem .creneau-heure{color:var(--aprem-txt);}
+  .jour-vide .creneaux,.jour-ferie .creneaux{display:flex;align-items:center;justify-content:center;min-height:60px;color:#aaa;font-size:11px;font-style:italic;}
+  .pied{border-top:1.5px solid #eee;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#888;}
+  .legende{display:flex;gap:16px;align-items:center;}
+  .legende b{color:var(--bleu);}
+  .legende > span{display:flex;align-items:center;gap:5px;}
+  .pastille{width:14px;height:14px;border-radius:4px;display:inline-block;}
+  .loading{text-align:center;padding:60px;font-size:16px;color:var(--bleu);font-weight:600;}
+  .erreur{text-align:center;padding:40px;color:#c0392b;font-weight:600;}
+  @media print{
+    @page{size:A4 landscape;margin:5mm;}
+    body{background:white;padding:0;margin:0;}
+    .controls{display:none !important;}
+    .page{box-shadow:none;border-radius:0;margin:0;width:277mm;max-width:277mm;page-break-after:always;font-size:10px;}
+    .page:last-child{page-break-after:avoid;}
+    .entete{padding:8px 14px;}
+    .entete-titre{font-size:15px;}
+    .entete-sous{font-size:9px;}
+    .entete-animateur{font-size:10px;padding:4px 10px;}
+    .grille{padding:6px;}
+    .semaine{margin-bottom:5px;}
+    .jours-row{gap:4px;}
+    .jour{min-height:50px;}
+    .jour-header{padding:3px 2px;}
+    .jour-nom{font-size:9px;}
+    .jour-num{font-size:16px;}
+    .creneaux{padding:3px;gap:3px;}
+    .creneau{padding:4px 4px;}
+    .creneau-ico{font-size:18px;}
+    .creneau-titre{font-size:10px;line-height:1.2;}
+    .creneau-heure{font-size:9px;}
+    .pied{padding:4px 14px;font-size:8px;}
   }
 </style>
 </head>
@@ -473,6 +283,12 @@ function afficherPlanning(csv, animateur, mois) {
   }
 
   // Construire le HTML
+  function extraireEmoji(txt){
+    txt=(txt||'').trim();
+    const m=txt.match(/^((?:[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]|[\u2300-\u23FF]|\uFE0F|\u200D)+)/);
+    if(m){const emoji=m[1].trim();const titre=txt.slice(m[0].length).trim();return {emoji:emoji,titre:titre||txt};}
+    return {emoji:'',titre:txt};
+  }
   let html = `
   <div class="page">
     <div class="entete">
@@ -519,9 +335,12 @@ function afficherPlanning(csv, animateur, mois) {
           html += `<div style="color:#bbb;font-size:10px;text-align:center;padding:8px 0;">Pas d'atelier</div>`;
         } else {
           jour.creneaux.forEach(c => {
-            html += `<div class="creneau">
-              ${c.heure ? `<div class="creneau-heure">🕐 ${c.heure}</div>` : ''}
-              <div class="creneau-activite">${c.activite}</div>
+            const _e = extraireEmoji(c.activite);
+            const _cls = /matin/i.test(c.periode) ? 'creneau creneau-matin' : (/apr/i.test(c.periode) ? 'creneau creneau-aprem' : 'creneau');
+            html += `<div class="${_cls}">
+              <div class="creneau-ico">${_e.emoji || '📋'}</div>
+              <div class="creneau-titre">${_e.titre}</div>
+              ${c.heure ? `<div class="creneau-heure">${c.heure}</div>` : ''}
             </div>`;
           });
         }
@@ -534,7 +353,7 @@ function afficherPlanning(csv, animateur, mois) {
 
   html += `</div>
     <div class="pied">
-      <span>Service AVP — Aide à la Vie Partagée | AVP La Clé</span>
+      <span class="legende"><b>Repères :</b><span><span class="pastille" style="background:#fff4e6;border:1px solid #f3ddc2;"></span> Matin</span><span><span class="pastille" style="background:#efeafe;border:1px solid #dccdf7;"></span> Après-midi</span></span>
       <span>Imprimé le ${new Date().toLocaleDateString('fr-FR')}</span>
     </div>
   </div>`;
