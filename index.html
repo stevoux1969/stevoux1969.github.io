@@ -630,6 +630,7 @@
   <button class="btn-admin-action" id="admin-descriptions-btn" style="background:#f5f3ff;color:#6d28d9;border-color:#c4b5fd;">📝 Description de l'atelier</button>
   <button class="btn-admin-action" id="admin-mois-suivant-btn" style="background:#fff7ed;color:#b45309;border-color:#fcd34d;display:none;">🗓️ Activer mois suivant</button>
   <button class="btn-admin-action" id="admin-reparer-btn" style="background:#eef2ff;color:#3730a3;border-color:#c7d2fe;display:none;">🛠️ Réparer les inscriptions</button>
+  <button class="btn-admin-action" id="admin-diag-notif-btn" style="background:#fef3c7;color:#92400e;border-color:#fcd34d;display:none;">🔍 Test notifications</button>
   </div>
   <div class="admin-list" id="admin-user-list"></div>
 </div>
@@ -949,6 +950,27 @@ async function requestBenefNotifPermission(){
   }catch(e){console.error('[Notif] Erreur permission bénéficiaire:',e);}
 }
 
+// === DIAGNOSTIC NOTIFICATIONS (réservé Steve) — affiche l'état à l'écran ===
+async function diagnosticNotif(){
+  let msg='DIAGNOSTIC NOTIFICATIONS\n\n';
+  const hasCap=!!(window.Capacitor);
+  msg+='Capacitor présent : '+(hasCap?'OUI':'NON')+'\n';
+  const hasPlugins=!!(window.Capacitor&&window.Capacitor.Plugins);
+  msg+='Plugins présents : '+(hasPlugins?'OUI':'NON')+'\n';
+  const LN=hasPlugins&&window.Capacitor.Plugins.LocalNotifications;
+  msg+='LocalNotifications : '+(LN?'OUI':'NON')+'\n';
+  if(!LN){alert(msg+'\n➡️ Le composant natif n\'est PAS dans cette APK. Il faut un rebuild.');return;}
+  try{const perm=await LN.checkPermissions();msg+='Permission : '+JSON.stringify(perm)+'\n';}catch(e){msg+='checkPermissions ERREUR : '+e.message+'\n';}
+  try{const req=await LN.requestPermissions();msg+='Demande permission : '+JSON.stringify(req)+'\n';}catch(e){msg+='requestPermissions ERREUR : '+e.message+'\n';}
+  try{await LN.createChannel({id:'rappels-avp',name:'Rappels',importance:5,visibility:1});msg+='Création canal : OK\n';}catch(e){msg+='Canal ERREUR : '+e.message+'\n';}
+  try{
+    const at=new Date(Date.now()+15000);
+    await LN.schedule({notifications:[{id:999001,channelId:'rappels-avp',title:'Test AVP 🔔',body:'Si tu vois ça, les notifications marchent !',schedule:{at:at,allowWhileIdle:true},extra:{avp:true,title:'Test',time:'',icon:'🔔'}}]});
+    msg+='\n✅ Notif test planifiée dans 15 secondes.\nFERME l\'app maintenant et attends.';
+  }catch(e){msg+='\n❌ schedule ERREUR : '+e.message;}
+  alert(msg);
+}
+
 // === NOTIFICATIONS SYSTÈME (s'affichent app fermée) — additif, n'altère pas l'existant ===
 let _notifTapInit=false;
 async function initNotifTap(){
@@ -1121,6 +1143,8 @@ async function showAdminScreen(){
   if(btnMs) btnMs.style.display = currentUser.isGreg ? 'none' : '';
   const btnRep = document.getElementById('admin-reparer-btn');
   if(btnRep) btnRep.style.display = currentUser.isGreg ? 'none' : '';
+  const btnDiag = document.getElementById('admin-diag-notif-btn');
+  if(btnDiag) btnDiag.style.display = currentUser.isGreg ? 'none' : '';
   await loadAVPPlanning();
   // Mettre à jour le label du bouton mois suivant
   try{
@@ -1142,6 +1166,7 @@ document.getElementById('admin-msg-tous-btn').addEventListener('click',()=>showA
 document.getElementById('admin-msg-atelier-btn').addEventListener('click',()=>showAdminMessageModal('atelier'));
 document.getElementById('admin-stats-btn').addEventListener('click',()=>showAdminStats());
 document.getElementById('admin-reparer-btn').addEventListener('click',()=>reparerInscriptionsApercu());
+document.getElementById('admin-diag-notif-btn').addEventListener('click',()=>diagnosticNotif());
 document.getElementById('stats-back-btn').addEventListener('click',()=>showScreen('admin-screen'));
 document.getElementById('admin-descriptions-btn').addEventListener('click',()=>showAdminDescriptions());
 document.getElementById('admin-mois-suivant-btn').addEventListener('click', async()=>{
