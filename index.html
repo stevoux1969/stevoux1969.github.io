@@ -888,6 +888,7 @@ async function saveUserData(){
   if(currentUser&&currentUser.isAdmin&&state.editingAdminMode&&adminEditingUid){try{await db.collection('users').doc(adminEditingUid).update({reminders:state.reminders});}catch(e){}return;}
   if(!currentUser||currentUser.isAdmin)return;
   try{await db.collection('users').doc(currentUser.id).update({reminders:state.reminders});}catch(e){}
+  planifierNotifsSysteme();
 }
 
 async function checkMessagesAdmin(){
@@ -943,7 +944,65 @@ async function requestBenefNotifPermission(){
     const LN=window.Capacitor.Plugins.LocalNotifications;
     const perm=await LN.requestPermissions();
     console.log('[Notif] Permission bénéficiaire:',perm);
+    await initNotifTap();
+    await planifierNotifsSysteme();
   }catch(e){console.error('[Notif] Erreur permission bénéficiaire:',e);}
+}
+
+// === NOTIFICATIONS SYSTÈME (s'affichent app fermée) — additif, n'altère pas l'existant ===
+let _notifTapInit=false;
+async function initNotifTap(){
+  try{
+    if(_notifTapInit)return;
+    if(!window.Capacitor||!window.Capacitor.Plugins||!window.Capacitor.Plugins.LocalNotifications)return;
+    const LN=window.Capacitor.Plugins.LocalNotifications;
+    // Au tap sur la notification → rejouer l'écran plein écran + voix (fireAlert)
+    LN.addListener('localNotificationActionPerformed',(ev)=>{
+      try{const r=ev&&ev.notification&&ev.notification.extra;if(r&&r.avp){setTimeout(()=>{try{fireAlert(r);}catch(e){}},600);}}catch(e){}
+    });
+    _notifTapInit=true;
+  }catch(e){console.error('[Notif] initNotifTap',e);}
+}
+
+function _notifId(dateStr,r){const base=dateStr+'|'+(r.id||'')+'|'+(r.time||'');let h=0;for(let i=0;i<base.length;i++){h=(h*31+base.charCodeAt(i))|0;}return Math.abs(h)%2000000000+1;}
+
+// Planifie de VRAIES notifications Android pour les 14 prochains jours (rappels même app fermée)
+async function planifierNotifsSysteme(){
+  try{
+    if(!window.Capacitor||!window.Capacitor.Plugins||!window.Capacitor.Plugins.LocalNotifications)return;
+    if(!currentUser||currentUser.isAdmin)return;
+    const LN=window.Capacitor.Plugins.LocalNotifications;
+    // Canal importance haute = bannière + son
+    try{await LN.createChannel({id:'rappels-avp',name:'Rappels',description:'Rappels des rendez-vous et ateliers',importance:5,visibility:1});}catch(e){}
+    // Annule les notifs déjà planifiées par l'app (évite les doublons à la replanification)
+    try{const p=await LN.getPending();if(p&&p.notifications&&p.notifications.length){await LN.cancel({notifications:p.notifications.map(n=>({id:n.id}))});}}catch(e){}
+    const now=new Date();
+    const toSchedule=[];
+    for(let d=0;d<14;d++){
+      const day=new Date(now.getFullYear(),now.getMonth(),now.getDate()+d);
+      const tk=dateKey(day);
+      (state.reminders||[]).forEach(r=>{
+        try{
+          if(!reminderAppliesToDay(r,tk))return;
+          if(r.done&&r.done[tk])return;
+          if(!r.time)return;
+          const parts=r.time.split(':');const hh=parseInt(parts[0])||0,mm=parseInt(parts[1])||0;
+          const at=new Date(day.getFullYear(),day.getMonth(),day.getDate(),hh,mm,0);
+          if(at.getTime()<=now.getTime()+30000)return; // déjà passé → on saute
+          toSchedule.push({
+            id:_notifId(tk,r),
+            channelId:'rappels-avp',
+            title:r.title||'Rappel',
+            body:r.note||('À '+(r.time||'').replace(':','h')),
+            schedule:{at:at,allowWhileIdle:true},
+            extra:{avp:true,icon:r.icon,time:r.time,title:r.title,note:r.note,date:tk,recurrence:r.recurrence,eventDate:r.eventDate,eventTime:r.eventTime}
+          });
+        }catch(e){}
+      });
+    }
+    if(toSchedule.length){await LN.schedule({notifications:toSchedule});}
+    console.log('[Notif] Planifié:',toSchedule.length,'notifications système');
+  }catch(e){console.error('[Notif] planifierNotifsSysteme',e);}
 }
 
 function enterApp(){
