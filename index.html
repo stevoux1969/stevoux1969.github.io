@@ -189,7 +189,9 @@
     .pcard-titre { font-size: 17px; font-weight: 700; color: #1a2340; }
     .pcard-heure { font-size: 14px; color: #5e6b8a; margin-top: 2px; }
     .pcard-heure b { color: #2c3e91; }
-    .pcard-desc { margin: 0 16px 12px; background: #f7f5ff; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #6d28d9; line-height: 1.45; }
+    .pcard-desc { margin: 0 16px 12px; background: #f7f5ff; border-radius: 10px; padding: 12px 14px; font-size: 1rem; color: #6d28d9; line-height: 1.55; }
+    .pcard-lien { margin: 0 16px 14px; }
+    .pcard-lien a { display: inline-flex; align-items: center; gap: 6px; background: #eef1fb; color: #2c3e91; text-decoration: none; font-weight: 700; font-size: 0.9rem; padding: 10px 16px; border-radius: 12px; }
     .pcard-places-row { display: flex; align-items: center; gap: 8px; padding: 0 16px 12px; }
     .pcard-places { color: white; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; }
     .pcard-inscrits { margin: 0 16px 14px; padding-top: 12px; border-top: 1px solid #f0f1f6; }
@@ -1267,14 +1269,16 @@ async function showAdminDescriptions(){
   }catch(e){content.innerHTML='<div class="planning-empty">Erreur.</div>';}
 }
 
-function showAddDescriptionForm(cle,titre,dateLabel,desc='',adresse=''){
+function showAddDescriptionForm(cle,titre,dateLabel,desc='',adresse='',lien=''){
   document.getElementById('descriptions-content').innerHTML=`
     <h3 style="font-size:16px;font-weight:800;color:#1a2340;margin:0 0 4px;">${esc(titre)}</h3>
     <div style="font-size:13px;color:#8590ad;margin-bottom:16px;">${esc(dateLabel)}</div>
     <div style="margin-bottom:12px;"><label style="font-size:13px;font-weight:700;color:#5e6b8a;display:block;margin-bottom:6px;">Description pour cette date</label>
     <textarea id="desc-texte" placeholder="Ex: Rendez-vous à la petite maison. Prévoir des chaussures confortables." style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:15px;box-sizing:border-box;font-family:inherit;min-height:100px;">${esc(desc)}</textarea></div>
-    <div style="margin-bottom:20px;"><label style="font-size:13px;font-weight:700;color:#5e6b8a;display:block;margin-bottom:6px;">Adresse (facultatif)</label>
+    <div style="margin-bottom:12px;"><label style="font-size:13px;font-weight:700;color:#5e6b8a;display:block;margin-bottom:6px;">Adresse (facultatif)</label>
     <input id="desc-adresse" value="${esc(adresse)}" placeholder="Ex: 12 rue de la Paix, Petit-Quevilly" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:15px;box-sizing:border-box;font-family:inherit;"></div>
+    <div style="margin-bottom:20px;"><label style="font-size:13px;font-weight:700;color:#5e6b8a;display:block;margin-bottom:6px;">Lien « En savoir plus » (facultatif)</label>
+    <input id="desc-lien" value="${esc(lien)}" placeholder="Ex: https://youtu.be/..." style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:15px;box-sizing:border-box;font-family:inherit;"></div>
     <button id="desc-save-btn" style="width:100%;padding:14px;background:#6d28d9;color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;">💾 Enregistrer</button>
     <button onclick="showAdminDescriptions()" style="width:100%;padding:12px;background:#f1f3f8;color:#5e6b8a;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Annuler</button>`;
   document.getElementById('desc-save-btn').onclick=()=>saveDescription(cle);
@@ -1283,8 +1287,11 @@ function showAddDescriptionForm(cle,titre,dateLabel,desc='',adresse=''){
 async function saveDescription(cle){
   const desc=document.getElementById('desc-texte').value.trim();
   const adresse=document.getElementById('desc-adresse').value.trim();
+  let lien=document.getElementById('desc-lien').value.trim();
+  // Sécurité : on n'accepte que les liens http(s), sinon on ignore
+  if(lien && !/^https?:\/\//i.test(lien)) lien='https://'+lien;
   try{
-    await db.collection('atelier_descriptions').doc(cle).set({description:desc,adresse,updatedAt:Date.now()});
+    await db.collection('atelier_descriptions').doc(cle).set({description:desc,adresse,lien,updatedAt:Date.now()});
     await showAdminDescriptions();
   }catch(e){alert('Erreur sauvegarde.');}
 }
@@ -1295,7 +1302,7 @@ async function editDescription(cle,titre){
   // Libellé date à partir de la clé titre|date|heure
   const parts=cle.split('|');
   const dateLabel=parts.length>=3?(formatShortDate(parts[1])+' · '+parts[2].replace(':','h')):'';
-  showAddDescriptionForm(cle,titre||parts[0],dateLabel,d.description||'',d.adresse||'');
+  showAddDescriptionForm(cle,titre||parts[0],dateLabel,d.description||'',d.adresse||'',d.lien||'');
 }
 
 async function deleteDescription(titre){
@@ -2468,8 +2475,10 @@ function renderPlanningInner(content,events){const seen=new Set();const uniqueEv
         if(libres<=0){speech+=` C'est complet pour cette fois. N'hésitez pas pour un prochain atelier.`;}
         else{speech+=` Il reste ${libres} place${libres>1?'s':''}, bienvenue à vous.`;}
       }
-      // Carte aérée : icône, titre, heure, description (si présente), places, inscrits, bouton
+      // Carte aérée : icône, titre, heure, description (si présente), lien, places, inscrits, bouton
       const descHTML=desc?`<div class="pcard-desc">📝 ${esc(desc)}</div>`:'';
+      const lien=(state.atelierDescs&&state.atelierDescs[cleDesc]&&state.atelierDescs[cleDesc].lien)?state.atelierDescs[cleDesc].lien:'';
+      const lienHTML=lien?`<div class="pcard-lien"><a href="${esc(lien)}" target="_blank" rel="noopener" data-nospeech="1">▶️ En savoir plus</a></div>`:'';
       const placesBtn=complet?'<button class="pcard-btn complet" disabled>❌ Complet</button>':`<button class="pcard-btn ${inscrit?'inscrit':''}" data-ekey="${esc(ek)}" data-edate="${esc(e.date)}" data-etime="${esc(e.time)}" data-etitle="${esc(e.title)}" data-eicon="${esc(e.icon||'📋')}" data-elimite="${limite||''}" data-eanim="${esc(state.currentAnim||'Steve')}">${inscrit?'✓ Vous êtes inscrit':"M'inscrire"}</button>`;
       const tagsHTML=inscritsList.length?`<div class="pcard-tags">${inscritsList.map(p=>`<span class="pcard-tag">${esc(p)}</span>`).join('')}</div>`:'<span class="pcard-tag-empty">Aucun inscrit pour le moment</span>';
       html+=`<div class="pcard" data-speech="${esc(speech)}">
@@ -2482,13 +2491,14 @@ function renderPlanningInner(content,events){const seen=new Set();const uniqueEv
           </div>
         </div>
         ${descHTML}
+        ${lienHTML}
         <div class="pcard-places-row">${compteurHTML.replace('planning-places','pcard-places')}</div>
         <div class="pcard-inscrits"><div class="pcard-inscrits-label">Déjà inscrits :</div>${tagsHTML}</div>
         <div class="pcard-action">${placesBtn}</div>
       </div>`;
       }});});content.innerHTML=html;
       // Tap sur une carte = lecture vocale (le bouton M'inscrire est isolé par stopPropagation)
-      content.querySelectorAll('[data-speech]').forEach(card=>{card.addEventListener('click',()=>{speak(card.dataset.speech||'');});});
+      content.querySelectorAll('[data-speech]').forEach(card=>{card.addEventListener('click',(ev)=>{if(ev.target.closest('[data-nospeech]'))return;speak(card.dataset.speech||'');});});
       content.querySelectorAll('.pcard-btn:not(.complet)').forEach(btn=>{btn.addEventListener('click',async e=>{e.stopPropagation();if(btn.disabled)return;const ev={date:btn.dataset.edate,time:btn.dataset.etime,title:btn.dataset.etitle,icon:btn.dataset.eicon};const limite=btn.dataset.elimite?parseInt(btn.dataset.elimite):null;const anim=btn.dataset.eanim||'Steve';const ek=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');const dejaInscrit=isInscrit(ek);if(dejaInscrit){await demanderDesinscription(ev,ek,anim,content,events);return;}if(!dejaInscrit&&limite!==null){btn.disabled=true;btn.textContent='⏳ Vérification...';const freshInscriptions=await loadAllInscriptions();const currentCount=(freshInscriptions[ek]||[]).length;if(currentCount>=limite){showConfirm({icon:'😔',title:'Atelier complet',text:`Désolé, les ${limite} places pour "${ev.title}" viennent d'être prises.`,okText:'OK',hideCancel:true});state.allInscriptions=freshInscriptions;renderPlanningInner(content,events);return;}}await toggleInscription(ev);state.allInscriptions=await loadAllInscriptions();renderPlanningInner(content,events);});});}
 
 document.getElementById('prev-day').addEventListener('click',()=>{state.dayOffset--;render();});
