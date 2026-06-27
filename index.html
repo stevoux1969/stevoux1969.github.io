@@ -543,11 +543,37 @@
   </button>
   <div class="list-wrap">
     <div id="reminders-list"></div>
+    <div id="avis-encart" style="background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 10px rgba(26,35,64,0.07);margin-top:8px;">
+      <div style="font-size:1rem;font-weight:700;color:#1a2340;margin-bottom:12px;text-align:center;">Vous aimez l'application ?</div>
+      <div id="avis-emojis" style="display:flex;justify-content:center;gap:10px;margin-bottom:16px;">
+        <button type="button" class="avis-emoji" data-note="4" style="font-size:30px;background:#f1f3f8;border:2px solid transparent;border-radius:14px;width:58px;height:58px;cursor:pointer;">😍</button>
+        <button type="button" class="avis-emoji" data-note="3" style="font-size:30px;background:#f1f3f8;border:2px solid transparent;border-radius:14px;width:58px;height:58px;cursor:pointer;">🙂</button>
+        <button type="button" class="avis-emoji" data-note="2" style="font-size:30px;background:#f1f3f8;border:2px solid transparent;border-radius:14px;width:58px;height:58px;cursor:pointer;">😐</button>
+        <button type="button" class="avis-emoji" data-note="1" style="font-size:30px;background:#f1f3f8;border:2px solid transparent;border-radius:14px;width:58px;height:58px;cursor:pointer;">😟</button>
+      </div>
+      <div style="font-size:0.9rem;font-weight:700;color:#5e6b8a;margin-bottom:6px;">Une idée ? Un souci ?</div>
+      <textarea id="avis-texte" placeholder="Écrivez ici si vous voulez… (facultatif)" style="width:100%;box-sizing:border-box;border:1.5px solid #d1d9f0;border-radius:12px;padding:12px;font-size:0.95rem;font-family:inherit;resize:none;height:64px;margin-bottom:12px;"></textarea>
+      <div style="font-size:0.9rem;font-weight:700;color:#5e6b8a;margin-bottom:4px;">Votre prénom</div>
+      <div style="font-size:0.75rem;color:#8590ad;margin-bottom:8px;">Facultatif — laissez vide pour rester anonyme.</div>
+      <input id="avis-nom" placeholder="Votre prénom (si vous voulez une réponse)" style="width:100%;box-sizing:border-box;border:1.5px solid #d1d9f0;border-radius:12px;padding:12px;font-size:0.95rem;font-family:inherit;margin-bottom:14px;">
+      <button type="button" id="avis-envoyer" style="width:100%;background:#22a559;color:#fff;border:none;border-radius:14px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;">Envoyer mon avis</button>
+    </div>
   </div>
   <button id="add-btn" class="btn-add">
     <span class="plus">+</span>
     <span>Ajouter un rappel</span>
   </button>
+</div>
+
+<div id="avis-screen" class="screen">
+  <div class="edit-header">
+    <button class="back-btn" id="avis-back">‹ Retour</button>
+    <h1>💬 Avis des bénéficiaires</h1>
+  </div>
+  <div class="list-wrap">
+    <div id="avis-resume"></div>
+    <div id="avis-list"></div>
+  </div>
 </div>
 
 <div id="mes-rdv-screen" class="screen">
@@ -646,6 +672,7 @@
   <button class="btn-admin-action" id="admin-descriptions-btn" style="background:#f5f3ff;color:#6d28d9;border-color:#c4b5fd;">📝 Description de l'atelier</button>
   <button class="btn-admin-action" id="admin-mois-suivant-btn" style="background:#fff7ed;color:#b45309;border-color:#fcd34d;display:none;">🗓️ Activer mois suivant</button>
   <button class="btn-admin-action" id="admin-reparer-btn" style="background:#eef2ff;color:#3730a3;border-color:#c7d2fe;display:none;">🛠️ Réparer les inscriptions</button>
+  <button class="btn-admin-action" id="admin-avis-btn" style="background:#eff6ff;color:#1e40af;border-color:#bfdbfe;">💬 Avis des bénéficiaires</button>
   <button class="btn-admin-action" id="admin-diag-notif-btn" style="background:#fef3c7;color:#92400e;border-color:#fcd34d;display:none;">🔍 Test notifications</button>
   </div>
   <div class="admin-list" id="admin-user-list"></div>
@@ -1064,6 +1091,8 @@ function openUserMenu(){document.getElementById('um-name').textContent=currentUs
 document.getElementById('user-menu').addEventListener('click',e=>{if(e.target===document.getElementById('user-menu'))document.getElementById('user-menu').classList.remove('active');});
 document.getElementById('um-planning').addEventListener('click',async()=>{document.getElementById('user-menu').classList.remove('active');state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#5e6b8a">Chargement...</div>';await loadAVPPlanning();renderPlanning();});
 document.getElementById('mes-rdv-btn').addEventListener('click',()=>showMesRendezVous());
+document.getElementById('admin-avis-btn').addEventListener('click',()=>showAdminAvis());
+document.getElementById('avis-back').addEventListener('click',()=>showScreen('admin-screen'));
 document.getElementById('mes-rdv-back').addEventListener('click',()=>showScreen('main-screen'));
 document.getElementById('um-tutorial').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');startTutorial();});
 document.getElementById('um-logout').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');showConfirm({icon:'🚪',title:'Se déconnecter ?',text:'Vous devrez vous reconnecter la prochaine fois.',okText:'Déconnecter',danger:true,onOk:()=>{clearSession();currentUser=null;state.reminders=[];state.inscriptions={};pinValue='';updatePinDots();showScreen('login-screen');}});});
@@ -2360,6 +2389,90 @@ function showMesRendezVous(){
       }
     });
   });
+}
+
+// ========== AVIS BÉNÉFICIAIRES ==========
+let avisNoteSelectionnee=0;
+// Sélection d'un émoji (note 1 à 4)
+document.querySelectorAll('.avis-emoji').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    avisNoteSelectionnee=parseInt(btn.dataset.note);
+    document.querySelectorAll('.avis-emoji').forEach(b=>{b.style.borderColor='transparent';b.style.background='#f1f3f8';b.style.transform='none';});
+    btn.style.borderColor='#2c3e91';btn.style.background='#e8ecfb';btn.style.transform='scale(1.08)';
+  });
+});
+// Envoi de l'avis dans Firebase
+const avisEnvoyerBtn=document.getElementById('avis-envoyer');
+if(avisEnvoyerBtn)avisEnvoyerBtn.addEventListener('click',async()=>{
+  const texte=document.getElementById('avis-texte').value.trim();
+  const nom=document.getElementById('avis-nom').value.trim();
+  if(!avisNoteSelectionnee && !texte){
+    showConfirm({icon:'🙂',title:'Votre avis',text:'Choisissez un visage ou écrivez un mot avant d\'envoyer.',okText:'OK',hideCancel:true});
+    return;
+  }
+  try{
+    await db.collection('avis').add({
+      note:avisNoteSelectionnee||null,
+      texte:texte||'',
+      prenom:nom||'',           // vide = anonyme
+      createdAt:Date.now()
+    });
+    // Réinitialise l'encart
+    avisNoteSelectionnee=0;
+    document.getElementById('avis-texte').value='';
+    document.getElementById('avis-nom').value='';
+    document.querySelectorAll('.avis-emoji').forEach(b=>{b.style.borderColor='transparent';b.style.background='#f1f3f8';b.style.transform='none';});
+    showConfirm({icon:'💚',title:'Merci !',text:'Votre avis a bien été envoyé.',okText:'OK',hideCancel:true});
+  }catch(e){
+    showConfirm({icon:'😕',title:'Oups',text:'L\'avis n\'a pas pu être envoyé. Réessayez plus tard.',okText:'OK',hideCancel:true});
+  }
+});
+
+// Écran admin : liste des avis + résumé
+async function showAdminAvis(){
+  showScreen('avis-screen');
+  const resume=document.getElementById('avis-resume');
+  const list=document.getElementById('avis-list');
+  list.innerHTML='<div style="text-align:center;padding:30px;color:#5e6b8a">Chargement…</div>';
+  resume.innerHTML='';
+  try{
+    const snap=await db.collection('avis').get();
+    const avis=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    // Résumé par note
+    const cnt={4:0,3:0,2:0,1:0};
+    avis.forEach(a=>{if(a.note&&cnt[a.note]!==undefined)cnt[a.note]++;});
+    resume.innerHTML=`<div style="background:#1a2870;color:#fff;border-radius:16px;padding:16px;display:flex;justify-content:space-around;text-align:center;margin-bottom:14px;">
+      <div><div style="font-size:1.6rem;">😍</div><b style="font-size:1.3rem;">${cnt[4]}</b></div>
+      <div><div style="font-size:1.6rem;">🙂</div><b style="font-size:1.3rem;">${cnt[3]}</b></div>
+      <div><div style="font-size:1.6rem;">😐</div><b style="font-size:1.3rem;">${cnt[2]}</b></div>
+      <div><div style="font-size:1.6rem;">😟</div><b style="font-size:1.3rem;">${cnt[1]}</b></div>
+    </div>`;
+    if(avis.length===0){list.innerHTML='<div class="empty"><div class="empty-icon" style="font-size:36px">💬</div><div class="empty-text" style="margin-top:12px">Aucun avis pour le moment.</div></div>';return;}
+    const EM={4:'😍',3:'🙂',2:'😐',1:'😟'};
+    list.innerHTML=avis.map(a=>{
+      const d=a.createdAt?new Date(a.createdAt):null;
+      const dateLabel=d?d.toLocaleDateString('fr-FR',{day:'numeric',month:'long'}):'';
+      const qui=a.prenom?esc(a.prenom):'Anonyme';
+      return `<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(26,35,64,0.06);display:flex;gap:12px;align-items:flex-start;">
+        <div style="font-size:28px;">${a.note?EM[a.note]:'💬'}</div>
+        <div style="flex:1;">
+          ${a.texte?`<div style="color:#1a2340;font-size:0.95rem;line-height:1.5;">« ${esc(a.texte)} »</div>`:'<div style="color:#8590ad;font-style:italic;font-size:0.9rem;">(pas de commentaire)</div>'}
+          <div style="font-size:0.8rem;color:#5e6b8a;margin-top:4px;">— ${qui} · ${dateLabel}</div>
+        </div>
+        <button class="avis-suppr" data-id="${a.id}" style="background:none;border:none;font-size:18px;cursor:pointer;color:#c0c6d8;">🗑️</button>
+      </div>`;
+    }).join('');
+    // Suppression (admin)
+    list.querySelectorAll('.avis-suppr').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const id=btn.dataset.id;
+        showConfirm({icon:'🗑️',title:'Supprimer cet avis ?',text:'Cette action est définitive.',okText:'Supprimer',danger:true,onOk:async()=>{
+          try{await db.collection('avis').doc(id).delete();}catch(e){}
+          showAdminAvis();
+        }});
+      });
+    });
+  }catch(e){list.innerHTML='<div style="text-align:center;padding:30px;color:#d63447">Erreur de chargement des avis.</div>';}
 }
 
 function render(){const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key)).map(r=>({...r,_source:'personal'}));const items=[...personal].sort((a,b)=>a.time.localeCompare(b.time));if(items.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:36px;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;return;}const now=new Date();const isToday=state.dayOffset===0;const nowMinutes=now.getHours()*60+now.getMinutes();let upcomingId=null;if(isToday){const up=items.find(r=>{const[h,m]=r.time.split(':').map(Number);return(h*60+m)>=nowMinutes&&!(r.done&&r.done[key]);});if(up)upcomingId=up.id;}list.innerHTML=items.map(r=>{const isDone=r.done&&r.done[key];const isAVP=r._source==='avp';const isAtelier=r.source==='atelier';const eventDate=r.eventDate||r.date;const eventTime=r.eventTime||r.time;const dateDiffers=r.recurrence==='once'&&eventDate&&eventDate!==r.date;const timeDiffers=r.recurrence==='once'&&eventTime&&eventTime!==r.time;const hasDiffEvent=dateDiffers||timeDiffers;let noteText='';if(r.note){if(r.mapLink){noteText=`<a href="${r.mapLink}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{const iconDef=ICONS.find(ic=>ic.title===r.title||(r.icon&&ic.emoji===r.icon));if(iconDef&&iconDef.address){noteText=`<a href="https://www.google.com/maps/search/?api=1&query=${iconDef.address}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{noteText=esc(r.note);}}}const checkHTML=(isAVP||isAtelier)?'':`<div class="card-check ${isDone?'':'unchecked'}" data-check="${r.id}" style="position:absolute;top:12px;right:12px;">${isDone?'✓':'○'}</div>`;if(hasDiffEvent||isAtelier){const agendaLink=buildGoogleCalendarLink(r);let sonnerieText;if(isAtelier){const atelierDate=new Date(r.date+'T'+r.time+':00');const veille=new Date(atelierDate);veille.setDate(veille.getDate()-1);const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const h2=String(avant2h.getHours()).padStart(2,'0');const m2=String(avant2h.getMinutes()).padStart(2,'0');sonnerieText=`🔔 <strong>2 sonneries prévues :</strong><br>• La veille (${formatShortDate(veille.toISOString().slice(0,10))}) à <strong>15h00</strong><br>• 2h avant, à <strong>${h2}h${m2}</strong>`;}else if(dateDiffers){sonnerieText=`🔔 Sonnerie le <strong>${formatRelativeDate(r.date)} à ${r.time.replace(':','h')}</strong>`;}else{sonnerieText=`🔔 Sonnerie à <strong>${r.time.replace(':','h')}</strong>`;}const typeLabel=isAtelier?'Atelier AVP':'Rendez-vous';const badgeAtelier=isAtelier?'<span style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">✅ Je participe</span>':'';return`<div class="card-rdv ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="rdv-top"><div class="rdv-left"><div class="rdv-date">${formatShortDate(eventDate)}</div><div class="rdv-heure">${eventTime.replace(':','h')}</div></div><div class="rdv-image">${iconHTML(r.icon)}</div><div class="rdv-body"><div class="rdv-type">${typeLabel}</div><div class="rdv-titre">${esc(r.title)}</div>${noteText?`<div class="rdv-note">${noteText}</div>`:''} ${badgeAtelier}</div></div><div class="rdv-sonnerie">${sonnerieText}</div><a href="${agendaLink}" target="_blank" class="btn-agenda" onclick="event.stopPropagation()">📅 Ajouter à mon agenda Google</a></div>`;}const badge=isAVP?'<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">📋 Planning AVP</span>':'';const sonnerieType=isAVP?'Atelier':'Sonnerie';return`<div class="card-sonnerie ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="sonnerie-left"><div class="sonnerie-date">${r.recurrence==='daily'?'Tous les jours':(r.date?formatShortDate(r.date):'')}</div><div class="sonnerie-heure">${r.time.replace(':','h')}</div></div><div class="sonnerie-icon">${iconHTML(r.icon)}</div><div class="sonnerie-body"><div class="sonnerie-type">${sonnerieType}</div><div class="sonnerie-titre">${esc(r.title)}</div>${noteText?`<div class="sonnerie-note">${noteText}</div>`:''}${badge}</div></div>`;}).join('');}
