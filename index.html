@@ -767,7 +767,7 @@
     <button id="admin-inscrire-groupe-back" style="background:none;border:none;color:white;font-size:26px;cursor:pointer;padding:0 8px;">‹</button>
     <h1 style="font-size:19px;font-weight:800;">👥 Inscription aux ateliers</h1>
   </div>
-  <div id="admin-inscrire-groupe-body" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 100px;"></div>
+  <div id="admin-inscrire-groupe-body" style="flex:1;overflow-y:auto;padding:16px 16px 100px;"></div>
 </div>
 
 <div id="admin-ateliers-screen" class="screen">
@@ -2922,7 +2922,7 @@ function checkReminders(){if(!currentUser)return;const now=new Date(),ct=`${Stri
 document.body.addEventListener('click',()=>{const c=getAudioContext();if(c&&c.state==='suspended')c.resume().catch(()=>{});},{once:true});
 
 // Version actuelle de l'APK — à incrémenter à chaque rebuild
-const APP_VERSION='1.0.3';
+const APP_VERSION='1.0.4';
 const VERSION_URL='https://stevoux1969.github.io/version.txt';
 const APK_URL='https://stevoux1969.github.io/majourneeavp.apk';
 
@@ -3059,6 +3059,19 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.log('AVP: Service Worker erreur', err));
   });
 }
+</script>
+<script>
+// ===== DIAGNOSTIC SCROLL TEMPORAIRE (à retirer ensuite) =====
+setInterval(function(){
+  var scr=document.getElementById('admin-ateliers-screen');
+  var list=document.getElementById('admin-ateliers-list');
+  var d=document.getElementById('diag-scroll');
+  if(scr&&scr.classList.contains('active')&&list){
+    if(!d){d=document.createElement('div');d.id='diag-scroll';d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#000;color:#0f0;font:11px monospace;padding:5px 8px;white-space:pre-wrap;';document.body.appendChild(d);}
+    var cs=getComputedStyle(list), sc=getComputedStyle(scr);
+    d.textContent='visible='+list.clientHeight+' contenu='+list.scrollHeight+' overflowY='+cs.overflowY+' flex='+cs.flex+'\nSCREEN display='+sc.display+' dir='+sc.flexDirection+' hauteur='+scr.clientHeight;
+  } else if(d){d.remove();}
+},700);
 </script>
 </body>
 </html>
