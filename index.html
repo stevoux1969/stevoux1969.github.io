@@ -112,191 +112,191 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body { height: 100%; overflow: hidden; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f3f8; color: #1a2340; font-size: 18px; line-height: 1.4; -webkit-font-smoothing: antialiased; user-select: none; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f3f8; color: #1a2340; font-size:1.125rem; line-height: 1.4; -webkit-font-smoothing: antialiased; user-select: none; }
     .screen { position: fixed; inset: 0; display: none; flex-direction: column; background: #f1f3f8; }
     .screen.active { display: flex; }
     .login-wrap { flex: 1; overflow-y: auto; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
-    .login-logo { font-size: 72px; text-align: center; }
-    .login-title { font-size: 28px; font-weight: 800; color: #2c3e91; text-align: center; line-height: 1.2; }
-    .login-subtitle { font-size: 16px; color: #48547a; text-align: center; }
+    .login-logo { font-size:4.5rem; text-align: center; }
+    .login-title { font-size:1.75rem; font-weight: 800; color: #2c3e91; text-align: center; line-height: 1.2; }
+    .login-subtitle { font-size:1rem; color: #48547a; text-align: center; }
     .login-card { background: white; border-radius: 20px; padding: 24px; width: 100%; max-width: 360px; box-shadow: 0 4px 16px rgba(26,35,64,0.08); }
-    .login-card h2 { font-size: 20px; font-weight: 700; color: #1a2340; margin-bottom: 20px; text-align: center; }
+    .login-card h2 { font-size:1.25rem; font-weight: 700; color: #1a2340; margin-bottom: 20px; text-align: center; }
     .login-field { margin-bottom: 16px; }
-    .login-field label { display: block; font-size: 14px; font-weight: 700; color: #48547a; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .login-input { width: 100%; padding: 16px; font-size: 20px; border: 2px solid #e5e9f2; border-radius: 14px; background: white; font-family: inherit; color: #1a2340; -webkit-appearance: none; text-align: center; }
+    .login-field label { display: block; font-size:0.875rem; font-weight: 700; color: #48547a; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .login-input { width: 100%; padding: 16px; font-size:1.25rem; border: 2px solid #e5e9f2; border-radius: 14px; background: white; font-family: inherit; color: #1a2340; -webkit-appearance: none; text-align: center; }
     .login-input:focus { outline: none; border-color: #2c3e91; }
     .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
-    .pin-btn { padding: 18px 10px; background: #eef1fb; border: 2px solid #e5e9f2; border-radius: 14px; font-size: 24px; font-weight: 700; color: #2c3e91; cursor: pointer; font-family: inherit; }
+    .pin-btn { padding: 18px 10px; background: #eef1fb; border: 2px solid #e5e9f2; border-radius: 14px; font-size:1.5rem; font-weight: 700; color: #2c3e91; cursor: pointer; font-family: inherit; }
     .pin-btn:active { background: #2c3e91; color: white; transform: scale(0.96); }
     .pin-btn.del { background: #fdf0f2; border-color: #f3c3ca; color: #d63447; }
     .pin-display { display: flex; gap: 10px; justify-content: center; margin: 12px 0; }
     .pin-dot { width: 15px; height: 15px; border-radius: 50%; border: 2px solid #2c3e91; background: white; transition: background 0.15s; }
     .pin-dot.filled { background: #2c3e91; }
-    .btn-login { width: 100%; padding: 18px; background: #2c3e91; color: white; border: none; border-radius: 16px; font-size: 19px; font-weight: 700; cursor: pointer; margin-top: 8px; font-family: inherit; }
+    .btn-login { width: 100%; padding: 18px; background: #2c3e91; color: white; border: none; border-radius: 16px; font-size:1.1875rem; font-weight: 700; cursor: pointer; margin-top: 8px; font-family: inherit; }
     .btn-login:active { background: #1e2d6e; }
     .btn-login:disabled { background: #707a96; }
-    .login-switch { text-align: center; margin-top: 16px; font-size: 15px; color: #48547a; }
-    .login-switch button { background: none; border: none; color: #2c3e91; font-weight: 700; cursor: pointer; font-size: 15px; font-family: inherit; text-decoration: underline; }
-    .login-error { background: #fdf0f2; border: 2px solid #f3c3ca; border-radius: 12px; padding: 12px 16px; color: #d63447; font-size: 15px; font-weight: 600; text-align: center; display: none; }
+    .login-switch { text-align: center; margin-top: 16px; font-size:0.9375rem; color: #48547a; }
+    .login-switch button { background: none; border: none; color: #2c3e91; font-weight: 700; cursor: pointer; font-size:0.9375rem; font-family: inherit; text-decoration: underline; }
+    .login-error { background: #fdf0f2; border: 2px solid #f3c3ca; border-radius: 12px; padding: 12px 16px; color: #d63447; font-size:0.9375rem; font-weight: 600; text-align: center; display: none; }
     .login-error.visible { display: block; }
-    .user-avatar { width: 56px; height: 56px; border-radius: 50%; background: #2c3e91; color: white; font-size: 24px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .user-avatar { width: 56px; height: 56px; border-radius: 50%; background: #2c3e91; color: white; font-size:1.5rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .header { background: #2c3e91; color: white; padding: 24px 20px 20px; padding-top: calc(24px + env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-    .btn-arrow { background: rgba(255,255,255,0.18); border: none; color: white; width: 48px; height: 48px; min-width: 48px; border-radius: 50%; font-size: 30px; font-weight: 700; cursor: pointer; font-family: inherit; line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .btn-arrow { background: rgba(255,255,255,0.18); border: none; color: white; width: 48px; height: 48px; min-width: 48px; border-radius: 50%; font-size:1.875rem; font-weight: 700; cursor: pointer; font-family: inherit; line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0; }
     .btn-arrow:active { background: rgba(255,255,255,0.3); }
     .header-title { flex: 1; text-align: center; }
-    .header-title h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
-    .header-title .date { font-size: 14px; opacity: 0.85; margin-top: 4px; text-transform: capitalize; }
+    .header-title h1 { font-size:1.625rem; font-weight: 700; letter-spacing: -0.5px; }
+    .header-title .date { font-size:0.875rem; opacity: 0.85; margin-top: 4px; text-transform: capitalize; }
     .header-user { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 6px 12px; cursor: pointer; border: none; color: white; font-family: inherit; }
-    .header-user-name { font-size: 14px; font-weight: 600; }
+    .header-user-name { font-size:0.875rem; font-weight: 600; }
     .today-bar { background: #ffeecb; padding: 10px 16px; text-align: center; flex-shrink: 0; border-bottom: 1px solid #f0d89b; }
-    .today-bar button { background: none; border: none; color: #8a5a00; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
-    .planning-btn { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 12px 16px 0; padding: 14px 20px; background: #eef1fb; color: #2c3e91; border: 2px solid #8fa3df; border-radius: 14px; font-size: 17px; font-weight: 700; text-decoration: none; font-family: inherit; flex-shrink: 0; cursor: pointer; }
+    .today-bar button { background: none; border: none; color: #8a5a00; font-size:0.9375rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .planning-btn { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 12px 16px 0; padding: 14px 20px; background: #eef1fb; color: #2c3e91; border: 2px solid #8fa3df; border-radius: 14px; font-size:1.0625rem; font-weight: 700; text-decoration: none; font-family: inherit; flex-shrink: 0; cursor: pointer; }
     .planning-btn:active { background: #dde3f7; }
     .planning-btns-row { display: flex; gap: 8px; margin: 12px 16px 0; flex-shrink: 0; }
-    .planning-btn-split { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 14px 10px; background: #eef1fb; color: #2c3e91; border: 2px solid #8fa3df; border-radius: 14px; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; }
+    .planning-btn-split { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 14px 10px; background: #eef1fb; color: #2c3e91; border: 2px solid #8fa3df; border-radius: 14px; font-size:0.9375rem; font-weight: 700; font-family: inherit; cursor: pointer; }
     .planning-btn-split:active { background: #dde3f7; }
     .planning-btn-split.disabled { background: #f1f3f8; color: #707a96; border-color: #d5dae6; cursor: not-allowed; opacity: 0.7; }
-    .planning-header-anim { background: #22a559; color: white; padding: 10px 16px; text-align: center; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
-    .planning-day-header { background: #2c3e91; color: white; padding: 12px 16px; margin: 16px 0 8px; border-radius: 12px; font-size: 17px; font-weight: 700; text-transform: capitalize; }
+    .planning-header-anim { background: #22a559; color: white; padding: 10px 16px; text-align: center; font-size:0.9375rem; font-weight: 700; letter-spacing: 0.5px; }
+    .planning-day-header { background: #2c3e91; color: white; padding: 12px 16px; margin: 16px 0 8px; border-radius: 12px; font-size:1.0625rem; font-weight: 700; text-transform: capitalize; }
     .planning-day-header:first-child { margin-top: 0; }
     .planning-item { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; background: white; border-left: 4px solid #22a559; border-radius: 12px; padding: 14px 14px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); overflow: hidden; }
-    .planning-item-time { font-size: 18px; font-weight: 700; color: #2c3e91; min-width: 54px; }
-    .planning-item-icon { font-size: 28px; line-height: 1; }
+    .planning-item-time { font-size:1.125rem; font-weight: 700; color: #2c3e91; min-width: 54px; }
+    .planning-item-icon { font-size:1.75rem; line-height: 1; }
     .planning-item-body { flex: 1; min-width: 0; }
-    .planning-item-title { font-size: 16px; font-weight: 600; color: #1a2340; }
-    .planning-item-meta { font-size: 13px; color: #48547a; margin-top: 2px; }
-    .planning-inscrits { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e5e9f2; font-size: 12px; color: #48547a; line-height: 1.6; }
+    .planning-item-title { font-size:1rem; font-weight: 600; color: #1a2340; }
+    .planning-item-meta { font-size:0.8125rem; color: #48547a; margin-top: 2px; }
+    .planning-inscrits { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e5e9f2; font-size:0.75rem; color: #48547a; line-height: 1.6; }
     .planning-inscrits-empty { font-style: italic; color: #707a96; }
     .planning-inscrits-count { font-weight: 700; color: #22a559; margin-right: 4px; }
-    .planning-inscrit-tag { display: inline-block; background: #eef1fb; color: #2c3e91; padding: 2px 8px; border-radius: 10px; margin: 2px 2px; font-size: 12px; font-weight: 600; }
-    .planning-places { display: inline-block; color: white; padding: 4px 10px; border-radius: 10px; font-size: 12px; font-weight: 700; margin-top: 6px; letter-spacing: 0.3px; }
-    .planning-places strong { font-size: 14px; margin-right: 2px; }
+    .planning-inscrit-tag { display: inline-block; background: #eef1fb; color: #2c3e91; padding: 2px 8px; border-radius: 10px; margin: 2px 2px; font-size:0.75rem; font-weight: 600; }
+    .planning-places { display: inline-block; color: white; padding: 4px 10px; border-radius: 10px; font-size:0.75rem; font-weight: 700; margin-top: 6px; letter-spacing: 0.3px; }
+    .planning-places strong { font-size:0.875rem; margin-right: 2px; }
     .planning-item-complet { opacity: 0.75; }
     .btn-inscrit.btn-complet { background: #d63447; color: white; border: none; cursor: not-allowed; opacity: 0.85; }
     .btn-inscrit.btn-complet:active { transform: none; }
-    .btn-inscrit { background: #22a559; color: white; border: none; border-radius: 20px; padding: 8px 16px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; flex-shrink: 0; margin-left: auto; }
+    .btn-inscrit { background: #22a559; color: white; border: none; border-radius: 20px; padding: 8px 16px; font-size:0.875rem; font-weight: 700; cursor: pointer; font-family: inherit; flex-shrink: 0; margin-left: auto; }
     .btn-inscrit:active { background: #1d8b4b; }
     .btn-inscrit.inscrit { background: #eef1fb; color: #2c3e91; border: 2px solid #2c3e91; }
-    .planning-empty { text-align: center; padding: 40px 20px; color: #6c7a99; font-size: 17px; }
+    .planning-empty { text-align: center; padding: 40px 20px; color: #6c7a99; font-size:1.0625rem; }
     @keyframes avisBlink { 50% { opacity: 0.2; } }
     .list-wrap { flex: 1; overflow-y: auto; padding: 16px 16px 185px; -webkit-overflow-scrolling: touch; }
     /* Nouvelles cartes planning aérées (vue bénéficiaire) */
     .pcard { background: white; border-radius: 16px; margin-bottom: 14px; box-shadow: 0 2px 10px rgba(26,35,64,0.07); overflow: hidden; position: relative; cursor: pointer; }
-    .audio-badge { position: absolute; top: 12px; right: 12px; background: #eef1fb; color: #2c3e91; border-radius: 20px; font-size: 12px; font-weight: 700; padding: 5px 10px; }
+    .audio-badge { position: absolute; top: 12px; right: 12px; background: #eef1fb; color: #2c3e91; border-radius: 20px; font-size:0.75rem; font-weight: 700; padding: 5px 10px; }
     .pcard-top { display: flex; align-items: center; gap: 14px; padding: 16px 16px 12px; }
-    .pcard-ico { width: 48px; height: 48px; border-radius: 14px; background: #f1f3f8; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; }
+    .pcard-ico { width: 48px; height: 48px; border-radius: 14px; background: #f1f3f8; display: flex; align-items: center; justify-content: center; font-size:1.625rem; flex-shrink: 0; }
     .pcard-ico img { width: 30px; height: 30px; }
     .pcard-titre-zone { flex: 1; min-width: 0; }
-    .pcard-titre { font-size: 17px; font-weight: 700; color: #1a2340; }
-    .pcard-heure { font-size: 14px; color: #48547a; margin-top: 2px; }
+    .pcard-titre { font-size:1.0625rem; font-weight: 700; color: #1a2340; }
+    .pcard-heure { font-size:0.875rem; color: #48547a; margin-top: 2px; }
     .pcard-heure b { color: #2c3e91; }
     .pcard-desc { margin: 0 16px 12px; background: #f7f5ff; border-radius: 10px; padding: 12px 14px; font-size: 1rem; color: #6d28d9; line-height: 1.55; }
     .pcard-lien { margin: 0 16px 14px; }
     .pcard-lien a { display: inline-flex; align-items: center; gap: 6px; background: #eef1fb; color: #2c3e91; text-decoration: none; font-weight: 700; font-size: 0.9rem; padding: 10px 16px; border-radius: 12px; }
     .pcard-places-row { display: flex; align-items: center; gap: 8px; padding: 0 16px 12px; }
-    .pcard-places { color: white; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+    .pcard-places { color: white; padding: 5px 12px; border-radius: 20px; font-size:0.8125rem; font-weight: 700; }
     .pcard-inscrits { margin: 0 16px 14px; padding-top: 12px; border-top: 1px solid #f0f1f6; }
-    .pcard-inscrits-label { font-size: 12px; color: #5b6785; font-weight: 600; margin-bottom: 8px; }
+    .pcard-inscrits-label { font-size:0.75rem; color: #5b6785; font-weight: 600; margin-bottom: 8px; }
     .pcard-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-    .pcard-tag { font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 20px; background: #eef1fb; color: #2c3e91; }
-    .pcard-tag-empty { font-size: 12px; color: #707a96; font-style: italic; }
+    .pcard-tag { font-size:0.75rem; font-weight: 600; padding: 5px 11px; border-radius: 20px; background: #eef1fb; color: #2c3e91; }
+    .pcard-tag-empty { font-size:0.75rem; color: #707a96; font-style: italic; }
     .pcard-action { padding: 0 16px 16px; }
-    .pcard-btn { width: 100%; background: #22a559; color: white; border: none; border-radius: 14px; padding: 14px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .pcard-btn { width: 100%; background: #22a559; color: white; border: none; border-radius: 14px; padding: 14px; font-size:1rem; font-weight: 700; cursor: pointer; font-family: inherit; }
     .pcard-btn.inscrit { background: #eef6ff; color: #2c3e91; border: 2px solid #2c3e91; }
     .pcard-btn.complet { background: #d63447; color: white; cursor: not-allowed; opacity: 0.85; }
     .empty { text-align: center; padding: 60px 20px; color: #6c7a99; }
-    .empty-icon { font-size: 64px; margin-bottom: 16px; }
-    .empty-text { font-size: 18px; line-height: 1.5; }
+    .empty-icon { font-size:4rem; margin-bottom: 16px; }
+    .empty-text { font-size:1.125rem; line-height: 1.5; }
     .card { background: white; border-radius: 18px; padding: 18px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(26,35,64,0.06); display: flex; align-items: center; gap: 14px; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
     .card:active { transform: scale(0.98); }
     .card.done { opacity: 0.55; }
     .card.done .card-title { text-decoration: line-through; }
     .card.upcoming { border-color: #2c3e91; }
     .card.avp-card { border-left: 5px solid #22a559; background: #f5fff8; }
-    .card-time { font-size: 22px; font-weight: 700; color: #1a2340; min-width: 62px; display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
-    .card-icon { font-size: 36px; line-height: 1; flex-shrink: 0; }
+    .card-time { font-size:1.375rem; font-weight: 700; color: #1a2340; min-width: 62px; display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+    .card-icon { font-size:2.25rem; line-height: 1; flex-shrink: 0; }
     .card-icon img { width: 44px; height: 44px; }
     .alert-icon img { width: 100px; height: 100px; }
     .card-body { flex: 1; min-width: 0; }
-    .card-title { font-size: 17px; font-weight: 700; color: #1a2340; line-height: 1.25; }
-    .card-note { font-size: 14px; color: #48547a; margin-top: 3px; }
+    .card-title { font-size:1.0625rem; font-weight: 700; color: #1a2340; line-height: 1.25; }
+    .card-note { font-size:0.875rem; color: #48547a; margin-top: 3px; }
     .card-note a { color: #2c3e91; text-decoration: underline; }
-    .card-eventtime { display: inline-block; font-size: 14px; font-weight: 700; color: #2c3e91; background: #eef1fb; padding: 3px 8px; border-radius: 8px; margin-top: 6px; }
-    .rec-badge { display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 600; color: #8a5a00; background: #ffeecb; padding: 3px 8px; border-radius: 6px; }
-    .avp-badge { display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 600; color: #0a6e31; background: #dcfce7; padding: 3px 8px; border-radius: 6px; }
-    .card-check { font-size: 28px; color: #22a559; margin-left: 4px; }
+    .card-eventtime { display: inline-block; font-size:0.875rem; font-weight: 700; color: #2c3e91; background: #eef1fb; padding: 3px 8px; border-radius: 8px; margin-top: 6px; }
+    .rec-badge { display: inline-block; margin-top: 6px; font-size:0.6875rem; font-weight: 600; color: #8a5a00; background: #ffeecb; padding: 3px 8px; border-radius: 6px; }
+    .avp-badge { display: inline-block; margin-top: 6px; font-size:0.6875rem; font-weight: 600; color: #0a6e31; background: #dcfce7; padding: 3px 8px; border-radius: 6px; }
+    .card-check { font-size:1.75rem; color: #22a559; margin-left: 4px; }
     .card-check.unchecked { color: #d0d5e0; }
     .card-sonnerie { background: #fff8e6; border-left: 6px solid #f0b93c; border-radius: 14px; padding: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); cursor: pointer; }
     .card-sonnerie:active { transform: scale(0.98); }
     .card-sonnerie.done { opacity: 0.55; }
     .card-sonnerie.done .sonnerie-titre { text-decoration: line-through; }
     .sonnerie-left { background: #f0b93c; color: white; border-radius: 10px; padding: 10px 12px; text-align: center; min-width: 90px; flex-shrink: 0; }
-    .sonnerie-date { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1; }
-    .sonnerie-heure { font-size: 26px; font-weight: 800; margin-top: 4px; line-height: 1; }
-    .sonnerie-icon { font-size: 40px; line-height: 1; flex-shrink: 0; }
+    .sonnerie-date { font-size:0.8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1; }
+    .sonnerie-heure { font-size:1.625rem; font-weight: 800; margin-top: 4px; line-height: 1; }
+    .sonnerie-icon { font-size:2.5rem; line-height: 1; flex-shrink: 0; }
     .sonnerie-icon img { width: 48px; height: 48px; }
     .sonnerie-body { flex: 1; min-width: 0; }
-    .sonnerie-type { font-size: 11px; font-weight: 700; color: #8a5a00; text-transform: uppercase; letter-spacing: 1px; }
-    .sonnerie-titre { font-size: 18px; font-weight: 700; color: #1a2340; margin-top: 2px; line-height: 1.2; }
-    .sonnerie-note { font-size: 14px; color: #48547a; margin-top: 4px; }
+    .sonnerie-type { font-size:0.6875rem; font-weight: 700; color: #8a5a00; text-transform: uppercase; letter-spacing: 1px; }
+    .sonnerie-titre { font-size:1.125rem; font-weight: 700; color: #1a2340; margin-top: 2px; line-height: 1.2; }
+    .sonnerie-note { font-size:0.875rem; color: #48547a; margin-top: 4px; }
     .card-rdv { background: #e9efff; border: 2px solid #8fa3df; border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); cursor: pointer; }
     .card-rdv:active { transform: scale(0.98); }
     .card-rdv.done { opacity: 0.55; }
     .card-rdv.done .rdv-titre { text-decoration: line-through; }
     .rdv-top { display: flex; align-items: center; gap: 14px; }
     .rdv-left { background: #2c3e91; color: white; border-radius: 10px; padding: 10px 12px; text-align: center; min-width: 90px; flex-shrink: 0; }
-    .rdv-date { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1; }
-    .rdv-heure { font-size: 26px; font-weight: 800; margin-top: 4px; line-height: 1; }
-    .rdv-image { width: 64px; height: 64px; background: white; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 44px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1); line-height: 1; }
+    .rdv-date { font-size:0.8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1; }
+    .rdv-heure { font-size:1.625rem; font-weight: 800; margin-top: 4px; line-height: 1; }
+    .rdv-image { width: 64px; height: 64px; background: white; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size:2.75rem; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1); line-height: 1; }
     .rdv-image img { width: 48px; height: 48px; }
     .rdv-body { flex: 1; min-width: 0; }
-    .rdv-type { font-size: 11px; font-weight: 700; color: #2c3e91; text-transform: uppercase; letter-spacing: 1px; }
-    .rdv-titre { font-size: 18px; font-weight: 700; color: #1a2340; margin-top: 2px; line-height: 1.2; }
-    .rdv-note { font-size: 14px; color: #48547a; margin-top: 4px; }
+    .rdv-type { font-size:0.6875rem; font-weight: 700; color: #2c3e91; text-transform: uppercase; letter-spacing: 1px; }
+    .rdv-titre { font-size:1.125rem; font-weight: 700; color: #1a2340; margin-top: 2px; line-height: 1.2; }
+    .rdv-note { font-size:0.875rem; color: #48547a; margin-top: 4px; }
     .rdv-note a { color: #2c3e91; text-decoration: underline; }
-    .rdv-sonnerie { background: #fff; border: 1px dashed #aab0c4; border-radius: 10px; padding: 8px 10px; margin-top: 10px; font-size: 13px; color: #48547a; }
-    .btn-agenda { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; background: #2c3e91; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; margin-top: 10px; cursor: pointer; font-family: inherit; text-decoration: none; }
+    .rdv-sonnerie { background: #fff; border: 1px dashed #aab0c4; border-radius: 10px; padding: 8px 10px; margin-top: 10px; font-size:0.8125rem; color: #48547a; }
+    .btn-agenda { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; background: #2c3e91; color: white; border: none; border-radius: 10px; font-size:0.9375rem; font-weight: 700; margin-top: 10px; cursor: pointer; font-family: inherit; text-decoration: none; }
     .btn-agenda:active { background: #1e2d6e; }
-    .rdv-check { text-align: right; margin-top: 8px; font-size: 24px; color: #22a559; }
+    .rdv-check { text-align: right; margin-top: 8px; font-size:1.5rem; color: #22a559; }
     .rdv-check.unchecked { color: #d0d5e0; }
     .icon-badge { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; padding: 4px 6px; background: #eef1fb; border-radius: 10px; border: 2px solid #2c3e91; min-width: 52px; }
-    .ib-big { font-size: 15px; font-weight: 800; color: #2c3e91; letter-spacing: 0.5px; }
-    .ib-small { font-size: 8px; font-weight: 600; color: #48547a; margin-top: 2px; text-align: center; text-transform: lowercase; }
-    .btn-add { position: fixed; bottom: 20px; left: 16px; right: 16px; padding: 20px; background: #22a559; color: white; border: none; border-radius: 40px; font-size: 20px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 20px rgba(34,165,89,0.35); font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 10px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+    .ib-big { font-size:0.9375rem; font-weight: 800; color: #2c3e91; letter-spacing: 0.5px; }
+    .ib-small { font-size:0.5rem; font-weight: 600; color: #48547a; margin-top: 2px; text-align: center; text-transform: lowercase; }
+    .btn-add { position: fixed; bottom: 20px; left: 16px; right: 16px; padding: 20px; background: #22a559; color: white; border: none; border-radius: 40px; font-size:1.25rem; font-weight: 700; cursor: pointer; box-shadow: 0 6px 20px rgba(34,165,89,0.35); font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 10px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
     .btn-add:active { background: #1d8b4b; }
-    .btn-add .plus { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: white; color: #22a559; font-size: 24px; line-height: 1; font-weight: 700; }
+    .btn-add .plus { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: white; color: #22a559; font-size:1.5rem; line-height: 1; font-weight: 700; }
     .edit-header { background: white; padding: 18px 16px; padding-top: calc(18px + env(safe-area-inset-top)); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e5e9f2; flex-shrink: 0; }
-    .back-btn { background: none; border: none; font-size: 26px; color: #2c3e91; cursor: pointer; padding: 4px 8px; font-family: inherit; }
-    .edit-header h2 { font-size: 22px; font-weight: 700; flex: 1; }
+    .back-btn { background: none; border: none; font-size:1.625rem; color: #2c3e91; cursor: pointer; padding: 4px 8px; font-family: inherit; }
+    .edit-header h2 { font-size:1.375rem; font-weight: 700; flex: 1; }
     .edit-body { flex: 1; overflow-y: auto; padding: 20px 16px 40px; }
     .field { margin-bottom: 24px; }
-    .field label { display: block; font-size: 15px; font-weight: 700; color: #48547a; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .field-hint { font-size: 13px; color: #5b6785; margin-top: 6px; line-height: 1.35; font-style: italic; }
-    .input, .textarea { width: 100%; padding: 16px; font-size: 20px; border: 2px solid #e5e9f2; border-radius: 14px; background: white; font-family: inherit; color: #1a2340; -webkit-appearance: none; }
+    .field label { display: block; font-size:0.9375rem; font-weight: 700; color: #48547a; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .field-hint { font-size:0.8125rem; color: #5b6785; margin-top: 6px; line-height: 1.35; font-style: italic; }
+    .input, .textarea { width: 100%; padding: 16px; font-size:1.25rem; border: 2px solid #e5e9f2; border-radius: 14px; background: white; font-family: inherit; color: #1a2340; -webkit-appearance: none; }
     .input:focus, .textarea:focus { outline: none; border-color: #2c3e91; }
     .textarea { resize: none; min-height: 80px; }
     .voice-input { margin-bottom: 24px; padding: 14px; background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-radius: 16px; border: 2px solid #a7e4bd; }
-    .voice-btn { width: 100%; padding: 18px; background: #22a559; color: white; border: none; border-radius: 12px; font-size: 19px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; font-family: inherit; }
+    .voice-btn { width: 100%; padding: 18px; background: #22a559; color: white; border: none; border-radius: 12px; font-size:1.1875rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; font-family: inherit; }
     .voice-btn:active { background: #1d8b4b; transform: scale(0.98); }
     .voice-btn.listening { background: #d63447; animation: voice-pulse 1.4s infinite; }
-    .voice-icon { font-size: 26px; line-height: 1; }
+    .voice-icon { font-size:1.625rem; line-height: 1; }
     @keyframes voice-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(214,52,71,0.5)} 50%{box-shadow:0 0 0 14px rgba(214,52,71,0)} }
     .btn-atelier-info { animation: info-heartbeat 1.4s ease-in-out infinite; }
     @keyframes info-heartbeat { 0%{transform:scale(1);box-shadow:0 0 0 0 rgba(214,52,71,0.6)} 14%{transform:scale(1.12);box-shadow:0 0 0 4px rgba(214,52,71,0.3)} 28%{transform:scale(1);box-shadow:0 0 0 0 rgba(214,52,71,0)} 42%{transform:scale(1.08);box-shadow:0 0 0 3px rgba(214,52,71,0.2)} 70%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(214,52,71,0)} }
-    .voice-status { margin-top: 12px; padding: 12px 14px; border-radius: 10px; font-size: 15px; line-height: 1.4; display: none; }
+    .voice-status { margin-top: 12px; padding: 12px 14px; border-radius: 10px; font-size:0.9375rem; line-height: 1.4; display: none; }
     .voice-status.success { background: #fff; color: #0a6e31; display: block; border: 1px solid #a7e4bd; }
     .voice-status.error { background: #fdf0f2; color: #b02a3e; display: block; border: 1px solid #f3c3ca; }
     .voice-status.listening { background: #fff8e6; color: #8a5a00; display: block; border: 1px solid #f0d89b; }
-    .voice-hint { margin-top: 10px; font-size: 13px; color: #5e7a66; text-align: center; font-style: italic; line-height: 1.4; }
+    .voice-hint { margin-top: 10px; font-size:0.8125rem; color: #5e7a66; text-align: center; font-style: italic; line-height: 1.4; }
     .segmented { display: flex; background: #e5e9f2; border-radius: 14px; padding: 4px; gap: 4px; }
-    .seg-btn { flex: 1; padding: 14px 8px; background: transparent; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; color: #48547a; cursor: pointer; font-family: inherit; }
+    .seg-btn { flex: 1; padding: 14px 8px; background: transparent; border: none; border-radius: 10px; font-size:1rem; font-weight: 600; color: #48547a; cursor: pointer; font-family: inherit; }
     .seg-btn.active { background: white; color: #2c3e91; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
     .section-box { padding: 18px 16px 16px; border-radius: 18px; margin-bottom: 24px; border: 2px solid; }
     .section-box.section-alarm { background: #fff7e0; border-color: #f0cc5f; }
     .section-box.section-event { background: #e9efff; border-color: #8fa3df; }
     .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-    .section-icon { font-size: 28px; line-height: 1; }
-    .section-title { font-size: 17px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+    .section-icon { font-size:1.75rem; line-height: 1; }
+    .section-title { font-size:1.0625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
     .section-alarm .section-title { color: #8a5a00; }
     .section-event .section-title { color: #2c3e91; }
     .section-box .field { margin-bottom: 16px; }
@@ -309,127 +309,127 @@
     .icon-opt { background: white; border: 2px solid #e5e9f2; border-radius: 16px; padding: 12px 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-family: inherit; min-height: 100px; }
     .icon-opt.selected { border-color: #2c3e91; background: #eef1fb; }
     .icon-opt:active { transform: scale(0.95); }
-    .icon-opt-emoji { font-size: 44px; line-height: 1; }
+    .icon-opt-emoji { font-size:2.75rem; line-height: 1; }
     .icon-opt-img { width: 56px; height: 56px; object-fit: contain; }
-    .icon-opt-label { font-size: 11px; font-weight: 700; color: #48547a; text-align: center; line-height: 1.15; max-width: 100%; overflow: hidden; }
+    .icon-opt-label { font-size:0.6875rem; font-weight: 700; color: #48547a; text-align: center; line-height: 1.15; max-width: 100%; overflow: hidden; }
     .tp { display: flex; align-items: center; justify-content: center; gap: 16px; background: white; border: 2px solid #e5e9f2; border-radius: 14px; padding: 12px; }
     .tp-col { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; max-width: 130px; }
-    .tp-btn { width: 100%; height: 48px; background: #eef1fb; border: none; border-radius: 12px; font-size: 22px; font-weight: 700; color: #2c3e91; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .tp-btn { width: 100%; height: 48px; background: #eef1fb; border: none; border-radius: 12px; font-size:1.375rem; font-weight: 700; color: #2c3e91; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; padding: 0; }
     .tp-btn:active { background: #2c3e91; color: white; transform: scale(0.96); }
-    .tp-val { font-size: 42px; font-weight: 800; color: #1a2340; width: 100%; text-align: center; padding: 6px 0; font-variant-numeric: tabular-nums; background: #f8f9fd; border-radius: 10px; }
-    .tp-sep { font-size: 40px; font-weight: 800; color: #1a2340; padding: 0 4px; margin-top: 28px; }
-    .tp-label { font-size: 11px; font-weight: 700; color: #5b6785; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-    .sonnerie-choix-btn { width:100%; padding:16px; background:#eef1fb; color:#2c3e91; border:2px solid #8fa3df; border-radius:14px; font-size:16px; font-weight:700; cursor:pointer; font-family:inherit; text-align:left; margin-bottom:10px; }
+    .tp-val { font-size:2.625rem; font-weight: 800; color: #1a2340; width: 100%; text-align: center; padding: 6px 0; font-variant-numeric: tabular-nums; background: #f8f9fd; border-radius: 10px; }
+    .tp-sep { font-size:2.5rem; font-weight: 800; color: #1a2340; padding: 0 4px; margin-top: 28px; }
+    .tp-label { font-size:0.6875rem; font-weight: 700; color: #5b6785; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+    .sonnerie-choix-btn { width:100%; padding:16px; background:#eef1fb; color:#2c3e91; border:2px solid #8fa3df; border-radius:14px; font-size:1rem; font-weight:700; cursor:pointer; font-family:inherit; text-align:left; margin-bottom:10px; }
     .sonnerie-choix-btn.active { background:#2c3e91; color:white; border-color:#2c3e91; }
     .sonnerie-choix-btn:active { transform:scale(0.98); }
-    .btn-save { width: 100%; padding: 20px; background: #22a559; color: white; border: none; border-radius: 16px; font-size: 19px; font-weight: 700; cursor: pointer; margin-top: 8px; font-family: inherit; }
+    .btn-save { width: 100%; padding: 20px; background: #22a559; color: white; border: none; border-radius: 16px; font-size:1.1875rem; font-weight: 700; cursor: pointer; margin-top: 8px; font-family: inherit; }
     .btn-save:active { background: #1d8b4b; }
-    .btn-delete { width: 100%; padding: 16px; background: white; color: #d63447; border: 2px solid #f3c3ca; border-radius: 16px; font-size: 17px; font-weight: 600; cursor: pointer; margin-top: 12px; font-family: inherit; }
+    .btn-delete { width: 100%; padding: 16px; background: white; color: #d63447; border: 2px solid #f3c3ca; border-radius: 16px; font-size:1.0625rem; font-weight: 600; cursor: pointer; margin-top: 12px; font-family: inherit; }
     .modal-backdrop { position: fixed; inset: 0; background: rgba(26,35,64,0.5); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 100; }
     .modal-backdrop.active { display: flex; }
     .modal { background: white; border-radius: 20px; padding: 28px 24px; max-width: 340px; width: 100%; text-align: center; }
-    .modal-icon { font-size: 48px; margin-bottom: 8px; }
-    .modal-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
-    .modal-text { font-size: 16px; color: #48547a; margin-bottom: 20px; }
+    .modal-icon { font-size:3rem; margin-bottom: 8px; }
+    .modal-title { font-size:1.375rem; font-weight: 700; margin-bottom: 8px; }
+    .modal-text { font-size:1rem; color: #48547a; margin-bottom: 20px; }
     .modal-buttons { display: flex; gap: 10px; }
-    .modal-buttons button { flex: 1; padding: 14px; font-size: 16px; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; font-family: inherit; }
+    .modal-buttons button { flex: 1; padding: 14px; font-size:1rem; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; font-family: inherit; }
     .btn-primary { background: #2c3e91; color: white; }
     .btn-secondary { background: #e5e9f2; color: #1a2340; }
     .btn-danger { background: #d63447; color: white; }
     .alert { position: fixed; inset: 0; background: #2c3e91; color: white; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 30px; z-index: 200; }
     .alert.active { display: flex; }
-    .alert-icon { font-size: 100px; margin-bottom: 20px; }
-    .alert-time { font-size: 24px; opacity: 0.8; margin-bottom: 10px; }
-    .alert-title { font-size: 40px; font-weight: 700; line-height: 1.1; margin-bottom: 14px; }
-    .alert-eventtime { background: white; color: #2c3e91; font-size: 26px; font-weight: 700; padding: 12px 24px; border-radius: 14px; margin-bottom: 20px; }
-    .alert-note { font-size: 22px; opacity: 0.9; margin-bottom: 40px; }
-    .alert-btn { background: white; color: #2c3e91; border: none; padding: 20px 40px; font-size: 20px; font-weight: 700; border-radius: 40px; cursor: pointer; font-family: inherit; width: 100%; max-width: 320px; }
+    .alert-icon { font-size:6.25rem; margin-bottom: 20px; }
+    .alert-time { font-size:1.5rem; opacity: 0.8; margin-bottom: 10px; }
+    .alert-title { font-size:2.5rem; font-weight: 700; line-height: 1.1; margin-bottom: 14px; }
+    .alert-eventtime { background: white; color: #2c3e91; font-size:1.625rem; font-weight: 700; padding: 12px 24px; border-radius: 14px; margin-bottom: 20px; }
+    .alert-note { font-size:1.375rem; opacity: 0.9; margin-bottom: 40px; }
+    .alert-btn { background: white; color: #2c3e91; border: none; padding: 20px 40px; font-size:1.25rem; font-weight: 700; border-radius: 40px; cursor: pointer; font-family: inherit; width: 100%; max-width: 320px; }
     .admin-header { background: #d63447; color: white; padding: 24px 20px 20px; padding-top: calc(24px + env(safe-area-inset-top)); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-    .admin-header h1 { font-size: 22px; font-weight: 700; flex: 1; }
+    .admin-header h1 { font-size:1.375rem; font-weight: 700; flex: 1; }
     .admin-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 40px; }
     .admin-list { padding: 16px; }
     .admin-user-card { background: white; border-radius: 16px; padding: 16px 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(26,35,64,0.06); cursor: pointer; }
     .admin-user-card:active { transform: scale(0.98); }
     .admin-user-info { flex: 1; }
-    .admin-user-name { font-size: 18px; font-weight: 700; color: #1a2340; }
-    .admin-user-meta { font-size: 14px; color: #48547a; margin-top: 2px; }
-    .btn-new-user { margin: 0 16px 16px; padding: 18px; background: #d63447; color: white; border: none; border-radius: 16px; font-size: 18px; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .admin-user-name { font-size:1.125rem; font-weight: 700; color: #1a2340; }
+    .admin-user-meta { font-size:0.875rem; color: #48547a; margin-top: 2px; }
+    .btn-new-user { margin: 0 16px 16px; padding: 18px; background: #d63447; color: white; border: none; border-radius: 16px; font-size:1.125rem; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 10px; }
     .btn-new-user:active { background: #b02a3e; }
-    .btn-admin-action { margin: 0 16px 10px; padding: 16px; background: #eef1fb; color: #2c3e91; border: 2px solid #8fa3df; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-admin-action { margin: 0 16px 10px; padding: 16px; background: #eef1fb; color: #2c3e91; border: 2px solid #8fa3df; border-radius: 14px; font-size:1rem; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .admin-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px 12px; }
-    .admin-actions-grid .btn-admin-action { margin: 0; padding: 10px 6px; font-size: 12px; border-radius: 12px; min-height: 56px; text-align: center; line-height: 1.2; }
+    .admin-actions-grid .btn-admin-action { margin: 0; padding: 10px 6px; font-size:0.75rem; border-radius: 12px; min-height: 56px; text-align: center; line-height: 1.2; }
     .admin-actions-grid:active { background: #dde3f7; }
     .admin-section-titre { font-size: 0.78rem; font-weight: 800; color: #48547a; text-transform: uppercase; letter-spacing: 0.6px; margin: 18px 20px 8px; }
     .admin-detail-body { flex: 1; overflow-y: auto; padding: 16px 16px 100px; }
     .admin-detail-top { background: white; border-radius: 16px; padding: 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(26,35,64,0.06); }
-    .admin-detail-top .user-avatar { width: 64px; height: 64px; font-size: 28px; }
+    .admin-detail-top .user-avatar { width: 64px; height: 64px; font-size:1.75rem; }
     .admin-detail-top-info { flex: 1; }
-    .admin-detail-top-name { font-size: 22px; font-weight: 800; color: #1a2340; }
-    .admin-detail-top-code { font-size: 14px; color: #48547a; margin-top: 4px; }
-    .admin-detail-top-code strong { color: #2c3e91; font-size: 16px; letter-spacing: 2px; }
-    .admin-section-title { font-size: 14px; font-weight: 800; color: #48547a; text-transform: uppercase; letter-spacing: 1px; margin: 20px 4px 10px; }
+    .admin-detail-top-name { font-size:1.375rem; font-weight: 800; color: #1a2340; }
+    .admin-detail-top-code { font-size:0.875rem; color: #48547a; margin-top: 4px; }
+    .admin-detail-top-code strong { color: #2c3e91; font-size:1rem; letter-spacing: 2px; }
+    .admin-section-title { font-size:0.875rem; font-weight: 800; color: #48547a; text-transform: uppercase; letter-spacing: 1px; margin: 20px 4px 10px; }
     .admin-reminder-card { background: white; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
     .admin-reminder-card.atelier { border-left: 4px solid #f0b93c; }
     .admin-reminder-card.perso { border-left: 4px solid #2c3e91; }
-    .admin-reminder-time { font-size: 15px; font-weight: 700; color: #2c3e91; min-width: 50px; }
+    .admin-reminder-time { font-size:0.9375rem; font-weight: 700; color: #2c3e91; min-width: 50px; }
     .admin-reminder-body { flex: 1; min-width: 0; }
-    .admin-reminder-title { font-size: 15px; font-weight: 600; color: #1a2340; }
-    .admin-reminder-date { font-size: 12px; color: #5b6785; margin-top: 2px; }
-    .admin-reminder-del { background: #fdf0f2; border: 1px solid #f3c3ca; color: #d63447; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
-    .admin-empty { text-align: center; padding: 20px; color: #5b6785; font-style: italic; font-size: 14px; background: white; border-radius: 12px; }
-    .btn-admin-danger { width: calc(100% - 32px); margin: 20px 16px 0; padding: 16px; background: white; color: #d63447; border: 2px solid #f3c3ca; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .admin-reminder-title { font-size:0.9375rem; font-weight: 600; color: #1a2340; }
+    .admin-reminder-date { font-size:0.75rem; color: #5b6785; margin-top: 2px; }
+    .admin-reminder-del { background: #fdf0f2; border: 1px solid #f3c3ca; color: #d63447; border-radius: 8px; padding: 6px 10px; font-size:0.75rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .admin-empty { text-align: center; padding: 20px; color: #5b6785; font-style: italic; font-size:0.875rem; background: white; border-radius: 12px; }
+    .btn-admin-danger { width: calc(100% - 32px); margin: 20px 16px 0; padding: 16px; background: white; color: #d63447; border: 2px solid #f3c3ca; border-radius: 14px; font-size:1rem; font-weight: 700; cursor: pointer; font-family: inherit; }
     .inscrire-atelier-card { background: white; border-radius: 14px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(26,35,64,0.06); }
-    .inscrire-atelier-title { font-size: 16px; font-weight: 800; color: #1a2340; margin-bottom: 4px; }
-    .inscrire-atelier-date { font-size: 13px; color: #48547a; margin-bottom: 12px; }
+    .inscrire-atelier-title { font-size:1rem; font-weight: 800; color: #1a2340; margin-bottom: 4px; }
+    .inscrire-atelier-date { font-size:0.8125rem; color: #48547a; margin-bottom: 12px; }
     .inscrire-beneficiaire-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f1f3f8; }
     .inscrire-beneficiaire-row:last-child { border-bottom: none; }
-    .inscrire-beneficiaire-name { flex: 1; font-size: 16px; font-weight: 600; color: #1a2340; }
+    .inscrire-beneficiaire-name { flex: 1; font-size:1rem; font-weight: 600; color: #1a2340; }
     .inscrire-checkbox { width: 26px; height: 26px; accent-color: #22a559; cursor: pointer; }
-    .btn-inscrire-valider { width: 100%; padding: 16px; background: #22a559; color: white; border: none; border-radius: 14px; font-size: 17px; font-weight: 800; cursor: pointer; font-family: inherit; margin-top: 20px; }
+    .btn-inscrire-valider { width: 100%; padding: 16px; background: #22a559; color: white; border: none; border-radius: 14px; font-size:1.0625rem; font-weight: 800; cursor: pointer; font-family: inherit; margin-top: 20px; }
     .atelier-group { background: white; border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
     .atelier-group-header { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #e5e9f2; margin-bottom: 10px; }
-    .atelier-group-date { background: #2c3e91; color: white; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
-    .atelier-group-title { font-size: 16px; font-weight: 700; color: #1a2340; flex: 1; }
-    .atelier-group-count { background: #22a559; color: white; padding: 2px 10px; border-radius: 12px; font-size: 13px; font-weight: 700; }
+    .atelier-group-date { background: #2c3e91; color: white; padding: 4px 10px; border-radius: 8px; font-size:0.75rem; font-weight: 700; text-transform: uppercase; }
+    .atelier-group-title { font-size:1rem; font-weight: 700; color: #1a2340; flex: 1; }
+    .atelier-group-count { background: #22a559; color: white; padding: 2px 10px; border-radius: 12px; font-size:0.8125rem; font-weight: 700; }
     .atelier-inscrit-list { display: flex; flex-wrap: wrap; gap: 6px; }
-    .atelier-inscrit-tag { background: #eef1fb; color: #2c3e91; padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 600; }
-    .atelier-badge-passe { background: #6b7694; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
-    .atelier-badge-aujourdhui { background: #22a559; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
-    .atelier-badge-futur { background: #2c3e91; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
-    .atelier-stats { background: #f1f3f8; border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; font-size: 13px; color: #1a2340; line-height: 1.6; }
+    .atelier-inscrit-tag { background: #eef1fb; color: #2c3e91; padding: 4px 10px; border-radius: 12px; font-size:0.8125rem; font-weight: 600; }
+    .atelier-badge-passe { background: #6b7694; color: white; padding: 2px 8px; border-radius: 10px; font-size:0.6875rem; font-weight: 700; }
+    .atelier-badge-aujourdhui { background: #22a559; color: white; padding: 2px 8px; border-radius: 10px; font-size:0.6875rem; font-weight: 700; }
+    .atelier-badge-futur { background: #2c3e91; color: white; padding: 2px 8px; border-radius: 10px; font-size:0.6875rem; font-weight: 700; }
+    .atelier-stats { background: #f1f3f8; border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; font-size:0.8125rem; color: #1a2340; line-height: 1.6; }
     .atelier-stats strong { color: #2c3e91; }
     .stats-header { background: #2d6a4f; color: white; padding: 16px 20px; padding-top: calc(16px + env(safe-area-inset-top)); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
     .stats-body { flex: 1; overflow-y: auto; padding: 14px 14px 100px; }
     .stats-filter-bar { display: flex; gap: 6px; margin-bottom: 14px; }
-    .stats-filter-btn { flex: 1; padding: 8px 4px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; border: 1.5px solid #2d6a4f; background: white; color: #2d6a4f; }
+    .stats-filter-btn { flex: 1; padding: 8px 4px; border-radius: 8px; font-size:0.75rem; font-weight: 700; cursor: pointer; font-family: inherit; border: 1.5px solid #2d6a4f; background: white; color: #2d6a4f; }
     .stats-filter-btn.active { background: #2d6a4f; color: white; }
     .stats-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
     .stats-kpi { background: #f1f3f8; border-radius: 10px; padding: 10px 12px; }
-    .stats-kpi-label { font-size: 11px; color: #48547a; margin-bottom: 2px; }
-    .stats-kpi-value { font-size: 22px; font-weight: 800; color: #1a2340; }
-    .stats-section { font-size: 12px; font-weight: 800; color: #48547a; text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 8px; }
+    .stats-kpi-label { font-size:0.6875rem; color: #48547a; margin-bottom: 2px; }
+    .stats-kpi-value { font-size:1.375rem; font-weight: 800; color: #1a2340; }
+    .stats-section { font-size:0.75rem; font-weight: 800; color: #48547a; text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 8px; }
     .stats-benef-row { background: white; border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
-    .stats-avatar { width: 30px; height: 30px; border-radius: 50%; background: #e8f0fe; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #2c3e91; flex-shrink: 0; }
+    .stats-avatar { width: 30px; height: 30px; border-radius: 50%; background: #e8f0fe; display: flex; align-items: center; justify-content: center; font-size:0.6875rem; font-weight: 700; color: #2c3e91; flex-shrink: 0; }
     .stats-benef-info { flex: 1; min-width: 0; }
-    .stats-benef-name { font-size: 13px; font-weight: 600; color: #1a2340; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-    .stats-badge-hosp { font-size: 10px; background: #fef3c7; color: #92400e; padding: 1px 6px; border-radius: 8px; font-weight: 700; }
-    .stats-badge-autre { font-size: 10px; background: #f3e8ff; color: #6b21a8; padding: 1px 6px; border-radius: 8px; font-weight: 700; }
+    .stats-benef-name { font-size:0.8125rem; font-weight: 600; color: #1a2340; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .stats-badge-hosp { font-size:0.625rem; background: #fef3c7; color: #92400e; padding: 1px 6px; border-radius: 8px; font-weight: 700; }
+    .stats-badge-autre { font-size:0.625rem; background: #f3e8ff; color: #6b21a8; padding: 1px 6px; border-radius: 8px; font-weight: 700; }
     .stats-bar-wrap { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
     .stats-bar-bg { flex: 1; height: 4px; background: #e8eaf0; border-radius: 2px; overflow: hidden; }
     .stats-bar-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
-    .stats-rate { font-size: 12px; font-weight: 700; min-width: 34px; text-align: right; }
-    .stats-counts { font-size: 11px; color: #5b6785; white-space: nowrap; }
+    .stats-rate { font-size:0.75rem; font-weight: 700; min-width: 34px; text-align: right; }
+    .stats-counts { font-size:0.6875rem; color: #5b6785; white-space: nowrap; }
     .stats-atelier-row { background: white; border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
-    .stats-atelier-name { font-size: 13px; font-weight: 600; color: #1a2340; margin-bottom: 5px; }
-    .stats-status-btn { font-size: 11px; padding: 3px 8px; border-radius: 8px; border: 1px solid #d1d5db; background: #f9fafb; color: #374151; cursor: pointer; font-family: inherit; font-weight: 600; }
+    .stats-atelier-name { font-size:0.8125rem; font-weight: 600; color: #1a2340; margin-bottom: 5px; }
+    .stats-status-btn { font-size:0.6875rem; padding: 3px 8px; border-radius: 8px; border: 1px solid #d1d5db; background: #f9fafb; color: #374151; cursor: pointer; font-family: inherit; font-weight: 600; }
     .stats-status-btn.hosp { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
     .stats-status-btn.autre { background: #f3e8ff; color: #6b21a8; border-color: #c4b5fd; }
     @media print { .stats-header button, .stats-filter-bar, .stats-export-btn, .stats-status-btn { display: none !important; } body { background: white; } .screen { display: block !important; position: static !important; } #admin-stats-screen { display: block !important; } .stats-body { overflow: visible; padding-bottom: 0; } }
     .atelier-pointage-list { display: flex; flex-direction: column; gap: 8px; }
     .atelier-pointage-row { display: flex; align-items: center; gap: 6px; padding: 8px 0; border-top: 1px solid #eef1fb; }
     .atelier-pointage-row:first-child { border-top: none; }
-    .atelier-pointage-name { flex: 1; font-size: 14px; font-weight: 600; color: #1a2340; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-    .btn-pointage { padding: 8px 10px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; border: 2px solid transparent; white-space: nowrap; }
+    .atelier-pointage-name { flex: 1; font-size:0.875rem; font-weight: 600; color: #1a2340; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .btn-pointage { padding: 8px 10px; border-radius: 10px; font-size:0.75rem; font-weight: 700; cursor: pointer; font-family: inherit; border: 2px solid transparent; white-space: nowrap; }
     .btn-pointage.btn-present { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
     .btn-pointage.btn-present.active { background: #22a559; color: white; border-color: #22a559; }
     .btn-pointage.btn-absent { background: #fef2f2; color: #d63447; border-color: #fecaca; }
@@ -438,35 +438,35 @@
     .loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
     .spinner { width: 48px; height: 48px; border: 4px solid #e5e9f2; border-top-color: #2c3e91; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { font-size: 16px; color: #48547a; }
+    .loading-text { font-size:1rem; color: #48547a; }
     .user-menu { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(26,35,64,0.5); z-index: 150; display: none; align-items: flex-end; }
     .user-menu.active { display: flex; }
     .user-menu-sheet { background: white; border-radius: 24px 24px 0 0; padding: 24px; width: 100%; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
-    .user-menu-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-    .user-menu-role { font-size: 14px; color: #48547a; margin-bottom: 20px; }
-    .user-menu-btn { width: 100%; padding: 16px; background: #f1f3f8; border: none; border-radius: 14px; font-size: 17px; font-weight: 600; color: #1a2340; cursor: pointer; font-family: inherit; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+    .user-menu-name { font-size:1.375rem; font-weight: 700; margin-bottom: 4px; }
+    .user-menu-role { font-size:0.875rem; color: #48547a; margin-bottom: 20px; }
+    .user-menu-btn { width: 100%; padding: 16px; background: #f1f3f8; border: none; border-radius: 14px; font-size:1.0625rem; font-weight: 600; color: #1a2340; cursor: pointer; font-family: inherit; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
     .user-menu-btn:active { background: #e5e9f2; }
     .user-menu-btn.danger { color: #d63447; background: #fdf0f2; }
     #tutorial-screen { background: linear-gradient(160deg, #2c3e91 0%, #22a559 100%); }
     .tutorial-wrap { flex: 1; display: flex; flex-direction: column; padding: 40px 24px calc(24px + env(safe-area-inset-bottom)); padding-top: calc(50px + env(safe-area-inset-top)); overflow: hidden; }
-    .tutorial-skip { position: absolute; top: calc(16px + env(safe-area-inset-top)); right: 16px; background: rgba(255,255,255,0.25); color: white; border: none; padding: 10px 16px; border-radius: 20px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; z-index: 10; }
+    .tutorial-skip { position: absolute; top: calc(16px + env(safe-area-inset-top)); right: 16px; background: rgba(255,255,255,0.25); color: white; border: none; padding: 10px 16px; border-radius: 20px; font-size:0.875rem; font-weight: 700; cursor: pointer; font-family: inherit; z-index: 10; }
     .tutorial-skip:active { background: rgba(255,255,255,0.4); }
     .tutorial-content { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white; overflow-y: auto; padding: 20px 0; }
-    .tutorial-emoji { font-size: 92px; line-height: 1; margin-bottom: 20px; }
-    .tutorial-title { font-size: 28px; font-weight: 800; margin-bottom: 16px; line-height: 1.2; }
-    .tutorial-text { font-size: 18px; line-height: 1.5; max-width: 340px; margin: 0 auto; opacity: 0.95; }
+    .tutorial-emoji { font-size:5.75rem; line-height: 1; margin-bottom: 20px; }
+    .tutorial-title { font-size:1.75rem; font-weight: 800; margin-bottom: 16px; line-height: 1.2; }
+    .tutorial-text { font-size:1.125rem; line-height: 1.5; max-width: 340px; margin: 0 auto; opacity: 0.95; }
     .tutorial-text strong { color: #ffe07a; }
     .tutorial-dots { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
     .tutorial-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.4); transition: all 0.2s; }
     .tutorial-dot.active { background: white; width: 28px; border-radius: 5px; }
     .tutorial-nav { display: flex; gap: 10px; }
-    .tutorial-btn { flex: 1; padding: 16px; background: white; color: #2c3e91; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .tutorial-btn { flex: 1; padding: 16px; background: white; color: #2c3e91; border: none; border-radius: 14px; font-size:1rem; font-weight: 700; cursor: pointer; font-family: inherit; }
     .tutorial-btn:active { background: #e5e9f2; }
     .tutorial-btn-prev { background: rgba(255,255,255,0.25); color: white; }
     .tutorial-btn-prev:active { background: rgba(255,255,255,0.4); }
     .tutorial-btn-prev.hidden, .tutorial-btn-next.final { display: none; }
     .tutorial-btn-finish { background: #ffc107; color: #1a2340; }
-    .copyright { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 11px; color: #707a96; padding: 4px 0 calc(4px + env(safe-area-inset-bottom)); background: rgba(241,243,248,0.9); z-index: 50; pointer-events: none; letter-spacing: 0.3px; }
+    .copyright { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size:0.6875rem; color: #707a96; padding: 4px 0 calc(4px + env(safe-area-inset-bottom)); background: rgba(241,243,248,0.9); z-index: 50; pointer-events: none; letter-spacing: 0.3px; }
   </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -481,13 +481,13 @@
 <div id="login-screen" class="screen">
   <div class="login-wrap">
     <div id="apk-download-banner" style="display:none;background:linear-gradient(135deg,#22a559,#1c8e4a);color:white;padding:14px 16px;border-radius:14px;margin:0 0 16px;box-shadow:0 4px 12px rgba(34,165,89,0.3);text-align:center;">
-      <div style="font-size:15px;font-weight:700;margin-bottom:8px;">📲 Installez l'application sur votre téléphone</div>
-      <div style="font-size:13px;opacity:0.95;margin-bottom:10px;">Pour recevoir les rappels et notifications</div>
-      <a href="majourneeavp.apk" download style="display:inline-block;background:white;color:#1c8e4a;padding:10px 24px;border-radius:10px;font-weight:700;text-decoration:none;font-size:15px;">⬇️ Télécharger</a>
+      <div style="font-size:0.9375rem;font-weight:700;margin-bottom:8px;">📲 Installez l'application sur votre téléphone</div>
+      <div style="font-size:0.8125rem;opacity:0.95;margin-bottom:10px;">Pour recevoir les rappels et notifications</div>
+      <a href="majourneeavp.apk" download style="display:inline-block;background:white;color:#1c8e4a;padding:10px 24px;border-radius:10px;font-weight:700;text-decoration:none;font-size:0.9375rem;">⬇️ Télécharger</a>
     </div>
-    <div class="login-logo" style="font-size:48px; background:#2c3e91; color:white; width:90px; height:90px; border-radius:20px; display:flex; align-items:center; justify-content:center; margin:0 auto;">🏠</div>
+    <div class="login-logo" style="font-size:3rem; background:#2c3e91; color:white; width:90px; height:90px; border-radius:20px; display:flex; align-items:center; justify-content:center; margin:0 auto;">🏠</div>
     <div class="login-title">Bienvenue dans l'application AVP</div>
-    <div class="login-subtitle" style="font-weight:700; color:#22a559; font-size:17px;">Animateurs Steve et Greg — La Clé</div>
+    <div class="login-subtitle" style="font-weight:700; color:#22a559; font-size:1.0625rem;">Animateurs Steve et Greg — La Clé</div>
     <div class="login-card" id="login-card">
       <h2 id="login-card-title">Se connecter</h2>
       <div class="login-field" id="field-prenom">
@@ -567,10 +567,10 @@
     <div style="background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 10px rgba(26,35,64,0.07);">
       <div style="font-size:1.05rem;font-weight:700;color:#1a2340;margin-bottom:14px;text-align:center;">Vous aimez l'application ?</div>
       <div style="display:flex;justify-content:center;gap:10px;margin-bottom:18px;">
-        <button type="button" class="avis-emoji" data-note="4" style="font-size:32px;background:#f1f3f8;border:2px solid transparent;border-radius:14px;width:62px;height:62px;cursor:pointer;">😍</button>
-        <button type="button" class="avis-emoji" data-note="3" style="font-size:32px;background:#f1f3f8;border:2px solid transparent;border-radius:14px;width:62px;height:62px;cursor:pointer;">🙂</button>
-        <button type="button" class="avis-emoji" data-note="2" style="font-size:32px;background:#f1f3f8;border:2px solid transparent;border-radius:14px;width:62px;height:62px;cursor:pointer;">😐</button>
-        <button type="button" class="avis-emoji" data-note="1" style="font-size:32px;background:#f1f3f8;border:2px solid transparent;border-radius:14px;width:62px;height:62px;cursor:pointer;">😟</button>
+        <button type="button" class="avis-emoji" data-note="4" style="font-size:2rem;background:#f1f3f8;border:2px solid transparent;border-radius:14px;width:62px;height:62px;cursor:pointer;">😍</button>
+        <button type="button" class="avis-emoji" data-note="3" style="font-size:2rem;background:#f1f3f8;border:2px solid transparent;border-radius:14px;width:62px;height:62px;cursor:pointer;">🙂</button>
+        <button type="button" class="avis-emoji" data-note="2" style="font-size:2rem;background:#f1f3f8;border:2px solid transparent;border-radius:14px;width:62px;height:62px;cursor:pointer;">😐</button>
+        <button type="button" class="avis-emoji" data-note="1" style="font-size:2rem;background:#f1f3f8;border:2px solid transparent;border-radius:14px;width:62px;height:62px;cursor:pointer;">😟</button>
       </div>
       <div style="font-size:0.95rem;font-weight:700;color:#48547a;margin-bottom:6px;">Une idée ? Un souci ?</div>
       <textarea id="avis-texte" placeholder="Écrivez ici si vous voulez… (facultatif)" style="width:100%;box-sizing:border-box;border:1.5px solid #d1d9f0;border-radius:12px;padding:12px;font-size:0.95rem;font-family:inherit;resize:none;height:90px;margin-bottom:14px;"></textarea>
@@ -667,7 +667,7 @@
   <div class="edit-header">
     <button class="back-btn" id="planning-back-btn">‹ Retour</button>
     <h2 id="planning-month-title" style="flex:1;">Planning du mois</h2>
-    <button id="planning-refresh-btn" title="Rafraîchir" style="background:#eef1fb;border:none;color:#2c3e91;width:42px;height:42px;border-radius:50%;font-size:20px;cursor:pointer;font-family:inherit;flex-shrink:0;">🔄</button>
+    <button id="planning-refresh-btn" title="Rafraîchir" style="background:#eef1fb;border:none;color:#2c3e91;width:42px;height:42px;border-radius:50%;font-size:1.25rem;cursor:pointer;font-family:inherit;flex-shrink:0;">🔄</button>
   </div>
   <div class="planning-header-anim" id="planning-anim-label">Planning de Steve</div>
   <div class="list-wrap" id="planning-content"></div>
@@ -715,10 +715,10 @@
 <div id="atelier-info-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:flex-end;justify-content:center;">
   <div style="background:white;border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-height:80vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <h2 id="info-modal-title" style="font-size:18px;font-weight:800;color:#1a2340;margin:0;"></h2>
-      <button onclick="document.getElementById('atelier-info-modal').style.display='none'" style="background:#f1f3f8;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;color:#48547a;">✕</button>
+      <h2 id="info-modal-title" style="font-size:1.125rem;font-weight:800;color:#1a2340;margin:0;"></h2>
+      <button onclick="document.getElementById('atelier-info-modal').style.display='none'" style="background:#f1f3f8;border:none;border-radius:50%;width:32px;height:32px;font-size:1.125rem;cursor:pointer;color:#48547a;">✕</button>
     </div>
-    <div id="info-modal-body" style="font-size:15px;color:#374151;line-height:1.6;"></div>
+    <div id="info-modal-body" style="font-size:0.9375rem;color:#374151;line-height:1.6;"></div>
   </div>
 </div>
 
@@ -746,8 +746,8 @@
 <div id="admin-stats-screen" class="screen">
   <div class="stats-header">
     <button class="back-btn" id="stats-back-btn" style="color:white">‹</button>
-    <h1 style="font-size:19px;font-weight:700;flex:1;">📊 Statistiques</h1>
-    <button id="stats-export-btn" class="stats-export-btn" style="background:white;color:#2d6a4f;border:none;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;">📄 PDF</button>
+    <h1 style="font-size:1.1875rem;font-weight:700;flex:1;">📊 Statistiques</h1>
+    <button id="stats-export-btn" class="stats-export-btn" style="background:white;color:#2d6a4f;border:none;border-radius:8px;padding:6px 12px;font-size:0.8125rem;font-weight:700;cursor:pointer;">📄 PDF</button>
   </div>
   <div class="stats-body" id="stats-content">
     <div style="text-align:center;padding:40px;color:#48547a">Chargement…</div>
@@ -764,8 +764,8 @@
 
 <div id="admin-inscrire-groupe-screen" class="screen">
   <div class="admin-header" style="gap:12px;">
-    <button id="admin-inscrire-groupe-back" style="background:none;border:none;color:white;font-size:26px;cursor:pointer;padding:0 8px;">‹</button>
-    <h1 style="font-size:19px;font-weight:800;">👥 Inscription aux ateliers</h1>
+    <button id="admin-inscrire-groupe-back" style="background:none;border:none;color:white;font-size:1.625rem;cursor:pointer;padding:0 8px;">‹</button>
+    <h1 style="font-size:1.1875rem;font-weight:800;">👥 Inscription aux ateliers</h1>
   </div>
   <div id="admin-inscrire-groupe-body" style="flex:1;overflow-y:auto;padding:16px 16px 100px;"></div>
 </div>
@@ -993,11 +993,11 @@ async function checkMessagesAdmin(){
     overlay.style.cssText='position:fixed;inset:0;background:rgba(26,35,64,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
     overlay.innerHTML=`
       <div style="background:white;border-radius:20px;padding:26px 22px;max-width:360px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,0.25);">
-        <div style="font-size:44px;margin-bottom:6px;">📢</div>
-        <h2 style="margin:0 0 14px;color:#2c3e91;font-size:20px;font-weight:800;">Message de vos animateurs</h2>
-        <p style="margin:0 0 18px;color:#1a2340;font-size:16px;line-height:1.5;white-space:pre-wrap;">${esc(msg.texte)}</p>
-        <button id="msg-relire" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:#eef1fb;color:#2c3e91;border:2px solid #8fa3df;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;">🔊 Réécouter</button>
-        <button id="msg-lu" style="width:100%;padding:14px;background:#22a559;color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;">J'ai lu</button>
+        <div style="font-size:2.75rem;margin-bottom:6px;">📢</div>
+        <h2 style="margin:0 0 14px;color:#2c3e91;font-size:1.25rem;font-weight:800;">Message de vos animateurs</h2>
+        <p style="margin:0 0 18px;color:#1a2340;font-size:1rem;line-height:1.5;white-space:pre-wrap;">${esc(msg.texte)}</p>
+        <button id="msg-relire" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:#eef1fb;color:#2c3e91;border:2px solid #8fa3df;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;">🔊 Réécouter</button>
+        <button id="msg-lu" style="width:100%;padding:14px;background:#22a559;color:white;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;">J'ai lu</button>
       </div>`;
     document.body.appendChild(overlay);
     // Lecture automatique (voix masculine FR si dispo)
@@ -1114,7 +1114,7 @@ function enterApp(){
   let userBtn=document.getElementById('header-user-btn');
   if(!userBtn){userBtn=document.createElement('button');userBtn.id='header-user-btn';userBtn.className='header-user';header.appendChild(userBtn);}
   const initials=currentUser.prenom.slice(0,1).toUpperCase();
-  userBtn.innerHTML=`<div class="user-avatar" style="width:36px;height:36px;font-size:16px">${initials}</div><span class="header-user-name">${esc(currentUser.prenom)}</span>`;
+  userBtn.innerHTML=`<div class="user-avatar" style="width:36px;height:36px;font-size:1rem">${initials}</div><span class="header-user-name">${esc(currentUser.prenom)}</span>`;
   userBtn.onclick=()=>openUserMenu();
   showScreen('main-screen');render();loadAVPPlanning();checkReminders();checkMessagesAdmin();
   if(shouldShowTutorial())setTimeout(()=>startTutorial(),800);
@@ -1248,7 +1248,7 @@ async function showAdminScreen(){
     if(btn) btn.textContent = actif ? '✅ '+moisNoms[moisSuivant]+' activé — Désactiver' : '🗓️ Activer '+moisNoms[moisSuivant];
   }catch(e){}
 }
-async function loadAdminUsers(){const list=document.getElementById('admin-user-list');list.innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';try{const snap=await db.collection('users').get();if(snap.empty){list.innerHTML='<div class="planning-empty">Aucun compte créé.</div>';return;}list.innerHTML=snap.docs.map(d=>{const u=d.data();const nb=(u.reminders||[]).length;return`<div class="admin-user-card" data-uid="${d.id}"><div class="user-avatar">${u.prenom.slice(0,1).toUpperCase()}</div><div class="admin-user-info"><div class="admin-user-name">${esc(u.prenom)}</div><div class="admin-user-meta">${nb} rappel${nb>1?'s':''} · Code : ${u.code}</div></div><span style="font-size:22px;color:#48547a">›</span></div>`;}).join('');}catch(e){list.innerHTML='<div class="planning-empty">Erreur de chargement.</div>';}}
+async function loadAdminUsers(){const list=document.getElementById('admin-user-list');list.innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';try{const snap=await db.collection('users').get();if(snap.empty){list.innerHTML='<div class="planning-empty">Aucun compte créé.</div>';return;}list.innerHTML=snap.docs.map(d=>{const u=d.data();const nb=(u.reminders||[]).length;return`<div class="admin-user-card" data-uid="${d.id}"><div class="user-avatar">${u.prenom.slice(0,1).toUpperCase()}</div><div class="admin-user-info"><div class="admin-user-name">${esc(u.prenom)}</div><div class="admin-user-meta">${nb} rappel${nb>1?'s':''} · Code : ${u.code}</div></div><span style="font-size:1.375rem;color:#48547a">›</span></div>`;}).join('');}catch(e){list.innerHTML='<div class="planning-empty">Erreur de chargement.</div>';}}
 
 document.getElementById('admin-back-btn').addEventListener('click',()=>{clearSession();currentUser=null;showScreen('login-screen');});
 document.getElementById('admin-new-user-btn').addEventListener('click',()=>{showScreen('login-screen');loginMode='register';document.getElementById('login-card-title').textContent='Créer un compte';document.getElementById('field-prenom').style.display='block';document.getElementById('login-switch-text').textContent='';document.getElementById('login-switch-btn').textContent='';pinValue='';updatePinDots();});
@@ -1305,7 +1305,7 @@ async function showAtelierInfo(cle,titreAffiche){
     if(snap.exists&&snap.data().description){
       const d=snap.data();
       let html=`<p style="margin:0 0 12px;">${esc(d.description).replace(/\n/g,'<br>')}</p>`;
-      if(d.adresse){html+=`<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.adresse)}" target="_blank" style="display:flex;align-items:center;gap:8px;background:#eef1fb;padding:10px 14px;border-radius:10px;color:#2c3e91;font-weight:700;text-decoration:none;font-size:14px;">📍 ${esc(d.adresse)}</a>`;}
+      if(d.adresse){html+=`<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.adresse)}" target="_blank" style="display:flex;align-items:center;gap:8px;background:#eef1fb;padding:10px 14px;border-radius:10px;color:#2c3e91;font-weight:700;text-decoration:none;font-size:0.875rem;">📍 ${esc(d.adresse)}</a>`;}
       bodyEl.innerHTML=html;
     }else{
       bodyEl.innerHTML='<p style="color:#5b6785;font-style:italic;">Aucune description disponible pour cet atelier.</p>';
@@ -1328,7 +1328,7 @@ async function showAdminDescriptions(){
     const events=(state.avpEvents&&state.avpEvents.length>0?state.avpEvents:[]).filter(e=>e.date>=today);
     events.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
     const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-    let html=`<p style="font-size:13px;color:#48547a;margin-bottom:16px;">Chaque atelier daté a sa propre description. Clique pour ajouter ou modifier.</p>`;
+    let html=`<p style="font-size:0.8125rem;color:#48547a;margin-bottom:16px;">Chaque atelier daté a sa propre description. Clique pour ajouter ou modifier.</p>`;
     if(events.length===0){html+='<div style="text-align:center;color:#5b6785;font-style:italic;padding:20px;">Aucun atelier à venir. Charge d\'abord le planning du mois.</div>';}
     let dernierMois='';
     events.forEach(e=>{
@@ -1338,16 +1338,16 @@ async function showAdminDescriptions(){
       const hasDesc=d&&d.description;
       const [yy,mm,dd]=e.date.split('-');
       const moisLabel=monthNames[parseInt(mm)-1]+' '+yy;
-      if(moisLabel!==dernierMois){html+=`<div style="font-size:12px;font-weight:800;color:#6d28d9;text-transform:uppercase;letter-spacing:1px;margin:18px 4px 8px;">${moisLabel}</div>`;dernierMois=moisLabel;}
+      if(moisLabel!==dernierMois){html+=`<div style="font-size:0.75rem;font-weight:800;color:#6d28d9;text-transform:uppercase;letter-spacing:1px;margin:18px 4px 8px;">${moisLabel}</div>`;dernierMois=moisLabel;}
       const dateCourte=formatShortDate(e.date)+' · '+e.time.replace(':','h');
       html+=`<div class="btn-desc-item" data-cle="${esc(cle)}" data-titre="${esc(titre)}" style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);cursor:pointer;display:flex;align-items:center;gap:12px;">
-        <div style="width:36px;height:36px;border-radius:50%;background:${hasDesc?'#ede9fe':'#f1f3f8'};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${hasDesc?'📝':'➕'}</div>
+        <div style="width:36px;height:36px;border-radius:50%;background:${hasDesc?'#ede9fe':'#f1f3f8'};display:flex;align-items:center;justify-content:center;font-size:1.125rem;flex-shrink:0;">${hasDesc?'📝':'➕'}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:14px;font-weight:700;color:#1a2340;">${esc(titre)}</div>
-          <div style="font-size:12px;color:#5b6785;margin-top:1px;">${dateCourte}</div>
-          ${hasDesc?`<div style="font-size:12px;color:#6d28d9;margin-top:2px;">${esc(d.description.slice(0,60))}${d.description.length>60?'…':''}</div>`:'<div style="font-size:12px;color:#5b6785;font-style:italic;">Pas encore de description</div>'}
+          <div style="font-size:0.875rem;font-weight:700;color:#1a2340;">${esc(titre)}</div>
+          <div style="font-size:0.75rem;color:#5b6785;margin-top:1px;">${dateCourte}</div>
+          ${hasDesc?`<div style="font-size:0.75rem;color:#6d28d9;margin-top:2px;">${esc(d.description.slice(0,60))}${d.description.length>60?'…':''}</div>`:'<div style="font-size:0.75rem;color:#5b6785;font-style:italic;">Pas encore de description</div>'}
         </div>
-        <i class="ti ti-chevron-right" style="color:#5b6785;font-size:16px;"></i>
+        <i class="ti ti-chevron-right" style="color:#5b6785;font-size:1rem;"></i>
       </div>`;
     });
     content.innerHTML=html;
@@ -1357,16 +1357,16 @@ async function showAdminDescriptions(){
 
 function showAddDescriptionForm(cle,titre,dateLabel,desc='',adresse='',lien=''){
   document.getElementById('descriptions-content').innerHTML=`
-    <h3 style="font-size:16px;font-weight:800;color:#1a2340;margin:0 0 4px;">${esc(titre)}</h3>
-    <div style="font-size:13px;color:#5b6785;margin-bottom:16px;">${esc(dateLabel)}</div>
-    <div style="margin-bottom:12px;"><label style="font-size:13px;font-weight:700;color:#48547a;display:block;margin-bottom:6px;">Description pour cette date</label>
-    <textarea id="desc-texte" placeholder="Ex: Rendez-vous à la petite maison. Prévoir des chaussures confortables." style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:15px;box-sizing:border-box;font-family:inherit;min-height:100px;">${esc(desc)}</textarea></div>
-    <div style="margin-bottom:12px;"><label style="font-size:13px;font-weight:700;color:#48547a;display:block;margin-bottom:6px;">Adresse (facultatif)</label>
-    <input id="desc-adresse" value="${esc(adresse)}" placeholder="Ex: 12 rue de la Paix, Petit-Quevilly" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:15px;box-sizing:border-box;font-family:inherit;"></div>
-    <div style="margin-bottom:20px;"><label style="font-size:13px;font-weight:700;color:#48547a;display:block;margin-bottom:6px;">Lien « En savoir plus » (facultatif)</label>
-    <input id="desc-lien" value="${esc(lien)}" placeholder="Ex: https://youtu.be/..." style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:15px;box-sizing:border-box;font-family:inherit;"></div>
-    <button id="desc-save-btn" style="width:100%;padding:14px;background:#6d28d9;color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;">💾 Enregistrer</button>
-    <button onclick="showAdminDescriptions()" style="width:100%;padding:12px;background:#f1f3f8;color:#48547a;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Annuler</button>`;
+    <h3 style="font-size:1rem;font-weight:800;color:#1a2340;margin:0 0 4px;">${esc(titre)}</h3>
+    <div style="font-size:0.8125rem;color:#5b6785;margin-bottom:16px;">${esc(dateLabel)}</div>
+    <div style="margin-bottom:12px;"><label style="font-size:0.8125rem;font-weight:700;color:#48547a;display:block;margin-bottom:6px;">Description pour cette date</label>
+    <textarea id="desc-texte" placeholder="Ex: Rendez-vous à la petite maison. Prévoir des chaussures confortables." style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:0.9375rem;box-sizing:border-box;font-family:inherit;min-height:100px;">${esc(desc)}</textarea></div>
+    <div style="margin-bottom:12px;"><label style="font-size:0.8125rem;font-weight:700;color:#48547a;display:block;margin-bottom:6px;">Adresse (facultatif)</label>
+    <input id="desc-adresse" value="${esc(adresse)}" placeholder="Ex: 12 rue de la Paix, Petit-Quevilly" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:0.9375rem;box-sizing:border-box;font-family:inherit;"></div>
+    <div style="margin-bottom:20px;"><label style="font-size:0.8125rem;font-weight:700;color:#48547a;display:block;margin-bottom:6px;">Lien « En savoir plus » (facultatif)</label>
+    <input id="desc-lien" value="${esc(lien)}" placeholder="Ex: https://youtu.be/..." style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:0.9375rem;box-sizing:border-box;font-family:inherit;"></div>
+    <button id="desc-save-btn" style="width:100%;padding:14px;background:#6d28d9;color:white;border:none;border-radius:12px;font-size:0.9375rem;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;">💾 Enregistrer</button>
+    <button onclick="showAdminDescriptions()" style="width:100%;padding:12px;background:#f1f3f8;color:#48547a;border:none;border-radius:12px;font-size:0.875rem;font-weight:700;cursor:pointer;font-family:inherit;">Annuler</button>`;
   document.getElementById('desc-save-btn').onclick=()=>saveDescription(cle);
 }
 
@@ -1561,7 +1561,7 @@ async function loadAndRenderStats(){
     const monthLabels=monthKeys.map(k=>mNames[parseInt(k.split('-')[1])-1]);
     const monthPresences=monthKeys.map(k=>monthlyData[k].p);
     const monthOptions=months.map(ym=>{const[y,m]=ym.split('-');return`<option value="month_${ym}"${statsFilter==='month_'+ym?' selected':''}>${mNames[parseInt(m)-1]} ${y}</option>`;}).join('');
-    let html=`<div class="stats-filter-bar"><select style="flex:1;font-size:12px;padding:7px 8px;border-radius:8px;border:1.5px solid #2d6a4f;background:white;color:#1a2340;font-weight:600;" onchange="setStatsFilter(this.value)">${monthOptions}<option value="all"${statsFilter==='all'?' selected':''}>Toute la période</option></select></div>
+    let html=`<div class="stats-filter-bar"><select style="flex:1;font-size:0.75rem;padding:7px 8px;border-radius:8px;border:1.5px solid #2d6a4f;background:white;color:#1a2340;font-weight:600;" onchange="setStatsFilter(this.value)">${monthOptions}<option value="all"${statsFilter==='all'?' selected':''}>Toute la période</option></select></div>
     <div class="stats-kpi-grid">
       <div class="stats-kpi"><div class="stats-kpi-label">Bénéficiaires</div><div class="stats-kpi-value">${users.length}</div></div>
       <div class="stats-kpi"><div class="stats-kpi-label">Activités</div><div class="stats-kpi-value">${atelierList.length}</div></div>
@@ -1581,12 +1581,12 @@ async function loadAndRenderStats(){
         <div class="stats-avatar">${initiales}</div>
         <div class="stats-benef-info" style="margin-left:10px;">
           <div class="stats-benef-name">${esc(b.name)} ${badgeHtml}</div>
-          <div style="font-size:11px;margin-top:2px;"><span style="color:#16a34a;font-weight:700;">✅ ${b.p} présence${b.p>1?'s':''}</span> · <span style="color:#dc2626;font-weight:700;">❌ ${b.a} absence${b.a>1?'s':''}</span>${b.status?'<br><span style="color:#5b6785;font-style:italic;font-size:10px;">exclu du calcul global</span>':''}</div>
-          ${!b.status&&(b.p+b.a)>0?`<div style="display:flex;align-items:center;gap:6px;margin-top:4px;"><div style="flex:1;height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden;"><div style="width:${Math.round(b.p/(b.p+b.a)*100)}%;height:100%;background:${Math.round(b.p/(b.p+b.a)*100)>=70?'#16a34a':Math.round(b.p/(b.p+b.a)*100)>=40?'#f59e0b':'#ef4444'};border-radius:2px;"></div></div><span style="font-size:10px;font-weight:700;color:${Math.round(b.p/(b.p+b.a)*100)>=70?'#16a34a':Math.round(b.p/(b.p+b.a)*100)>=40?'#f59e0b':'#ef4444'}">${Math.round(b.p/(b.p+b.a)*100)}%</span></div>`:''}
+          <div style="font-size:0.6875rem;margin-top:2px;"><span style="color:#16a34a;font-weight:700;">✅ ${b.p} présence${b.p>1?'s':''}</span> · <span style="color:#dc2626;font-weight:700;">❌ ${b.a} absence${b.a>1?'s':''}</span>${b.status?'<br><span style="color:#5b6785;font-style:italic;font-size:0.625rem;">exclu du calcul global</span>':''}</div>
+          ${!b.status&&(b.p+b.a)>0?`<div style="display:flex;align-items:center;gap:6px;margin-top:4px;"><div style="flex:1;height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden;"><div style="width:${Math.round(b.p/(b.p+b.a)*100)}%;height:100%;background:${Math.round(b.p/(b.p+b.a)*100)>=70?'#16a34a':Math.round(b.p/(b.p+b.a)*100)>=40?'#f59e0b':'#ef4444'};border-radius:2px;"></div></div><span style="font-size:0.625rem;font-weight:700;color:${Math.round(b.p/(b.p+b.a)*100)>=70?'#16a34a':Math.round(b.p/(b.p+b.a)*100)>=40?'#f59e0b':'#ef4444'}">${Math.round(b.p/(b.p+b.a)*100)}%</span></div>`:''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-left:8px;flex-shrink:0;">
           ${b.uid?`<button class="${statusBtnClass}" onclick="event.stopPropagation();toggleBenefStatus('${b.uid}','${b.name.replace(/'/g,"\\'")}')">${statusBtnLabel}</button>`:''}
-          <i class="ti ti-chevron-${isExp?'up':'down'}" style="font-size:14px;color:#5b6785;" aria-hidden="true"></i>
+          <i class="ti ti-chevron-${isExp?'up':'down'}" style="font-size:0.875rem;color:#5b6785;" aria-hidden="true"></i>
         </div>
       </div>`;
       if(isExp){
@@ -1594,13 +1594,13 @@ async function loadAndRenderStats(){
           html+=`<div style="padding:8px 12px 10px 52px;background:#f9fafb;border-top:0.5px solid var(--color-border-tertiary);">`;
           b.ateliers.sort((x,y)=>x.date.localeCompare(y.date)).forEach(at=>{
             const icon=at.statut==='absent'?'❌':'✅';
-            const excluNote=at.exclu?' <span style="color:#5b6785;font-size:10px;">(excusé)</span>':'';
+            const excluNote=at.exclu?' <span style="color:#5b6785;font-size:0.625rem;">(excusé)</span>':'';
             const dateparts=at.date?at.date.split('-'):[];
             const dateLabel=dateparts.length===3?`${dateparts[2]}/${dateparts[1]}`:'';
-            html+=`<div style="font-size:12px;color:#374151;padding:3px 0;display:flex;justify-content:space-between;align-items:center;">${icon} ${esc(at.title)}${excluNote}<span style="color:#5b6785;font-size:11px;flex-shrink:0;margin-left:8px;">${dateLabel}</span></div>`;
+            html+=`<div style="font-size:0.75rem;color:#374151;padding:3px 0;display:flex;justify-content:space-between;align-items:center;">${icon} ${esc(at.title)}${excluNote}<span style="color:#5b6785;font-size:0.6875rem;flex-shrink:0;margin-left:8px;">${dateLabel}</span></div>`;
           });
           html+=`</div>`;
-        }else{html+=`<div style="padding:10px 52px;background:#f9fafb;font-size:12px;color:#5b6785;font-style:italic;">Aucune activité sur cette période</div>`;}
+        }else{html+=`<div style="padding:10px 52px;background:#f9fafb;font-size:0.75rem;color:#5b6785;font-style:italic;">Aucune activité sur cette période</div>`;}
       }
       html+=`</div>`;
     });
@@ -1610,9 +1610,9 @@ async function loadAndRenderStats(){
       const taux=tot?Math.round(a.p/tot*100):0;
       const barColor=taux>=70?'#16a34a':taux>=40?'#f59e0b':'#ef4444';
       const border=idx<atelierList.length-1?'border-bottom:0.5px solid var(--color-border-tertiary);':'';
-      html+=`<div style="padding:10px 12px;${border}"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px;"><div><div style="font-size:13px;font-weight:700;color:#1a2340;">${esc(a.name)}</div><div style="font-size:11px;color:#48547a;margin-top:1px;">${a.seances} séance${a.seances>1?'s':''} · ${a.p} présence${a.p>1?'s':''} / ${tot} inscrit${tot>1?'s':''}</div></div><span style="font-size:13px;font-weight:800;color:${barColor};white-space:nowrap;margin-left:8px;">${taux}%</span></div><div style="height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden;margin-top:5px;"><div style="width:${taux}%;height:100%;background:${barColor};border-radius:2px;"></div></div></div>`;
+      html+=`<div style="padding:10px 12px;${border}"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px;"><div><div style="font-size:0.8125rem;font-weight:700;color:#1a2340;">${esc(a.name)}</div><div style="font-size:0.6875rem;color:#48547a;margin-top:1px;">${a.seances} séance${a.seances>1?'s':''} · ${a.p} présence${a.p>1?'s':''} / ${tot} inscrit${tot>1?'s':''}</div></div><span style="font-size:0.8125rem;font-weight:800;color:${barColor};white-space:nowrap;margin-left:8px;">${taux}%</span></div><div style="height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden;margin-top:5px;"><div style="width:${taux}%;height:100%;background:${barColor};border-radius:2px;"></div></div></div>`;
     });
-    if(atelierList.length===0)html+=`<div style="padding:20px;text-align:center;color:#5b6785;font-style:italic;font-size:13px;">Aucune activité sur cette période</div>`;
+    if(atelierList.length===0)html+=`<div style="padding:20px;text-align:center;color:#5b6785;font-style:italic;font-size:0.8125rem;">Aucune activité sur cette période</div>`;
     html+=`</div>`;
     // ===== Bloc désinscriptions fréquentes (visible par Steve uniquement) =====
     if(!currentUser.isGreg){
@@ -1631,9 +1631,9 @@ async function loadAndRenderStats(){
           parPersonne[cle].details.push({titre:d.atelierTitle||'',date:d.atelierDate||'',anim:d.animateur||'Steve',t});
         });
         const liste=Object.values(parPersonne).sort((a,b)=>b.count-a.count);
-        html+=`<div style="border-top:1.5px solid #e5e7eb;margin-bottom:12px;"></div><div class="stats-section" style="color:#d6443f;">🔄 Désinscriptions fréquentes</div><div style="font-size:11px;color:#5b6785;margin-bottom:10px;">30 derniers jours · Steve + Greg · vous seul voyez ceci</div>`;
+        html+=`<div style="border-top:1.5px solid #e5e7eb;margin-bottom:12px;"></div><div class="stats-section" style="color:#d6443f;">🔄 Désinscriptions fréquentes</div><div style="font-size:0.6875rem;color:#5b6785;margin-bottom:10px;">30 derniers jours · Steve + Greg · vous seul voyez ceci</div>`;
         if(liste.length===0){
-          html+=`<div style="padding:18px;text-align:center;color:#5b6785;font-style:italic;font-size:13px;">Aucune désinscription sur la période 👍</div>`;
+          html+=`<div style="padding:18px;text-align:center;color:#5b6785;font-style:italic;font-size:0.8125rem;">Aucune désinscription sur la période 👍</div>`;
         }else{
           html+=`<div style="border:0.5px solid var(--color-border-tertiary);border-radius:10px;overflow:hidden;margin-bottom:14px;">`;
           liste.forEach((p,idx)=>{
@@ -1648,13 +1648,13 @@ async function loadAndRenderStats(){
               const dp=dt.date?dt.date.split('-'):[];
               const dl=dp.length===3?`${dp[2]}/${dp[1]}`:'';
               const tagBg=dt.anim==='Greg'?'#eafaf1':'#e8ecfb';const tagC=dt.anim==='Greg'?'#1a8048':'#2c3e91';
-              return `<div style="font-size:12px;color:#48547a;padding:2px 0;">• <b style="color:#1a2340;">${esc(dt.titre)}</b> ${dl?'du '+dl:''} <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;background:${tagBg};color:${tagC};">${dt.anim}</span></div>`;
+              return `<div style="font-size:0.75rem;color:#48547a;padding:2px 0;">• <b style="color:#1a2340;">${esc(dt.titre)}</b> ${dl?'du '+dl:''} <span style="font-size:0.625rem;font-weight:700;padding:1px 6px;border-radius:8px;background:${tagBg};color:${tagC};">${dt.anim}</span></div>`;
             }).join('');
-            const reste=p.count>5?`<div style="font-size:11px;color:#5b6785;margin-top:2px;">…et ${p.count-5} autre${p.count-5>1?'s':''}</div>`:'';
+            const reste=p.count>5?`<div style="font-size:0.6875rem;color:#5b6785;margin-top:2px;">…et ${p.count-5} autre${p.count-5>1?'s':''}</div>`:'';
             html+=`<details style="${border}"><summary style="padding:12px;display:flex;align-items:center;gap:12px;cursor:pointer;list-style:none;">
               <div style="width:40px;height:40px;border-radius:50%;background:#2c3e91;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">${esc((p.prenom||'?').charAt(0).toUpperCase())}</div>
-              <div style="flex:1;"><div style="font-weight:700;font-size:14px;color:#1a2340;">${esc(p.prenom)}</div><div style="font-size:11px;color:#48547a;">Dernière fois : ${dernierLabel}</div></div>
-              <span style="background:${fond};color:${txtC};font-weight:800;border-radius:20px;padding:4px 11px;font-size:13px;">${p.count}×</span>
+              <div style="flex:1;"><div style="font-weight:700;font-size:0.875rem;color:#1a2340;">${esc(p.prenom)}</div><div style="font-size:0.6875rem;color:#48547a;">Dernière fois : ${dernierLabel}</div></div>
+              <span style="background:${fond};color:${txtC};font-weight:800;border-radius:20px;padding:4px 11px;font-size:0.8125rem;">${p.count}×</span>
             </summary><div style="padding:0 12px 12px 64px;background:#faf7ff;">${detailsHTML}${reste}</div></details>`;
           });
           html+=`</div>`;
@@ -1725,25 +1725,25 @@ async function showAdminParlerScreen(signataire){
     if(ateliers.length===0){content.innerHTML='<div class="planning-empty">Aucun atelier à venir dans le planning.</div>';return;}
     const inscritsParAtelier=await loadAllInscriptions();
     const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-    let html='<p style="font-size:13px;color:#48547a;margin-bottom:16px;">Choisis l\'atelier, puis écris ton message.</p>';
+    let html='<p style="font-size:0.8125rem;color:#48547a;margin-bottom:16px;">Choisis l\'atelier, puis écris ton message.</p>';
     let dernierMois='';
     ateliers.forEach(e=>{
       const ek=e.date+'_'+e.time+'_'+e.title.slice(0,20).replace(/\s/g,'_');
       const nb=(inscritsParAtelier[ek]||[]).length;
       const [yy,mm]=e.date.split('-');
       const moisLabel=monthNames[parseInt(mm)-1]+' '+yy;
-      if(moisLabel!==dernierMois){html+=`<div style="font-size:12px;font-weight:800;color:#6d28d9;text-transform:uppercase;letter-spacing:1px;margin:18px 4px 8px;">${moisLabel}</div>`;dernierMois=moisLabel;}
+      if(moisLabel!==dernierMois){html+=`<div style="font-size:0.75rem;font-weight:800;color:#6d28d9;text-transform:uppercase;letter-spacing:1px;margin:18px 4px 8px;">${moisLabel}</div>`;dernierMois=moisLabel;}
       const dateCourte=formatShortDate(e.date)+' · '+e.time.replace(':','h');
       const nbColor=nb>0?'#0a6e31':'#5b6785';
       const nbLabel=nb>0?(nb+' inscrit'+(nb>1?'s':'')):'0 inscrit';
       html+=`<div class="btn-parler-item" data-ek="${esc(ek)}" style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);cursor:pointer;display:flex;align-items:center;gap:12px;">
-        <div style="width:36px;height:36px;border-radius:50%;background:#eef1fb;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${iconHTML(e.icon||'📋')}</div>
+        <div style="width:36px;height:36px;border-radius:50%;background:#eef1fb;display:flex;align-items:center;justify-content:center;font-size:1.125rem;flex-shrink:0;">${iconHTML(e.icon||'📋')}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:15px;font-weight:700;color:#1a2340;">${esc(e.title)}</div>
-          <div style="font-size:12px;color:#5b6785;margin-top:1px;">${dateCourte}</div>
-          <div style="font-size:12px;color:${nbColor};margin-top:2px;font-weight:600;">${nbLabel}</div>
+          <div style="font-size:0.9375rem;font-weight:700;color:#1a2340;">${esc(e.title)}</div>
+          <div style="font-size:0.75rem;color:#5b6785;margin-top:1px;">${dateCourte}</div>
+          <div style="font-size:0.75rem;color:${nbColor};margin-top:2px;font-weight:600;">${nbLabel}</div>
         </div>
-        <span style="color:#5b6785;font-size:18px;">›</span>
+        <span style="color:#5b6785;font-size:1.125rem;">›</span>
       </div>`;
     });
     content.innerHTML=html;
@@ -1758,7 +1758,7 @@ function showMessageTextModal(signataire,mode,atelierKey){
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
   const box=document.createElement('div');
   box.style.cssText='background:white;border-radius:20px;padding:24px;width:100%;max-width:360px;';
-  box.innerHTML=`<div style="font-size:32px;text-align:center">📢</div><h3 style="text-align:center;margin:12px 0;font-size:20px">Message de ${signataire}</h3><textarea id="admin-msg-text" placeholder="Votre message..." style="width:100%;height:100px;padding:12px;font-size:16px;border-radius:10px;border:2px solid #e5e9f2;margin-bottom:16px;resize:none;font-family:inherit"></textarea><div style="display:flex;gap:12px"><button id="msg-cancel" style="flex:1;padding:14px;border:2px solid #e5e9f2;border-radius:12px;font-size:16px;background:white;cursor:pointer">Annuler</button><button id="msg-ok" style="flex:1;padding:14px;border:none;border-radius:12px;font-size:16px;background:#2c3e91;color:white;font-weight:700;cursor:pointer">Envoyer</button></div>`;
+  box.innerHTML=`<div style="font-size:2rem;text-align:center">📢</div><h3 style="text-align:center;margin:12px 0;font-size:1.25rem">Message de ${signataire}</h3><textarea id="admin-msg-text" placeholder="Votre message..." style="width:100%;height:100px;padding:12px;font-size:1rem;border-radius:10px;border:2px solid #e5e9f2;margin-bottom:16px;resize:none;font-family:inherit"></textarea><div style="display:flex;gap:12px"><button id="msg-cancel" style="flex:1;padding:14px;border:2px solid #e5e9f2;border-radius:12px;font-size:1rem;background:white;cursor:pointer">Annuler</button><button id="msg-ok" style="flex:1;padding:14px;border:none;border-radius:12px;font-size:1rem;background:#2c3e91;color:white;font-weight:700;cursor:pointer">Envoyer</button></div>`;
   overlay.appendChild(box);
   document.body.appendChild(overlay);
   document.getElementById('msg-cancel').onclick=()=>document.body.removeChild(overlay);
@@ -1868,18 +1868,18 @@ async function adminInscrireAtelier(uid, prenom) {
     const checked = existing.has(ek);
     return `<label style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:white;border-radius:12px;margin-bottom:8px;cursor:pointer;border:2px solid ${checked?'#22a559':'#e5e9f2'};">
       <input type="checkbox" data-ek="${ek}" data-date="${e.date}" data-time="${e.time}" data-title="${esc(e.title)}" data-icon="${esc(e.icon||'📋')}" ${checked?'checked':''} style="width:22px;height:22px;accent-color:#22a559;flex-shrink:0;">
-      <span style="font-size:22px">${e.icon||'📋'}</span>
-      <div style="flex:1;"><div style="font-weight:700;font-size:15px;color:#1a2340">${esc(e.title)}</div><div style="font-size:13px;color:#48547a">${formatShortDate(e.date)} à ${e.time.replace(':','h')}</div></div>
-      ${checked?'<span style="color:#22a559;font-weight:700;font-size:13px;">✓</span>':''}
+      <span style="font-size:1.375rem">${e.icon||'📋'}</span>
+      <div style="flex:1;"><div style="font-weight:700;font-size:0.9375rem;color:#1a2340">${esc(e.title)}</div><div style="font-size:0.8125rem;color:#48547a">${formatShortDate(e.date)} à ${e.time.replace(':','h')}</div></div>
+      ${checked?'<span style="color:#22a559;font-weight:700;font-size:0.8125rem;">✓</span>':''}
     </label>`;
   }).join('');
   overlay.innerHTML = `<div style="background:#f1f3f8;border-radius:24px 24px 0 0;padding:24px;width:100%;max-height:85vh;overflow-y:auto;padding-bottom:calc(24px + env(safe-area-inset-bottom));">
-    <div style="font-size:20px;font-weight:800;color:#1a2340;margin-bottom:4px;">📋 Ateliers pour ${esc(prenom)}</div>
-    <div style="font-size:14px;color:#48547a;margin-bottom:16px;">Cochez les ateliers pour ${esc(prenom)}</div>
+    <div style="font-size:1.25rem;font-weight:800;color:#1a2340;margin-bottom:4px;">📋 Ateliers pour ${esc(prenom)}</div>
+    <div style="font-size:0.875rem;color:#48547a;margin-bottom:16px;">Cochez les ateliers pour ${esc(prenom)}</div>
     <div id="atelier-check-list">${atelierItems}</div>
     <div style="display:flex;gap:10px;margin-top:16px;">
-      <button id="atelier-select-cancel" style="flex:1;padding:16px;background:#e5e9f2;color:#1a2340;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;">Annuler</button>
-      <button id="atelier-select-ok" style="flex:1;padding:16px;background:#22a559;color:white;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;">✅ Enregistrer</button>
+      <button id="atelier-select-cancel" style="flex:1;padding:16px;background:#e5e9f2;color:#1a2340;border:none;border-radius:14px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;">Annuler</button>
+      <button id="atelier-select-ok" style="flex:1;padding:16px;background:#22a559;color:white;border:none;border-radius:14px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;">✅ Enregistrer</button>
     </div></div>`;
   overlay.style.display = 'flex';
   document.getElementById('atelier-select-cancel').onclick = () => { overlay.style.display = 'none'; };
@@ -1982,25 +1982,25 @@ async function showAdminAnnulerAtelier() {
     const annule = annulations[cleanDocId(ek)];
     return `<div style="background:white;border-radius:12px;margin-bottom:8px;padding:14px 16px;border:2px solid ${annule?'#d63447':'#e5e9f2'};">
       <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:20px">${e.icon||'📋'}</span>
+        <span style="font-size:1.25rem">${e.icon||'📋'}</span>
         <div style="flex:1;">
-          <div style="font-weight:700;font-size:15px;color:#1a2340">${esc(e.title)}</div>
-          <div style="font-size:13px;color:#48547a">${formatShortDate(e.date)} à ${e.time.replace(':','h')}</div>
-          ${annule ? '<div style="color:#d63447;font-size:12px;font-weight:700;">🚫 DÉJÀ ANNULÉ — '+esc(annule.motif)+'</div>' : ''}
+          <div style="font-weight:700;font-size:0.9375rem;color:#1a2340">${esc(e.title)}</div>
+          <div style="font-size:0.8125rem;color:#48547a">${formatShortDate(e.date)} à ${e.time.replace(':','h')}</div>
+          ${annule ? '<div style="color:#d63447;font-size:0.75rem;font-weight:700;">🚫 DÉJÀ ANNULÉ — '+esc(annule.motif)+'</div>' : ''}
         </div>
         ${annule ? 
-          `<button onclick="retablirAtelier('${ek}')" style="padding:8px 12px;background:#22a559;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">✅ Rétablir</button>` :
-          `<button onclick="demanderMotifAnnulation('${ek}','${esc(e.title)}','${e.date}','${e.time}')" style="padding:8px 12px;background:#d63447;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">🚫 Annuler</button>`
+          `<button onclick="retablirAtelier('${ek}')" style="padding:8px 12px;background:#22a559;color:white;border:none;border-radius:8px;font-size:0.75rem;font-weight:700;cursor:pointer;">✅ Rétablir</button>` :
+          `<button onclick="demanderMotifAnnulation('${ek}','${esc(e.title)}','${e.date}','${e.time}')" style="padding:8px 12px;background:#d63447;color:white;border:none;border-radius:8px;font-size:0.75rem;font-weight:700;cursor:pointer;">🚫 Annuler</button>`
         }
       </div>
     </div>`;
   }).join('');
 
   overlay.innerHTML = `<div style="background:#f1f3f8;border-radius:24px 24px 0 0;padding:24px;width:100%;max-height:85vh;overflow-y:auto;padding-bottom:calc(24px + env(safe-area-inset-bottom));">
-    <div style="font-size:20px;font-weight:800;color:#d63447;margin-bottom:4px;">🚫 Annuler un atelier</div>
-    <div style="font-size:14px;color:#48547a;margin-bottom:16px;">Sélectionne l'atelier à annuler</div>
+    <div style="font-size:1.25rem;font-weight:800;color:#d63447;margin-bottom:4px;">🚫 Annuler un atelier</div>
+    <div style="font-size:0.875rem;color:#48547a;margin-bottom:16px;">Sélectionne l'atelier à annuler</div>
     <div id="annuler-list">${atelierItems}</div>
-    <button onclick="document.getElementById('annuler-overlay').style.display='none'" style="width:100%;padding:16px;background:#e5e9f2;color:#1a2340;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px;font-family:inherit;">Fermer</button>
+    <button onclick="document.getElementById('annuler-overlay').style.display='none'" style="width:100%;padding:16px;background:#e5e9f2;color:#1a2340;border:none;border-radius:14px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:8px;font-family:inherit;">Fermer</button>
   </div>`;
 
   overlay.style.display = 'flex';
@@ -2019,13 +2019,13 @@ async function demanderMotifAnnulation(ek, titre, date, heure) {
   }
 
   motifOverlay.innerHTML = `<div style="background:white;border-radius:20px;padding:24px;width:100%;max-width:400px;">
-    <div style="font-size:18px;font-weight:800;color:#d63447;margin-bottom:8px;">🚫 Annuler ${esc(titre)}</div>
-    <div style="font-size:14px;color:#48547a;margin-bottom:16px;">${formatShortDate(date)} à ${heure.replace(':','h')}</div>
-    <label style="font-size:14px;font-weight:700;color:#48547a;display:block;margin-bottom:8px;">MOTIF DE L'ANNULATION</label>
-    <textarea id="motif-input" style="width:100%;padding:14px;font-size:16px;border:2px solid #e5e9f2;border-radius:12px;font-family:inherit;resize:none;min-height:100px;" placeholder="Ex: Animateur absent, Locaux indisponibles..."></textarea>
+    <div style="font-size:1.125rem;font-weight:800;color:#d63447;margin-bottom:8px;">🚫 Annuler ${esc(titre)}</div>
+    <div style="font-size:0.875rem;color:#48547a;margin-bottom:16px;">${formatShortDate(date)} à ${heure.replace(':','h')}</div>
+    <label style="font-size:0.875rem;font-weight:700;color:#48547a;display:block;margin-bottom:8px;">MOTIF DE L'ANNULATION</label>
+    <textarea id="motif-input" style="width:100%;padding:14px;font-size:1rem;border:2px solid #e5e9f2;border-radius:12px;font-family:inherit;resize:none;min-height:100px;" placeholder="Ex: Animateur absent, Locaux indisponibles..."></textarea>
     <div style="display:flex;gap:10px;margin-top:16px;">
-      <button onclick="document.getElementById('motif-overlay').style.display='none';showAdminAnnulerAtelier();" style="flex:1;padding:14px;background:#e5e9f2;color:#1a2340;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">Annuler</button>
-      <button onclick="confirmerAnnulation('${ek}','${esc(titre)}','${date}','${heure}')" style="flex:1;padding:14px;background:#d63447;color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">🚫 Confirmer</button>
+      <button onclick="document.getElementById('motif-overlay').style.display='none';showAdminAnnulerAtelier();" style="flex:1;padding:14px;background:#e5e9f2;color:#1a2340;border:none;border-radius:12px;font-size:0.9375rem;font-weight:700;cursor:pointer;font-family:inherit;">Annuler</button>
+      <button onclick="confirmerAnnulation('${ek}','${esc(titre)}','${date}','${heure}')" style="flex:1;padding:14px;background:#d63447;color:white;border:none;border-radius:12px;font-size:0.9375rem;font-weight:700;cursor:pointer;font-family:inherit;">🚫 Confirmer</button>
     </div>
   </div>`;
 
@@ -2116,15 +2116,15 @@ async function reparerInscriptionsApercu(){
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(26,35,64,0.6);z-index:300;display:flex;align-items:flex-end;justify-content:center;';
   const liste=plan.length
-    ? plan.map(p=>`<div style="padding:6px 0;border-bottom:1px solid #f0f1f6;font-size:14px;color:#1a2340;"><b>${esc(p.prenom)}</b> : ${p.cles.length} inscription${p.cles.length>1?'s':''}</div>`).join('')
+    ? plan.map(p=>`<div style="padding:6px 0;border-bottom:1px solid #f0f1f6;font-size:0.875rem;color:#1a2340;"><b>${esc(p.prenom)}</b> : ${p.cles.length} inscription${p.cles.length>1?'s':''}</div>`).join('')
     : '<div style="padding:12px 0;color:#16a34a;font-weight:600;">✅ Rien à réparer, tout est déjà aligné.</div>';
   overlay.innerHTML=`<div style="background:white;border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:560px;max-height:80vh;overflow-y:auto;">
-    <h2 style="font-size:18px;font-weight:800;color:#1a2340;margin:0 0 8px;">🛠️ Réparer les inscriptions</h2>
-    <p style="color:#48547a;font-size:14px;margin:0 0 16px;">${plan.length?totalCles+' inscription'+(totalCles>1?'s':'')+' à ajouter pour '+plan.length+' bénéficiaire'+(plan.length>1?'s':'')+'. Rien ne sera supprimé.':'Aucune correction nécessaire.'}</p>
+    <h2 style="font-size:1.125rem;font-weight:800;color:#1a2340;margin:0 0 8px;">🛠️ Réparer les inscriptions</h2>
+    <p style="color:#48547a;font-size:0.875rem;margin:0 0 16px;">${plan.length?totalCles+' inscription'+(totalCles>1?'s':'')+' à ajouter pour '+plan.length+' bénéficiaire'+(plan.length>1?'s':'')+'. Rien ne sera supprimé.':'Aucune correction nécessaire.'}</p>
     <div style="margin-bottom:20px;">${liste}</div>
     <div style="display:flex;gap:10px;">
-      <button id="rep-annuler" style="flex:1;background:#f1f3f8;color:#48547a;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;">Fermer</button>
-      ${plan.length?'<button id="rep-valider" style="flex:1;background:#3730a3;color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;">Valider la réparation</button>':''}
+      <button id="rep-annuler" style="flex:1;background:#f1f3f8;color:#48547a;border:none;border-radius:12px;padding:14px;font-size:0.9375rem;font-weight:700;">Fermer</button>
+      ${plan.length?'<button id="rep-valider" style="flex:1;background:#3730a3;color:white;border:none;border-radius:12px;padding:14px;font-size:0.9375rem;font-weight:700;">Valider la réparation</button>':''}
     </div>
   </div>`;
   document.body.appendChild(overlay);
@@ -2172,7 +2172,7 @@ async function showAdminInscrireGroupe(){
   
   if(ateliers.length===0){body.innerHTML='<div class="planning-empty">Aucun atelier ce mois-ci.</div>';return;}
   
-  let html='<p style="color:#48547a;font-size:14px;margin-bottom:16px;">Cochez les bénéficiaires à inscrire pour chaque atelier puis appuyez sur Valider.</p>';
+  let html='<p style="color:#48547a;font-size:0.875rem;margin-bottom:16px;">Cochez les bénéficiaires à inscrire pour chaque atelier puis appuyez sur Valider.</p>';
   
   ateliers.forEach((ev,idx)=>{
     const dateStr=new Date(ev.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
@@ -2274,13 +2274,13 @@ async function showAdminAteliers(selectedMonth){
       const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
       function formatMois(ym){const[y,m]=ym.split('-');return monthNames[parseInt(m)-1]+' '+y;}
       const menuHTML='<div style="padding:12px 16px;background:white;border-bottom:1px solid #e5e9f2;position:sticky;top:0;z-index:10;">'
-        +'<select id="mois-select" onchange="showAdminAteliers(this.value)" style="width:100%;padding:12px;font-size:16px;font-weight:700;border:2px solid #2c3e91;border-radius:12px;color:#2c3e91;background:white;font-family:inherit;">'
+        +'<select id="mois-select" onchange="showAdminAteliers(this.value)" style="width:100%;padding:12px;font-size:1rem;font-weight:700;border:2px solid #2c3e91;border-radius:12px;color:#2c3e91;background:white;font-family:inherit;">'
         +moisDispo.map(m=>'<option value="'+m+'" '+(m===moisActif?'selected':'')+'>'+formatMois(m)+(m<currentMonth?' — PASSÉ':m===currentMonth?' — EN COURS':' — À VENIR')+'</option>').join('')
         +'</select></div>';
       const itemsFiltres=items.filter(g=>g.date.slice(0,7)===moisActif);
       list.innerHTML=menuHTML+itemsFiltres.map(g=>{const atelierKey=g.date+'_'+g.time+'_'+(g.title||'').slice(0,20).replace(/\s/g,'_');let nbPresent=0,nbAbsent=0,nbNonPointe=0;g.inscrits.forEach(p=>{const presKey=sanitizePresKey(atelierKey+'__'+p);const pres=presences[presKey];if(pres&&pres.statut==='absent')nbAbsent++;else nbPresent++;});const isPasse=g.date<today;const isToday_=g.date===today;const estAnnule = annulations[cleanDocId(atelierKey)];
-      const badge=estAnnule?'<span style="background:#d63447;color:white;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">🚫 ANNULÉ</span>':isPasse?'<span class="atelier-badge-passe">PASSÉ</span>':isToday_?'<span class="atelier-badge-aujourdhui">AUJOURD\'HUI</span>':'<span class="atelier-badge-futur">À VENIR</span>';
-      const annulMotif = estAnnule ? '<div style="color:#d63447;font-size:12px;font-weight:600;margin-top:4px;">Motif : '+esc(estAnnule.motif||'')+'</div>' : '';return`<div class="atelier-group"><div class="atelier-group-header"><div class="atelier-group-date">${formatShortDate(g.date)} · ${(g.time||'').replace(':','h')}</div><div class="atelier-group-title">${esc(g.title)}</div>${badge}</div><div class="atelier-stats">👥 <strong>${g.inscrits.length}</strong> inscrits · ✅ <strong>${nbPresent}</strong> présents · ❌ <strong>${nbAbsent}</strong> absents</div><div class="atelier-pointage-list">${g.inscrits.map(p=>{const presKey=sanitizePresKey(atelierKey+'__'+p);const pres=presences[presKey];const statut=pres?pres.statut:null;// Par défaut présent si pas encore pointé
+      const badge=estAnnule?'<span style="background:#d63447;color:white;padding:2px 8px;border-radius:10px;font-size:0.6875rem;font-weight:700;">🚫 ANNULÉ</span>':isPasse?'<span class="atelier-badge-passe">PASSÉ</span>':isToday_?'<span class="atelier-badge-aujourdhui">AUJOURD\'HUI</span>':'<span class="atelier-badge-futur">À VENIR</span>';
+      const annulMotif = estAnnule ? '<div style="color:#d63447;font-size:0.75rem;font-weight:600;margin-top:4px;">Motif : '+esc(estAnnule.motif||'')+'</div>' : '';return`<div class="atelier-group"><div class="atelier-group-header"><div class="atelier-group-date">${formatShortDate(g.date)} · ${(g.time||'').replace(':','h')}</div><div class="atelier-group-title">${esc(g.title)}</div>${badge}</div><div class="atelier-stats">👥 <strong>${g.inscrits.length}</strong> inscrits · ✅ <strong>${nbPresent}</strong> présents · ❌ <strong>${nbAbsent}</strong> absents</div><div class="atelier-pointage-list">${g.inscrits.map(p=>{const presKey=sanitizePresKey(atelierKey+'__'+p);const pres=presences[presKey];const statut=pres?pres.statut:null;// Par défaut présent si pas encore pointé
 const defaultPresent = !statut; // présent par défaut si non pointé
 return`<div class="atelier-pointage-row"><div class="atelier-pointage-name">${esc(p)}</div><button class="btn-pointage btn-present ${(statut==='present'||defaultPresent)?'active':''}" data-preskey="${esc(presKey)}" data-atelier="${esc(atelierKey)}" data-prenom="${esc(p)}" data-statut="present">✅ Présent</button><button class="btn-pointage btn-absent ${statut==='absent'?'active':''}" data-preskey="${esc(presKey)}" data-atelier="${esc(atelierKey)}" data-prenom="${esc(p)}" data-statut="absent">❌ Absent</button></div>`;}).join('')}</div></div>`;}).join('');list.querySelectorAll('.btn-pointage').forEach(btn=>{btn.addEventListener('click',async()=>{
   const presKey=btn.dataset.preskey;
@@ -2337,14 +2337,14 @@ async function demanderDesinscription(ev,ek,anim,content,events,onDone){
     const overlay=document.createElement('div');
     overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
     overlay.innerHTML=`<div style="background:#fff;border-radius:20px;padding:28px 22px;max-width:360px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.22);text-align:center;">
-      <div style="font-size:42px;margin-bottom:10px;">📵</div>
-      <div style="font-size:18px;font-weight:800;color:#1a2340;margin-bottom:10px;">Désinscription impossible</div>
-      <div style="font-size:14px;color:#48547a;line-height:1.6;margin-bottom:20px;">
+      <div style="font-size:2.625rem;margin-bottom:10px;">📵</div>
+      <div style="font-size:1.125rem;font-weight:800;color:#1a2340;margin-bottom:10px;">Désinscription impossible</div>
+      <div style="font-size:0.875rem;color:#48547a;line-height:1.6;margin-bottom:20px;">
         L'atelier <strong>${esc(ev.title)}</strong> a lieu dans moins de ${DELAI_DESINSCRIPTION_JOURS} jours.<br><br>
         Pour vous désinscrire, contactez <strong>${esc(anim)}</strong> directement :
       </div>
-      <a href="tel:${phone.num}" style="display:block;background:#22a559;color:#fff;font-size:16px;font-weight:800;padding:14px;border-radius:14px;text-decoration:none;margin-bottom:12px;">📞 Appeler ${esc(anim)} — ${phone.display}</a>
-      <button id="desinsc-fermer" style="background:#eef1fb;color:#2c3e91;font-size:15px;font-weight:700;padding:12px 20px;border-radius:14px;border:none;cursor:pointer;width:100%;font-family:inherit;">Fermer</button>
+      <a href="tel:${phone.num}" style="display:block;background:#22a559;color:#fff;font-size:1rem;font-weight:800;padding:14px;border-radius:14px;text-decoration:none;margin-bottom:12px;">📞 Appeler ${esc(anim)} — ${phone.display}</a>
+      <button id="desinsc-fermer" style="background:#eef1fb;color:#2c3e91;font-size:0.9375rem;font-weight:700;padding:12px 20px;border-radius:14px;border:none;cursor:pointer;width:100%;font-family:inherit;">Fermer</button>
     </div>`;
     document.body.appendChild(overlay);
     document.getElementById('desinsc-fermer').onclick=()=>overlay.remove();
@@ -2356,14 +2356,14 @@ async function demanderDesinscription(ev,ek,anim,content,events,onDone){
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
   overlay.innerHTML=`<div style="background:#fff;border-radius:20px;padding:28px 22px;max-width:360px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.22);">
-    <div style="font-size:28px;text-align:center;margin-bottom:8px;">📝</div>
-    <div style="font-size:17px;font-weight:800;color:#1a2340;text-align:center;margin-bottom:6px;">Se désinscrire</div>
-    <div style="font-size:13px;color:#48547a;text-align:center;margin-bottom:18px;">Atelier <strong>${esc(ev.title)}</strong></div>
-    <div style="font-size:14px;color:#1a2340;margin-bottom:8px;">Une raison ? <span style="color:#5b6785;font-weight:400;">(facultatif)</span></div>
-    <textarea id="desinsc-commentaire" placeholder="Ex : je ne serai pas disponible ce jour-là…" style="width:100%;box-sizing:border-box;border:1.5px solid #d1d9f0;border-radius:12px;padding:12px;font-size:14px;font-family:inherit;resize:none;height:90px;color:#1a2340;outline:none;"></textarea>
+    <div style="font-size:1.75rem;text-align:center;margin-bottom:8px;">📝</div>
+    <div style="font-size:1.0625rem;font-weight:800;color:#1a2340;text-align:center;margin-bottom:6px;">Se désinscrire</div>
+    <div style="font-size:0.8125rem;color:#48547a;text-align:center;margin-bottom:18px;">Atelier <strong>${esc(ev.title)}</strong></div>
+    <div style="font-size:0.875rem;color:#1a2340;margin-bottom:8px;">Une raison ? <span style="color:#5b6785;font-weight:400;">(facultatif)</span></div>
+    <textarea id="desinsc-commentaire" placeholder="Ex : je ne serai pas disponible ce jour-là…" style="width:100%;box-sizing:border-box;border:1.5px solid #d1d9f0;border-radius:12px;padding:12px;font-size:0.875rem;font-family:inherit;resize:none;height:90px;color:#1a2340;outline:none;"></textarea>
     <div style="display:flex;gap:10px;margin-top:16px;">
-      <button id="desinsc-annuler" style="flex:1;background:#eef1fb;color:#2c3e50;font-size:15px;font-weight:700;padding:13px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;">Annuler</button>
-      <button id="desinsc-confirmer" style="flex:1;background:#d63447;color:#fff;font-size:15px;font-weight:700;padding:13px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;">Me désinscrire</button>
+      <button id="desinsc-annuler" style="flex:1;background:#eef1fb;color:#2c3e50;font-size:0.9375rem;font-weight:700;padding:13px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;">Annuler</button>
+      <button id="desinsc-confirmer" style="flex:1;background:#d63447;color:#fff;font-size:0.9375rem;font-weight:700;padding:13px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;">Me désinscrire</button>
     </div>
   </div>`;
   document.body.appendChild(overlay);
@@ -2438,7 +2438,7 @@ function showMesRendezVous(){
     .sort((a,b)=>a._d!==b._d?a._d.localeCompare(b._d):a._t.localeCompare(b._t));
 
   if(items.length===0){
-    list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:36px">🌿</div><div class="empty-text" style="margin-top:12px">Vous n'avez aucun rendez-vous à venir.</div></div>`;
+    list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem">🌿</div><div class="empty-text" style="margin-top:12px">Vous n'avez aucun rendez-vous à venir.</div></div>`;
     return;
   }
   const MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -2462,7 +2462,7 @@ function showMesRendezVous(){
         <div style="font-size:0.85rem;color:#48547a;margin-top:2px;">à ${(r._t||'').replace(':','h')}</div>
         <div style="margin-top:5px;">${badge}</div>
       </div>
-      <span style="font-size:22px;color:#c0c6d8;">›</span>
+      <span style="font-size:1.375rem;color:#c0c6d8;">›</span>
     </div>`;
   });
   list.innerHTML=html;
@@ -2546,19 +2546,19 @@ async function showAdminAvis(){
       <div><div style="font-size:1.6rem;">😐</div><b style="font-size:1.3rem;">${cnt[2]}</b></div>
       <div><div style="font-size:1.6rem;">😟</div><b style="font-size:1.3rem;">${cnt[1]}</b></div>
     </div>`;
-    if(avis.length===0){list.innerHTML='<div class="empty"><div class="empty-icon" style="font-size:36px">💬</div><div class="empty-text" style="margin-top:12px">Aucun avis pour le moment.</div></div>';return;}
+    if(avis.length===0){list.innerHTML='<div class="empty"><div class="empty-icon" style="font-size:2.25rem">💬</div><div class="empty-text" style="margin-top:12px">Aucun avis pour le moment.</div></div>';return;}
     const EM={4:'😍',3:'🙂',2:'😐',1:'😟'};
     list.innerHTML=avis.map(a=>{
       const d=a.createdAt?new Date(a.createdAt):null;
       const dateLabel=d?d.toLocaleDateString('fr-FR',{day:'numeric',month:'long'}):'';
       const qui=a.prenom?esc(a.prenom):'Anonyme';
       return `<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(26,35,64,0.06);display:flex;gap:12px;align-items:flex-start;">
-        <div style="font-size:28px;">${a.note?EM[a.note]:'💬'}</div>
+        <div style="font-size:1.75rem;">${a.note?EM[a.note]:'💬'}</div>
         <div style="flex:1;">
           ${a.texte?`<div style="color:#1a2340;font-size:0.95rem;line-height:1.5;">« ${esc(a.texte)} »</div>`:'<div style="color:#5b6785;font-style:italic;font-size:0.9rem;">(pas de commentaire)</div>'}
           <div style="font-size:0.8rem;color:#48547a;margin-top:4px;">— ${qui} · ${dateLabel}</div>
         </div>
-        <button class="avis-suppr" data-id="${a.id}" style="background:none;border:none;font-size:18px;cursor:pointer;color:#c0c6d8;">🗑️</button>
+        <button class="avis-suppr" data-id="${a.id}" style="background:none;border:none;font-size:1.125rem;cursor:pointer;color:#c0c6d8;">🗑️</button>
       </div>`;
     }).join('');
     // Suppression (admin)
@@ -2574,7 +2574,7 @@ async function showAdminAvis(){
   }catch(e){list.innerHTML='<div style="text-align:center;padding:30px;color:#d63447">Erreur de chargement des avis.</div>';}
 }
 
-function render(){const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key)).map(r=>({...r,_source:'personal'}));const items=[...personal].sort((a,b)=>a.time.localeCompare(b.time));if(items.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:36px;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;return;}const now=new Date();const isToday=state.dayOffset===0;const nowMinutes=now.getHours()*60+now.getMinutes();let upcomingId=null;if(isToday){const up=items.find(r=>{const[h,m]=r.time.split(':').map(Number);return(h*60+m)>=nowMinutes&&!(r.done&&r.done[key]);});if(up)upcomingId=up.id;}list.innerHTML=items.map(r=>{const isDone=r.done&&r.done[key];const isAVP=r._source==='avp';const isAtelier=r.source==='atelier';const eventDate=r.eventDate||r.date;const eventTime=r.eventTime||r.time;const dateDiffers=r.recurrence==='once'&&eventDate&&eventDate!==r.date;const timeDiffers=r.recurrence==='once'&&eventTime&&eventTime!==r.time;const hasDiffEvent=dateDiffers||timeDiffers;let noteText='';if(r.note){if(r.mapLink){noteText=`<a href="${r.mapLink}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{const iconDef=ICONS.find(ic=>ic.title===r.title||(r.icon&&ic.emoji===r.icon));if(iconDef&&iconDef.address){noteText=`<a href="https://www.google.com/maps/search/?api=1&query=${iconDef.address}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{noteText=esc(r.note);}}}const checkHTML=(isAVP||isAtelier)?'':`<div class="card-check ${isDone?'':'unchecked'}" data-check="${r.id}" style="position:absolute;top:12px;right:12px;">${isDone?'✓':'○'}</div>`;if(hasDiffEvent||isAtelier){const agendaLink=buildGoogleCalendarLink(r);let sonnerieText;if(isAtelier){const atelierDate=new Date(r.date+'T'+r.time+':00');const veille=new Date(atelierDate);veille.setDate(veille.getDate()-1);const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const h2=String(avant2h.getHours()).padStart(2,'0');const m2=String(avant2h.getMinutes()).padStart(2,'0');sonnerieText=`🔔 <strong>2 sonneries prévues :</strong><br>• La veille (${formatShortDate(veille.toISOString().slice(0,10))}) à <strong>15h00</strong><br>• 2h avant, à <strong>${h2}h${m2}</strong>`;}else if(dateDiffers){sonnerieText=`🔔 Sonnerie le <strong>${formatRelativeDate(r.date)} à ${r.time.replace(':','h')}</strong>`;}else{sonnerieText=`🔔 Sonnerie à <strong>${r.time.replace(':','h')}</strong>`;}const typeLabel=isAtelier?'Atelier AVP':'Rendez-vous';const badgeAtelier=isAtelier?'<span style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">✅ Je participe</span>':'';return`<div class="card-rdv ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="rdv-top"><div class="rdv-left"><div class="rdv-date">${formatShortDate(eventDate)}</div><div class="rdv-heure">${eventTime.replace(':','h')}</div></div><div class="rdv-image">${iconHTML(r.icon)}</div><div class="rdv-body"><div class="rdv-type">${typeLabel}</div><div class="rdv-titre">${esc(r.title)}</div>${noteText?`<div class="rdv-note">${noteText}</div>`:''} ${badgeAtelier}</div></div><div class="rdv-sonnerie">${sonnerieText}</div><a href="${agendaLink}" target="_blank" class="btn-agenda" onclick="event.stopPropagation()">📅 Ajouter à mon agenda Google</a></div>`;}const badge=isAVP?'<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">📋 Planning AVP</span>':'';const sonnerieType=isAVP?'Atelier':'Sonnerie';return`<div class="card-sonnerie ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="sonnerie-left"><div class="sonnerie-date">${r.recurrence==='daily'?'Tous les jours':(r.date?formatShortDate(r.date):'')}</div><div class="sonnerie-heure">${r.time.replace(':','h')}</div></div><div class="sonnerie-icon">${iconHTML(r.icon)}</div><div class="sonnerie-body"><div class="sonnerie-type">${sonnerieType}</div><div class="sonnerie-titre">${esc(r.title)}</div>${noteText?`<div class="sonnerie-note">${noteText}</div>`:''}${badge}</div></div>`;}).join('');}
+function render(){const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key)).map(r=>({...r,_source:'personal'}));const items=[...personal].sort((a,b)=>a.time.localeCompare(b.time));if(items.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;return;}const now=new Date();const isToday=state.dayOffset===0;const nowMinutes=now.getHours()*60+now.getMinutes();let upcomingId=null;if(isToday){const up=items.find(r=>{const[h,m]=r.time.split(':').map(Number);return(h*60+m)>=nowMinutes&&!(r.done&&r.done[key]);});if(up)upcomingId=up.id;}list.innerHTML=items.map(r=>{const isDone=r.done&&r.done[key];const isAVP=r._source==='avp';const isAtelier=r.source==='atelier';const eventDate=r.eventDate||r.date;const eventTime=r.eventTime||r.time;const dateDiffers=r.recurrence==='once'&&eventDate&&eventDate!==r.date;const timeDiffers=r.recurrence==='once'&&eventTime&&eventTime!==r.time;const hasDiffEvent=dateDiffers||timeDiffers;let noteText='';if(r.note){if(r.mapLink){noteText=`<a href="${r.mapLink}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{const iconDef=ICONS.find(ic=>ic.title===r.title||(r.icon&&ic.emoji===r.icon));if(iconDef&&iconDef.address){noteText=`<a href="https://www.google.com/maps/search/?api=1&query=${iconDef.address}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{noteText=esc(r.note);}}}const checkHTML=(isAVP||isAtelier)?'':`<div class="card-check ${isDone?'':'unchecked'}" data-check="${r.id}" style="position:absolute;top:12px;right:12px;">${isDone?'✓':'○'}</div>`;if(hasDiffEvent||isAtelier){const agendaLink=buildGoogleCalendarLink(r);let sonnerieText;if(isAtelier){const atelierDate=new Date(r.date+'T'+r.time+':00');const veille=new Date(atelierDate);veille.setDate(veille.getDate()-1);const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const h2=String(avant2h.getHours()).padStart(2,'0');const m2=String(avant2h.getMinutes()).padStart(2,'0');sonnerieText=`🔔 <strong>2 sonneries prévues :</strong><br>• La veille (${formatShortDate(veille.toISOString().slice(0,10))}) à <strong>15h00</strong><br>• 2h avant, à <strong>${h2}h${m2}</strong>`;}else if(dateDiffers){sonnerieText=`🔔 Sonnerie le <strong>${formatRelativeDate(r.date)} à ${r.time.replace(':','h')}</strong>`;}else{sonnerieText=`🔔 Sonnerie à <strong>${r.time.replace(':','h')}</strong>`;}const typeLabel=isAtelier?'Atelier AVP':'Rendez-vous';const badgeAtelier=isAtelier?'<span style="display:inline-block;margin-top:4px;font-size:0.6875rem;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">✅ Je participe</span>':'';return`<div class="card-rdv ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="rdv-top"><div class="rdv-left"><div class="rdv-date">${formatShortDate(eventDate)}</div><div class="rdv-heure">${eventTime.replace(':','h')}</div></div><div class="rdv-image">${iconHTML(r.icon)}</div><div class="rdv-body"><div class="rdv-type">${typeLabel}</div><div class="rdv-titre">${esc(r.title)}</div>${noteText?`<div class="rdv-note">${noteText}</div>`:''} ${badgeAtelier}</div></div><div class="rdv-sonnerie">${sonnerieText}</div><a href="${agendaLink}" target="_blank" class="btn-agenda" onclick="event.stopPropagation()">📅 Ajouter à mon agenda Google</a></div>`;}const badge=isAVP?'<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:0.6875rem;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">📋 Planning AVP</span>':'';const sonnerieType=isAVP?'Atelier':'Sonnerie';return`<div class="card-sonnerie ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="sonnerie-left"><div class="sonnerie-date">${r.recurrence==='daily'?'Tous les jours':(r.date?formatShortDate(r.date):'')}</div><div class="sonnerie-heure">${r.time.replace(':','h')}</div></div><div class="sonnerie-icon">${iconHTML(r.icon)}</div><div class="sonnerie-body"><div class="sonnerie-type">${sonnerieType}</div><div class="sonnerie-titre">${esc(r.title)}</div>${noteText?`<div class="sonnerie-note">${noteText}</div>`:''}${badge}</div></div>`;}).join('');}
 
 async function loadAVPPlanning(force){
   // Cache du planning par animateur (Steve/Greg), valable 5 minutes
@@ -2755,8 +2755,8 @@ function renderPlanningInner(content,events){const seen=new Set();const uniqueEv
           <div class="planning-item-icon">${iconHTML(e.icon)}</div>
           <div class="planning-item-body">
             <div class="planning-item-title" style="text-decoration:line-through;color:#d63447">${esc(e.title)}</div>
-            <div style="color:#d63447;font-weight:700;font-size:14px;">🚫 ANNULÉ</div>
-            <div style="color:#1a2340;font-size:14px;line-height:1.5;background:#fff;border-radius:10px;padding:10px 12px;margin-top:6px;">${esc(annulation.motif||'')}</div>
+            <div style="color:#d63447;font-weight:700;font-size:0.875rem;">🚫 ANNULÉ</div>
+            <div style="color:#1a2340;font-size:0.875rem;line-height:1.5;background:#fff;border-radius:10px;padding:10px 12px;margin-top:6px;">${esc(annulation.motif||'')}</div>
           </div>
         </div>`;
       } else {
@@ -2960,12 +2960,12 @@ function showUpdatePopup(remoteVersion){
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
   overlay.innerHTML=`
     <div style="background:white;border-radius:18px;padding:28px 22px;max-width:380px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,0.3);">
-      <div style="font-size:48px;margin-bottom:8px;">🆕</div>
-      <h2 style="margin:0 0 12px;color:#2c3e91;font-size:22px;">Mise à jour disponible</h2>
-      <p style="margin:0 0 6px;color:#444;font-size:15px;line-height:1.4;">Une nouvelle version de l'application est disponible.</p>
-      <p style="margin:0 0 20px;color:#888;font-size:13px;">Version ${remoteVersion} (vous avez ${APP_VERSION})</p>
-      <a href="${APK_URL}" download style="display:block;background:#22a559;color:white;padding:14px;border-radius:12px;font-weight:700;text-decoration:none;font-size:16px;margin-bottom:10px;">⬇️ Télécharger la mise à jour</a>
-      <button id="update-later" style="background:none;border:none;color:#888;font-size:14px;padding:8px;cursor:pointer;">Plus tard</button>
+      <div style="font-size:3rem;margin-bottom:8px;">🆕</div>
+      <h2 style="margin:0 0 12px;color:#2c3e91;font-size:1.375rem;">Mise à jour disponible</h2>
+      <p style="margin:0 0 6px;color:#444;font-size:0.9375rem;line-height:1.4;">Une nouvelle version de l'application est disponible.</p>
+      <p style="margin:0 0 20px;color:#888;font-size:0.8125rem;">Version ${remoteVersion} (vous avez ${APP_VERSION})</p>
+      <a href="${APK_URL}" download style="display:block;background:#22a559;color:white;padding:14px;border-radius:12px;font-weight:700;text-decoration:none;font-size:1rem;margin-bottom:10px;">⬇️ Télécharger la mise à jour</a>
+      <button id="update-later" style="background:none;border:none;color:#888;font-size:0.875rem;padding:8px;cursor:pointer;">Plus tard</button>
     </div>
   `;
   // Mémoriser dès l'affichage pour éviter la boucle
@@ -3014,10 +3014,10 @@ init();
 
 <!-- Bannière installation PWA -->
 <div id="pwa-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#2c3e91;color:white;padding:12px 16px;display:none;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
-  <span style="font-size:22px">📲</span>
-  <span style="flex:1;font-size:14px;font-weight:600">Installer l'application sur votre téléphone</span>
-  <button id="pwa-install-btn" style="background:white;color:#2c3e91;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;">Installer</button>
-  <button id="pwa-dismiss-btn" style="background:transparent;color:white;border:none;font-size:20px;cursor:pointer;padding:0 4px;">✕</button>
+  <span style="font-size:1.375rem">📲</span>
+  <span style="flex:1;font-size:0.875rem;font-weight:600">Installer l'application sur votre téléphone</span>
+  <button id="pwa-install-btn" style="background:white;color:#2c3e91;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:0.8125rem;cursor:pointer;">Installer</button>
+  <button id="pwa-dismiss-btn" style="background:transparent;color:white;border:none;font-size:1.25rem;cursor:pointer;padding:0 4px;">✕</button>
 </div>
 
 <script>
