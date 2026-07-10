@@ -705,6 +705,7 @@
   <div class="admin-section-titre">📊 Suivi</div>
   <div class="admin-actions-grid">
     <button class="btn-admin-action" id="admin-stats-btn" style="background:#f0fdf9;color:#2d6a4f;border-color:#6ee7b7;">📊 Statistiques</button>
+    <button class="btn-admin-action" id="admin-connexions-btn" style="background:#eef1fb;color:#2c3e91;border-color:#8fa3df;">📱 Connexions</button>
     <button class="btn-admin-action" id="admin-diag-notif-btn" style="background:#fef3c7;color:#92400e;border-color:#fcd34d;display:none;">🔍 Test notifications</button>
   </div>
 
@@ -952,7 +953,7 @@ async function handleLogin() {
     if(!prenom){showError('Entrez votre prénom.');return;}
     try{const snap=await db.collection('users').get();const existing=snap.docs.find(d=>d.data().prenom.toLowerCase()===prenom.toLowerCase());if(existing){showError('Ce prénom existe déjà. Connectez-vous.');return;}const userId=uid();await db.collection('users').doc(userId).set({prenom,code,createdAt:Date.now(),reminders:[],inscriptions:{}});currentUser={id:userId,prenom,isAdmin:false};saveSession();tagOneSignalUser(prenom);state.reminders=[];state.inscriptions={};enterApp();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
   }else{
-    try{const snap=await db.collection('users').get();let found=null;snap.docs.forEach(d=>{if(d.data().code===code)found={id:d.id,...d.data()};});if(!found){showError('Code incorrect.');pinValue='';updatePinDots();return;}currentUser={id:found.id,prenom:found.prenom,isAdmin:false};saveSession();tagOneSignalUser(found.prenom);tagOneSignalAvpUser();await loadUserData();enterApp();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
+    try{const snap=await db.collection('users').get();let found=null;snap.docs.forEach(d=>{if(d.data().code===code)found={id:d.id,...d.data()};});if(!found){showError('Code incorrect.');pinValue='';updatePinDots();return;}currentUser={id:found.id,prenom:found.prenom,isAdmin:false};saveSession();tagOneSignalUser(found.prenom);tagOneSignalAvpUser();await loadUserData();logConnexion();enterApp();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
   }
 }
 
@@ -960,6 +961,23 @@ function showError(msg){const el=document.getElementById('login-error');el.textC
 function saveSession(){try{localStorage.setItem('avp_session',JSON.stringify(currentUser));}catch(e){}}
 function loadSession(){try{const s=localStorage.getItem('avp_session');if(s)return JSON.parse(s);}catch(e){}return null;}
 function clearSession(){try{localStorage.removeItem('avp_session');}catch(e){}}
+
+// Trace une ouverture de l'app (1 max par heure pour ne pas gonfler les chiffres)
+async function logConnexion(){
+  try{
+    if(!currentUser||currentUser.isAdmin)return;
+    const k='avp_lastlog_'+currentUser.id;
+    const last=parseInt(localStorage.getItem(k)||'0');
+    if(Date.now()-last<60*60*1000)return; // déjà tracé il y a moins d'1h
+    localStorage.setItem(k,String(Date.now()));
+    await db.collection('connexions').add({
+      userId:currentUser.id,
+      prenom:currentUser.prenom||'',
+      jour:dateKey(new Date()),
+      at:Date.now()
+    });
+  }catch(e){}
+}
 
 async function loadUserData(){if(!currentUser||currentUser.isAdmin)return;try{const snap=await db.collection('users').doc(currentUser.id).get();if(snap.exists){state.reminders=snap.data().reminders||[];state.inscriptions=snap.data().inscriptions||{};}}catch(e){}}
 
@@ -1260,6 +1278,42 @@ document.getElementById('admin-msg-atelier-btn').addEventListener('click',()=>sh
 document.getElementById('admin-stats-btn').addEventListener('click',()=>showAdminStats());
 document.getElementById('admin-reparer-btn').addEventListener('click',()=>reparerInscriptionsApercu());
 document.getElementById('admin-diag-notif-btn').addEventListener('click',()=>diagnosticNotif());
+document.getElementById('admin-connexions-btn').addEventListener('click',()=>showAdminConnexions());
+// Écran "Connexions" : compte par jour (14 derniers jours) + détail du jour sélectionné
+async function showAdminConnexions(jourSel){
+  showScreen('admin-parler-screen'); // réutilise un écran générique avec header rouge
+  document.querySelector('#admin-parler-screen h1').textContent='📱 Connexions';
+  const content=document.getElementById('parler-content');
+  content.innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement…</div>';
+  try{
+    const limite=Date.now()-14*24*60*60*1000;
+    const snap=await db.collection('connexions').get();
+    const rows=snap.docs.map(d=>d.data()).filter(r=>(r.at||0)>=limite);
+    if(rows.length===0){content.innerHTML='<div class="planning-empty">Aucune connexion enregistrée pour le moment.<br><br>Les connexions seront comptées à partir de maintenant.</div>';return;}
+    // Regrouper par jour
+    const parJour={};
+    rows.forEach(r=>{const j=r.jour||'';if(!parJour[j])parJour[j]={total:0,personnes:{}};parJour[j].total++;const p=r.prenom||'?';parJour[j].personnes[p]=(parJour[p]||0),parJour[j].personnes[p]=(parJour[j].personnes[p]||0)+1;});
+    const jours=Object.keys(parJour).sort().reverse();
+    const jourActif=jourSel||jours[0];
+    let html='<p style="font-size:0.8125rem;color:#48547a;margin-bottom:14px;">Ouvertures de l\'app — 14 derniers jours (1 max par personne et par heure). Touchez un jour pour le détail.</p>';
+    jours.forEach(j=>{
+      const d=parJour[j];const actif=j===jourActif;
+      const nbPers=Object.keys(d.personnes).length;
+      html+='<div class="cnx-jour" data-jour="'+j+'" style="background:white;border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;border:2px solid '+(actif?'#2c3e91':'transparent')+';box-shadow:0 1px 4px rgba(0,0,0,0.05);">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;">'
+        +'<b style="font-size:0.9375rem;color:#1a2340;">'+formatShortDate(j)+'</b>'
+        +'<span style="background:#2c3e91;color:white;border-radius:20px;padding:4px 12px;font-size:0.8125rem;font-weight:700;">'+d.total+' connexion'+(d.total>1?'s':'')+' · '+nbPers+' pers.</span></div>';
+      if(actif){
+        html+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid #eef1fb;">'
+          +Object.entries(d.personnes).sort((a,b)=>b[1]-a[1]).map(([p,n])=>'<span style="display:inline-block;background:#eef1fb;color:#2c3e91;border-radius:12px;padding:4px 10px;margin:2px;font-size:0.8125rem;font-weight:600;">'+esc(p)+' × '+n+'</span>').join('')
+          +'</div>';
+      }
+      html+='</div>';
+    });
+    content.innerHTML=html;
+    content.querySelectorAll('.cnx-jour').forEach(el=>el.addEventListener('click',()=>showAdminConnexions(el.dataset.jour)));
+  }catch(e){content.innerHTML='<div class="planning-empty">Erreur de chargement.<br>Vérifie les règles Firestore : autoriser la collection "connexions".</div>';}
+}
 document.getElementById('stats-back-btn').addEventListener('click',()=>showScreen('admin-screen'));
 document.getElementById('admin-descriptions-btn').addEventListener('click',()=>showAdminDescriptions());
 document.getElementById('admin-mois-suivant-btn').addEventListener('click', async()=>{
@@ -3002,7 +3056,7 @@ async function init(){
     }
   }catch(e){}
   const session=loadSession();
-  if(session){currentUser=session;if(currentUser.isAdmin){showAdminScreen();}else{tagOneSignalUser(currentUser.prenom);await loadUserData();enterApp();loadAVPPlanning();}}else{showScreen('login-screen');}
+  if(session){currentUser=session;if(currentUser.isAdmin){showAdminScreen();}else{tagOneSignalUser(currentUser.prenom);await loadUserData();logConnexion();enterApp();loadAVPPlanning();}}else{showScreen('login-screen');}
   setInterval(checkReminders,30000);
   setInterval(render,60000);
   setInterval(()=>{const n=new Date();if(n.getHours()===0&&n.getMinutes()===0)firedToday.clear();},60000);
