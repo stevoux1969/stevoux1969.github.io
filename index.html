@@ -3060,18 +3060,5 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<script>
-// ===== DIAGNOSTIC SCROLL TEMPORAIRE (à retirer ensuite) =====
-setInterval(function(){
-  var scr=document.getElementById('admin-ateliers-screen');
-  var list=document.getElementById('admin-ateliers-list');
-  var d=document.getElementById('diag-scroll');
-  if(scr&&scr.classList.contains('active')&&list){
-    if(!d){d=document.createElement('div');d.id='diag-scroll';d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#000;color:#0f0;font:11px monospace;padding:5px 8px;white-space:pre-wrap;';document.body.appendChild(d);}
-    var cs=getComputedStyle(list), sc=getComputedStyle(scr);
-    d.textContent='visible='+list.clientHeight+' contenu='+list.scrollHeight+' overflowY='+cs.overflowY+' flex='+cs.flex+'\nSCREEN display='+sc.display+' dir='+sc.flexDirection+' hauteur='+scr.clientHeight;
-  } else if(d){d.remove();}
-},700);
-</script>
 </body>
 </html>
