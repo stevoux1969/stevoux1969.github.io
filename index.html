@@ -999,7 +999,18 @@ function maybeShowAvisPopup(){
   }catch(e){}
 }
 
-async function loadUserData(){if(!currentUser||currentUser.isAdmin)return;try{const snap=await db.collection('users').doc(currentUser.id).get();if(snap.exists){state.reminders=snap.data().reminders||[];state.inscriptions=snap.data().inscriptions||{};}}catch(e){}}
+async function loadUserData(){if(!currentUser||currentUser.isAdmin)return;try{const snap=await db.collection('users').doc(currentUser.id).get();if(snap.exists){state.reminders=snap.data().reminders||[];state.inscriptions=snap.data().inscriptions||{};}
+  // Auto-réparation douce (étape 1 unification) : chaque rappel atelier doit avoir sa clé
+  // dans le map inscriptions. Sens union uniquement : on AJOUTE, on ne supprime jamais.
+  try{
+    const upd={};
+    (state.reminders||[]).filter(r=>r.source==='atelier'&&r.date&&r.time).forEach(r=>{
+      const key=r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');
+      if(state.inscriptions[key]!==true&&state.inscriptions[key]!=='1'){upd['inscriptions.'+key]=true;state.inscriptions[key]=true;}
+    });
+    if(Object.keys(upd).length)await db.collection('users').doc(currentUser.id).update(upd);
+  }catch(e){}
+}catch(e){}}
 
 async function saveUserData(){
   if(currentUser&&currentUser.isAdmin&&state.editingAdminMode&&adminEditingUid){try{await db.collection('users').doc(adminEditingUid).update({reminders:state.reminders});}catch(e){}return;}
