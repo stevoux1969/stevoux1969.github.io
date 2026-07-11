@@ -2908,7 +2908,7 @@ function renderPlanningInner(content,events){const seen=new Set();const uniqueEv
       const descHTML=desc?`<div class="pcard-desc">📝 ${esc(desc)}</div>`:'';
       const lien=(state.atelierDescs&&state.atelierDescs[cleDesc]&&state.atelierDescs[cleDesc].lien)?state.atelierDescs[cleDesc].lien:'';
       const lienHTML=lien?`<div class="pcard-lien"><a href="${esc(lien)}" target="_blank" rel="noopener" data-nospeech="1">▶️ En savoir plus</a></div>`:'';
-      const placesBtn=complet?'<button class="pcard-btn complet" disabled>❌ Complet</button>':`<button class="pcard-btn ${inscrit?'inscrit':''}" data-ekey="${esc(ek)}" data-edate="${esc(e.date)}" data-etime="${esc(e.time)}" data-etitle="${esc(e.title)}" data-eicon="${esc(e.icon||'📋')}" data-elimite="${limite||''}" data-eanim="${esc(state.currentAnim||'Steve')}">${inscrit?'✓ Vous êtes inscrit':"M'inscrire"}</button>`;
+      const placesBtn=complet?'<button class="pcard-btn complet" disabled>❌ Complet</button>':`<button class="pcard-btn ${inscrit?'inscrit':''}" data-ekey="${esc(ek)}" data-edate="${esc(e.date)}" data-etime="${esc(e.time)}" data-etitle="${esc(e.title)}" data-eicon="${esc(e.icon||'📋')}" data-elimite="${limite||''}" data-eanim="${esc(state.currentAnim||'Steve')}">${inscrit?'✓ Vous êtes inscrit<br><span style="font-size:0.8125rem;font-weight:600;opacity:0.85;">Appuyez ici pour vous désinscrire</span>':"M'inscrire"}</button>`;
       const tagsHTML=inscritsList.length?`<div class="pcard-tags">${inscritsList.map(p=>`<span class="pcard-tag">${esc(p)}</span>`).join('')}</div>`:'<span class="pcard-tag-empty">Aucun inscrit pour le moment</span>';
       html+=`<div class="pcard" data-speech="${esc(speech)}">
         <span class="audio-badge">🔊 audio</span>
