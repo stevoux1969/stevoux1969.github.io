@@ -1286,16 +1286,38 @@ async function showAdminConnexions(jourSel){
   const content=document.getElementById('parler-content');
   content.innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement…</div>';
   try{
+    const now=new Date();
+    const moisPrefix=now.getFullYear()+'-'+pad2(now.getMonth()+1); // ex "2026-07"
     const limite=Date.now()-14*24*60*60*1000;
-    const snap=await db.collection('connexions').get();
-    const rows=snap.docs.map(d=>d.data()).filter(r=>(r.at||0)>=limite);
-    if(rows.length===0){content.innerHTML='<div class="planning-empty">Aucune connexion enregistrée pour le moment.<br><br>Les connexions seront comptées à partir de maintenant.</div>';return;}
-    // Regrouper par jour
+    const [snapC,snapU]=await Promise.all([db.collection('connexions').get(),db.collection('users').get()]);
+    const all=snapC.docs.map(d=>d.data());
+    // ---- BILAN DU MOIS : jours distincts d'utilisation par bénéficiaire ----
+    const joursParUser={}; // userId -> Set de jours
+    all.forEach(r=>{if((r.jour||'').startsWith(moisPrefix)){if(!joursParUser[r.userId])joursParUser[r.userId]=new Set();joursParUser[r.userId].add(r.jour);}});
+    const benefs=snapU.docs.map(d=>({id:d.id,prenom:d.data().prenom||d.id}));
+    const reguliers=[],rares=[],jamais=[];
+    benefs.forEach(b=>{
+      const n=joursParUser[b.id]?joursParUser[b.id].size:0;
+      if(n>=5)reguliers.push({...b,n});else if(n>=1)rares.push({...b,n});else jamais.push(b);
+    });
+    const tri=(a,b)=>b.n-a.n;reguliers.sort(tri);rares.sort(tri);jamais.sort((a,b)=>a.prenom.localeCompare(b.prenom));
+    const pill=(txt,bg,col)=>'<span style="display:inline-block;background:'+bg+';color:'+col+';border-radius:12px;padding:4px 10px;margin:2px;font-size:0.8125rem;font-weight:600;">'+txt+'</span>';
+    const moisNom=now.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+    let html='<div style="background:white;border-radius:14px;padding:14px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.05);">'
+      +'<b style="font-size:1rem;color:#1a2340;">📊 Bilan '+moisNom+'</b>'
+      +'<div style="font-size:0.75rem;color:#48547a;margin:4px 0 10px;">Jours d\'utilisation par bénéficiaire (certains n\'ont pas encore l\'application).</div>'
+      +'<div style="margin-bottom:6px;"><b style="font-size:0.8125rem;color:#0a6e31;">✅ Réguliers (5 jours ou +)</b><br>'+(reguliers.length?reguliers.map(b=>pill(esc(b.prenom)+' · '+b.n+' j','#e6f6ec','#0a6e31')).join(''):pill('Personne','#f1f3f8','#48547a'))+'</div>'
+      +'<div style="margin-bottom:6px;"><b style="font-size:0.8125rem;color:#a15c00;">🟡 Rares (1 à 4 jours)</b><br>'+(rares.length?rares.map(b=>pill(esc(b.prenom)+' · '+b.n+' j','#fff4e0','#a15c00')).join(''):pill('Personne','#f1f3f8','#48547a'))+'</div>'
+      +'<div><b style="font-size:0.8125rem;color:#b42318;">🔴 Jamais connectés ce mois</b><br>'+(jamais.length?jamais.map(b=>pill(esc(b.prenom),'#fde8e8','#b42318')).join(''):pill('Personne — tout le monde utilise l\'app !','#e6f6ec','#0a6e31'))+'</div>'
+      +'</div>';
+    // ---- DÉTAIL JOUR PAR JOUR (14 derniers jours) ----
+    const rows=all.filter(r=>(r.at||0)>=limite);
+    if(rows.length===0){content.innerHTML=html+'<div class="planning-empty">Aucune connexion sur les 14 derniers jours.</div>';return;}
     const parJour={};
-    rows.forEach(r=>{const j=r.jour||'';if(!parJour[j])parJour[j]={total:0,personnes:{}};parJour[j].total++;const p=r.prenom||'?';parJour[j].personnes[p]=(parJour[p]||0),parJour[j].personnes[p]=(parJour[j].personnes[p]||0)+1;});
+    rows.forEach(r=>{const j=r.jour||'';if(!parJour[j])parJour[j]={total:0,personnes:{}};parJour[j].total++;const p=r.prenom||'?';parJour[j].personnes[p]=(parJour[j].personnes[p]||0)+1;});
     const jours=Object.keys(parJour).sort().reverse();
     const jourActif=jourSel||jours[0];
-    let html='<p style="font-size:0.8125rem;color:#48547a;margin-bottom:14px;">Ouvertures de l\'app — 14 derniers jours (1 max par personne et par heure). Touchez un jour pour le détail.</p>';
+    html+='<p style="font-size:0.8125rem;color:#48547a;margin-bottom:14px;">Détail — 14 derniers jours (1 max par personne et par heure). Touchez un jour.</p>';
     jours.forEach(j=>{
       const d=parJour[j];const actif=j===jourActif;
       const nbPers=Object.keys(d.personnes).length;
@@ -1305,7 +1327,7 @@ async function showAdminConnexions(jourSel){
         +'<span style="background:#2c3e91;color:white;border-radius:20px;padding:4px 12px;font-size:0.8125rem;font-weight:700;">'+d.total+' connexion'+(d.total>1?'s':'')+' · '+nbPers+' pers.</span></div>';
       if(actif){
         html+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid #eef1fb;">'
-          +Object.entries(d.personnes).sort((a,b)=>b[1]-a[1]).map(([p,n])=>'<span style="display:inline-block;background:#eef1fb;color:#2c3e91;border-radius:12px;padding:4px 10px;margin:2px;font-size:0.8125rem;font-weight:600;">'+esc(p)+' × '+n+'</span>').join('')
+          +Object.entries(d.personnes).sort((a,b)=>b[1]-a[1]).map(([p,n])=>pill(esc(p)+' × '+n,'#eef1fb','#2c3e91')).join('')
           +'</div>';
       }
       html+='</div>';
