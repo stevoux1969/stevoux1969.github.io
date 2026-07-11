@@ -159,19 +159,12 @@
     .planning-header-anim { background: #22a559; color: white; padding: 10px 16px; text-align: center; font-size:0.9375rem; font-weight: 700; letter-spacing: 0.5px; }
     .planning-day-header { background: #2c3e91; color: white; padding: 12px 16px; margin: 16px 0 8px; border-radius: 12px; font-size:1.0625rem; font-weight: 700; text-transform: capitalize; }
     .planning-day-header:first-child { margin-top: 0; }
-    .planning-item { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; background: white; border-left: 4px solid #22a559; border-radius: 12px; padding: 14px 14px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); overflow: hidden; }
-    .planning-item-time { font-size:1.125rem; font-weight: 700; color: #2c3e91; min-width: 54px; }
-    .planning-item-icon { font-size:1.75rem; line-height: 1; }
-    .planning-item-body { flex: 1; min-width: 0; }
-    .planning-item-title { font-size:1rem; font-weight: 600; color: #1a2340; }
-    .planning-item-meta { font-size:0.8125rem; color: #48547a; margin-top: 2px; }
     .planning-inscrits { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e5e9f2; font-size:0.75rem; color: #48547a; line-height: 1.6; }
     .planning-inscrits-empty { font-style: italic; color: #707a96; }
     .planning-inscrits-count { font-weight: 700; color: #22a559; margin-right: 4px; }
     .planning-inscrit-tag { display: inline-block; background: #eef1fb; color: #2c3e91; padding: 2px 8px; border-radius: 10px; margin: 2px 2px; font-size:0.75rem; font-weight: 600; }
     .planning-places { display: inline-block; color: white; padding: 4px 10px; border-radius: 10px; font-size:0.75rem; font-weight: 700; margin-top: 6px; letter-spacing: 0.3px; }
     .planning-places strong { font-size:0.875rem; margin-right: 2px; }
-    .planning-item-complet { opacity: 0.75; }
     .btn-inscrit.btn-complet { background: #d63447; color: white; border: none; cursor: not-allowed; opacity: 0.85; }
     .btn-inscrit.btn-complet:active { transform: none; }
     .btn-inscrit { background: #22a559; color: white; border: none; border-radius: 20px; padding: 8px 16px; font-size:0.875rem; font-weight: 700; cursor: pointer; font-family: inherit; flex-shrink: 0; margin-left: auto; }
@@ -182,7 +175,7 @@
     .list-wrap { flex: 1; overflow-y: auto; padding: 16px 16px 14rem; -webkit-overflow-scrolling: touch; }
     /* Nouvelles cartes planning aérées (vue bénéficiaire) */
     .pcard { background: white; border-radius: 16px; margin-bottom: 14px; box-shadow: 0 2px 10px rgba(26,35,64,0.07); overflow: hidden; position: relative; cursor: pointer; }
-    .planning-item:has(.audio-badge) { padding-right: 5.75rem; }
+    .pcard-annule { background: #fdf0f2; border-left: 4px solid #d63447; opacity: 0.9; }
     .audio-badge { position: absolute; top: 12px; right: 12px; background: #eef1fb; color: #2c3e91; border-radius: 20px; font-size:0.75rem; font-weight: 700; padding: 5px 10px; }
     .pcard-top { display: flex; align-items: center; gap: 14px; padding: 16px 16px 12px; padding-right: 5.75rem; }
     .pcard-ico { width: 48px; height: 48px; border-radius: 14px; background: #f1f3f8; display: flex; align-items: center; justify-content: center; font-size:1.625rem; flex-shrink: 0; }
@@ -2877,15 +2870,17 @@ if(u.inscriptions)Object.keys(u.inscriptions).forEach(key=>{if(u.inscriptions[ke
 function renderPlanningInner(content,events){const seen=new Set();const uniqueEvents=events.filter(e=>{const k=e.date+'_'+e.time+'_'+e.title;if(seen.has(k))return false;seen.add(k);return true;});const grouped={};uniqueEvents.forEach(e=>{if(!grouped[e.date])grouped[e.date]=[];grouped[e.date].push(e);});const today=dateKey(new Date());const allInscrits=state.allInscriptions||{};let html='';Object.keys(grouped).sort().forEach(dk=>{const[yy,mm,dd]=dk.split('-').map(Number);const d=new Date(yy,mm-1,dd);const dayName=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});const isToday=dk===today;html+=`<div class="planning-day-header" data-date="${dk}" ${isToday?'style="background:#1a2870;box-shadow:0 0 0 3px #ffd93d inset"':''}>${isToday?"📍 Aujourd'hui — ":''}${dayName}</div>`;grouped[dk].forEach(e=>{const ek=e.date+'_'+e.time+'_'+e.title.slice(0,20).replace(/\s/g,'_');const inscrit=isInscrit(ek);const inscritsList=allInscrits[ek]||[];const nbInscrits=inscritsList.length;const limite=e.limite||null;const complet=limite!==null&&nbInscrits>=limite&&!inscrit;let compteurHTML;if(limite!==null){const placesLibres=Math.max(0,limite-nbInscrits);if(placesLibres<=0){compteurHTML=`<div class="planning-places" style="background:#d63447">Complet</div>`;}else{const color=placesLibres===1?'#e09400':'#22a559';compteurHTML=`<div class="planning-places" style="background:${color}"><strong>${placesLibres}</strong> place${placesLibres>1?'s':''} libre${placesLibres>1?'s':''}</div>`;}}else{compteurHTML=`<div class="planning-places" style="background:#5b6785"><strong>${nbInscrits}</strong> inscrit${nbInscrits>1?'s':''}</div>`;}const inscritsHTML=inscritsList.length?`<div class="planning-inscrits">${inscritsList.map(p=>`<span class="planning-inscrit-tag">${esc(p)}</span>`).join(' ')}</div>`:'<div class="planning-inscrits planning-inscrits-empty">Aucun inscrit pour le moment</div>';let btnHTML;if(complet){btnHTML=`<button class="btn-inscrit btn-complet" disabled>❌ Complet</button>`;}else{btnHTML=`<button class="btn-inscrit ${inscrit?'inscrit':''}" data-ekey="${esc(ek)}" data-edate="${esc(e.date)}" data-etime="${esc(e.time)}" data-etitle="${esc(e.title)}" data-eicon="${esc(e.icon||'📋')}" data-elimite="${limite||''}" data-eanim="${esc(state.currentAnim||'Steve')}">${inscrit?'✓ Inscrit':"M'inscrire"}</button>`;}const annulation = state.annulations && state.annulations[cleanDocId(ek)];
       if(annulation){
         const speechAnnule=`${e.title}, à ${timeToSpeech(e.time)}. Cet atelier est annulé. ${annulation.motif||''}`;
-        html+=`<div class="planning-item" data-speech="${esc(speechAnnule)}" style="opacity:0.85;border-left-color:#d63447;background:#fdf0f2;position:relative;cursor:pointer;">
+        html+=`<div class="pcard pcard-annule" data-speech="${esc(speechAnnule)}">
           <span class="audio-badge">🔊 audio</span>
-          <div class="planning-item-time" style="color:#d63447;text-decoration:line-through">${e.time}</div>
-          <div class="planning-item-icon">${iconHTML(e.icon)}</div>
-          <div class="planning-item-body">
-            <div class="planning-item-title" style="text-decoration:line-through;color:#d63447">${esc(e.title)}</div>
-            <div style="color:#d63447;font-weight:700;font-size:0.875rem;">🚫 ANNULÉ</div>
-            <div style="color:#1a2340;font-size:0.875rem;line-height:1.5;background:#fff;border-radius:10px;padding:10px 12px;margin-top:6px;">${esc(annulation.motif||'')}</div>
+          <div class="pcard-top">
+            <div class="pcard-ico">${iconHTML(e.icon)}</div>
+            <div class="pcard-titre-zone">
+              <div class="pcard-titre" style="text-decoration:line-through;color:#d63447">${esc(e.title)}</div>
+              <div class="pcard-heure" style="text-decoration:line-through;color:#d63447">à <b style="color:#d63447">${e.time.replace(':','h')}</b></div>
+              <div style="color:#d63447;font-weight:700;font-size:0.875rem;margin-top:2px;">🚫 ANNULÉ</div>
+            </div>
           </div>
+          ${annulation.motif?`<div class="pcard-desc" style="background:#fff;color:#1a2340;">${esc(annulation.motif)}</div>`:''}
         </div>`;
       } else {
       const titreNormalise=e.title.replace(/\s*\(\d+\)\s*$/,'').trim();const cleDesc=descKey(titreNormalise,e.date,e.time);const desc=(state.atelierDescs&&state.atelierDescs[cleDesc]&&state.atelierDescs[cleDesc].description)?state.atelierDescs[cleDesc].description:'';
