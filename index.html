@@ -2606,6 +2606,26 @@ async function toggleInscription(event){const key=event.date+'_'+event.time+'_'+
 }
 
 // ========== MES RENDEZ-VOUS (vue regroupée à venir) ==========
+// Annulation d'un rendez-vous depuis l'agenda :
+// atelier → flux désinscription existant (règle des 2 jours) ; perso → confirmation puis suppression
+function annulerRdvAgenda(id){
+  const r=(state.reminders||[]).find(x=>x.id===id);
+  if(!r)return;
+  if(r.source==='atelier'){
+    const ev={date:r.date,time:r.time,title:r.title,icon:r.icon};
+    const ek=r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');
+    demanderDesinscription(ev,ek,r.anim||'Steve',null,null,()=>showMesRendezVous());
+  } else {
+    showConfirm({icon:'🗑️',title:'Annuler ce rendez-vous ?',text:`« ${r.title} » sera définitivement supprimé.`,okText:'Oui, annuler',cancelText:'Non, je le garde',danger:true,onOk:async()=>{
+      state.reminders=(state.reminders||[]).filter(x=>x.id!==id);
+      await saveUserData();
+      if(typeof planifierNotifsSysteme==='function')try{planifierNotifsSysteme();}catch(e){}
+      render(); // met à jour l'accueil
+      showMesRendezVous();
+    }});
+  }
+}
+
 function showMesRendezVous(){
   showScreen('mes-rdv-screen');
   const list=document.getElementById('mes-rdv-list');
@@ -2622,9 +2642,48 @@ function showMesRendezVous(){
     list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem">🌿</div><div class="empty-text" style="margin-top:12px">Vous n'avez aucun rendez-vous à venir.</div></div>`;
     return;
   }
+
+  // ===== Carte héros : le tout prochain rendez-vous (on saute ceux déjà cochés "fait" aujourd'hui) =====
+  const heroIdx=items.findIndex(r=>!(r._d===todayKey&&r.done&&r.done[todayKey]));
+  const hero=heroIdx>=0?items[heroIdx]:null;
+  const reste=hero?items.filter((_,i)=>i!==heroIdx):items;
+
+  let html='';
+  if(hero){
+    const estAujourdhui=hero._d===todayKey;
+    const isAtelierH=hero.source==='atelier';
+    const quand=estAujourdhui?"Aujourd'hui":formatShortDate(hero._d);
+    const badgeH=isAtelierH
+      ?'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#e8ecfb;color:#2c3e91;">Atelier AVP</span>'
+      :'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#fdf0dc;color:#a8650a;">Rappel perso</span>';
+    const noteH=hero.note?`<div style="font-size:0.95rem;color:#48547a;margin-top:3px;">${esc(hero.note)}</div>`:'';
+    // "C'est fait" seulement si c'est aujourd'hui et que ce n'est pas un atelier (cohérent avec l'accueil)
+    const montrerFait=estAujourdhui&&!isAtelierH;
+    html+=`<div style="font-size:0.8rem;font-weight:800;color:#2c3e91;text-transform:uppercase;letter-spacing:.5px;margin:2px 0 8px;">Mon prochain rendez-vous</div>
+    <div style="background:white;border-radius:20px;border:3px solid #2c3e91;box-shadow:0 6px 20px rgba(44,62,145,0.18);padding:18px;margin-bottom:6px;">
+      <div style="font-size:1rem;font-weight:700;color:#48547a;">${quand}</div>
+      <div style="font-size:3rem;font-weight:800;color:#2c3e91;line-height:1.05;">${hero._t.replace(':','h')}</div>
+      <div style="display:flex;align-items:center;gap:14px;margin-top:12px;">
+        <div style="font-size:2.6rem;width:70px;height:70px;border-radius:16px;background:#eef1f8;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${iconHTML(hero.icon)}</div>
+        <div>
+          <div style="font-size:1.35rem;font-weight:800;color:#1a2340;line-height:1.2;">${esc(hero.title||'')}</div>
+          ${noteH}
+          <div style="margin-top:6px;">${badgeH}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        ${montrerFait?`<button id="hero-fait-btn" style="flex:1;padding:16px;border:none;border-radius:14px;background:#22a559;color:white;font-family:inherit;font-size:1.15rem;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(34,165,89,0.3);">✓ C'est fait</button>`:''}
+        <button id="hero-audio-btn" style="${montrerFait?'width:64px;font-size:1.5rem;':'flex:1;padding:16px;font-size:1.05rem;'}border:none;border-radius:14px;background:#eef1f8;color:#2c3e91;font-family:inherit;font-weight:700;cursor:pointer;">🔊${montrerFait?'':' Écouter'}</button>
+      </div>
+      <button id="hero-annuler-btn" style="width:100%;margin-top:10px;border:none;background:#fdecec;color:#c0392b;font-family:inherit;font-size:0.95rem;font-weight:700;padding:12px;border-radius:12px;cursor:pointer;">🗑️ Annuler ce rendez-vous</button>
+    </div>`;
+    if(reste.length)html+=`<div style="font-size:0.8rem;font-weight:800;color:#2c3e91;text-transform:uppercase;letter-spacing:.5px;margin:18px 0 0;">Ensuite</div>`;
+  }
+
+  // ===== Liste "Ensuite" : groupée par mois, bouton Annuler explicite (remplace le tap sur la ligne) =====
   const MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  let html='';let dernierMois='';
-  items.forEach(r=>{
+  let dernierMois='';
+  reste.forEach(r=>{
     const dObj=new Date(r._d+'T12:00:00');
     const moisLabel=MOIS[dObj.getMonth()]+' '+dObj.getFullYear();
     if(moisLabel!==dernierMois){html+=`<div style="font-size:0.8rem;font-weight:800;color:#2c3e91;text-transform:uppercase;letter-spacing:.5px;margin:18px 0 8px;">${moisLabel}</div>`;dernierMois=moisLabel;}
@@ -2633,7 +2692,7 @@ function showMesRendezVous(){
     const badge=isAtelier?'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#e8ecfb;color:#2c3e91;">Atelier AVP</span>':'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#fdf0dc;color:#a8650a;">Rappel perso</span>';
     const jour=dObj.getDate();
     const moisCourt=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'][dObj.getMonth()];
-    html+=`<div class="rdv-row" data-id="${r.id}" data-atelier="${isAtelier?'1':'0'}" style="background:white;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;gap:14px;align-items:center;box-shadow:0 2px 8px rgba(26,35,64,0.06);border-left:5px solid ${couleur};cursor:pointer;">
+    html+=`<div class="rdv-row" style="background:white;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;gap:14px;align-items:center;box-shadow:0 2px 8px rgba(26,35,64,0.06);border-left:5px solid ${couleur};">
       <div style="text-align:center;min-width:48px;">
         <div style="font-size:1.3rem;font-weight:800;color:#1a2340;line-height:1;">${jour}</div>
         <div style="font-size:0.7rem;color:#48547a;text-transform:uppercase;font-weight:700;">${moisCourt}</div>
@@ -2643,31 +2702,34 @@ function showMesRendezVous(){
         <div style="font-size:0.85rem;color:#48547a;margin-top:2px;">à ${(r._t||'').replace(':','h')}</div>
         <div style="margin-top:5px;">${badge}</div>
       </div>
-      <span style="font-size:1.375rem;color:#c0c6d8;">›</span>
+      <button class="rdv-annuler-btn" data-id="${r.id}" style="border:none;background:#fdecec;color:#c0392b;font-family:inherit;font-size:0.85rem;font-weight:700;padding:10px 14px;border-radius:12px;cursor:pointer;flex-shrink:0;">Annuler</button>
     </div>`;
   });
   list.innerHTML=html;
-  // Tap sur une ligne : atelier → désinscription (règle 2 jours) ; perso → confirmation suppression
-  list.querySelectorAll('.rdv-row').forEach(row=>{
-    row.addEventListener('click',()=>{
-      const id=row.dataset.id;
-      const r=(state.reminders||[]).find(x=>x.id===id);
+
+  // ===== Écouteurs =====
+  if(hero){
+    const fb=document.getElementById('hero-fait-btn');
+    if(fb)fb.addEventListener('click',async()=>{
+      const r=(state.reminders||[]).find(x=>x.id===hero.id);
       if(!r)return;
-      if(row.dataset.atelier==='1'){
-        // Atelier : on passe par le flux planning (respecte les 2 jours)
-        const ev={date:r.date,time:r.time,title:r.title,icon:r.icon};
-        const ek=r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');
-        demanderDesinscription(ev,ek,r.anim||'Steve',null,null,()=>showMesRendezVous());
-      } else {
-        // Rappel perso : confirmation puis suppression
-        showConfirm({icon:'🗑️',title:'Supprimer ce rappel ?',text:`« ${r.title} » sera définitivement supprimé.`,okText:'Supprimer',danger:true,onOk:async()=>{
-          state.reminders=(state.reminders||[]).filter(x=>x.id!==id);
-          await saveUserData();
-          if(typeof planifierNotifsSysteme==='function')try{planifierNotifsSysteme();}catch(e){}
-          showMesRendezVous();
-        }});
-      }
+      if(!r.done)r.done={};
+      r.done[todayKey]=true;
+      await saveUserData();
+      speak('Bravo !');
+      render(); // met à jour la coche sur l'accueil
+      showMesRendezVous(); // le suivant devient le héros
     });
+    const ab=document.getElementById('hero-audio-btn');
+    if(ab)ab.addEventListener('click',()=>{
+      const quand=hero._d===todayKey?"Aujourd'hui":formatShortDate(hero._d);
+      speak(`${quand} à ${timeToSpeech(hero._t)} : ${hero.title}. ${hero.note||''}`);
+    });
+    const an=document.getElementById('hero-annuler-btn');
+    if(an)an.addEventListener('click',()=>annulerRdvAgenda(hero.id));
+  }
+  list.querySelectorAll('.rdv-annuler-btn').forEach(b=>{
+    b.addEventListener('click',e=>{e.stopPropagation();annulerRdvAgenda(b.dataset.id);});
   });
 }
 
