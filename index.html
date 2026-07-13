@@ -874,7 +874,7 @@
   <div class="alert-title" id="alert-title"></div>
   <div class="alert-eventtime" id="alert-eventtime" style="display:none"></div>
   <div class="alert-note" id="alert-note"></div>
-  <button class="alert-btn" id="alert-dismiss">J'ai compris</button>
+  <button class="alert-btn" id="alert-dismiss">✓ C'est fait</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -3154,11 +3154,32 @@ function playChimeOnce(){const ctx=getAudioContext();if(!ctx)return;if(ctx.state
 function startChime(){stopChime();playChimeOnce();chimeInterval=setInterval(playChimeOnce,4000);}
 function stopChime(){if(chimeInterval){clearInterval(chimeInterval);chimeInterval=null;}if('vibrate' in navigator)try{navigator.vibrate(0)}catch(e){}}
 
-function fireAlert(r){document.getElementById('alert-icon').innerHTML=iconHTML(r.icon);document.getElementById('alert-time').textContent=r.time;document.getElementById('alert-title').textContent=r.title;document.getElementById('alert-note').textContent=r.note||'';const eD=r.eventDate||r.date,eT=r.eventTime||r.time;const dd=r.recurrence==='once'&&eD&&eD!==r.date,td=r.recurrence==='once'&&eT&&eT!==r.time,hd=dd||td;const ae=document.getElementById('alert-eventtime');if(hd){ae.textContent=`🗓️ Rendez-vous${dd?' '+formatRelativeDate(eD):''} à ${eT.replace(':','h')}`;ae.style.display='block';}else{ae.style.display='none';}document.getElementById('alert').classList.add('active');startChime();let phrase=`Il est ${timeToSpeech(r.time)}. ${r.title}`;if(hd){if(dd)phrase+=`, ${formatRelativeDate(eD)}`;phrase+=`, à ${timeToSpeech(eT)}`;}phrase+=`. ${r.note||''}`;setTimeout(()=>speak(phrase),1400);if('Notification' in window&&Notification.permission==='granted')try{new Notification('Ma Journée AVP',{body:`${r.time} — ${r.title}`})}catch(e){}}
-document.getElementById('alert-dismiss').addEventListener('click',()=>{document.getElementById('alert').classList.remove('active');stopChime();try{window.speechSynthesis?.cancel();}catch(e){}try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech)window.Capacitor.Plugins.TextToSpeech.stop();}catch(e){}});
+let alertCurrentId=null;const pendingRerings={}; // re-sonnerie unique si pas confirmé
+function fireAlert(r,isRering){alertCurrentId=r.id;if(!isRering){pendingRerings[r.id]={at:Date.now(),done:false};}document.getElementById('alert-icon').innerHTML=iconHTML(r.icon);document.getElementById('alert-time').textContent=r.time;document.getElementById('alert-title').textContent=(isRering?'Rappel : ':'')+r.title;document.getElementById('alert-note').textContent=r.note||'';const eD=r.eventDate||r.date,eT=r.eventTime||r.time;const dd=r.recurrence==='once'&&eD&&eD!==r.date,td=r.recurrence==='once'&&eT&&eT!==r.time,hd=dd||td;const ae=document.getElementById('alert-eventtime');if(hd){ae.textContent=`🗓️ Rendez-vous${dd?' '+formatRelativeDate(eD):''} à ${eT.replace(':','h')}`;ae.style.display='block';}else{ae.style.display='none';}document.getElementById('alert').classList.add('active');startChime();let phrase=`Il est ${timeToSpeech(r.time)}. ${r.title}`;if(hd){if(dd)phrase+=`, ${formatRelativeDate(eD)}`;phrase+=`, à ${timeToSpeech(eT)}`;}phrase+=`. ${r.note||''}`;setTimeout(()=>speak(phrase),1400);if('Notification' in window&&Notification.permission==='granted')try{new Notification('Ma Journée AVP',{body:`${r.time} — ${r.title}`})}catch(e){}}
+document.getElementById('alert-dismiss').addEventListener('click',async()=>{document.getElementById('alert').classList.remove('active');stopChime();
+// Confirmation "C'est fait" : marque le rappel fait pour aujourd'hui + annule la re-sonnerie
+try{
+  if(alertCurrentId){
+    delete pendingRerings[alertCurrentId];
+    const r=state.reminders.find(x=>x.id===alertCurrentId);
+    if(r){if(!r.done)r.done={};const tk=dateKey(new Date());if(!r.done[tk]){r.done[tk]=true;await saveUserData();render();}}
+    alertCurrentId=null;
+  }
+}catch(e){}try{window.speechSynthesis?.cancel();}catch(e){}try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech)window.Capacitor.Plugins.TextToSpeech.stop();}catch(e){}});
 
 let firedToday=new Set();
-function checkReminders(){if(!currentUser)return;const now=new Date(),ct=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,tk=dateKey(new Date());state.reminders.forEach(r=>{if(!reminderAppliesToDay(r,tk))return;const fk=`${tk}_${r.id}_${r.time}`;if(r.time===ct&&!firedToday.has(fk)&&!(r.done&&r.done[tk])){firedToday.add(fk);fireAlert(r);}});}
+function checkReminders(){if(!currentUser)return;const now=new Date(),ct=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,tk=dateKey(new Date());state.reminders.forEach(r=>{if(!reminderAppliesToDay(r,tk))return;const fk=`${tk}_${r.id}_${r.time}`;if(r.time===ct&&!firedToday.has(fk)&&!(r.done&&r.done[tk])){firedToday.add(fk);fireAlert(r);}});
+// Re-sonnerie douce : 15 min après la sonnerie, une seule fois, si pas confirmé "C'est fait"
+Object.keys(pendingRerings).forEach(id=>{
+  const p=pendingRerings[id];
+  if(Date.now()-p.at<15*60*1000)return;
+  delete pendingRerings[id];
+  const r=state.reminders.find(x=>x.id===id);
+  if(!r)return;
+  if(r.done&&r.done[tk])return; // déjà confirmé entre-temps (coche accueil)
+  if(document.getElementById('alert').classList.contains('active'))return; // une alerte est déjà à l'écran
+  fireAlert(r,true);
+});}
 
 document.body.addEventListener('click',()=>{const c=getAudioContext();if(c&&c.state==='suspended')c.resume().catch(()=>{});},{once:true});
 
