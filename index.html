@@ -262,7 +262,7 @@
     .edit-header { background: white; padding: 18px 16px; padding-top: calc(18px + env(safe-area-inset-top)); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e5e9f2; flex-shrink: 0; }
     .back-btn { background: none; border: none; font-size:1.625rem; color: #2c3e91; cursor: pointer; padding: 4px 8px; font-family: inherit; }
     .edit-header h2 { font-size:1.375rem; font-weight: 700; flex: 1; }
-    .edit-body { flex: 1; overflow-y: auto; padding: 20px 16px 40px; }
+    .edit-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px 16px 7rem; }
     .field { margin-bottom: 24px; }
     .field label { display: block; font-size:0.9375rem; font-weight: 700; color: #48547a; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
     .field-hint { font-size:0.8125rem; color: #5b6785; margin-top: 6px; line-height: 1.35; font-style: italic; }
@@ -464,6 +464,33 @@
   </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* ===== Parcours "Nouveau rappel" en étapes ===== */
+.wizard-progress{margin-bottom:18px;}
+.wizard-progress-label{font-size:0.8125rem;font-weight:700;color:#48547a;margin-bottom:6px;text-align:center;}
+.wizard-progress-track{height:8px;background:#e3e8f4;border-radius:6px;overflow:hidden;}
+.wizard-progress-fill{height:100%;background:#2c3e91;border-radius:6px;transition:width .25s ease;}
+.wizard-step{display:none;}
+.wizard-step.active{display:block;animation:wizFade .2s ease;}
+@keyframes wizFade{from{opacity:0;transform:translateX(8px);}to{opacity:1;transform:none;}}
+.wizard-q{font-size:1.35rem;font-weight:800;color:#1a2340;text-align:center;margin:0 0 18px;}
+.segmented-big .seg-btn{padding:18px 12px;font-size:1.05rem;}
+.input-big{font-size:1.1rem;padding:16px;text-align:center;}
+.tp-field{display:flex;justify-content:center;}
+.wizard-nav{display:flex;gap:10px;margin-top:22px;}
+.wizard-btn{flex:1;border:none;border-radius:14px;padding:18px;font-size:1.1rem;font-weight:800;cursor:pointer;font-family:inherit;min-height:56px;}
+.wizard-btn-prev{background:#e3e8f4;color:#2c3e91;flex:0 0 38%;}
+.wizard-btn-next{background:#2c3e91;color:#fff;}
+.wizard-recap{background:#f5f7fc;border-radius:14px;padding:8px 16px;margin-bottom:16px;}
+.recap-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #e3e8f4;}
+.recap-row:last-child{border-bottom:none;}
+.recap-ic{font-size:1.6rem;width:34px;text-align:center;flex:0 0 auto;}
+.recap-txt{font-size:1.05rem;font-weight:600;color:#1a2340;}
+.wizard-fold{background:#f5f7fc;border-radius:12px;margin-bottom:12px;padding:14px 16px;}
+.wizard-fold summary{font-size:1rem;font-weight:700;color:#2c3e91;cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;}
+.wizard-fold summary::-webkit-details-marker{display:none;}
+.wizard-fold-hint{font-weight:500;color:#5b6785;font-size:0.85rem;margin-left:6px;}
+</style>
 </head>
 <body>
 
@@ -608,56 +635,82 @@
     <h2 id="edit-title">Nouveau rappel</h2>
   </div>
   <div class="edit-body">
-    <div class="voice-input">
-      <button type="button" id="voice-btn" class="voice-btn">
-        <span class="voice-icon">🎤</span>
-        <span class="voice-label">Dicter au lieu de taper</span>
-      </button>
-      <div id="voice-status" class="voice-status"></div>
-      <div class="voice-hint">Exemple : « rendez-vous psychiatre mardi 13 à 8 heures 30 »</div>
+    <!-- Barre de progression -->
+    <div class="wizard-progress">
+      <div class="wizard-progress-label" id="wizard-step-label">Étape 1 sur 3</div>
+      <div class="wizard-progress-track"><div class="wizard-progress-fill" id="wizard-progress-fill" style="width:33%"></div></div>
     </div>
-    <div class="field">
-      <label>Choisir un type</label>
+
+    <!-- ÉTAPE 1 : Choisissez un rappel -->
+    <div class="wizard-step active" data-step="1">
+      <h3 class="wizard-q">Choisissez un rappel</h3>
+      <div class="voice-input">
+        <button type="button" id="voice-btn" class="voice-btn">
+          <span class="voice-icon">🎤</span>
+          <span class="voice-label">Dicter au lieu de taper</span>
+        </button>
+        <div id="voice-status" class="voice-status"></div>
+        <div class="voice-hint">Exemple : « rendez-vous psychiatre mardi 13 à 8 heures 30 »</div>
+      </div>
       <div id="icon-grid" class="icon-grid"></div>
+      <div class="field" style="margin-top:14px">
+        <label>Ou écrivez vous-même</label>
+        <input type="text" id="f-title" class="input" placeholder="Appuyez sur une image ou tapez ici" maxlength="50">
+      </div>
     </div>
-    <div class="field">
-      <label>Que faire ?</label>
-      <input type="text" id="f-title" class="input" placeholder="Appuyez sur une image ci-dessus ou tapez ici" maxlength="50">
-    </div>
-    <div class="field">
-      <label>Quand ?</label>
-      <div class="segmented">
+
+    <!-- ÉTAPE 2 : C'est quel jour ? -->
+    <div class="wizard-step" data-step="2">
+      <h3 class="wizard-q">C'est quel jour ?</h3>
+      <div class="segmented segmented-big">
         <button type="button" class="seg-btn active" data-rec="daily">Tous les jours</button>
         <button type="button" class="seg-btn" data-rec="once">Un jour précis</button>
       </div>
-    </div>
-    <div class="section-box plain" id="alarm-section">
-      <div class="section-header"><span class="section-icon">🔔</span><span class="section-title">Sonnerie</span></div>
-      <div class="field" id="alarm-date-field" style="display:none">
-        <label>Date</label>
-        <input type="date" id="f-date" class="input">
+      <div class="field" id="event-section" style="display:none;margin-top:18px">
+        <label>Quel jour ?</label>
+        <input type="date" id="f-event-date" class="input input-big">
       </div>
-      <div class="field"><label id="alarm-time-label">Heure</label><div id="f-time" class="tp"></div></div>
+      <!-- Champ conservé pour compatibilité (non affiché) -->
+      <div id="alarm-date-field" style="display:none"><input type="date" id="f-date" class="input"></div>
     </div>
-    <div class="section-box section-event" id="event-section" style="display:none">
-      <div class="section-header"><span class="section-icon">🗓️</span><span class="section-title">Rendez-vous</span></div>
-      <div class="field-hint" style="margin-bottom:14px;margin-top:-4px">Laissez pareil si le rendez-vous tombe à l'heure de la sonnerie.</div>
-      <div class="field"><label>Date</label><input type="date" id="f-event-date" class="input"></div>
-      <div class="field" style="margin-bottom:0"><label>Heure</label><div id="f-event-time" class="tp"></div></div>
-    </div>
-    <div class="section-box section-event" id="sonnerie-rdv-section" style="display:none">
-      <div class="section-header"><span class="section-icon">🔔</span><span class="section-title">Quand vous prévenir ?</span></div>
-      <div style="margin-top:12px">
-        <button type="button" class="sonnerie-choix-btn active" data-choix="avant2h">🔔 2h avant le rendez-vous</button>
-        <button type="button" class="sonnerie-choix-btn" data-choix="veille">🔔 La veille à 15h00</button>
-        <button type="button" class="sonnerie-choix-btn" data-choix="les2">🔔 Les deux</button>
+
+    <!-- ÉTAPE 3 : À quelle heure ? -->
+    <div class="wizard-step" data-step="3">
+      <h3 class="wizard-q">À quelle heure ?</h3>
+      <div id="alarm-section">
+        <div class="field tp-field"><div id="f-time" class="tp"></div></div>
+      </div>
+      <div id="event-time-section" style="display:none">
+        <div class="field-hint" style="text-align:center;margin-bottom:10px">Heure du rendez-vous</div>
+        <div class="field tp-field" style="margin-bottom:0"><div id="f-event-time" class="tp"></div></div>
       </div>
     </div>
-    <div class="field">
-      <label>Remarque (facultatif)</label>
-      <textarea id="f-note" class="textarea" placeholder="Ex : Avec de l'eau" maxlength="120"></textarea>
+
+    <!-- RÉCAP : C'est bon ? -->
+    <div class="wizard-step" data-step="4">
+      <h3 class="wizard-q">C'est bon ?</h3>
+      <div id="wizard-recap" class="wizard-recap"></div>
+      <details class="wizard-fold" id="sonnerie-rdv-details" style="display:none">
+        <summary>🔔 Quand vous prévenir ? <span class="wizard-fold-hint">(par défaut : 2h avant)</span></summary>
+        <div id="sonnerie-rdv-section" style="margin-top:10px">
+          <button type="button" class="sonnerie-choix-btn active" data-choix="avant2h">🔔 2h avant le rendez-vous</button>
+          <button type="button" class="sonnerie-choix-btn" data-choix="veille">🔔 La veille à 15h00</button>
+          <button type="button" class="sonnerie-choix-btn" data-choix="les2">🔔 Les deux</button>
+        </div>
+      </details>
+      <details class="wizard-fold">
+        <summary>✏️ Ajouter une remarque <span class="wizard-fold-hint">(facultatif)</span></summary>
+        <textarea id="f-note" class="textarea" placeholder="Ex : Avec de l'eau" maxlength="120" style="margin-top:10px"></textarea>
+      </details>
+      <button id="save-btn" class="btn-save">✓ C'est bon, enregistrer</button>
     </div>
-    <button id="save-btn" class="btn-save">Enregistrer</button>
+
+    <!-- Navigation -->
+    <div class="wizard-nav">
+      <button type="button" id="wizard-prev" class="wizard-btn wizard-btn-prev" style="display:none">‹ Retour</button>
+      <button type="button" id="wizard-next" class="wizard-btn wizard-btn-next">Suivant ›</button>
+    </div>
+
     <button id="delete-btn" class="btn-delete" style="display:none">Supprimer ce rappel</button>
   </div>
 </div>
@@ -2031,7 +2084,7 @@ async function adminAddReminder(uid, prenom) {
   var defTime = String(_h2).padStart(2,'0') + ':' + String(_m2).padStart(2,'0');
   createTimePicker('f-time', defTime, 5);
   createTimePicker('f-event-time', defTime, 5);
-  const onceBtn=document.querySelector('[data-rec="once"]');if(onceBtn)onceBtn.click();
+  goToStep(1);const onceBtn=document.querySelector('[data-rec="once"]');if(onceBtn)onceBtn.click();
 }
 
 async function adminChangePin(uid,prenom){const newCode=prompt(`Nouveau code PIN à 6 chiffres pour ${prenom} :`);if(!newCode)return;if(!/^\d{6}$/.test(newCode)){showConfirm({icon:'⚠️',title:'Code invalide',text:'Le code doit contenir exactement 6 chiffres.',okText:'OK',hideCancel:true});return;}try{await db.collection('users').doc(uid).update({code:newCode});showConfirm({icon:'✅',title:'Code modifié',text:`Le nouveau code de ${prenom} est : ${newCode}`,okText:'OK',hideCancel:true});showAdminUserDetail(uid);}catch(e){showConfirm({icon:'❌',title:'Erreur',text:"Impossible de modifier le code.",okText:'OK',hideCancel:true});}}
@@ -2950,13 +3003,47 @@ document.getElementById('reminders-list').addEventListener('click',e=>{if(e.targ
 
 async function toggleDone(id){const r=state.reminders.find(x=>x.id===id);if(!r)return;if(!r.done)r.done={};const key=dateKey(getCurrentDate());r.done[key]=!r.done[key];await saveUserData();render();if(r.done[key])speak('Bravo !');}
 
-function openEdit(id){state.editing=id;const r=id?state.reminders.find(x=>x.id===id):null;document.getElementById('edit-title').textContent=r?'Modifier le rappel':'Nouveau rappel';const vs=document.getElementById('voice-status');if(vs){vs.className='voice-status';vs.innerHTML='';}document.getElementById('voice-btn').querySelector('.voice-label').textContent='Dicter au lieu de taper';setTPVal('f-time',r?r.time:'08:00');document.getElementById('f-title').value=r?r.title:'';document.getElementById('f-note').value=r?r.note:'';document.getElementById('delete-btn').style.display=r?'block':'none';const rec=r?(r.recurrence||'daily'):'daily';setRecurrence(rec);document.getElementById('f-date').value=r&&r.date?r.date:dateKey(getCurrentDate());document.getElementById('f-event-date').value=r&&r.eventDate?r.eventDate:(r&&r.date?r.date:dateKey(getCurrentDate()));setTPVal('f-event-time',r&&r.eventTime?r.eventTime:'14:00');const choix=r&&r.sonnerieChoix?r.sonnerieChoix:'avant2h';document.querySelectorAll('.sonnerie-choix-btn').forEach(b=>b.classList.toggle('active',b.dataset.choix===choix));renderIcons(r?r.icon:null);showScreen('edit-screen');}
+function openEdit(id){state.editing=id;const r=id?state.reminders.find(x=>x.id===id):null;document.getElementById('edit-title').textContent=r?'Modifier le rappel':'Nouveau rappel';const vs=document.getElementById('voice-status');if(vs){vs.className='voice-status';vs.innerHTML='';}document.getElementById('voice-btn').querySelector('.voice-label').textContent='Dicter au lieu de taper';setTPVal('f-time',r?r.time:'08:00');document.getElementById('f-title').value=r?r.title:'';document.getElementById('f-note').value=r?r.note:'';document.getElementById('delete-btn').style.display=r?'block':'none';const rec=r?(r.recurrence||'daily'):'daily';setRecurrence(rec);document.getElementById('f-date').value=r&&r.date?r.date:dateKey(getCurrentDate());document.getElementById('f-event-date').value=r&&r.eventDate?r.eventDate:(r&&r.date?r.date:dateKey(getCurrentDate()));setTPVal('f-event-time',r&&r.eventTime?r.eventTime:'14:00');const choix=r&&r.sonnerieChoix?r.sonnerieChoix:'avant2h';document.querySelectorAll('.sonnerie-choix-btn').forEach(b=>b.classList.toggle('active',b.dataset.choix===choix));renderIcons(r?r.icon:null);showScreen('edit-screen');goToStep(1);}
 
 function renderIcons(selected){const grid=document.getElementById('icon-grid');grid.innerHTML=ICONS.map(ic=>{const isSel=selected===ic.emoji;let visual=ic.type==='svg'&&ic.svg?`<img class="icon-opt-img" src="data:image/svg+xml,${encodeURIComponent(ic.svg)}" alt="${esc(ic.label)}">`:`<span class="icon-opt-emoji">${iconHTML(ic.emoji)}</span>`;return`<button class="icon-opt ${isSel?'selected':''}" data-icon-id="${ic.id}">${visual}<span class="icon-opt-label">${esc(ic.label)}</span></button>`;}).join('');grid.querySelectorAll('.icon-opt').forEach(el=>{el.addEventListener('click',()=>{grid.querySelectorAll('.icon-opt').forEach(x=>x.classList.remove('selected'));el.classList.add('selected');const def=ICONS.find(ic=>ic.id===el.dataset.iconId);if(def){document.getElementById('f-title').value=def.title;if(def.note)document.getElementById('f-note').value=def.note;}});});}
 function getSelectedIcon(){const sel=document.querySelector('.icon-opt.selected');if(!sel)return'🗓️';const def=ICONS.find(ic=>ic.id===sel.dataset.iconId);return def?def.emoji:'🗓️';}
-function setRecurrence(rec){document.querySelectorAll('.seg-btn').forEach(b=>b.classList.toggle('active',b.dataset.rec===rec));const isOnce=rec==='once';const as=document.getElementById('alarm-section');as.style.display=isOnce?'none':'block';as.classList.add('plain');as.classList.remove('section-alarm');document.getElementById('alarm-date-field').style.display='none';document.getElementById('event-section').style.display=isOnce?'block':'none';document.getElementById('sonnerie-rdv-section').style.display=isOnce?'block':'none';}
+function setRecurrence(rec){document.querySelectorAll('.seg-btn').forEach(b=>b.classList.toggle('active',b.dataset.rec===rec));const isOnce=rec==='once';const ev=document.getElementById('event-section');if(ev)ev.style.display=isOnce?'block':'none';const al=document.getElementById('alarm-section');if(al)al.style.display=isOnce?'none':'block';const evt=document.getElementById('event-time-section');if(evt)evt.style.display=isOnce?'block':'none';const srd=document.getElementById('sonnerie-rdv-details');if(srd)srd.style.display=isOnce?'block':'none';}
 function getSelectedRecurrence(){return document.querySelector('.seg-btn.active')?.dataset.rec||'daily';}
 document.querySelectorAll('.seg-btn').forEach(btn=>btn.addEventListener('click',()=>setRecurrence(btn.dataset.rec)));
+// ===== Parcours en étapes "Nouveau rappel" =====
+let wizardStep=1;
+function goToStep(n){
+  wizardStep=n;
+  document.querySelectorAll('#edit-screen .wizard-step').forEach(st=>st.classList.toggle('active',parseInt(st.dataset.step)===n));
+  const isRecap=(n===4);
+  document.getElementById('wizard-step-label').textContent=isRecap?'Vérification':'Étape '+n+' sur 3';
+  document.getElementById('wizard-progress-fill').style.width=isRecap?'100%':Math.round(n/3*100)+'%';
+  document.getElementById('wizard-prev').style.display=(n===1)?'none':'block';
+  document.getElementById('wizard-next').style.display=isRecap?'none':'block';
+  if(isRecap)renderWizardRecap();
+  const body=document.querySelector('#edit-screen .edit-body');if(body)body.scrollTop=0;
+}
+function renderWizardRecap(){
+  const title=document.getElementById('f-title').value.trim()||'(sans titre)';
+  const rec=getSelectedRecurrence();
+  let jour,heure;
+  if(rec==='daily'){jour='Tous les jours';heure=getTPVal('f-time').replace(':','h');}
+  else{const d=document.getElementById('f-event-date').value;jour=d?formatRelativeDate(d):'(jour à choisir)';heure=getTPVal('f-event-time').replace(':','h');}
+  document.getElementById('wizard-recap').innerHTML=
+    '<div class="recap-row"><span class="recap-ic">'+getSelectedIcon()+'</span><span class="recap-txt">'+esc(title)+'</span></div>'
+    +'<div class="recap-row"><span class="recap-ic">📅</span><span class="recap-txt">'+jour+'</span></div>'
+    +'<div class="recap-row"><span class="recap-ic">🕐</span><span class="recap-txt">à '+heure+'</span></div>';
+}
+document.getElementById('wizard-next').addEventListener('click',()=>{
+  if(wizardStep===1&&!document.getElementById('f-title').value.trim()){
+    showConfirm({icon:'⚠️',title:'Que faire ?',text:"Appuyez sur une image ou écrivez ce qu'il faut faire.",okText:'OK',hideCancel:true});return;
+  }
+  if(wizardStep===2&&getSelectedRecurrence()==='once'&&!document.getElementById('f-event-date').value){
+    showConfirm({icon:'⚠️',title:'Quel jour ?',text:'Choisissez la date du rendez-vous.',okText:'OK',hideCancel:true});return;
+  }
+  goToStep(Math.min(wizardStep+1,4));
+});
+document.getElementById('wizard-prev').addEventListener('click',()=>goToStep(Math.max(wizardStep-1,1)));
 document.querySelectorAll('.sonnerie-choix-btn').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.sonnerie-choix-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}));
 function getSonnerieChoix(){return document.querySelector('.sonnerie-choix-btn.active')?.dataset.choix||'avant2h';}
 function calcSonnerieAvant2h(rdvDate,rdvTime){const rdvMs=new Date(rdvDate+'T'+rdvTime+':00').getTime();const sonnMs=rdvMs-2*60*60*1000;const d=new Date(sonnMs);return{date:dateKey(d),time:pad2(d.getHours())+':'+pad2(d.getMinutes())};}
