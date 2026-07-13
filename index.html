@@ -449,6 +449,8 @@
     .tutorial-emoji { font-size:5.75rem; line-height: 1; margin-bottom: 20px; }
     .tutorial-title { font-size:1.75rem; font-weight: 800; margin-bottom: 16px; line-height: 1.2; }
     .tutorial-text { font-size:1.125rem; line-height: 1.5; max-width: 340px; margin: 0 auto; opacity: 0.95; }
+    .tutorial-listen { margin: 20px auto 0; background: white; color: #2c3e91; border: none; border-radius: 30px; padding: 14px 28px; font-size: 1.05rem; font-weight: 800; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); font-family: inherit; cursor: pointer; min-height: 52px; }
+    .tutorial-listen.playing { background: #ffd93d; color: #1a2340; }
     .tutorial-text strong { color: #ffe07a; }
     .tutorial-dots { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
     .tutorial-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.4); transition: all 0.2s; }
@@ -756,6 +758,7 @@
   <div class="admin-section-titre">📊 Suivi</div>
   <div class="admin-actions-grid">
     <button class="btn-admin-action" id="admin-stats-btn" style="background:#f0fdf9;color:#2d6a4f;border-color:#6ee7b7;">📊 Statistiques</button>
+    <button class="btn-admin-action" id="admin-tutorial-btn">📖 Comment ça marche ? (Tutoriel)</button>
     <button class="btn-admin-action" id="admin-connexions-btn" style="background:#eef1fb;color:#2c3e91;border-color:#8fa3df;">📱 Connexions</button>
     <button class="btn-admin-action" id="admin-diag-notif-btn" style="background:#fef3c7;color:#92400e;border-color:#fcd34d;display:none;">🔍 Test notifications</button>
   </div>
@@ -1242,14 +1245,29 @@ document.getElementById('mes-rdv-back').addEventListener('click',()=>showScreen(
 document.getElementById('um-tutorial').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');startTutorial();});
 document.getElementById('um-logout').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');showConfirm({icon:'🚪',title:'Se déconnecter ?',text:'Vous devrez vous reconnecter la prochaine fois.',okText:'Déconnecter',danger:true,onOk:()=>{clearSession();currentUser=null;state.reminders=[];state.inscriptions={};pinValue='';updatePinDots();showScreen('login-screen');}});});
 
-const TUTORIAL_PAGES=[{emoji:'👋',title:'Bienvenue !',text:'Cette application a été créée pour vous aider à <strong>organiser votre journée</strong>. Suivez ce petit guide pour bien la prendre en main.'},{emoji:'🔔',title:'Les sonneries',text:'Appuyez sur le <strong>bouton vert "+"</strong> en bas pour créer un rappel : prendre vos médicaments, un rendez-vous… L\'application vous <strong>sonnera à l\'heure prévue</strong>.'},{emoji:'📅',title:'Les rendez-vous',text:'Pour un rendez-vous médecin ou dentiste, choisissez l\'icône et indiquez <strong>la date et l\'heure</strong>. Vous pouvez même l\'ajouter à <strong>Google Agenda</strong> en un clic.'},{emoji:'📋',title:'Le planning AVP',text:'Le bouton <strong>"Planning Steve"</strong> affiche tous les ateliers du mois. Appuyez sur <strong>"M\'inscrire"</strong> pour participer. Vous verrez aussi les autres personnes inscrites.'},{emoji:'🎤',title:'La voix',text:'Vous n\'aimez pas écrire ? Appuyez sur le <strong>bouton microphone vert</strong> quand vous créez un rappel et dictez : <em>"Prendre mes médicaments à 8h"</em>.'},{emoji:'👤',title:'Votre prénom en haut',text:'Appuyez sur <strong>votre prénom</strong> en haut à droite pour voir ce menu : revoir ce tutoriel, le planning du mois, ou vous déconnecter.'},{emoji:'🎉',title:'C\'est parti !',text:'Vous savez tout ce qu\'il faut ! En cas de question, demandez à <strong>Steve ou Greg</strong>. Bonne journée !'}];
+const TUTORIAL_PAGES=[
+{emoji:'👋',title:'Bienvenue !',text:'Cette application est là pour <strong>vous aider dans votre journée</strong>. Steve vous la présente en quelques pages. Appuyez sur le <strong>bouton blanc</strong> pour écouter chaque page.'},
+{emoji:'🔔',title:'Ne rien oublier',text:'L\'application <strong>sonne pour vous</strong> : vos médicaments, vos rendez-vous. Vous n\'avez plus besoin d\'y penser, <strong>elle y pense pour vous</strong>.'},
+{emoji:'➕',title:'Créer un rappel, c\'est facile',text:'Appuyez sur le bouton vert <strong>« Ajouter un rappel personnel »</strong>. L\'application vous guide en <strong>3 étapes</strong> : quoi, quel jour, quelle heure. C\'est tout !'},
+{emoji:'🎤',title:'Ou dictez-le !',text:'Pas envie d\'écrire ? Appuyez sur le <strong>micro</strong> et dites par exemple : <em>« rendez-vous dentiste mardi à 14 heures »</em>. L\'application remplit tout pour vous.'},
+{emoji:'📋',title:'Les ateliers de l\'AVP',text:'Le planning de <strong>Steve</strong> et de <strong>Greg</strong> montre tous les ateliers du mois. Un atelier vous plaît ? Appuyez sur <strong>« M\'inscrire »</strong> et il s\'ajoute dans votre agenda.'},
+{emoji:'📅',title:'Tout voir d\'un coup d\'œil',text:'Le bouton <strong>« Voir tout mon agenda »</strong> montre tout ce qui vous attend : vos ateliers et vos rappels, dans l\'ordre. Fini les surprises !'},
+{emoji:'👤',title:'Votre prénom en haut',text:'Appuyez sur <strong>votre prénom</strong> en haut à droite pour revoir ce guide, voir le planning du mois, ou vous déconnecter.'},
+{emoji:'🎉',title:'C\'est parti !',text:'Vous savez tout ! Et si vous avez une question, <strong>Steve et Greg</strong> sont là pour vous aider. Bonne journée !'}];
 let tutorialIndex=0;
 function startTutorial(){tutorialIndex=0;showScreen('tutorial-screen');renderTutorialPage();}
-function renderTutorialPage(){const page=TUTORIAL_PAGES[tutorialIndex];document.getElementById('tutorial-content').innerHTML=`<div class="tutorial-emoji">${page.emoji}</div><div class="tutorial-title">${page.title}</div><div class="tutorial-text">${page.text}</div>`;document.getElementById('tutorial-dots').innerHTML=TUTORIAL_PAGES.map((_,i)=>`<div class="tutorial-dot ${i===tutorialIndex?'active':''}"></div>`).join('');const prev=document.getElementById('tutorial-prev');const next=document.getElementById('tutorial-next');prev.classList.toggle('hidden',tutorialIndex===0);if(tutorialIndex===TUTORIAL_PAGES.length-1){next.textContent='✓ Commencer';next.classList.add('tutorial-btn-finish');}else{next.textContent='Suivant ›';next.classList.remove('tutorial-btn-finish');}}
+function stopTutorialAudio(){try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){}try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech)window.Capacitor.Plugins.TextToSpeech.stop();}catch(e){}const b=document.getElementById('tutorial-listen');if(b){b.classList.remove('playing');b.innerHTML='🔊&nbsp; Écouter';}}
+function renderTutorialPage(){stopTutorialAudio();const page=TUTORIAL_PAGES[tutorialIndex];document.getElementById('tutorial-content').innerHTML=`<div class="tutorial-emoji">${page.emoji}</div><div class="tutorial-title">${page.title}</div><div class="tutorial-text">${page.text}</div><button type="button" id="tutorial-listen" class="tutorial-listen">🔊&nbsp; Écouter</button>`;
+document.getElementById('tutorial-listen').addEventListener('click',function(){
+  if(this.classList.contains('playing')){stopTutorialAudio();return;}
+  this.classList.add('playing');this.innerHTML='⏸&nbsp; Arrêter';
+  const tmp=document.createElement('div');tmp.innerHTML=page.text;
+  speak(page.title+'. '+tmp.textContent);
+});document.getElementById('tutorial-dots').innerHTML=TUTORIAL_PAGES.map((_,i)=>`<div class="tutorial-dot ${i===tutorialIndex?'active':''}"></div>`).join('');const prev=document.getElementById('tutorial-prev');const next=document.getElementById('tutorial-next');prev.classList.toggle('hidden',tutorialIndex===0);if(tutorialIndex===TUTORIAL_PAGES.length-1){next.textContent='✓ Commencer';next.classList.add('tutorial-btn-finish');}else{next.textContent='Suivant ›';next.classList.remove('tutorial-btn-finish');}}
 document.getElementById('tutorial-prev').addEventListener('click',()=>{if(tutorialIndex>0){tutorialIndex--;renderTutorialPage();}});
 document.getElementById('tutorial-next').addEventListener('click',()=>{if(tutorialIndex<TUTORIAL_PAGES.length-1){tutorialIndex++;renderTutorialPage();}else{finishTutorial();}});
 document.getElementById('tutorial-skip').addEventListener('click',finishTutorial);
-function finishTutorial(){try{localStorage.setItem('avp_tutorial_seen_'+(currentUser?currentUser.id:'x'),'1');}catch(e){}showScreen('main-screen');}
+function finishTutorial(){stopTutorialAudio();try{localStorage.setItem('avp_tutorial_seen_'+(currentUser?currentUser.id:'x'),'1');}catch(e){}if(currentUser&&currentUser.isAdmin){showAdminScreen();}else{showScreen('main-screen');}}
 function shouldShowTutorial(){try{return!localStorage.getItem('avp_tutorial_seen_'+(currentUser?currentUser.id:'x'));}catch(e){return false;}}
 
 async function requestNotifPermission(){if(!('Notification' in window)){showConfirm({icon:'❌',title:'Non disponible',text:"Les notifications ne sont pas disponibles sur ce navigateur.",okText:'OK',hideCancel:true});return;}const perm=await Notification.requestPermission();if(perm==='granted'){showConfirm({icon:'🔔',title:'Notifications activées !',text:"Vous recevrez des rappels quand l'application est ouverte.",okText:'Super',hideCancel:true});}else{showConfirm({icon:'⚠️',title:'Notifications refusées',text:"Autorisez les notifications dans les paramètres de votre téléphone.",okText:'OK',hideCancel:true});}}
@@ -1362,6 +1380,7 @@ document.getElementById('admin-msg-atelier-btn').addEventListener('click',()=>sh
 document.getElementById('admin-stats-btn').addEventListener('click',()=>showAdminStats());
 document.getElementById('admin-reparer-btn').addEventListener('click',()=>reparerInscriptionsApercu());
 document.getElementById('admin-diag-notif-btn').addEventListener('click',()=>diagnosticNotif());
+document.getElementById('admin-tutorial-btn').addEventListener('click',()=>startTutorial());
 document.getElementById('admin-connexions-btn').addEventListener('click',()=>showAdminConnexions());
 // Écran "Connexions" : compte par jour (14 derniers jours) + détail du jour sélectionné
 async function showAdminConnexions(jourSel){
