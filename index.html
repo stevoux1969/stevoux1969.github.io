@@ -491,6 +491,35 @@
 .wizard-fold{background:#f5f7fc;border-radius:12px;margin-bottom:12px;padding:14px 16px;}
 .wizard-fold summary{font-size:1rem;font-weight:700;color:#2c3e91;cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;}
 .wizard-fold summary::-webkit-details-marker{display:none;}
+/* ===== Nouveau parcours : thèmes, quand, popups, calendrier ===== */
+.wizard-topline{display:flex;justify-content:flex-end;margin:-6px 0 10px;min-height:40px;}
+.btn-retour-haut{border:none;background:white;color:#2c3e91;font-family:inherit;font-size:0.95rem;font-weight:700;padding:9px 16px;border-radius:12px;cursor:pointer;box-shadow:0 2px 6px rgba(26,35,64,0.08);}
+.theme-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.theme-tuile{background:white;border:2px solid #dde2f0;border-radius:16px;padding:16px 8px;text-align:center;cursor:pointer;font-family:inherit;}
+.theme-tuile:active{border-color:#2c3e91;background:#f5f7fd;}
+.theme-tuile .emo{font-size:2rem;}
+.theme-tuile .lbl{font-size:1rem;font-weight:800;color:#1a2340;margin-top:6px;}
+.quand-col{display:flex;flex-direction:column;gap:12px;}
+.quand-btn{background:white;border:2px solid #dde2f0;border-radius:16px;padding:20px;font-family:inherit;font-size:1.15rem;font-weight:800;color:#1a2340;cursor:pointer;text-align:center;}
+.quand-btn:active{border-color:#2c3e91;background:#f5f7fd;}
+.wiz-voile{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:60;align-items:flex-end;justify-content:center;}
+.wiz-voile.actif{display:flex;}
+.wiz-popup{background:white;border-radius:24px 24px 0 0;padding:20px;width:100%;max-width:480px;max-height:75vh;overflow-y:auto;}
+.wiz-popup-titre{font-size:1.2rem;font-weight:800;color:#1a2340;text-align:center;margin-bottom:14px;}
+.wiz-popup-liste{display:flex;flex-direction:column;gap:10px;}
+.wiz-popup-item{background:#eef1f8;border:2px solid transparent;border-radius:14px;padding:14px 16px;font-family:inherit;font-size:1.05rem;font-weight:700;color:#1a2340;cursor:pointer;text-align:left;display:flex;align-items:center;gap:12px;}
+.wiz-popup-item .e{font-size:1.5rem;display:flex;align-items:center;}
+.wiz-popup-fermer{width:100%;margin-top:14px;padding:14px;border:none;border-radius:14px;background:#eef1f8;color:#48547a;font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;}
+.wiz-popup-valider{width:100%;margin-top:12px;padding:14px;border:none;border-radius:14px;background:#22a559;color:white;font-family:inherit;font-size:1.05rem;font-weight:800;cursor:pointer;}
+.wiz-input{width:100%;border:2px solid #dde2f0;border-radius:12px;padding:14px;font-family:inherit;font-size:1.05rem;box-sizing:border-box;}
+.wiz-cal-entete{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.wiz-cal-nav{width:44px;height:44px;border:none;border-radius:12px;background:#eef1f8;color:#2c3e91;font-size:1.3rem;font-weight:700;cursor:pointer;}
+.wiz-cal-mois{font-size:1.05rem;font-weight:800;color:#1a2340;}
+.wiz-cal-grille{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.wiz-cal-jour{aspect-ratio:1;border:none;border-radius:10px;background:#eef1f8;font-family:inherit;font-size:0.95rem;font-weight:700;color:#1a2340;cursor:pointer;}
+.wiz-cal-jour:disabled{opacity:0.3;cursor:default;}
+.wiz-cal-jour.entete{background:none;color:#48547a;font-size:0.75rem;cursor:default;}
+.btn-ecouter-recap{width:100%;padding:14px;border:2px solid #dde2f0;border-radius:14px;background:white;color:#2c3e91;font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;margin-bottom:14px;}
 .wizard-fold-hint{font-weight:500;color:#5b6785;font-size:0.85rem;margin-left:6px;}
 </style>
 </head>
@@ -640,12 +669,13 @@
     <!-- Barre de progression -->
     <div class="wizard-progress">
       <div class="wizard-progress-label" id="wizard-step-label">Étape 1 sur 3</div>
-      <div class="wizard-progress-track"><div class="wizard-progress-fill" id="wizard-progress-fill" style="width:33%"></div></div>
+      <div class="wizard-progress-track"><div class="wizard-progress-fill" id="wizard-progress-fill" style="width:25%"></div></div>
     </div>
+    <div class="wizard-topline"><button type="button" id="wizard-prev" class="btn-retour-haut" style="visibility:hidden">‹ Retour</button></div>
 
-    <!-- ÉTAPE 1 : Choisissez un rappel -->
+    <!-- ÉTAPE 1 : Quel est votre rappel ? (thèmes → choix précis) -->
     <div class="wizard-step active" data-step="1">
-      <h3 class="wizard-q">Choisissez un rappel</h3>
+      <h3 class="wizard-q">Quel est votre rappel ?</h3>
       <div class="voice-input">
         <button type="button" id="voice-btn" class="voice-btn">
           <span class="voice-icon">🎤</span>
@@ -654,26 +684,23 @@
         <div id="voice-status" class="voice-status"></div>
         <div class="voice-hint">Exemple : « rendez-vous psychiatre mardi 13 à 8 heures 30 »</div>
       </div>
-      <div id="icon-grid" class="icon-grid"></div>
-      <div class="field" style="margin-top:14px">
-        <label>Ou écrivez vous-même</label>
-        <input type="text" id="f-title" class="input" placeholder="Appuyez sur une image ou tapez ici" maxlength="50">
-      </div>
+      <div id="theme-grid" class="theme-grid"></div>
+      <!-- Champ titre conservé (rempli par les thèmes, la saisie libre et la dictée) -->
+      <input type="hidden" id="f-title" maxlength="50">
     </div>
 
-    <!-- ÉTAPE 2 : C'est quel jour ? -->
+    <!-- ÉTAPE 2 : C'est quand ? (choix direct, avance tout seul) -->
     <div class="wizard-step" data-step="2">
-      <h3 class="wizard-q">C'est quel jour ?</h3>
-      <div class="segmented segmented-big">
-        <button type="button" class="seg-btn active" data-rec="daily">Tous les jours</button>
-        <button type="button" class="seg-btn" data-rec="once">Un jour précis</button>
+      <h3 class="wizard-q">C'est quand ?</h3>
+      <div class="quand-col">
+        <button type="button" class="quand-btn" onclick="wizQuand('aujourdhui')">Aujourd'hui</button>
+        <button type="button" class="quand-btn" onclick="wizQuand('demain')">Demain</button>
+        <button type="button" class="quand-btn" onclick="wizOuvrirCal()">Un autre jour…</button>
+        <button type="button" class="quand-btn" onclick="wizQuand('touslesjours')">🔁 Tous les jours</button>
       </div>
-      <div class="field" id="event-section" style="display:none;margin-top:18px">
-        <label>Quel jour ?</label>
-        <input type="date" id="f-event-date" class="input input-big">
-      </div>
-      <!-- Champ conservé pour compatibilité (non affiché) -->
-      <div id="alarm-date-field" style="display:none"><input type="date" id="f-date" class="input"></div>
+      <!-- Champs conservés pour compatibilité (remplis par les boutons, le calendrier et la dictée) -->
+      <input type="hidden" id="f-event-date">
+      <input type="hidden" id="f-date">
     </div>
 
     <!-- ÉTAPE 3 : À quelle heure ? -->
@@ -686,12 +713,14 @@
         <div class="field-hint" style="text-align:center;margin-bottom:10px">Heure du rendez-vous</div>
         <div class="field tp-field" style="margin-bottom:0"><div id="f-event-time" class="tp"></div></div>
       </div>
+      <button type="button" id="wizard-heure-ok" class="btn-save" style="margin-top:22px">✓ C'est bon</button>
     </div>
 
     <!-- RÉCAP : C'est bon ? -->
     <div class="wizard-step" data-step="4">
       <h3 class="wizard-q">C'est bon ?</h3>
       <div id="wizard-recap" class="wizard-recap"></div>
+      <button type="button" id="wizard-ecouter" class="btn-ecouter-recap">🔊 Écouter</button>
       <details class="wizard-fold" id="sonnerie-rdv-details" style="display:none">
         <summary>🔔 Quand vous prévenir ? <span class="wizard-fold-hint">(par défaut : 2h avant)</span></summary>
         <div id="sonnerie-rdv-section" style="margin-top:10px">
@@ -707,13 +736,36 @@
       <button id="save-btn" class="btn-save">✓ C'est bon, enregistrer</button>
     </div>
 
-    <!-- Navigation -->
-    <div class="wizard-nav">
-      <button type="button" id="wizard-prev" class="wizard-btn wizard-btn-prev" style="display:none">‹ Retour</button>
-      <button type="button" id="wizard-next" class="wizard-btn wizard-btn-next">Suivant ›</button>
-    </div>
-
     <button id="delete-btn" class="btn-delete" style="display:none">Supprimer ce rappel</button>
+  </div>
+</div>
+
+<!-- ===== Popups du parcours "Nouveau rappel" ===== -->
+<div class="wiz-voile" id="wiz-voile-theme">
+  <div class="wiz-popup">
+    <div class="wiz-popup-titre" id="wiz-theme-titre"></div>
+    <div class="wiz-popup-liste" id="wiz-theme-liste"></div>
+    <button type="button" class="wiz-popup-fermer" onclick="wizFermer('wiz-voile-theme')">Fermer</button>
+  </div>
+</div>
+<div class="wiz-voile" id="wiz-voile-libre">
+  <div class="wiz-popup">
+    <div class="wiz-popup-titre">Écrivez votre rappel</div>
+    <input type="text" id="wiz-inp-libre" class="wiz-input" placeholder="Ex : arroser les plantes" maxlength="50">
+    <button type="button" class="wiz-popup-valider" onclick="wizValiderLibre()">✓ C'est bon</button>
+    <button type="button" class="wiz-popup-fermer" onclick="wizFermer('wiz-voile-libre')">Annuler</button>
+  </div>
+</div>
+<div class="wiz-voile" id="wiz-voile-cal">
+  <div class="wiz-popup">
+    <div class="wiz-popup-titre">Quel jour ?</div>
+    <div class="wiz-cal-entete">
+      <button type="button" class="wiz-cal-nav" onclick="wizCalNav(-1)">‹</button>
+      <div class="wiz-cal-mois" id="wiz-cal-mois"></div>
+      <button type="button" class="wiz-cal-nav" onclick="wizCalNav(1)">›</button>
+    </div>
+    <div class="wiz-cal-grille" id="wiz-cal-grille"></div>
+    <button type="button" class="wiz-popup-fermer" onclick="wizFermer('wiz-voile-cal')">Fermer</button>
   </div>
 </div>
 
@@ -2103,7 +2155,7 @@ async function adminAddReminder(uid, prenom) {
   var defTime = String(_h2).padStart(2,'0') + ':' + String(_m2).padStart(2,'0');
   createTimePicker('f-time', defTime, 5);
   createTimePicker('f-event-time', defTime, 5);
-  goToStep(1);const onceBtn=document.querySelector('[data-rec="once"]');if(onceBtn)onceBtn.click();
+  setRecurrence('once');goToStep(1);
 }
 
 async function adminChangePin(uid,prenom){const newCode=prompt(`Nouveau code PIN à 6 chiffres pour ${prenom} :`);if(!newCode)return;if(!/^\d{6}$/.test(newCode)){showConfirm({icon:'⚠️',title:'Code invalide',text:'Le code doit contenir exactement 6 chiffres.',okText:'OK',hideCancel:true});return;}try{await db.collection('users').doc(uid).update({code:newCode});showConfirm({icon:'✅',title:'Code modifié',text:`Le nouveau code de ${prenom} est : ${newCode}`,okText:'OK',hideCancel:true});showAdminUserDetail(uid);}catch(e){showConfirm({icon:'❌',title:'Erreur',text:"Impossible de modifier le code.",okText:'OK',hideCancel:true});}}
@@ -3084,24 +3136,24 @@ document.getElementById('reminders-list').addEventListener('click',e=>{if(e.targ
 
 async function toggleDone(id){const r=state.reminders.find(x=>x.id===id);if(!r)return;if(!r.done)r.done={};const key=dateKey(getCurrentDate());r.done[key]=!r.done[key];await saveUserData();render();if(r.done[key])speak('Bravo !');}
 
-function openEdit(id){state.editing=id;const r=id?state.reminders.find(x=>x.id===id):null;document.getElementById('edit-title').textContent=r?'Modifier le rappel':'Nouveau rappel';const vs=document.getElementById('voice-status');if(vs){vs.className='voice-status';vs.innerHTML='';}document.getElementById('voice-btn').querySelector('.voice-label').textContent='Dicter au lieu de taper';setTPVal('f-time',r?r.time:'08:00');document.getElementById('f-title').value=r?r.title:'';document.getElementById('f-note').value=r?r.note:'';document.getElementById('delete-btn').style.display=r?'block':'none';const rec=r?(r.recurrence||'daily'):'daily';setRecurrence(rec);document.getElementById('f-date').value=r&&r.date?r.date:dateKey(getCurrentDate());document.getElementById('f-event-date').value=r&&r.eventDate?r.eventDate:(r&&r.date?r.date:dateKey(getCurrentDate()));setTPVal('f-event-time',r&&r.eventTime?r.eventTime:'14:00');const choix=r&&r.sonnerieChoix?r.sonnerieChoix:'avant2h';document.querySelectorAll('.sonnerie-choix-btn').forEach(b=>b.classList.toggle('active',b.dataset.choix===choix));renderIcons(r?r.icon:null);showScreen('edit-screen');goToStep(1);}
+function openEdit(id){state.editing=id;const r=id?state.reminders.find(x=>x.id===id):null;document.getElementById('edit-title').textContent=r?'Modifier le rappel':'Nouveau rappel';const vs=document.getElementById('voice-status');if(vs){vs.className='voice-status';vs.innerHTML='';}document.getElementById('voice-btn').querySelector('.voice-label').textContent='Dicter au lieu de taper';setTPVal('f-time',r?r.time:'08:00');document.getElementById('f-title').value=r?r.title:'';document.getElementById('f-note').value=r?r.note:'';document.getElementById('delete-btn').style.display=r?'block':'none';const rec=r?(r.recurrence||'daily'):'daily';setRecurrence(rec);document.getElementById('f-date').value=r&&r.date?r.date:dateKey(getCurrentDate());document.getElementById('f-event-date').value=r&&r.eventDate?r.eventDate:(r&&r.date?r.date:dateKey(getCurrentDate()));setTPVal('f-event-time',r&&r.eventTime?r.eventTime:'14:00');const choix=r&&r.sonnerieChoix?r.sonnerieChoix:'avant2h';document.querySelectorAll('.sonnerie-choix-btn').forEach(b=>b.classList.toggle('active',b.dataset.choix===choix));renderIcons(r?r.icon:null);showScreen('edit-screen');goToStep(r?4:1);}
 
-function renderIcons(selected){const grid=document.getElementById('icon-grid');grid.innerHTML=ICONS.map(ic=>{const isSel=selected===ic.emoji;let visual=ic.type==='svg'&&ic.svg?`<img class="icon-opt-img" src="data:image/svg+xml,${encodeURIComponent(ic.svg)}" alt="${esc(ic.label)}">`:`<span class="icon-opt-emoji">${iconHTML(ic.emoji)}</span>`;return`<button class="icon-opt ${isSel?'selected':''}" data-icon-id="${ic.id}">${visual}<span class="icon-opt-label">${esc(ic.label)}</span></button>`;}).join('');grid.querySelectorAll('.icon-opt').forEach(el=>{el.addEventListener('click',()=>{grid.querySelectorAll('.icon-opt').forEach(x=>x.classList.remove('selected'));el.classList.add('selected');const def=ICONS.find(ic=>ic.id===el.dataset.iconId);if(def){document.getElementById('f-title').value=def.title;if(def.note)document.getElementById('f-note').value=def.note;}});});}
-function getSelectedIcon(){const sel=document.querySelector('.icon-opt.selected');if(!sel)return'🗓️';const def=ICONS.find(ic=>ic.id===sel.dataset.iconId);return def?def.emoji:'🗓️';}
-function setRecurrence(rec){document.querySelectorAll('.seg-btn').forEach(b=>b.classList.toggle('active',b.dataset.rec===rec));const isOnce=rec==='once';const ev=document.getElementById('event-section');if(ev)ev.style.display=isOnce?'block':'none';const al=document.getElementById('alarm-section');if(al)al.style.display=isOnce?'none':'block';const evt=document.getElementById('event-time-section');if(evt)evt.style.display=isOnce?'block':'none';const srd=document.getElementById('sonnerie-rdv-details');if(srd)srd.style.display=isOnce?'block':'none';}
-function getSelectedRecurrence(){return document.querySelector('.seg-btn.active')?.dataset.rec||'daily';}
+function renderIcons(selected){wizIcon=selected||'🗓️';renderThemeGrid();}
+let wizIcon='🗓️'; // icône choisie dans le parcours (remplace la sélection DOM de l'ancienne grille)
+function getSelectedIcon(){return wizIcon||'🗓️';}
+let wizRec='daily'; // récurrence choisie (remplace les boutons segmentés)
+function setRecurrence(rec){wizRec=rec;const isOnce=rec==='once';const al=document.getElementById('alarm-section');if(al)al.style.display=isOnce?'none':'block';const evt=document.getElementById('event-time-section');if(evt)evt.style.display=isOnce?'block':'none';const srd=document.getElementById('sonnerie-rdv-details');if(srd)srd.style.display=isOnce?'block':'none';}
+function getSelectedRecurrence(){return wizRec||'daily';}
 document.querySelectorAll('.seg-btn').forEach(btn=>btn.addEventListener('click',()=>setRecurrence(btn.dataset.rec)));
 // ===== Parcours en étapes "Nouveau rappel" =====
 let wizardStep=1;
 function goToStep(n){
   wizardStep=n;
   document.querySelectorAll('#edit-screen .wizard-step').forEach(st=>st.classList.toggle('active',parseInt(st.dataset.step)===n));
-  const isRecap=(n===4);
-  document.getElementById('wizard-step-label').textContent=isRecap?'Vérification':'Étape '+n+' sur 3';
-  document.getElementById('wizard-progress-fill').style.width=isRecap?'100%':Math.round(n/3*100)+'%';
-  document.getElementById('wizard-prev').style.display=(n===1)?'none':'block';
-  document.getElementById('wizard-next').style.display=isRecap?'none':'block';
-  if(isRecap)renderWizardRecap();
+  document.getElementById('wizard-step-label').textContent='Étape '+n+' sur 4';
+  document.getElementById('wizard-progress-fill').style.width=Math.round(n/4*100)+'%';
+  document.getElementById('wizard-prev').style.visibility=(n===1)?'hidden':'visible';
+  if(n===4)renderWizardRecap();
   const body=document.querySelector('#edit-screen .edit-body');if(body)body.scrollTop=0;
 }
 function renderWizardRecap(){
@@ -3115,14 +3167,145 @@ function renderWizardRecap(){
     +'<div class="recap-row"><span class="recap-ic">📅</span><span class="recap-txt">'+jour+'</span></div>'
     +'<div class="recap-row"><span class="recap-ic">🕐</span><span class="recap-txt">à '+heure+'</span></div>';
 }
-document.getElementById('wizard-next').addEventListener('click',()=>{
-  if(wizardStep===1&&!document.getElementById('f-title').value.trim()){
-    showConfirm({icon:'⚠️',title:'Que faire ?',text:"Appuyez sur une image ou écrivez ce qu'il faut faire.",okText:'OK',hideCancel:true});return;
+// ===== Nouveau parcours : thèmes → choix précis → quand → heure → récap (avance tout seul) =====
+const THEMES=[
+  {emo:'💊',lbl:'Santé',choix:[
+    {icon:'💊',t:'Prendre mes médicaments'},
+    {icon:'👨‍⚕️',t:'Rendez-vous médecin'},
+    {icon:'👩‍⚕️',t:'Rendez-vous infirmière'},
+    {icon:'🧠',t:'Rendez-vous psychiatre'},
+    {icon:'🦷',t:'Rendez-vous dentiste'},
+    {icon:'🏥',t:'Rendez-vous hôpital'},
+    {icon:'🩺',t:'Rendez-vous spécialiste'}]},
+  {emo:'🍽️',lbl:'Repas',choix:[
+    {icon:'🥐',t:'Petit-déjeuner'},
+    {icon:'🍽️',t:'Repas de midi'},
+    {icon:'🍽️',t:'Repas du soir'}]},
+  {emo:'🏠',lbl:'Maison',choix:[
+    {icon:'🚿',t:'Douche'},
+    {icon:'🧹',t:'Ménage'},
+    {icon:'🧺',t:'Lessive'},
+    {icon:'🗑️',t:'Sortir les poubelles'}]},
+  {emo:'🛒',lbl:'Courses',choix:[
+    {icon:'🛒',t:'Faire les courses'},
+    {icon:'💊',t:'Aller à la pharmacie'},
+    {icon:'🥖',t:'Boulangerie'}]},
+  {emo:'📄',lbl:'Papiers',choix:[
+    {icon:'🏛️',t:'Rendez-vous curatelle'},
+    {icon:'📄',t:'Dossier MDPH'},
+    {icon:'📄',t:'CAF'},
+    {icon:'🏦',t:'Banque'},
+    {icon:'✉️',t:'Poster un courrier'}]},
+  {emo:'📞',lbl:'Contact',choix:[
+    {icon:'📞',t:'Passer un appel'},
+    {icon:'👥',t:'Recevoir une visite'},
+    {icon:'👥',t:'Rendre visite'}]},
+  {emo:'🚌',lbl:'Transport',choix:[
+    {icon:'🚌',t:'Prendre le bus'},
+    {icon:'🚆',t:'Prendre le train'},
+    {icon:'🚕',t:'Taxi / VSL'}]},
+  {emo:'⚽',lbl:'Loisirs',choix:[
+    {icon:'⚽',t:'Sport'},
+    {icon:'🎨',t:'Activité'},
+    {icon:'🚶',t:'Sortie / promenade'}]},
+  {emo:'🔑',lbl:'AVP',choix:[
+    {icon:'svg:HDJ',t:'Hôpital de jour'},
+    {icon:'svg:CMP',t:'Rendez-vous CMP'},
+    {icon:'svg:AUX',t:'Visite auxiliaire de vie'},
+    {icon:'svg:MAISON',t:'Atelier AVP petite maison',note:'80 bis boulevard du 11 novembre, Petit-Quevilly'},
+    {icon:'svg:CLE',t:'Atelier AVP la clé',note:'22 Place Henri Gadeau de Kerville, 76100 Rouen'}]},
+  {emo:'✏️',lbl:'Autre',libre:true,choix:[]}
+];
+
+function renderThemeGrid(){
+  const g=document.getElementById('theme-grid');if(!g)return;
+  g.innerHTML=THEMES.map((t,i)=>`<button type="button" class="theme-tuile" data-theme="${i}"><div class="emo">${t.emo}</div><div class="lbl">${esc(t.lbl)}</div></button>`).join('');
+  g.querySelectorAll('.theme-tuile').forEach(el=>el.addEventListener('click',()=>wizOuvrirTheme(parseInt(el.dataset.theme))));
+}
+function wizOuvrirTheme(i){
+  const t=THEMES[i];
+  if(t.libre){
+    document.getElementById('wiz-inp-libre').value='';
+    wizOuvrir('wiz-voile-libre');
+    setTimeout(()=>{const inp=document.getElementById('wiz-inp-libre');if(inp)inp.focus();},150);
+    return;
   }
-  if(wizardStep===2&&getSelectedRecurrence()==='once'&&!document.getElementById('f-event-date').value){
-    showConfirm({icon:'⚠️',title:'Quel jour ?',text:'Choisissez la date du rendez-vous.',okText:'OK',hideCancel:true});return;
+  document.getElementById('wiz-theme-titre').textContent=t.emo+' '+t.lbl;
+  document.getElementById('wiz-theme-liste').innerHTML=t.choix.map((c,j)=>`<button type="button" class="wiz-popup-item" data-c="${i}_${j}"><span class="e">${iconHTML(c.icon)}</span>${esc(c.t)}</button>`).join('');
+  document.querySelectorAll('#wiz-theme-liste .wiz-popup-item').forEach(el=>el.addEventListener('click',()=>{
+    const p=el.dataset.c.split('_');
+    wizChoisir(THEMES[parseInt(p[0])].choix[parseInt(p[1])]);
+  }));
+  wizOuvrir('wiz-voile-theme');
+}
+function wizChoisir(c){
+  wizIcon=c.icon;
+  document.getElementById('f-title').value=c.t;
+  if(c.note&&!document.getElementById('f-note').value)document.getElementById('f-note').value=c.note;
+  wizFermer('wiz-voile-theme');
+  goToStep(2);
+}
+function wizValiderLibre(){
+  const v=document.getElementById('wiz-inp-libre').value.trim();
+  if(!v){showConfirm({icon:'⚠️',title:'Que faire ?',text:"Écrivez ce qu'il faut faire.",okText:'OK',hideCancel:true});return;}
+  wizIcon='📌';
+  document.getElementById('f-title').value=v;
+  wizFermer('wiz-voile-libre');
+  goToStep(2);
+}
+// Étape 2 : les 4 boutons remplissent les champs cachés et avancent
+function wizQuand(q){
+  if(q==='touslesjours'){setRecurrence('daily');goToStep(3);return;}
+  setRecurrence('once');
+  const d=new Date();
+  if(q==='demain')d.setDate(d.getDate()+1);
+  const k=dateKey(d);
+  document.getElementById('f-event-date').value=k;
+  document.getElementById('f-date').value=k;
+  goToStep(3);
+}
+// Calendrier "Un autre jour…"
+let wizCalMois=null;
+function wizOuvrirCal(){const t=new Date();wizCalMois=new Date(t.getFullYear(),t.getMonth(),1);wizCalRender();wizOuvrir('wiz-voile-cal');}
+function wizCalNav(d){wizCalMois=new Date(wizCalMois.getFullYear(),wizCalMois.getMonth()+d,1);wizCalRender();}
+function wizCalRender(){
+  const M=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  document.getElementById('wiz-cal-mois').textContent=M[wizCalMois.getMonth()]+' '+wizCalMois.getFullYear();
+  const auj=new Date();auj.setHours(0,0,0,0);
+  let html=['L','M','M','J','V','S','D'].map(j=>`<div class="wiz-cal-jour entete">${j}</div>`).join('');
+  const premier=(wizCalMois.getDay()+6)%7; // lundi en premier
+  const nb=new Date(wizCalMois.getFullYear(),wizCalMois.getMonth()+1,0).getDate();
+  for(let i=0;i<premier;i++)html+='<div></div>';
+  for(let j=1;j<=nb;j++){
+    const d=new Date(wizCalMois.getFullYear(),wizCalMois.getMonth(),j);
+    html+=`<button type="button" class="wiz-cal-jour" ${d<auj?'disabled':''} data-j="${j}">${j}</button>`;
   }
-  goToStep(Math.min(wizardStep+1,4));
+  const g=document.getElementById('wiz-cal-grille');
+  g.innerHTML=html;
+  g.querySelectorAll('.wiz-cal-jour[data-j]').forEach(b=>b.addEventListener('click',()=>{
+    const d=new Date(wizCalMois.getFullYear(),wizCalMois.getMonth(),parseInt(b.dataset.j));
+    setRecurrence('once');
+    const k=dateKey(d);
+    document.getElementById('f-event-date').value=k;
+    document.getElementById('f-date').value=k;
+    wizFermer('wiz-voile-cal');
+    goToStep(3);
+  }));
+}
+function wizOuvrir(id){document.getElementById(id).classList.add('actif');}
+function wizFermer(id){document.getElementById(id).classList.remove('actif');}
+document.querySelectorAll('.wiz-voile').forEach(v=>v.addEventListener('click',e=>{if(e.target===v)wizFermer(v.id);}));
+// Étape 3 → récap
+document.getElementById('wizard-heure-ok').addEventListener('click',()=>goToStep(4));
+// Récap : lecture vocale
+document.getElementById('wizard-ecouter').addEventListener('click',()=>{
+  const title=document.getElementById('f-title').value.trim()||'Rappel';
+  const rec=getSelectedRecurrence();
+  let quand,heure;
+  if(rec==='daily'){quand='tous les jours';heure=getTPVal('f-time');}
+  else{const d=document.getElementById('f-event-date').value;quand=d?formatRelativeDate(d):'';heure=getTPVal('f-event-time');}
+  const note=document.getElementById('f-note').value.trim();
+  speak(title+'. '+quand+', à '+timeToSpeech(heure)+'. '+note);
 });
 document.getElementById('wizard-prev').addEventListener('click',()=>goToStep(Math.max(wizardStep-1,1)));
 document.querySelectorAll('.sonnerie-choix-btn').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.sonnerie-choix-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}));
@@ -3206,9 +3389,9 @@ function parseVoiceInput(text){let w=' '+text.toLowerCase()+' ';const result={ti
 function parseVoiceTime(t){if(/\bmidi\b/.test(t))return{time:'12:00',regex:/\bà?\s*midi\b/gi};if(/\bminuit\b/.test(t))return{time:'00:00',regex:/\bà?\s*minuit\b/gi};let m=t.match(/\b(\d{1,2})\s*heures?\s+et\s+demie?\b/i);if(m){const h=parseInt(m[1]);if(h>=0&&h<=23)return{time:pad2(h)+':30',regex:new RegExp('\\bà?\\s*'+m[0].trim()+'\\b','gi')};}m=t.match(/\b(\d{1,2})\s*h\s*(\d{2})\b/i);if(m){const h=parseInt(m[1]),mn=parseInt(m[2]);if(h>=0&&h<=23&&mn>=0&&mn<=59)return{time:pad2(h)+':'+pad2(mn),regex:new RegExp('\\bà?\\s*'+m[1]+'\\s*h\\s*'+m[2]+'\\b','gi')};}m=t.match(/\b(\d{1,2})\s*heures?\s+(\d{1,2})\b/i);if(m){const h=parseInt(m[1]),mn=parseInt(m[2]);if(h>=0&&h<=23&&mn>=0&&mn<=59)return{time:pad2(h)+':'+pad2(mn),regex:new RegExp('\\bà?\\s*'+m[1]+'\\s*heures?\\s+'+m[2]+'\\b','gi')};}m=t.match(/\b(\d{1,2})\s*heures?\b/i);if(m){const h=parseInt(m[1]);if(h>=0&&h<=23)return{time:pad2(h)+':00',regex:new RegExp('\\bà?\\s*'+m[1]+'\\s*heures?\\b','gi')};}return null;}
 function parseVoiceDate(t){const today=new Date();today.setHours(0,0,0,0);if(/\baprès.?demain\b/i.test(t)){const d=new Date(today);d.setDate(d.getDate()+2);return{date:dateKey(d),regex:/\baprès.?demain\b/gi};}if(/\bdemain\b/i.test(t)){const d=new Date(today);d.setDate(d.getDate()+1);return{date:dateKey(d),regex:/\bdemain\b/gi};}if(/\baujourd.?hui\b/i.test(t))return{date:dateKey(today),regex:/\baujourd.?hui\b/gi};const months=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];const mre=new RegExp('\\b(\\d{1,2})\\s+('+months.join('|')+')(?:\\s+(\\d{4}))?\\b','i');let m=t.match(mre);if(m){const day=parseInt(m[1]),mi=months.findIndex(x=>x.toLowerCase()===m[2].toLowerCase()),yr=m[3]?parseInt(m[3]):today.getFullYear();const d=new Date(yr,mi,day);return{date:dateKey(d),regex:new RegExp('\\b(?:le\\s+)?\\d{1,2}\\s+'+m[2]+'(?:\\s+\\d{4})?\\b','gi')};}const wd=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];for(let i=0;i<7;i++){const re=new RegExp('\\b'+wd[i]+'(?:\\s+prochain)?\\b','i');if(re.test(t)){const d=new Date(today);let diff=(i-today.getDay()+7)%7;if(diff===0)diff=7;d.setDate(d.getDate()+diff);return{date:dateKey(d),regex:new RegExp('\\b'+wd[i]+'(?:\\s+prochain)?\\b','gi')};}}return null;}
 function suggestVoiceIcon(lc){const map=[{w:['avp petite maison','petite maison'],i:'svg:MAISON'},{w:['avp la clé','atelier clé'],i:'svg:CLE'},{w:['cmp','centre médico'],i:'svg:CMP'},{w:['hôpital de jour','hdj'],i:'svg:HDJ'},{w:['auxiliaire'],i:'svg:AUX'},{w:['psychiatre','psy '],i:'🧠'},{w:['infirmier','infirmière'],i:'👩‍⚕️'},{w:['dentiste'],i:'🦷'},{w:['hôpital','clinique'],i:'🏥'},{w:['docteur','médecin'],i:'👨‍⚕️'},{w:['médicament','traitement','cachet'],i:'💊'}];for(const e of map)for(const ww of e.w)if(lc.includes(ww))return e.i;return null;}
-function applyParsedToForm(p){if(p.title)document.getElementById('f-title').value=p.title;if(p.time)setTPVal('f-time',p.time);setRecurrence(p.recurrence||'daily');if(p.recurrence==='once'&&p.date){document.getElementById('f-date').value=p.date;document.getElementById('f-event-date').value=p.date;if(p.time)setTPVal('f-event-time',p.time);}if(p.icon){const def=ICONS.find(ic=>ic.emoji===p.icon);if(def){const grid=document.getElementById('icon-grid');grid.querySelectorAll('.icon-opt').forEach(x=>x.classList.remove('selected'));const sel=grid.querySelector(`[data-icon-id="${def.id}"]`);if(sel)sel.classList.add('selected');}}}
+function applyParsedToForm(p){if(p.title)document.getElementById('f-title').value=p.title;if(p.time)setTPVal('f-time',p.time);setRecurrence(p.recurrence||'daily');if(p.recurrence==='once'&&p.date){document.getElementById('f-date').value=p.date;document.getElementById('f-event-date').value=p.date;if(p.time)setTPVal('f-event-time',p.time);}if(p.icon)wizIcon=p.icon;}
 
-document.getElementById('voice-btn').addEventListener('click',()=>{const btn=document.getElementById('voice-btn'),status=document.getElementById('voice-status'),label=btn.querySelector('.voice-label');const ctx=getAudioContext();if(ctx&&ctx.state==='suspended')ctx.resume().catch(()=>{});btn.classList.add('listening');label.textContent="J'écoute... parlez";status.className='voice-status listening';status.textContent='🔴 Parlez maintenant, puis attendez un instant.';startListening(transcript=>{btn.classList.remove('listening');label.textContent='Recommencer la dictée';const parsed=parseVoiceInput(transcript);applyParsedToForm(parsed);status.className='voice-status success';let s=`✓ J'ai compris : <strong>« ${esc(transcript)} »</strong><br>Titre : <strong>${esc(parsed.title)}</strong>`;if(parsed.time)s+=` — Heure : <strong>${parsed.time}</strong>`;s+='<br><em>Vérifiez puis enregistrez.</em>';status.innerHTML=s;},error=>{btn.classList.remove('listening');label.textContent='Dicter au lieu de taper';status.className='voice-status error';if(error==='not-supported')status.textContent="✗ La dictée vocale n'est pas disponible sur ce téléphone.";else if(error==='not-allowed')status.textContent="✗ Autorisez le microphone dans les paramètres.";else status.textContent="✗ Désolé, réessayez.";});});
+document.getElementById('voice-btn').addEventListener('click',()=>{const btn=document.getElementById('voice-btn'),status=document.getElementById('voice-status'),label=btn.querySelector('.voice-label');const ctx=getAudioContext();if(ctx&&ctx.state==='suspended')ctx.resume().catch(()=>{});btn.classList.add('listening');label.textContent="J'écoute... parlez";status.className='voice-status listening';status.textContent='🔴 Parlez maintenant, puis attendez un instant.';startListening(transcript=>{btn.classList.remove('listening');label.textContent='Recommencer la dictée';const parsed=parseVoiceInput(transcript);applyParsedToForm(parsed);goToStep(4);status.className='voice-status success';let s=`✓ J'ai compris : <strong>« ${esc(transcript)} »</strong><br>Titre : <strong>${esc(parsed.title)}</strong>`;if(parsed.time)s+=` — Heure : <strong>${parsed.time}</strong>`;s+='<br><em>Vérifiez puis enregistrez.</em>';status.innerHTML=s;},error=>{btn.classList.remove('listening');label.textContent='Dicter au lieu de taper';status.className='voice-status error';if(error==='not-supported')status.textContent="✗ La dictée vocale n'est pas disponible sur ce téléphone.";else if(error==='not-allowed')status.textContent="✗ Autorisez le microphone dans les paramètres.";else status.textContent="✗ Désolé, réessayez.";});});
 
 let audioCtx=null,chimeInterval=null;
 function getAudioContext(){if(!audioCtx){const A=window.AudioContext||window.webkitAudioContext;if(A)audioCtx=new A();}return audioCtx;}
