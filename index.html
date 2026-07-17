@@ -1459,69 +1459,48 @@ document.getElementById('admin-reparer-btn').addEventListener('click',()=>repare
 document.getElementById('admin-diag-notif-btn').addEventListener('click',()=>diagnosticNotif());
 document.getElementById('admin-tutorial-btn').addEventListener('click',()=>startTutorial());
 document.getElementById('admin-connexions-btn').addEventListener('click',()=>showAdminConnexions());
-// Écran "Connexions" : bilan global depuis le début + bilan par mois (mois courant ouvert)
+// Écran "Connexions" : bilan global depuis le début (jours distincts par bénéficiaire)
 async function showAdminConnexions(){
   showScreen('admin-parler-screen'); // réutilise un écran générique avec header rouge
   document.querySelector('#admin-parler-screen h1').textContent='📱 Connexions';
   const content=document.getElementById('parler-content');
   content.innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement…</div>';
   try{
-    const now=new Date();
-    const moisCourant=now.getFullYear()+'-'+pad2(now.getMonth()+1); // ex "2026-07"
     const [snapC,snapU]=await Promise.all([db.collection('connexions').get(),db.collection('users').get()]);
     const all=snapC.docs.map(d=>d.data());
     const benefs=snapU.docs.map(d=>({id:d.id,prenom:d.data().prenom||d.id}));
     const pill=(txt,bg,col)=>'<span style="display:inline-block;background:'+bg+';color:'+col+';border-radius:12px;padding:4px 10px;margin:2px;font-size:0.8125rem;font-weight:600;">'+txt+'</span>';
 
-    // ---- Regroupement : jours distincts d'utilisation par bénéficiaire, par mois et au global ----
-    const parMois={};        // "2026-07" -> {userId -> Set de jours}
-    const globalParUser={};  // userId -> Set de jours (depuis le début)
+    // Index de correspondance : par id ET par prénom (les anciens enregistrements
+    // ou un compte recréé peuvent avoir un userId différent du document actuel)
+    const parId={},parPrenom={};
+    benefs.forEach(b=>{parId[b.id]=b.id;parPrenom[(b.prenom||'').trim().toLowerCase()]=b.id;});
+
+    // Jours distincts d'utilisation par bénéficiaire, depuis le début.
+    // Le jour est pris depuis r.jour, ou recalculé depuis r.at si absent (anciens enregistrements).
+    const globalParUser={};
     all.forEach(r=>{
-      const j=r.jour||'';if(j.length<7)return;
-      const m=j.slice(0,7);
-      if(!parMois[m])parMois[m]={};
-      if(!parMois[m][r.userId])parMois[m][r.userId]=new Set();
-      parMois[m][r.userId].add(j);
-      if(!globalParUser[r.userId])globalParUser[r.userId]=new Set();
-      globalParUser[r.userId].add(j);
+      let j=(r.jour&&r.jour.length>=8)?r.jour:(r.at?dateKey(new Date(r.at)):'');
+      if(!j)return;
+      let cle=parId[r.userId]||parPrenom[(r.prenom||'').trim().toLowerCase()]||null;
+      if(!cle)return; // connexion d'un compte supprimé
+      if(!globalParUser[cle])globalParUser[cle]=new Set();
+      globalParUser[cle].add(j);
     });
 
-    // ---- BILAN GLOBAL depuis le début ----
-    const gActifs=[],gJamais=[];
+    const actifs=[],jamais=[];
     benefs.forEach(b=>{
       const n=globalParUser[b.id]?globalParUser[b.id].size:0;
-      if(n>0)gActifs.push({...b,n});else gJamais.push(b);
+      if(n>0)actifs.push({...b,n});else jamais.push(b);
     });
-    gActifs.sort((a,b)=>b.n-a.n);gJamais.sort((a,b)=>a.prenom.localeCompare(b.prenom));
+    actifs.sort((a,b)=>b.n-a.n);jamais.sort((a,b)=>a.prenom.localeCompare(b.prenom));
+
     let html='<div style="background:white;border-radius:14px;padding:14px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.05);">'
       +'<b style="font-size:1rem;color:#1a2340;">🌍 Bilan global — depuis le début</b>'
-      +'<div style="font-size:0.75rem;color:#48547a;margin:4px 0 10px;">Nombre total de jours d\'utilisation par bénéficiaire.</div>'
-      +'<div style="margin-bottom:6px;">'+(gActifs.length?gActifs.map(b=>pill(esc(b.prenom)+' · '+b.n+' j','#eef1fb','#2c3e91')).join(''):pill('Aucune connexion enregistrée','#f1f3f8','#48547a'))+'</div>'
-      +'<div><b style="font-size:0.8125rem;color:#b42318;">🔴 Jamais connectés</b><br>'+(gJamais.length?gJamais.map(b=>pill(esc(b.prenom),'#fde8e8','#b42318')).join(''):pill('Personne — tout le monde utilise l\'app !','#e6f6ec','#0a6e31'))+'</div>'
+      +'<div style="font-size:0.75rem;color:#48547a;margin:4px 0 10px;">Nombre total de jours où le bénéficiaire a ouvert l\'application (planning, rappels, tout compte).</div>'
+      +'<div style="margin-bottom:6px;">'+(actifs.length?actifs.map(b=>pill(esc(b.prenom)+' · '+b.n+' j','#eef1fb','#2c3e91')).join(''):pill('Aucune connexion enregistrée','#f1f3f8','#48547a'))+'</div>'
+      +'<div><b style="font-size:0.8125rem;color:#b42318;">🔴 Jamais connectés</b><br>'+(jamais.length?jamais.map(b=>pill(esc(b.prenom),'#fde8e8','#b42318')).join(''):pill('Personne — tout le monde utilise l\'app !','#e6f6ec','#0a6e31'))+'</div>'
       +'</div>';
-
-    // ---- BILAN PAR MOIS (mois courant ouvert, mois passés repliés) ----
-    const moisListe=Object.keys(parMois).sort().reverse();
-    if(moisListe.length===0){content.innerHTML=html+'<div class="planning-empty">Aucune connexion enregistrée.</div>';return;}
-    moisListe.forEach(m=>{
-      const joursParUser=parMois[m];
-      const reguliers=[],rares=[],jamais=[];
-      benefs.forEach(b=>{
-        const n=joursParUser[b.id]?joursParUser[b.id].size:0;
-        if(n>=5)reguliers.push({...b,n});else if(n>=1)rares.push({...b,n});else jamais.push(b);
-      });
-      const tri=(a,b)=>b.n-a.n;reguliers.sort(tri);rares.sort(tri);jamais.sort((a,b)=>a.prenom.localeCompare(b.prenom));
-      const [y,mo]=m.split('-');
-      const moisNom=new Date(parseInt(y),parseInt(mo)-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
-      const ouvert=m===moisCourant?' open':'';
-      html+='<details'+ouvert+' style="background:white;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.05);">'
-        +'<summary style="cursor:pointer;list-style:none;"><b style="font-size:1rem;color:#1a2340;">📊 Bilan '+esc(moisNom)+'</b></summary>'
-        +'<div style="font-size:0.75rem;color:#48547a;margin:6px 0 10px;">Jours d\'utilisation par bénéficiaire.</div>'
-        +'<div style="margin-bottom:6px;"><b style="font-size:0.8125rem;color:#0a6e31;">✅ Réguliers (5 jours ou +)</b><br>'+(reguliers.length?reguliers.map(b=>pill(esc(b.prenom)+' · '+b.n+' j','#e6f6ec','#0a6e31')).join(''):pill('Personne','#f1f3f8','#48547a'))+'</div>'
-        +'<div style="margin-bottom:6px;"><b style="font-size:0.8125rem;color:#a15c00;">🟡 Rares (1 à 4 jours)</b><br>'+(rares.length?rares.map(b=>pill(esc(b.prenom)+' · '+b.n+' j','#fff4e0','#a15c00')).join(''):pill('Personne','#f1f3f8','#48547a'))+'</div>'
-        +'<div><b style="font-size:0.8125rem;color:#b42318;">🔴 Jamais connectés ce mois</b><br>'+(jamais.length?jamais.map(b=>pill(esc(b.prenom),'#fde8e8','#b42318')).join(''):pill('Personne — tout le monde utilise l\'app !','#e6f6ec','#0a6e31'))+'</div>'
-        +'</details>';
-    });
     content.innerHTML=html;
   }catch(e){content.innerHTML='<div class="planning-empty">Erreur de chargement.<br>Vérifie les règles Firestore : autoriser la collection "connexions".</div>';}
 }
