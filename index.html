@@ -2423,10 +2423,12 @@ async function showAdminInscrireGroupe(){
   await loadAVPPlanning();
   // Source unifiée des inscrits (même que tous les autres écrans)
   state.allInscriptions = await loadAllInscriptions();
-  // Tous les ateliers chargés (mois courant + mois suivant si activé), à partir d'aujourd'hui
+  // Tous les ateliers chargés (mois courant + mois suivant si activé), Y COMPRIS les jours passés
+  // (l'admin peut corriger des inscriptions oubliées) — le scroll se place sur le premier atelier à venir
   const todayG=dateKey(new Date());
-  const ateliers=(state.avpEvents||[]).filter(ev=>ev.date>=todayG&&!ev.cancelled)
+  const ateliers=(state.avpEvents||[]).filter(ev=>!ev.cancelled)
     .sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const premierFuturIdx=ateliers.findIndex(ev=>ev.date>=todayG);
   
   if(ateliers.length===0){body.innerHTML='<div class="planning-empty">Aucun atelier ce mois-ci.</div>';return;}
   
@@ -2436,8 +2438,9 @@ async function showAdminInscrireGroupe(){
     const dateStr=new Date(ev.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
     const atelierKey=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');
     
-    html+=`<div class="inscrire-atelier-card">
-      <div class="inscrire-atelier-title">${ev.emoji||'📅'} ${ev.title}</div>
+    const estPasse=ev.date<todayG;
+    html+=`<div class="inscrire-atelier-card" id="grp-atelier-${idx}" ${estPasse?'style="opacity:0.75"':''}>
+      <div class="inscrire-atelier-title">${ev.emoji||'📅'} ${ev.title}${estPasse?' <span style="font-size:0.75rem;font-weight:700;color:#8a93b2;">(passé)</span>':''}</div>
       <div class="inscrire-atelier-date">${dateStr} à ${ev.time}</div>`;
     
     users.forEach(u=>{
@@ -2453,6 +2456,13 @@ async function showAdminInscrireGroupe(){
   });
   
   body.innerHTML=html;
+  // Scroll automatique sur le premier atelier à venir (le passé reste accessible en remontant)
+  if(premierFuturIdx>0){
+    setTimeout(()=>{
+      const cible=document.getElementById('grp-atelier-'+premierFuturIdx);
+      if(cible)body.scrollTop=Math.max(0,cible.offsetTop-body.offsetTop-8);
+    },50);
+  }
 }
 
 async function validerInscriptionsGroupe(btn, atelierKey){
