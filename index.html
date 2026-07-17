@@ -1471,19 +1471,30 @@ async function showAdminConnexions(){
     const benefs=snapU.docs.map(d=>({id:d.id,prenom:d.data().prenom||d.id}));
     const pill=(txt,bg,col)=>'<span style="display:inline-block;background:'+bg+';color:'+col+';border-radius:12px;padding:4px 10px;margin:2px;font-size:0.8125rem;font-weight:600;">'+txt+'</span>';
 
-    // Index de correspondance : par id ET par prénom (les anciens enregistrements
-    // ou un compte recréé peuvent avoir un userId différent du document actuel)
-    const parId={},parPrenom={};
-    benefs.forEach(b=>{parId[b.id]=b.id;parPrenom[(b.prenom||'').trim().toLowerCase()]=b.id;});
+    // Index de correspondance : par id, par prénom complet, et par premier mot du prénom
+    // s'il est sans ambiguïté ("Maxime" ↔ "Maxime H."). Anciens enregistrements et comptes
+    // recréés peuvent avoir un userId ou un prénom légèrement différent du document actuel.
+    const parId={},parPrenom={},parPremierMot={};
+    benefs.forEach(b=>{
+      parId[b.id]=b.id;
+      const p=(b.prenom||'').trim().toLowerCase();
+      parPrenom[p]=b.id;
+      const mot=p.split(/\s+/)[0];
+      if(mot)parPremierMot[mot]=(mot in parPremierMot)?'AMBIGU':b.id;
+    });
 
     // Jours distincts d'utilisation par bénéficiaire, depuis le début.
     // Le jour est pris depuis r.jour, ou recalculé depuis r.at si absent (anciens enregistrements).
     const globalParUser={};
+    const nonRattachees={}; // diagnostic : connexions qu'on n'arrive pas à rattacher
     all.forEach(r=>{
       let j=(r.jour&&r.jour.length>=8)?r.jour:(r.at?dateKey(new Date(r.at)):'');
       if(!j)return;
-      let cle=parId[r.userId]||parPrenom[(r.prenom||'').trim().toLowerCase()]||null;
-      if(!cle)return; // connexion d'un compte supprimé
+      const p=(r.prenom||'').trim().toLowerCase();
+      const mot=p.split(/\s+/)[0];
+      let cle=parId[r.userId]||parPrenom[p]||null;
+      if(!cle&&mot&&parPremierMot[mot]&&parPremierMot[mot]!=='AMBIGU')cle=parPremierMot[mot];
+      if(!cle){const lbl=r.prenom||r.userId||'?';nonRattachees[lbl]=(nonRattachees[lbl]||0)+1;return;}
       if(!globalParUser[cle])globalParUser[cle]=new Set();
       globalParUser[cle].add(j);
     });
@@ -1501,6 +1512,14 @@ async function showAdminConnexions(){
       +'<div style="margin-bottom:6px;">'+(actifs.length?actifs.map(b=>pill(esc(b.prenom)+' · '+b.n+' j','#eef1fb','#2c3e91')).join(''):pill('Aucune connexion enregistrée','#f1f3f8','#48547a'))+'</div>'
       +'<div><b style="font-size:0.8125rem;color:#b42318;">🔴 Jamais connectés</b><br>'+(jamais.length?jamais.map(b=>pill(esc(b.prenom),'#fde8e8','#b42318')).join(''):pill('Personne — tout le monde utilise l\'app !','#e6f6ec','#0a6e31'))+'</div>'
       +'</div>';
+    // ---- Diagnostic (repliable) : volume de traces et connexions non rattachées ----
+    const nrListe=Object.entries(nonRattachees).sort((a,b)=>b[1]-a[1]);
+    html+='<details style="background:white;border-radius:14px;padding:12px 14px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.05);">'
+      +'<summary style="cursor:pointer;list-style:none;font-size:0.8125rem;font-weight:700;color:#48547a;">🔧 Diagnostic</summary>'
+      +'<div style="font-size:0.75rem;color:#48547a;margin-top:8px;">'+all.length+' trace(s) de connexion au total dans la base.<br>'
+      +'Un bénéficiaire qui utilise l\'application mais reste en "jamais connecté" a probablement une <b>ancienne version de l\'APK</b> (antérieure au suivi des connexions) : il faut lui réinstaller l\'APK à jour.</div>'
+      +(nrListe.length?'<div style="margin-top:8px;"><b style="font-size:0.75rem;color:#a15c00;">Connexions non rattachées à un compte :</b><br>'+nrListe.map(([p,n])=>pill(esc(p)+' × '+n,'#fff4e0','#a15c00')).join('')+'</div>':'')
+      +'</details>';
     content.innerHTML=html;
   }catch(e){content.innerHTML='<div class="planning-empty">Erreur de chargement.<br>Vérifie les règles Firestore : autoriser la collection "connexions".</div>';}
 }
