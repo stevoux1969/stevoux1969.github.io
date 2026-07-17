@@ -520,6 +520,16 @@
 .wiz-cal-jour:disabled{opacity:0.3;cursor:default;}
 .wiz-cal-jour.entete{background:none;color:#48547a;font-size:0.75rem;cursor:default;}
 .btn-ecouter-recap{width:100%;padding:14px;border:2px solid #dde2f0;border-radius:14px;background:white;color:#2c3e91;font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;margin-bottom:14px;}
+/* ===== Bulles de tutoriel ===== */
+#tuto-zone{display:none;position:fixed;left:12px;right:12px;bottom:16px;z-index:80;pointer-events:none;}
+#tuto-doigt{text-align:center;font-size:2.4rem;animation:tutoBounce 1.2s infinite;margin-bottom:-6px;}
+@keyframes tutoBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.tuto-bulle{background:#fffbe6;border:3px solid #e8c84a;border-radius:22px;padding:18px 16px;box-shadow:0 8px 24px rgba(26,35,64,0.25);pointer-events:auto;}
+.tuto-texte{font-size:1.15rem;font-weight:800;color:#1a2340;text-align:center;line-height:1.4;}
+.tuto-btns{display:flex;gap:10px;margin-top:14px;}
+.tuto-audio{width:60px;border:none;border-radius:14px;background:white;font-size:1.4rem;cursor:pointer;font-family:inherit;}
+.tuto-ok{flex:1;padding:15px;border:none;border-radius:14px;background:#2c3e91;color:white;font-family:inherit;font-size:1.1rem;font-weight:800;cursor:pointer;}
+.btn-aide-tuto{width:40px;height:40px;border-radius:50%;border:none;background:#eef1fb;color:#2c3e91;font-size:1.15rem;font-weight:800;cursor:pointer;flex-shrink:0;font-family:inherit;}
 .wizard-fold-hint{font-weight:500;color:#5b6785;font-size:0.85rem;margin-left:6px;}
 </style>
 </head>
@@ -653,7 +663,8 @@
 <div id="mes-rdv-screen" class="screen">
   <div class="edit-header">
     <button class="back-btn" id="mes-rdv-back">‹ Retour</button>
-    <h1>📅 Mon agenda</h1>
+    <h1 style="flex:1">📅 Mon agenda</h1>
+    <button type="button" class="btn-aide-tuto" onclick="montrerTuto('agenda',true)" aria-label="Aide">?</button>
   </div>
   <div class="list-wrap">
     <div id="mes-rdv-list"></div>
@@ -663,7 +674,8 @@
 <div id="edit-screen" class="screen">
   <div class="edit-header">
     <button class="back-btn" id="back-btn">‹ Retour</button>
-    <h2 id="edit-title">Nouveau rappel</h2>
+    <h2 id="edit-title" style="flex:1">Nouveau rappel</h2>
+    <button type="button" class="btn-aide-tuto" onclick="montrerTuto('wiz'+wizardStep,true)" aria-label="Aide">?</button>
   </div>
   <div class="edit-body">
     <!-- Barre de progression -->
@@ -766,6 +778,18 @@
     </div>
     <div class="wiz-cal-grille" id="wiz-cal-grille"></div>
     <button type="button" class="wiz-popup-fermer" onclick="wizFermer('wiz-voile-cal')">Fermer</button>
+  </div>
+</div>
+
+<!-- ===== Bulle de tutoriel (une seule, réutilisée partout) ===== -->
+<div id="tuto-zone">
+  <div id="tuto-doigt">👆</div>
+  <div class="tuto-bulle">
+    <div class="tuto-texte" id="tuto-texte"></div>
+    <div class="tuto-btns">
+      <button type="button" class="tuto-audio" id="tuto-audio">🔊</button>
+      <button type="button" class="tuto-ok" id="tuto-ok">✓ J'ai compris</button>
+    </div>
   </div>
 </div>
 
@@ -1057,7 +1081,7 @@ async function handleLogin() {
   if(code===ADMIN_GREG_CODE&&loginMode==='login'){currentUser={id:'adminGreg',prenom:'Greg',isAdmin:true,isGreg:true};saveSession();showAdminScreen();return;}
   if(loginMode==='register'){
     if(!prenom){showError('Entrez votre prénom.');return;}
-    try{const snap=await db.collection('users').get();const existing=snap.docs.find(d=>d.data().prenom.toLowerCase()===prenom.toLowerCase());if(existing){showError('Ce prénom existe déjà. Connectez-vous.');return;}const userId=uid();await db.collection('users').doc(userId).set({prenom,code,createdAt:Date.now(),reminders:[],inscriptions:{}});currentUser={id:userId,prenom,isAdmin:false};saveSession();tagOneSignalUser(prenom);state.reminders=[];state.inscriptions={};enterApp();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
+    try{const snap=await db.collection('users').get();const existing=snap.docs.find(d=>d.data().prenom.toLowerCase()===prenom.toLowerCase());if(existing){showError('Ce prénom existe déjà. Connectez-vous.');return;}const userId=uid();await db.collection('users').doc(userId).set({prenom,code,createdAt:Date.now(),reminders:[],inscriptions:{},tutosVus:{}});currentUser={id:userId,prenom,isAdmin:false};saveSession();tagOneSignalUser(prenom);state.reminders=[];state.inscriptions={};state.tutosVus={};enterApp();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
   }else{
     try{const snap=await db.collection('users').get();let found=null;snap.docs.forEach(d=>{if(d.data().code===code)found={id:d.id,...d.data()};});if(!found){showError('Code incorrect.');pinValue='';updatePinDots();return;}currentUser={id:found.id,prenom:found.prenom,isAdmin:false};saveSession();tagOneSignalUser(found.prenom);tagOneSignalAvpUser();await loadUserData();logConnexion();enterApp();maybeShowAvisPopup();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
   }
@@ -1107,7 +1131,7 @@ function maybeShowAvisPopup(){
   }catch(e){}
 }
 
-async function loadUserData(){if(!currentUser||currentUser.isAdmin)return;try{const snap=await db.collection('users').doc(currentUser.id).get();if(snap.exists){state.reminders=snap.data().reminders||[];state.inscriptions=snap.data().inscriptions||{};}
+async function loadUserData(){if(!currentUser||currentUser.isAdmin)return;try{const snap=await db.collection('users').doc(currentUser.id).get();if(snap.exists){state.reminders=snap.data().reminders||[];state.inscriptions=snap.data().inscriptions||{};state.tutosVus=snap.data().tutosVus||{};}
   // Auto-réparation douce (étape 1 unification) : chaque rappel atelier doit avoir sa clé
   // dans le map inscriptions. Sens union uniquement : on AJOUTE, on ne supprime jamais.
   try{
@@ -1275,7 +1299,8 @@ function enterApp(){
   userBtn.innerHTML=`<div class="user-avatar" style="width:36px;height:36px;font-size:1rem">${initials}</div><span class="header-user-name">${esc(currentUser.prenom)}</span>`;
   userBtn.onclick=()=>openUserMenu();
   showScreen('main-screen');render();loadAVPPlanning();checkReminders();checkMessagesAdmin();
-  if(shouldShowTutorial())setTimeout(()=>startTutorial(),800);
+  if(shouldShowTutorial()){setTimeout(()=>startTutorial(),800);}
+  else{setTimeout(()=>montrerTuto('accueil'),900);}
 }
 
 function openUserMenu(){document.getElementById('um-name').textContent=currentUser.prenom;document.getElementById('um-role').textContent='Mon compte AVP';document.getElementById('user-menu').classList.add('active');}
@@ -1319,7 +1344,7 @@ document.getElementById('tutorial-listen').addEventListener('click',function(){
 document.getElementById('tutorial-prev').addEventListener('click',()=>{if(tutorialIndex>0){tutorialIndex--;renderTutorialPage();}});
 document.getElementById('tutorial-next').addEventListener('click',()=>{if(tutorialIndex<TUTORIAL_PAGES.length-1){tutorialIndex++;renderTutorialPage();}else{finishTutorial();}});
 document.getElementById('tutorial-skip').addEventListener('click',finishTutorial);
-function finishTutorial(){stopTutorialAudio();try{localStorage.setItem('avp_tutorial_seen_'+(currentUser?currentUser.id:'x'),'1');}catch(e){}if(currentUser&&currentUser.isAdmin){showAdminScreen();}else{showScreen('main-screen');}}
+function finishTutorial(){stopTutorialAudio();try{localStorage.setItem('avp_tutorial_seen_'+(currentUser?currentUser.id:'x'),'1');}catch(e){}if(currentUser&&currentUser.isAdmin){showAdminScreen();}else{showScreen('main-screen');if(typeof montrerTuto==='function')setTimeout(()=>montrerTuto('accueil'),600);}}
 function shouldShowTutorial(){try{return!localStorage.getItem('avp_tutorial_seen_'+(currentUser?currentUser.id:'x'));}catch(e){return false;}}
 
 async function requestNotifPermission(){if(!('Notification' in window)){showConfirm({icon:'❌',title:'Non disponible',text:"Les notifications ne sont pas disponibles sur ce navigateur.",okText:'OK',hideCancel:true});return;}const perm=await Notification.requestPermission();if(perm==='granted'){showConfirm({icon:'🔔',title:'Notifications activées !',text:"Vous recevrez des rappels quand l'application est ouverte.",okText:'Super',hideCancel:true});}else{showConfirm({icon:'⚠️',title:'Notifications refusées',text:"Autorisez les notifications dans les paramètres de votre téléphone.",okText:'OK',hideCancel:true});}}
@@ -2783,6 +2808,7 @@ function showMesRendezVous(){
   list.querySelectorAll('.rdv-annuler-btn').forEach(b=>{
     b.addEventListener('click',e=>{e.stopPropagation();annulerRdvAgenda(b.dataset.id);});
   });
+  if(typeof montrerTuto==='function')setTimeout(()=>montrerTuto('agenda'),300);
 }
 
 // ========== AVIS BÉNÉFICIAIRES ==========
@@ -3155,6 +3181,7 @@ function goToStep(n){
   document.getElementById('wizard-prev').style.visibility=(n===1)?'hidden':'visible';
   if(n===4)renderWizardRecap();
   const body=document.querySelector('#edit-screen .edit-body');if(body)body.scrollTop=0;
+  if(typeof montrerTuto==='function')setTimeout(()=>montrerTuto('wiz'+n),300);
 }
 function renderWizardRecap(){
   const title=document.getElementById('f-title').value.trim()||'(sans titre)';
@@ -3167,6 +3194,44 @@ function renderWizardRecap(){
     +'<div class="recap-row"><span class="recap-ic">📅</span><span class="recap-txt">'+jour+'</span></div>'
     +'<div class="recap-row"><span class="recap-ic">🕐</span><span class="recap-txt">à '+heure+'</span></div>';
 }
+// ===== Bulles de tutoriel : une par écran/étape, mémorisées par bénéficiaire (tutosVus) =====
+// Fermeture par appui n'importe où sur l'écran (ou sur "J'ai compris") ; le 🔊 relit sans fermer.
+const TUTOS={
+  accueil:{txt:"Voici vos rappels du jour. Le bouton vert en bas sert à en ajouter un."},
+  wiz1:{txt:"Appuyez sur ce que vous voulez vous rappeler."},
+  wiz2:{txt:"Appuyez sur le jour du rappel."},
+  wiz3:{txt:"Réglez l'heure, puis appuyez sur le bouton vert."},
+  wiz4:{txt:"Vérifiez, puis appuyez sur le bouton vert pour enregistrer."},
+  agenda:{txt:"Votre prochain rendez-vous est en haut. Appuyez sur Annuler pour annuler un rendez-vous."}
+};
+let tutoCleActive=null;
+function montrerTuto(cle,force){
+  if(!currentUser||currentUser.isAdmin)return;
+  if(!TUTOS[cle])return;
+  if(!force&&state.tutosVus&&state.tutosVus[cle])return;
+  tutoCleActive=cle;
+  document.getElementById('tuto-texte').textContent=TUTOS[cle].txt;
+  document.getElementById('tuto-zone').style.display='block';
+}
+function fermerTuto(){
+  if(!tutoCleActive)return;
+  const cle=tutoCleActive;tutoCleActive=null;
+  document.getElementById('tuto-zone').style.display='none';
+  if(!state.tutosVus)state.tutosVus={};
+  if(!state.tutosVus[cle]){
+    state.tutosVus[cle]=true;
+    if(currentUser&&!currentUser.isAdmin){try{db.collection('users').doc(currentUser.id).update({['tutosVus.'+cle]:true});}catch(e){}}
+  }
+}
+// Appui n'importe où = fermer la bulle (phase capture : n'empêche pas l'action dessous)
+document.addEventListener('click',e=>{
+  if(!tutoCleActive)return;
+  if(e.target.closest('#tuto-audio'))return; // le 🔊 relit sans fermer
+  if(e.target.closest('.btn-aide-tuto'))return; // le ? rouvre, ne ferme pas
+  fermerTuto();
+},true);
+document.getElementById('tuto-audio').addEventListener('click',()=>{if(tutoCleActive)speak(TUTOS[tutoCleActive].txt);});
+
 // ===== Nouveau parcours : thèmes → choix précis → quand → heure → récap (avance tout seul) =====
 const THEMES=[
   {emo:'💊',lbl:'Santé',choix:[
