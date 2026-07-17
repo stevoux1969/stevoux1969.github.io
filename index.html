@@ -3158,7 +3158,13 @@ document.getElementById('planning-refresh-btn').addEventListener('click',async()
   btn.style.opacity='1';btn.disabled=false;
 });
 
-document.getElementById('reminders-list').addEventListener('click',e=>{if(e.target.closest('a'))return;const checkId=e.target.closest('[data-check]')?.dataset.check;const card=e.target.closest('.card, .card-sonnerie, .card-rdv');if(checkId){toggleDone(checkId);e.stopPropagation();return;}if(card){const source=card.dataset.source;const id=card.dataset.id;if(source==='avp'){const avpItem=state.avpEvents.find(e=>('avp_'+e.date+'_'+e.time+'_'+e.title.slice(0,10))===id);if(avpItem)speak(`${avpItem.title}, à ${timeToSpeech(avpItem.time)}`);}else{const r=state.reminders.find(x=>x.id===id);if(r){speak(`${r.title}. ${r.note||''}`);if(r.source!=='atelier')openEdit(id);}}}});
+document.getElementById('reminders-list').addEventListener('click',e=>{if(e.target.closest('a'))return;const checkId=e.target.closest('[data-check]')?.dataset.check;const card=e.target.closest('.card, .card-sonnerie, .card-rdv');if(checkId){toggleDone(checkId);e.stopPropagation();return;}if(card){const source=card.dataset.source;const id=card.dataset.id;if(source==='avp'){const avpItem=state.avpEvents.find(e=>('avp_'+e.date+'_'+e.time+'_'+e.title.slice(0,10))===id);if(avpItem)speak(`${avpItem.title}, à ${timeToSpeech(avpItem.time)}`);}else{const r=state.reminders.find(x=>x.id===id);if(r){
+// Lecture complète : titre + jour + heure + remarque
+let quand,heure;
+if(r.recurrence==='daily'){quand='tous les jours';heure=r.time;}
+else{const d=r.eventDate||r.date;quand=d?formatRelativeDate(d):'';heure=r.eventTime||r.time;}
+speak(`${r.title}. ${quand}, à ${timeToSpeech(heure)}. ${r.note||''}`);
+if(r.source!=='atelier')openEdit(id);}}}});
 
 async function toggleDone(id){const r=state.reminders.find(x=>x.id===id);if(!r)return;if(!r.done)r.done={};const key=dateKey(getCurrentDate());r.done[key]=!r.done[key];await saveUserData();render();if(r.done[key])speak('Bravo !');}
 
