@@ -1876,12 +1876,10 @@ async function loadAndRenderStats(){
     if(!currentUser.isGreg){
       try{
         const desSnap=await db.collection('desinscriptions').get();
-        const limite30j=Date.now()-30*24*60*60*1000;
         const parPersonne={};
         desSnap.docs.forEach(doc=>{
           const d=doc.data();
           const t=d.createdAt||0;
-          if(t<limite30j)return; // 30 derniers jours
           const cle=d.userId||d.prenom||'?';
           if(!parPersonne[cle])parPersonne[cle]={prenom:d.prenom||'?',count:0,dernier:0,details:[]};
           parPersonne[cle].count++;
@@ -1889,9 +1887,9 @@ async function loadAndRenderStats(){
           parPersonne[cle].details.push({titre:d.atelierTitle||'',date:d.atelierDate||'',anim:d.animateur||'Steve',t});
         });
         const liste=Object.values(parPersonne).sort((a,b)=>b.count-a.count);
-        html+=`<div style="border-top:1.5px solid #e5e7eb;margin-bottom:12px;"></div><div class="stats-section" style="color:#d6443f;">🔄 Désinscriptions fréquentes</div><div style="font-size:0.6875rem;color:#5b6785;margin-bottom:10px;">30 derniers jours · Steve + Greg · vous seul voyez ceci</div>`;
+        html+=`<div style="border-top:1.5px solid #e5e7eb;margin-bottom:12px;"></div><div class="stats-section" style="color:#d6443f;">🔄 Désinscriptions fréquentes</div><div style="font-size:0.6875rem;color:#5b6785;margin-bottom:10px;">Depuis le début · Steve + Greg · vous seul voyez ceci</div>`;
         if(liste.length===0){
-          html+=`<div style="padding:18px;text-align:center;color:#5b6785;font-style:italic;font-size:0.8125rem;">Aucune désinscription sur la période 👍</div>`;
+          html+=`<div style="padding:18px;text-align:center;color:#5b6785;font-style:italic;font-size:0.8125rem;">Aucune désinscription enregistrée 👍</div>`;
         }else{
           html+=`<div style="border:0.5px solid var(--color-border-tertiary);border-radius:10px;overflow:hidden;margin-bottom:14px;">`;
           liste.forEach((p,idx)=>{
