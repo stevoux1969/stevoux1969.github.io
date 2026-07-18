@@ -584,6 +584,7 @@ input[type=text]:focus{outline:none;border-color:var(--primaire)}
     <div class="ligne-ajouts">
       <button class="btn-ajout" id="btn-detail" onclick="ouvrirDetailInput()">➕ Ajouter un détail</button>
       <button class="btn-ajout" id="btn-adresse" onclick="ouvrirAdresse()">📍 Ajouter une adresse</button>
+      <button class="btn-ajout" id="btn-trajet" onclick="ouvrirTrajet()">🚗 Temps de trajet</button>
     </div>
     <button class="btn-ecouter-recap" onclick="lireRecap()">🔊 Écouter</button>
     <button class="btn-valider" id="btn-enregistrer" onclick="enregistrer()">✓ Enregistrer</button>
@@ -890,7 +891,7 @@ function heureDepartTexte(t){
   const mn=minutesDepart(t);
   return String(Math.floor(mn/60)).padStart(2,'0')+'h'+String(mn%60).padStart(2,'0');
 }
-function aDepart(t){return !!(t.adresse&&t.trajet>0);}
+function aDepart(t){return (t.trajet||0)>0;}
 function prochaine(){return tachesDuJour().find(t=>!t.fait);}
 function tachesDuJour(){
   // Démo : tout s'affiche aujourd'hui, trié par heure
@@ -913,6 +914,7 @@ function renduAccueil(){
     hero.innerHTML=`
       <div class="hero-heure">${heureTexte(p)}</div>
       <div class="hero-dans">${texteDans(p)}</div>
+      ${aDepart(p)?`<div class="hero-dans" style="color:var(--encre-douce)">🚗 Départ : ${heureDepartTexte(p)}</div>`:''}
       <div class="hero-ligne">
         <div class="hero-icone">${p.emo}</div>
         <div>
@@ -946,7 +948,16 @@ function marquerFait(id){
 // Temps restant avant le rappel, en clair (contre la cécité temporelle)
 function texteDans(t){
   const mnt=new Date();
-  const d=t.h*60+t.m-(mnt.getHours()*60+mnt.getMinutes());
+  const now=mnt.getHours()*60+mnt.getMinutes();
+  // S'il y a un trajet, c'est le départ qui compte (l'action réelle)
+  if(aDepart(t)&&minutesDepart(t)>=now){
+    const d=minutesDepart(t)-now;
+    if(d<=0)return '🚗 Partez maintenant !';
+    if(d<60)return `🚗 Départ dans ${d} min`;
+    const h=Math.floor(d/60),m=d%60;
+    return `🚗 Départ dans ${h} h${m?' '+String(m).padStart(2,'0'):''}`;
+  }
+  const d=t.h*60+t.m-now;
   if(d<=0)return '⏳ C\'est maintenant !';
   if(d<60)return `⏳ Dans ${d} min`;
   const h=Math.floor(d/60),m=d%60;
@@ -1229,6 +1240,7 @@ function majRecap(){
     <div class="recap-quand">📅 ${texteQuand()}</div>`;
   document.getElementById('btn-maps').style.display=etat.adresse?'block':'none';
   document.getElementById('btn-detail').textContent=etat.note?'✏️ Modifier le détail':'➕ Ajouter un détail';
+  document.getElementById('btn-trajet').textContent=etat.trajet>0?`✏️ Trajet : ${etat.trajet} min`:'🚗 Temps de trajet';
   document.getElementById('btn-adresse').textContent=etat.adresse?'✏️ Modifier l\'adresse':'📍 Ajouter une adresse';
 }
 function ouvrirTitre(){
