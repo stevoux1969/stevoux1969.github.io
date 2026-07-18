@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prototype — Agenda qui sonne</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fond:#EDF0F7;--carte:#FFFFFF;--encre:#1C2752;--encre-douce:#5A6486;
+  --primaire:#3346B2;--vert:#1F9D55;--vert-fonce:#177A42;--bord:#DDE2F0;
+  --rouge:#C0392B;--orange:#D97B29;--jaune:#FFF6D9;--jaune-bord:#E8C84A;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:'Atkinson Hyperlegible',system-ui,sans-serif;
+  background:#C9CFDE;display:flex;justify-content:center;align-items:center;
+}
+.phone{
+  width:100%;max-width:420px;height:100dvh;max-height:900px;
+  background:var(--fond);overflow:hidden;
+  display:flex;flex-direction:column;position:relative;
+}
+@media(min-width:440px){
+  .phone{border-radius:28px;box-shadow:0 10px 40px rgba(28,39,82,.25);height:92dvh}
+}
+
+/* ===== Écrans ===== */
+.ecran{display:none;flex-direction:column;height:100%;overflow:hidden}
+.ecran.visible{display:flex}
+
+/* ===== En-têtes ===== */
+header{
+  background:var(--carte);padding:10px 12px;
+  display:flex;align-items:center;justify-content:space-between;gap:6px;
+  border-bottom:1px solid var(--bord);flex-shrink:0;
+}
+header h1{font-size:1.2rem;color:var(--encre);text-align:center;flex:1}
+.header-title{text-align:center;flex:1}
+.header-title h1{font-size:1.35rem}
+.header-title .date{font-size:.9rem;color:var(--encre-douce)}
+.btn-rond{
+  width:46px;height:46px;border-radius:14px;border:none;flex-shrink:0;
+  background:var(--fond);color:var(--primaire);
+  font-size:1.35rem;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.btn-rond.gris{color:var(--encre-douce)}
+
+/* ===== ACCUEIL ===== */
+.btn-ecouter{
+  margin:12px 16px 0;padding:15px;border:none;border-radius:16px;
+  background:var(--primaire);color:#fff;flex-shrink:0;
+  font-family:inherit;font-size:1.1rem;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  box-shadow:0 4px 12px rgba(51,70,178,.3);
+}
+.progression{margin:12px 16px 2px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.prog-points{display:flex;gap:8px}
+.prog-point{
+  width:24px;height:24px;border-radius:50%;
+  border:3px solid var(--bord);background:var(--carte);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;color:#fff;font-weight:700;
+}
+.prog-point.fait{background:var(--vert);border-color:var(--vert)}
+.prog-label{font-size:.95rem;font-weight:700;color:var(--encre-douce)}
+.section-titre{
+  margin:12px 16px 6px;font-size:.85rem;font-weight:700;flex-shrink:0;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--encre-douce);
+}
+.hero{
+  margin:0 16px;background:var(--carte);border-radius:22px;flex-shrink:0;
+  border:3px solid var(--primaire);
+  box-shadow:0 6px 20px rgba(51,70,178,.18);padding:18px;cursor:pointer;
+}
+.hero-heure{font-size:3rem;font-weight:700;color:var(--primaire);line-height:1}
+.hero-dans{font-size:1.1rem;font-weight:700;color:var(--orange);margin-top:4px}
+.hero-ligne{display:flex;align-items:center;gap:14px;margin-top:10px}
+.hero-icone{
+  font-size:2.6rem;width:70px;height:70px;border-radius:16px;
+  background:var(--fond);display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.hero-titre{font-size:1.35rem;font-weight:700;color:var(--encre);line-height:1.2}
+.hero-note{font-size:.95rem;color:var(--encre-douce);margin-top:3px}
+.hero-actions{display:flex;gap:10px;margin-top:14px}
+.btn-fait{
+  flex:1;padding:16px;border:none;border-radius:16px;
+  background:var(--vert);color:#fff;
+  font-family:inherit;font-size:1.15rem;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 12px rgba(31,157,85,.3);
+}
+.btn-fait:active{background:var(--vert-fonce)}
+.btn-hero-audio{
+  width:60px;border:none;border-radius:16px;background:var(--fond);
+  color:var(--primaire);font-size:1.5rem;cursor:pointer;
+}
+.bravo{
+  display:none;text-align:center;padding:26px 16px;margin:0 16px;flex-shrink:0;
+  background:var(--carte);border-radius:22px;border:3px solid var(--vert);
+}
+.bravo .emoji{font-size:2.6rem}
+.bravo .txt{font-size:1.25rem;font-weight:700;color:var(--vert);margin-top:6px}
+.accueil-scroll{flex:1;overflow-y:auto;padding-bottom:110px}
+.liste{padding:0 16px}
+.mini{
+  background:var(--carte);border-radius:16px;border:1px solid var(--bord);
+  padding:13px 14px;margin-bottom:10px;
+  display:flex;align-items:center;gap:12px;cursor:pointer;
+}
+.mini-heure{font-size:1.2rem;font-weight:700;color:var(--primaire);min-width:66px}
+.mini-icone{font-size:1.6rem}
+.mini-titre{font-size:1.05rem;font-weight:700;color:var(--encre);flex:1}
+.mini-chevron{color:var(--encre-douce);font-size:1.3rem}
+.mini.fait{opacity:.55}
+.mini.fait .mini-titre{text-decoration:line-through}
+.mini.fait .mini-heure{color:var(--vert)}
+.mini-check{color:var(--vert);font-size:1.3rem;font-weight:700}
+.zone-bas{
+  position:absolute;bottom:0;left:0;right:0;padding:12px 16px 18px;
+  background:linear-gradient(to top,var(--fond) 75%,transparent);
+}
+.btn-ajouter{
+  width:100%;padding:17px;border:none;border-radius:18px;
+  background:var(--vert);color:#fff;
+  font-family:inherit;font-size:1.2rem;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  box-shadow:0 6px 18px rgba(31,157,85,.35);
+}
+
+/* ===== WIZARD ===== */
+.prog-barre{display:flex;gap:6px;padding:10px 16px 0;flex-shrink:0}
+.prog-seg{flex:1;height:8px;border-radius:4px;background:var(--bord)}
+.prog-seg.actif{background:var(--primaire)}
+.ligne-retour{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 16px 0;flex-shrink:0;min-height:38px;
+}
+.prog-etape{font-size:.9rem;font-weight:700;color:var(--encre-douce)}
+.btn-retour{
+  border:none;background:none;color:var(--primaire);
+  font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;
+  padding:6px 10px;border-radius:10px;
+}
+.panneau{display:none;flex:1;overflow-y:auto;padding:4px 16px 20px;flex-direction:column}
+.panneau.visible{display:flex}
+.question{
+  font-size:1.4rem;font-weight:700;color:var(--encre);
+  margin:6px 0 14px;text-align:center;flex-shrink:0;
+}
+.grille{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.vignette{
+  background:var(--carte);border:2px solid var(--bord);border-radius:16px;
+  padding:14px 6px;text-align:center;cursor:pointer;font-family:inherit;
+}
+.vignette .emo{font-size:2.1rem;display:block}
+.vignette .lbl{font-size:.9rem;font-weight:700;color:var(--encre);display:block;margin-top:5px;line-height:1.15}
+.vignette:active{border-color:var(--primaire);background:#E8EBFA}
+.choix-col{display:flex;flex-direction:column;gap:10px}
+.btn-choix{
+  padding:16px;border:2px solid var(--bord);border-radius:18px;
+  background:var(--carte);font-family:inherit;font-size:1.2rem;font-weight:700;
+  color:var(--encre);cursor:pointer;text-align:center;
+}
+.btn-choix:active,.btn-choix.choisi{border-color:var(--primaire);background:#E8EBFA;color:var(--primaire)}
+.jours{display:none;justify-content:center;gap:6px;margin-top:14px}
+.jours.visible{display:flex}
+.jour{
+  width:44px;height:44px;border-radius:50%;border:2px solid var(--bord);
+  background:var(--carte);font-family:inherit;font-size:1rem;font-weight:700;
+  color:var(--encre);cursor:pointer;
+}
+.jour.coche{background:var(--primaire);border-color:var(--primaire);color:#fff}
+.heure-picker{
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  background:var(--carte);border:2px solid var(--bord);border-radius:22px;
+  padding:18px;margin-top:6px;
+}
+.heure-bloc{display:flex;flex-direction:column;align-items:center;gap:8px}
+.heure-val{font-size:3.2rem;font-weight:700;color:var(--primaire);min-width:92px;text-align:center}
+.heure-sep{font-size:3.2rem;font-weight:700;color:var(--encre-douce);padding-bottom:8px}
+.btn-step{
+  width:78px;height:54px;border:none;border-radius:14px;
+  background:var(--fond);color:var(--primaire);font-size:1.6rem;font-weight:700;cursor:pointer;
+}
+.btn-step:active{background:#DCE1F2}
+.btn-valider{
+  margin-top:14px;padding:17px;border:none;border-radius:18px;
+  background:var(--vert);color:#fff;width:100%;flex-shrink:0;
+  font-family:inherit;font-size:1.2rem;font-weight:700;cursor:pointer;
+  box-shadow:0 6px 18px rgba(31,157,85,.35);
+}
+.btn-valider:active{background:var(--vert-fonce)}
+.btn-valider.cache{display:none}
+.recap-carte{
+  background:var(--carte);border-radius:22px;border:3px solid var(--primaire);
+  box-shadow:0 6px 20px rgba(51,70,178,.18);padding:18px;
+}
+.recap-heure{font-size:2.8rem;font-weight:700;color:var(--primaire);line-height:1}
+.recap-ligne{display:flex;align-items:center;gap:14px;margin-top:10px}
+.recap-icone{
+  font-size:2.4rem;width:64px;height:64px;border-radius:16px;
+  background:var(--fond);display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.recap-titre{font-size:1.3rem;font-weight:700;color:var(--encre);line-height:1.2;cursor:pointer}
+.recap-titre .crayon{font-size:.95rem;color:var(--encre-douce)}
+.recap-note{font-size:.95rem;color:var(--encre-douce);margin-top:3px}
+.recap-adresse{
+  margin-top:10px;padding-top:10px;border-top:1px solid var(--bord);
+  font-size:1.05rem;font-weight:700;color:var(--encre);text-align:center;
+}
+.recap-quand{
+  margin-top:10px;padding-top:10px;border-top:1px solid var(--bord);
+  font-size:1rem;font-weight:700;color:var(--encre-douce);text-align:center;
+}
+.btn-maps{
+  margin-top:10px;width:100%;padding:13px;border:2px solid var(--primaire);
+  border-radius:16px;background:var(--carte);color:var(--primaire);
+  font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;display:none;
+}
+.ligne-ajouts{display:flex;gap:10px;margin-top:10px}
+.btn-ajout{
+  flex:1;padding:12px 8px;border:2px dashed var(--bord);border-radius:16px;
+  background:var(--carte);color:var(--primaire);
+  font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;
+}
+.btn-ecouter-recap{
+  margin-top:10px;width:100%;padding:13px;border:none;border-radius:16px;
+  background:var(--fond);color:var(--primaire);
+  font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;
+}
+.info-alarme{margin-top:10px;text-align:center;font-size:.9rem;color:var(--encre-douce)}
+
+/* ===== DÉTAIL D'UN RAPPEL ===== */
+.detail-corps{flex:1;overflow-y:auto;padding:14px 16px 20px}
+.ligne-btns-detail{display:flex;gap:10px;margin-top:12px}
+.btn-detail-modif{
+  flex:1;padding:15px;border:2px solid var(--primaire);border-radius:16px;
+  background:var(--carte);color:var(--primaire);
+  font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;
+}
+.btn-detail-suppr{
+  flex:1;padding:15px;border:2px solid var(--rouge);border-radius:16px;
+  background:var(--carte);color:var(--rouge);
+  font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;
+}
+
+/* ===== ALARME PLEIN ÉCRAN ===== */
+.ecran-alarme{
+  background:var(--primaire);color:#fff;align-items:center;
+  justify-content:center;text-align:center;padding:24px;
+}
+.ecran-alarme.depart{background:var(--orange)}
+.btn-alarme-maps{
+  padding:16px;border:none;border-radius:18px;background:#fff;
+  color:var(--orange);display:none;
+  font-family:inherit;font-size:1.2rem;font-weight:700;cursor:pointer;
+  box-shadow:0 6px 18px rgba(0,0,0,.2);
+}
+.grille-trajet{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.alarme-cloche{font-size:3rem;animation:sonne .5s infinite}
+@keyframes sonne{
+  0%,100%{transform:rotate(-15deg)}
+  50%{transform:rotate(15deg)}
+}
+.alarme-heure{font-size:4.2rem;font-weight:700;line-height:1;margin-top:10px}
+.alarme-icone{
+  font-size:3.4rem;width:96px;height:96px;border-radius:24px;margin:18px auto 0;
+  background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;
+}
+.alarme-titre{font-size:1.7rem;font-weight:700;margin-top:12px;line-height:1.25}
+.alarme-note{font-size:1.1rem;opacity:.85;margin-top:6px}
+.alarme-adresse{font-size:1.05rem;opacity:.85;margin-top:6px}
+.alarme-btns{width:100%;margin-top:26px;display:flex;flex-direction:column;gap:12px}
+.btn-alarme-fait{
+  padding:22px;border:none;border-radius:20px;background:var(--vert);color:#fff;
+  font-family:inherit;font-size:1.5rem;font-weight:700;cursor:pointer;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);
+}
+.btn-alarme-tard{
+  padding:16px;border:2px solid rgba(255,255,255,.5);border-radius:18px;
+  background:none;color:#fff;
+  font-family:inherit;font-size:1.15rem;font-weight:700;cursor:pointer;
+}
+.btn-alarme-tard:disabled{opacity:.4}
+.btn-alarme-audio{
+  padding:12px;border:none;border-radius:16px;background:rgba(255,255,255,.15);
+  color:#fff;font-size:1.4rem;cursor:pointer;width:64px;margin:0 auto;
+}
+.alarme-avert{font-size:.95rem;opacity:.85;margin-top:10px;min-height:22px}
+
+/* ===== RÉGLAGES ===== */
+.reglages-corps{flex:1;overflow-y:auto;padding:14px 16px 24px}
+.reglage{
+  background:var(--carte);border:1px solid var(--bord);border-radius:16px;
+  padding:15px;margin-bottom:10px;
+}
+.reglage-titre{font-size:1.05rem;font-weight:700;color:var(--encre);margin-bottom:10px}
+.reglage-opts{display:flex;gap:8px}
+.opt{
+  flex:1;padding:11px 4px;border:2px solid var(--bord);border-radius:12px;
+  background:var(--carte);font-family:inherit;font-size:.95rem;font-weight:700;
+  color:var(--encre);cursor:pointer;text-align:center;
+}
+.opt.choisi{border-color:var(--primaire);background:#E8EBFA;color:var(--primaire)}
+.btn-reglage-action{
+  width:100%;padding:15px;border:2px solid var(--primaire);border-radius:16px;
+  background:var(--carte);color:var(--primaire);margin-bottom:10px;
+  font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;
+}
+
+/* ===== PREMIÈRE OUVERTURE ===== */
+.premiere-corps{flex:1;overflow-y:auto;padding:20px 16px}
+.premiere-titre{font-size:1.5rem;font-weight:700;color:var(--encre);text-align:center;margin-bottom:6px}
+.premiere-sous{font-size:1.05rem;color:var(--encre-douce);text-align:center;margin-bottom:16px;line-height:1.4}
+.perm{
+  background:var(--carte);border:2px solid var(--bord);border-radius:18px;
+  padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;
+}
+.perm .p-emo{font-size:2rem;flex-shrink:0}
+.perm .p-txt{flex:1}
+.perm .p-titre{font-size:1.05rem;font-weight:700;color:var(--encre)}
+.perm .p-desc{font-size:.9rem;color:var(--encre-douce);line-height:1.3}
+.btn-perm{
+  padding:12px 14px;border:none;border-radius:14px;background:var(--primaire);color:#fff;
+  font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;flex-shrink:0;
+}
+.btn-perm.ok{background:var(--vert)}
+
+/* ===== Voiles + pop-ups ===== */
+.voile{
+  display:none;position:absolute;inset:0;background:rgba(28,39,82,.5);
+  align-items:flex-end;justify-content:center;z-index:10;
+}
+.voile.visible{display:flex}
+.voile.centre{align-items:center;padding:20px}
+.popup{
+  background:var(--carte);border-radius:26px 26px 0 0;padding:20px 16px 26px;
+  width:100%;max-height:80%;overflow-y:auto;
+}
+.voile.centre .popup{border-radius:26px}
+.popup-titre{font-size:1.3rem;font-weight:700;color:var(--encre);text-align:center;margin-bottom:14px}
+.popup-liste{display:flex;flex-direction:column;gap:8px}
+.btn-popup{
+  padding:15px;border:2px solid var(--bord);border-radius:16px;
+  background:var(--carte);font-family:inherit;font-size:1.1rem;font-weight:700;
+  color:var(--encre);cursor:pointer;text-align:left;
+  display:flex;align-items:center;gap:12px;
+}
+.btn-popup .p-emo{font-size:1.45rem}
+.btn-popup.autre{color:var(--primaire);border-style:dashed}
+.btn-popup-fermer{
+  margin-top:12px;width:100%;padding:15px;border:none;border-radius:16px;
+  background:var(--fond);color:var(--encre-douce);
+  font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;
+}
+.ligne-titre{display:flex;gap:8px}
+input[type=text]{
+  flex:1;padding:14px;border:2px solid var(--bord);border-radius:16px;
+  font-family:inherit;font-size:1.1rem;color:var(--encre);background:var(--carte);width:100%;
+}
+input[type=text]:focus{outline:none;border-color:var(--primaire)}
+.btn-micro{
+  width:58px;border:none;border-radius:16px;background:var(--primaire);
+  color:#fff;font-size:1.4rem;cursor:pointer;flex-shrink:0;
+}
+.btn-micro.ecoute{background:var(--rouge);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.6}}
+.btn-popup-valider{
+  margin-top:14px;width:100%;padding:15px;border:none;border-radius:16px;
+  background:var(--vert);color:#fff;
+  font-family:inherit;font-size:1.1rem;font-weight:700;cursor:pointer;
+}
+.modale-centre{background:var(--carte);border-radius:22px;padding:22px;width:100%;text-align:center}
+.modale-centre p{font-size:1.1rem;font-weight:700;color:var(--encre);margin-bottom:16px;line-height:1.4}
+.modale-centre .btns{display:flex;flex-direction:column;gap:10px}
+.btn-modale-rouge{
+  padding:15px;border:none;border-radius:16px;background:var(--rouge);color:#fff;
+  font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;
+}
+.btn-modale-orange{
+  padding:15px;border:none;border-radius:16px;background:var(--orange);color:#fff;
+  font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;
+}
+.btn-modale-bleu{
+  padding:15px;border:none;border-radius:16px;background:var(--primaire);color:#fff;
+  font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;
+}
+.btn-modale-gris{
+  padding:15px;border:2px solid var(--bord);border-radius:16px;
+  background:var(--carte);color:var(--encre);
+  font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;
+}
+
+/* ===== Calendrier ===== */
+.cal-entete{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-mois{font-size:1.2rem;font-weight:700;color:var(--encre);text-transform:capitalize}
+.cal-nav{
+  width:52px;height:52px;border:none;border-radius:14px;
+  background:var(--fond);color:var(--primaire);font-size:1.5rem;font-weight:700;cursor:pointer;
+}
+.cal-grille{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-jour-nom{text-align:center;font-size:.85rem;font-weight:700;color:var(--encre-douce);padding:4px 0}
+.cal-case{
+  aspect-ratio:1;border:none;border-radius:12px;background:var(--carte);
+  font-family:inherit;font-size:1.05rem;font-weight:700;color:var(--encre);cursor:pointer;
+}
+.cal-case:active{background:#E8EBFA}
+.cal-case.vide{background:none;cursor:default}
+.cal-case.passe{color:#B9BFD4;background:var(--fond);cursor:default}
+.cal-case.auj{border:2px solid var(--primaire);color:var(--primaire)}
+
+/* ===== Bulle d'aide ===== */
+.bulle-zone{display:none;position:absolute;inset:0;z-index:20;background:rgba(28,39,82,.25)}
+.bulle-zone.visible{display:block}
+.bulle{
+  position:absolute;left:16px;right:16px;
+  background:var(--jaune);border:3px solid var(--jaune-bord);
+  border-radius:20px;padding:16px;box-shadow:0 8px 24px rgba(28,39,82,.3);
+}
+.bulle::after{
+  content:'';position:absolute;width:22px;height:22px;
+  background:var(--jaune);border:3px solid var(--jaune-bord);
+  transform:rotate(45deg);left:50%;margin-left:-11px;
+}
+.bulle.pointe-haut::after{top:-13px;border-bottom:none;border-right:none}
+.bulle.pointe-bas::after{bottom:-13px;border-top:none;border-left:none}
+.bulle-texte{font-size:1.1rem;font-weight:700;color:var(--encre);line-height:1.35;text-align:center}
+.bulle-btns{display:flex;gap:10px;margin-top:14px}
+.bulle-ecouter{
+  width:62px;padding:12px;border:none;border-radius:14px;
+  background:var(--carte);color:var(--primaire);font-size:1.35rem;cursor:pointer;
+}
+.bulle-ok{
+  flex:1;padding:12px;border:none;border-radius:14px;
+  background:var(--primaire);color:#fff;
+  font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;
+}
+.fleche-guide{
+  position:absolute;font-size:2.5rem;z-index:21;transform:translateX(-50%);
+  animation:clignote .9s infinite;text-shadow:0 2px 8px rgba(28,39,82,.4);
+}
+@keyframes clignote{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+
+<!-- ============ PREMIÈRE OUVERTURE ============ -->
+<div class="ecran visible" id="ecran-premiere">
+  <header><div></div><h1>Bienvenue</h1><div></div></header>
+  <div class="premiere-corps">
+    <div class="premiere-titre">👋 Bonjour !</div>
+    <p class="premiere-sous">Pour que vos rappels sonnent bien fort au bon moment, votre téléphone va vous demander 3 autorisations.<br>Appuyez sur chaque bouton bleu.</p>
+    <div class="perm">
+      <div class="p-emo">⏰</div>
+      <div class="p-txt">
+        <div class="p-titre">Les alarmes</div>
+        <div class="p-desc">Pour sonner à l'heure exacte.</div>
+      </div>
+      <button class="btn-perm" id="perm-1" onclick="autoriser(1)">Autoriser</button>
+    </div>
+    <div class="perm">
+      <div class="p-emo">🔔</div>
+      <div class="p-txt">
+        <div class="p-titre">Les notifications</div>
+        <div class="p-desc">Pour afficher vos rappels.</div>
+      </div>
+      <button class="btn-perm" id="perm-2" onclick="autoriser(2)">Autoriser</button>
+    </div>
+    <div class="perm">
+      <div class="p-emo">🔋</div>
+      <div class="p-txt">
+        <div class="p-titre">La batterie</div>
+        <div class="p-desc">Pour que l'appli ne soit jamais endormie par le téléphone.</div>
+      </div>
+      <button class="btn-perm" id="perm-3" onclick="autoriser(3)">Autoriser</button>
+    </div>
+    <button class="btn-valider cache" id="btn-commencer" onclick="voir('accueil')">✓ C'est parti !</button>
+  </div>
+</div>
+
+<!-- ============ ACCUEIL ============ -->
+<div class="ecran" id="ecran-accueil">
+  <header>
+    <button class="btn-rond gris" onclick="voir('reglages')" aria-label="Réglages">⚙️</button>
+    <div class="header-title">
+      <h1>Aujourd'hui</h1>
+      <p class="date" id="accueil-date"></p>
+    </div>
+    <button class="btn-rond" onclick="alert('Navigation entre les jours : à venir (démo).')" aria-label="Jour suivant">›</button>
+  </header>
+  <div class="accueil-scroll">
+    <button class="btn-ecouter" onclick="ecouterJournee()">🔊 Écouter ma journée</button>
+    <div class="progression">
+      <div class="prog-points" id="prog-points"></div>
+      <div class="prog-label" id="prog-label"></div>
+    </div>
+    <div class="section-titre" id="titre-maintenant">Ma prochaine chose à faire</div>
+    <div class="hero" id="hero"></div>
+    <div class="bravo" id="bravo">
+      <div class="emoji">🎉</div>
+      <div class="txt">Bravo ! Tout est fait aujourd'hui.</div>
+    </div>
+    <div class="section-titre">Ensuite</div>
+    <div class="liste" id="liste"></div>
+  </div>
+  <div class="zone-bas">
+    <button class="btn-ajouter" onclick="ouvrirWizard()"><span style="font-size:1.5rem;line-height:1">＋</span> Ajouter</button>
+  </div>
+</div>
+
+<!-- ============ DÉTAIL D'UN RAPPEL ============ -->
+<div class="ecran" id="ecran-detail">
+  <header>
+    <button class="btn-rond" onclick="voir('accueil')" aria-label="Retour">‹</button>
+    <h1>Mon rappel</h1>
+    <div style="width:46px"></div>
+  </header>
+  <div class="detail-corps">
+    <div class="recap-carte" id="detail-carte"></div>
+    <button class="btn-maps" id="detail-maps" onclick="demanderMaps(true)">🗺️ Y aller (Google Maps)</button>
+    <button class="btn-ecouter-recap" onclick="lireDetail()">🔊 Écouter</button>
+    <div class="ligne-btns-detail">
+      <button class="btn-detail-modif" onclick="modifierRappel()">✏️ Modifier</button>
+      <button class="btn-detail-suppr" onclick="demanderSuppr()">🗑️ Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ WIZARD ============ -->
+<div class="ecran" id="ecran-wizard">
+  <header>
+    <button class="btn-rond gris" onclick="demanderAbandon()" aria-label="Annuler">✕</button>
+    <h1 id="wizard-titre">Nouveau rappel</h1>
+    <button class="btn-rond" onclick="montrerBulle(true)" aria-label="Aide">?</button>
+  </header>
+  <div class="prog-barre" id="prog-barre"></div>
+  <div class="ligne-retour">
+    <span class="prog-etape" id="prog-etape"></span>
+    <button class="btn-retour" id="btn-retour" onclick="retourWizard()">‹ Retour</button>
+  </div>
+
+  <div class="panneau" id="p1">
+    <div class="question">Quel est votre rappel ?</div>
+    <div class="grille" id="grille"></div>
+  </div>
+
+  <div class="panneau" id="p2">
+    <div class="question">C'est quand ?</div>
+    <div class="choix-col" id="choix-quand">
+      <button class="btn-choix" onclick="choisirQuand('aujourdhui')">Aujourd'hui</button>
+      <button class="btn-choix" onclick="choisirQuand('demain')">Demain</button>
+      <button class="btn-choix" onclick="ouvrirCalendrier()">Un autre jour…</button>
+      <button class="btn-choix" onclick="choisirQuand('touslesjours')">Tous les jours</button>
+      <button class="btn-choix" id="btn-certains" onclick="choisirQuand('certains')">Certains jours…</button>
+    </div>
+    <div class="jours" id="jours"></div>
+    <button class="btn-valider cache" id="btn-valider-jours" onclick="allerWizard(3)">✓ C'est bon</button>
+  </div>
+
+  <div class="panneau" id="p3">
+    <div class="question">À quelle heure ?</div>
+    <div class="heure-picker">
+      <div class="heure-bloc">
+        <button class="btn-step" onclick="changerHeure(1)">▲</button>
+        <div class="heure-val" id="val-h">09</div>
+        <button class="btn-step" onclick="changerHeure(-1)">▼</button>
+      </div>
+      <div class="heure-sep">h</div>
+      <div class="heure-bloc">
+        <button class="btn-step" onclick="changerMin(5)">▲</button>
+        <div class="heure-val" id="val-m">00</div>
+        <button class="btn-step" onclick="changerMin(-5)">▼</button>
+      </div>
+    </div>
+    <button class="btn-valider" onclick="validerHeure()">✓ C'est bon</button>
+  </div>
+
+  <div class="panneau" id="p4">
+    <div class="question">C'est bien ça ?</div>
+    <div class="recap-carte" id="recap"></div>
+    <button class="btn-maps" id="btn-maps" onclick="demanderMaps(false)">🗺️ Y aller (Google Maps)</button>
+    <div class="ligne-ajouts">
+      <button class="btn-ajout" id="btn-detail" onclick="ouvrirDetailInput()">➕ Ajouter un détail</button>
+      <button class="btn-ajout" id="btn-adresse" onclick="ouvrirAdresse()">📍 Ajouter une adresse</button>
+    </div>
+    <button class="btn-ecouter-recap" onclick="lireRecap()">🔊 Écouter</button>
+    <button class="btn-valider" id="btn-enregistrer" onclick="enregistrer()">✓ Enregistrer</button>
+    <div class="info-alarme">⏰ L'alarme sonnera toute seule. Rien d'autre à faire.</div>
+  </div>
+</div>
+
+<!-- ============ ALARME PLEIN ÉCRAN ============ -->
+<div class="ecran ecran-alarme" id="ecran-alarmefs">
+  <div class="alarme-cloche">🔔</div>
+  <div class="alarme-heure" id="al-heure"></div>
+  <div class="alarme-icone" id="al-icone"></div>
+  <div class="alarme-titre" id="al-titre"></div>
+  <div class="alarme-note" id="al-note"></div>
+  <div class="alarme-adresse" id="al-adresse"></div>
+  <div class="alarme-btns">
+    <button class="btn-alarme-maps" id="btn-alarme-maps" onclick="mapsDepuisAlarme()">🗺️ Y aller (Google Maps)</button>
+    <button class="btn-alarme-fait" id="btn-alarme-fait" onclick="alarmeFait()">✓ C'est fait</button>
+    <button class="btn-alarme-tard" id="btn-tard" onclick="alarmePlusTard()">⏰ Plus tard (dans 10 minutes)</button>
+    <button class="btn-alarme-audio" onclick="lireAlarme()">🔊</button>
+  </div>
+  <div class="alarme-avert" id="al-avert"></div>
+</div>
+
+<!-- ============ RÉGLAGES ============ -->
+<div class="ecran" id="ecran-reglages">
+  <header>
+    <button class="btn-rond" onclick="voir('accueil')" aria-label="Retour">‹</button>
+    <h1>Réglages</h1>
+    <div style="width:46px"></div>
+  </header>
+  <div class="reglages-corps">
+    <div class="reglage">
+      <div class="reglage-titre">🔔 Comment sonne l'alarme ?</div>
+      <div class="reglage-opts">
+        <button class="opt choisi" onclick="choisirOpt(this,'son')">Sonnerie forte</button>
+        <button class="opt" onclick="choisirOpt(this,'son')">Sonnerie douce</button>
+        <button class="opt" onclick="choisirOpt(this,'son')">Vibreur seul</button>
+      </div>
+    </div>
+    <div class="reglage">
+      <div class="reglage-titre">🔒 Sur l'écran verrouillé, afficher :</div>
+      <div class="reglage-opts">
+        <button class="opt choisi" onclick="choisirOpt(this,'verrou')">Tout le rappel</button>
+        <button class="opt" onclick="choisirOpt(this,'verrou')">Juste « Rappel »</button>
+      </div>
+      <div style="font-size:.85rem;color:var(--encre-douce);margin-top:8px">« Juste Rappel » : personne ne peut lire vos rappels sur votre écran.</div>
+    </div>
+    <div class="reglage">
+      <div class="reglage-titre">🔊 Lire ma journée à voix haute quand j'ouvre l'appli</div>
+      <div class="reglage-opts">
+        <button class="opt" onclick="choisirOpt(this,'auto')">Oui</button>
+        <button class="opt choisi" onclick="choisirOpt(this,'auto')">Non</button>
+      </div>
+    </div>
+    <div class="reglage">
+      <div class="reglage-titre">🔠 Taille du texte</div>
+      <div class="reglage-opts">
+        <button class="opt choisi" onclick="choisirOpt(this,'taille')">Normale</button>
+        <button class="opt" onclick="choisirOpt(this,'taille')">Grande</button>
+      </div>
+    </div>
+    <button class="btn-reglage-action" onclick="testerAlarme()">🔔 Tester l'alarme</button>
+    <button class="btn-reglage-action" onclick="testerAlarmeDepart()">🚗 Tester l'alarme de départ</button>
+    <button class="btn-reglage-action" onclick="alert('Le guide réapparaîtra sur chaque écran. (démo)');Object.keys(bullesVues).forEach(k=>delete bullesVues[k])">💬 Revoir le guide</button>
+  </div>
+</div>
+
+<!-- ===== Pop-ups du wizard ===== -->
+<div class="voile" id="voile-theme" onclick="if(event.target===this)fermer('voile-theme')">
+  <div class="popup">
+    <div class="popup-titre" id="popup-theme-titre"></div>
+    <div class="popup-liste" id="popup-theme-liste"></div>
+    <button class="btn-popup-fermer" onclick="fermer('voile-theme')">Fermer</button>
+  </div>
+</div>
+
+<div class="voile" id="voile-libre">
+  <div class="popup">
+    <div class="popup-titre">Écrivez votre rappel</div>
+    <div class="ligne-titre">
+      <input type="text" id="titre-libre" placeholder="Ex : arroser les plantes">
+      <button class="btn-micro" id="btn-micro" onclick="dicter()" aria-label="Dicter">🎤</button>
+    </div>
+    <button class="btn-popup-valider" onclick="validerLibre()">✓ C'est bon</button>
+    <button class="btn-popup-fermer" onclick="fermer('voile-libre')">Annuler</button>
+  </div>
+</div>
+
+<div class="voile" id="voile-cal" onclick="if(event.target===this)fermer('voile-cal')">
+  <div class="popup">
+    <div class="popup-titre">Quel jour ?</div>
+    <div class="cal-entete">
+      <button class="cal-nav" onclick="calNav(-1)">‹</button>
+      <div class="cal-mois" id="cal-mois"></div>
+      <button class="cal-nav" onclick="calNav(1)">›</button>
+    </div>
+    <div class="cal-grille" id="cal-grille"></div>
+    <button class="btn-popup-fermer" onclick="fermer('voile-cal')">Fermer</button>
+  </div>
+</div>
+
+<div class="voile" id="voile-detailtxt">
+  <div class="popup">
+    <div class="popup-titre">➕ Un détail</div>
+    <input type="text" id="inp-detail" placeholder="Ex : Dr Martin, apporter la carte vitale">
+    <button class="btn-popup-valider" onclick="validerDetailTxt()">✓ C'est bon</button>
+    <button class="btn-popup-fermer" onclick="fermer('voile-detailtxt')">Annuler</button>
+  </div>
+</div>
+
+<div class="voile" id="voile-adresse">
+  <div class="popup">
+    <div class="popup-titre">📍 L'adresse</div>
+    <input type="text" id="inp-adresse" placeholder="Ex : 12 rue Jeanne d'Arc, Rouen">
+    <button class="btn-popup-valider" onclick="validerAdresse()">✓ C'est bon</button>
+    <button class="btn-popup-fermer" onclick="fermer('voile-adresse')">Annuler</button>
+  </div>
+</div>
+
+<!-- Temps de trajet -->
+<div class="voile" id="voile-trajet">
+  <div class="popup">
+    <div class="popup-titre">🚗 Combien de temps pour y aller ?</div>
+    <div class="grille-trajet">
+      <button class="btn-choix" onclick="choisirTrajet(10)">10 min</button>
+      <button class="btn-choix" onclick="choisirTrajet(20)">20 min</button>
+      <button class="btn-choix" onclick="choisirTrajet(30)">30 min</button>
+      <button class="btn-choix" onclick="choisirTrajet(45)">45 min</button>
+      <button class="btn-choix" onclick="choisirTrajet(60)">1 h</button>
+      <button class="btn-choix" onclick="choisirTrajet(0)">Pas besoin</button>
+    </div>
+    <div style="font-size:.9rem;color:var(--encre-douce);text-align:center;margin-top:12px">L'appli sonnera quand il sera l'heure de partir (avec 10 min pour vous préparer).</div>
+  </div>
+</div>
+
+<div class="voile" id="voile-titre">
+  <div class="popup">
+    <div class="popup-titre">✏️ Le titre</div>
+    <input type="text" id="inp-titre">
+    <button class="btn-popup-valider" onclick="validerTitre()">✓ C'est bon</button>
+    <button class="btn-popup-fermer" onclick="fermer('voile-titre')">Annuler</button>
+  </div>
+</div>
+
+<!-- Heure déjà passée -->
+<div class="voile centre" id="voile-passe">
+  <div class="modale-centre">
+    <p>⚠️ Cette heure est déjà passée aujourd'hui.<br>L'alarme ne pourrait pas sonner.</p>
+    <div class="btns">
+      <button class="btn-modale-bleu" onclick="passePourDemain()">Mettre pour demain</button>
+      <button class="btn-modale-gris" onclick="fermer('voile-passe')">Changer l'heure</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Maps -->
+<div class="voile centre" id="voile-maps">
+  <div class="modale-centre">
+    <p>Vous allez ouvrir Google Maps.<br><br>Pour revenir ici, appuyez sur le bouton ‹ de votre téléphone.</p>
+    <div class="btns">
+      <button class="btn-modale-bleu" onclick="ouvrirMaps()">🗺️ Ouvrir Google Maps</button>
+      <button class="btn-modale-gris" onclick="fermer('voile-maps')">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- Suppression -->
+<div class="voile centre" id="voile-suppr">
+  <div class="modale-centre">
+    <p id="suppr-question">Supprimer ce rappel ?</p>
+    <div class="btns" id="suppr-btns"></div>
+  </div>
+</div>
+
+<!-- Abandon wizard -->
+<div class="voile centre" id="voile-abandon">
+  <div class="modale-centre">
+    <p>Abandonner ce rappel ?</p>
+    <div class="btns">
+      <button class="btn-modale-rouge" onclick="abandonner()">Oui, abandonner</button>
+      <button class="btn-modale-gris" onclick="fermer('voile-abandon')">Non, continuer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bulle d'aide -->
+<div class="bulle-zone" id="bulle-zone">
+  <div class="fleche-guide" id="fleche">👆</div>
+  <div class="bulle" id="bulle">
+    <div class="bulle-texte" id="bulle-texte"></div>
+    <div class="bulle-btns">
+      <button class="bulle-ecouter" onclick="lireBulle()">🔊</button>
+      <button class="bulle-ok" onclick="fermerBulle()">✓ J'ai compris</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* ================================================================
+   DONNÉES
+   ================================================================ */
+const themes=[
+  {emo:'💼',lbl:'Travail',choix:[
+    {emo:'👥',t:'Réunion'},
+    {emo:'⏳',t:'Deadline / rendu'},
+    {emo:'📌',t:'Rappeler un truc au boulot'},
+    {emo:'📞',t:'Appel pro'}
+  ]},
+  {emo:'💊',lbl:'Santé',choix:[
+    {emo:'💊',t:'Médicaments du matin'},
+    {emo:'💊',t:'Médicaments du midi'},
+    {emo:'💊',t:'Médicaments du soir'},
+    {emo:'👨‍⚕️',t:'Médecin'},
+    {emo:'🦷',t:'Dentiste'},
+    {emo:'💉',t:'Prise de sang'},
+    {emo:'🤸',t:'Kiné'}
+  ]},
+  {emo:'💶',lbl:'Argent / Papiers',choix:[
+    {emo:'💶',t:'Payer une facture'},
+    {emo:'📅',t:'Échéance / prélèvement'},
+    {emo:'🏦',t:'Banque'},
+    {emo:'📄',t:'Impôts'},
+    {emo:'✉️',t:'Poster un courrier'}
+  ]},
+  {emo:'👥',lbl:'Gens',choix:[
+    {emo:'🎂',t:'Anniversaire'},
+    {emo:'💬',t:'Rappeler quelque chose à quelqu\'un'},
+    {emo:'📞',t:'Appeler'},
+    {emo:'✂️',t:'Rendez-vous (coiffeur, etc.)'}
+  ]},
+  {emo:'🏠',lbl:'Maison',choix:[
+    {emo:'🧹',t:'Ménage'},
+    {emo:'🧺',t:'Lessive'},
+    {emo:'🗑️',t:'Sortir les poubelles'},
+    {emo:'🛒',t:'Courses'},
+    {emo:'🔧',t:'Réparation / technicien'}
+  ]},
+  {emo:'🏃',lbl:'Sport / Routine',choix:[
+    {emo:'🏋️',t:'Séance de sport'},
+    {emo:'🚶',t:'Marche'},
+    {emo:'💧',t:'Boire de l\'eau'},
+    {emo:'🔁',t:'Habitude à tenir'}
+  ]},
+  {emo:'🚗',lbl:'Déplacement',choix:[
+    {emo:'📍',t:'Rendez-vous avec adresse'},
+    {emo:'🚆',t:'Prendre le train / bus'},
+    {emo:'🚗',t:'Rendez-vous garage'}
+  ]},
+  {emo:'🎯',lbl:'Perso / Projet',choix:[
+    {emo:'🎯',t:'Tâche à avancer'},
+    {emo:'🎨',t:'Loisir / activité'},
+    {emo:'💡',t:'Ne pas oublier de…'}
+  ]},
+  {emo:'✏️',lbl:'Autre',choix:[]}
+];
+const nomsJours=['L','M','M','J','V','S','D'];
+const nomsComplets=['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+
+// Rappels de démonstration (en mémoire ; dans l'appli : stockage local)
+let prochainId=6;
+let taches=[
+  {id:1,h:9,m:0,emo:'💊',titre:'Médicaments du matin',note:'',adresse:'',quand:'touslesjours',joursCoches:null,fait:true},
+  {id:2,h:12,m:0,emo:'🍽️',titre:'Repas de midi',note:'',adresse:'',quand:'touslesjours',joursCoches:null,fait:true},
+  {id:3,h:14,m:0,emo:'👨‍⚕️',titre:'Rendez-vous médecin',note:'Dr Martin',adresse:'12 rue Jeanne d\'Arc, Rouen',trajet:20,quand:'aujourdhui',joursCoches:null,fait:false},
+  {id:4,h:17,m:30,emo:'📞',titre:'Appeler Maman',note:'',adresse:'',quand:'aujourdhui',joursCoches:null,fait:false},
+  {id:5,h:20,m:0,emo:'💊',titre:'Médicaments du soir',note:'',adresse:'',quand:'touslesjours',joursCoches:null,fait:false}
+];
+let tacheOuverte=null;   // rappel affiché dans l'écran détail
+let tacheAlarme=null;    // rappel qui sonne
+let editionId=null;      // si non nul : le wizard modifie ce rappel
+
+/* ================================================================
+   NAVIGATION ENTRE ÉCRANS
+   ================================================================ */
+function voir(nom){
+  document.querySelectorAll('.ecran').forEach(e=>e.classList.remove('visible'));
+  document.getElementById('ecran-'+nom).classList.add('visible');
+  if(nom==='accueil')renduAccueil();
+}
+
+/* ================================================================
+   PREMIÈRE OUVERTURE (permissions simulées)
+   ================================================================ */
+const permsOk={1:false,2:false,3:false};
+function autoriser(n){
+  // Dans l'appli : ouvre la vraie demande d'autorisation Android
+  permsOk[n]=true;
+  const b=document.getElementById('perm-'+n);
+  b.textContent='✓ Autorisé';b.classList.add('ok');
+  if(permsOk[1]&&permsOk[2]&&permsOk[3])
+    document.getElementById('btn-commencer').classList.remove('cache');
+}
+
+/* ================================================================
+   ACCUEIL
+   ================================================================ */
+function heureTexte(t){return String(t.h).padStart(2,'0')+'h'+String(t.m).padStart(2,'0');}
+// Heure de départ = heure du rappel - trajet - 10 min de préparation
+function minutesDepart(t){return t.h*60+t.m-(t.trajet||0)-10;}
+function heureDepartTexte(t){
+  const mn=minutesDepart(t);
+  return String(Math.floor(mn/60)).padStart(2,'0')+'h'+String(mn%60).padStart(2,'0');
+}
+function aDepart(t){return !!(t.adresse&&t.trajet>0);}
+function prochaine(){return tachesDuJour().find(t=>!t.fait);}
+function tachesDuJour(){
+  // Démo : tout s'affiche aujourd'hui, trié par heure
+  return [...taches].sort((a,b)=>(a.h*60+a.m)-(b.h*60+b.m));
+}
+function renduAccueil(){
+  document.getElementById('accueil-date').textContent=
+    new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  const lj=tachesDuJour();
+  const faits=lj.filter(t=>t.fait).length;
+  document.getElementById('prog-points').innerHTML=
+    lj.map(t=>`<div class="prog-point ${t.fait?'fait':''}">${t.fait?'✓':''}</div>`).join('');
+  document.getElementById('prog-label').textContent=`${faits} sur ${lj.length} fait${faits>1?'s':''}`;
+  const p=prochaine();
+  const hero=document.getElementById('hero');
+  const bravo=document.getElementById('bravo');
+  const titreM=document.getElementById('titre-maintenant');
+  if(p){
+    hero.style.display='block';bravo.style.display='none';titreM.style.display='block';
+    hero.innerHTML=`
+      <div class="hero-heure">${heureTexte(p)}</div>
+      <div class="hero-dans">${texteDans(p)}</div>
+      <div class="hero-ligne">
+        <div class="hero-icone">${p.emo}</div>
+        <div>
+          <div class="hero-titre">${p.titre}</div>
+          ${p.note?`<div class="hero-note">${p.note}</div>`:''}
+          ${p.adresse?`<div class="hero-note">📍 ${p.adresse}</div>`:''}
+        </div>
+      </div>
+      <div class="hero-actions">
+        <button class="btn-fait" onclick="event.stopPropagation();marquerFait(${p.id})">✓ C'est fait</button>
+        <button class="btn-hero-audio" onclick="event.stopPropagation();lire('À ${p.h} heures ${p.m||''}, ${p.titre}. ${p.note||''}')">🔊</button>
+      </div>`;
+    hero.onclick=()=>ouvrirDetail(p.id);
+  }else{
+    hero.style.display='none';titreM.style.display='none';bravo.style.display='block';
+  }
+  document.getElementById('liste').innerHTML=
+    lj.filter(t=>!p||t.id!==p.id).map(t=>`
+      <div class="mini ${t.fait?'fait':''}" onclick="ouvrirDetail(${t.id})">
+        <div class="mini-heure">${heureTexte(t)}</div>
+        <div class="mini-icone">${t.emo}</div>
+        <div class="mini-titre">${t.titre}</div>
+        ${t.fait?'<div class="mini-check">✓</div>':'<div class="mini-chevron">›</div>'}
+      </div>`).join('');
+}
+function marquerFait(id){
+  const t=taches.find(t=>t.id===id);
+  if(t)t.fait=true;
+  renduAccueil();
+}
+// Temps restant avant le rappel, en clair (contre la cécité temporelle)
+function texteDans(t){
+  const mnt=new Date();
+  const d=t.h*60+t.m-(mnt.getHours()*60+mnt.getMinutes());
+  if(d<=0)return '⏳ C\'est maintenant !';
+  if(d<60)return `⏳ Dans ${d} min`;
+  const h=Math.floor(d/60),m=d%60;
+  return `⏳ Dans ${h} h${m?' '+String(m).padStart(2,'0'):''}`;
+}
+// Rafraîchit l'accueil chaque minute pour que "Dans X min" reste juste
+setInterval(()=>{
+  if(document.getElementById('ecran-accueil').classList.contains('visible'))renduAccueil();
+},60000);
+function ecouterJournee(){
+  const restantes=tachesDuJour().filter(t=>!t.fait);
+  let msg='Bonjour. ';
+  if(restantes.length===0)msg+='Tout est fait aujourd\'hui. Bravo !';
+  else{
+    msg+=`Il vous reste ${restantes.length} chose${restantes.length>1?'s':''} à faire. `;
+    restantes.forEach(t=>{msg+=`À ${t.h} heures ${t.m||''}, ${t.titre}. `;});
+  }
+  lire(msg);
+}
+
+/* ================================================================
+   DÉTAIL D'UN RAPPEL (modifier / supprimer)
+   ================================================================ */
+function texteQuandTache(t){
+  if(t.quand==='aujourdhui')return "Aujourd'hui";
+  if(t.quand==='demain')return "Demain";
+  if(t.quand==='date'&&t.dateLibre)
+    return new Date(t.dateLibre).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  if(t.quand==='touslesjours')return 'Tous les jours';
+  if(t.quand==='certains'&&t.joursCoches)
+    return 'Tous les '+nomsComplets.filter((_,i)=>t.joursCoches[i]).join(', ');
+  return '';
+}
+function ouvrirDetail(id){
+  tacheOuverte=taches.find(t=>t.id===id);
+  if(!tacheOuverte)return;
+  const t=tacheOuverte;
+  document.getElementById('detail-carte').innerHTML=`
+    <div class="recap-heure">${heureTexte(t)}</div>
+    <div class="recap-ligne">
+      <div class="recap-icone">${t.emo}</div>
+      <div>
+        <div class="recap-titre" style="cursor:default">${t.titre}</div>
+        ${t.note?`<div class="recap-note">${t.note}</div>`:''}
+      </div>
+    </div>
+    ${t.adresse?`<div class="recap-adresse">📍 ${t.adresse}</div>`:''}
+    ${aDepart(t)?`<div class="recap-quand">🚗 Départ : ${heureDepartTexte(t)} (${t.trajet} min de trajet)</div>`:''}
+    <div class="recap-quand">📅 ${texteQuandTache(t)}</div>`;
+  document.getElementById('detail-maps').style.display=t.adresse?'block':'none';
+  voir('detail');
+}
+function lireDetail(){
+  const t=tacheOuverte;
+  let msg=`À ${t.h} heures ${t.m||''}. ${t.titre}.`;
+  if(t.note)msg+=` ${t.note}.`;
+  if(t.adresse)msg+=` Adresse : ${t.adresse}.`;
+  if(aDepart(t))msg+=` Départ à ${Math.floor(minutesDepart(t)/60)} heures ${minutesDepart(t)%60||''}.`;
+  lire(msg);
+}
+function modifierRappel(){
+  // Ouvre le wizard pré-rempli avec ce rappel
+  const t=tacheOuverte;
+  editionId=t.id;
+  Object.assign(etat,{
+    emo:t.emo,titre:t.titre,note:t.note,adresse:t.adresse,trajet:t.trajet||0,
+    quand:t.quand,dateLibre:t.dateLibre?new Date(t.dateLibre):null,
+    h:t.h,m:t.m,
+    joursCoches:t.joursCoches?[...t.joursCoches]:[false,false,false,false,false,false,false]
+  });
+  document.getElementById('wizard-titre').textContent='Modifier le rappel';
+  etape=4;majHeure();voir('wizard');afficherWizard(); // on arrive direct au récap
+}
+function demanderSuppr(){
+  const t=tacheOuverte;
+  const recurrent=(t.quand==='touslesjours'||t.quand==='certains');
+  const q=document.getElementById('suppr-question');
+  const btns=document.getElementById('suppr-btns');
+  if(recurrent){
+    // Rappel répété : juste aujourd'hui ou pour toujours ?
+    q.innerHTML='Ce rappel revient plusieurs fois.<br>Que voulez-vous supprimer ?';
+    btns.innerHTML=`
+      <button class="btn-modale-orange" onclick="supprimer('jour')">Juste celui d'aujourd'hui</button>
+      <button class="btn-modale-rouge" onclick="supprimer('tout')">Toutes les fois (pour toujours)</button>
+      <button class="btn-modale-gris" onclick="fermer('voile-suppr')">Annuler</button>`;
+  }else{
+    q.textContent='Supprimer ce rappel ?';
+    btns.innerHTML=`
+      <button class="btn-modale-rouge" onclick="supprimer('tout')">Oui, supprimer</button>
+      <button class="btn-modale-gris" onclick="fermer('voile-suppr')">Annuler</button>`;
+  }
+  document.getElementById('voile-suppr').classList.add('visible');
+}
+function supprimer(mode){
+  if(mode==='tout'){
+    taches=taches.filter(t=>t.id!==tacheOuverte.id);
+  }else{
+    // "Juste aujourd'hui" : on le marque fait pour aujourd'hui, il reviendra demain
+    tacheOuverte.fait=true;
+  }
+  fermer('voile-suppr');
+  voir('accueil');
+}
+
+/* ================================================================
+   WIZARD
+   ================================================================ */
+let etape=1;
+const etat={
+  emo:'✏️',titre:'',note:'',adresse:'',trajet:0,
+  quand:null,dateLibre:null,h:9,m:0,
+  joursCoches:[false,false,false,false,false,false,false]
+};
+function ouvrirWizard(){
+  editionId=null;
+  Object.assign(etat,{
+    emo:'✏️',titre:'',note:'',adresse:'',trajet:0,
+    quand:null,dateLibre:null,h:9,m:0,
+    joursCoches:[false,false,false,false,false,false,false]
+  });
+  document.getElementById('wizard-titre').textContent='Nouveau rappel';
+  document.getElementById('btn-certains').classList.remove('choisi');
+  document.getElementById('jours').classList.remove('visible');
+  document.getElementById('btn-valider-jours').classList.add('cache');
+  document.querySelectorAll('.jour').forEach(j=>j.classList.remove('coche'));
+  etape=1;majHeure();voir('wizard');afficherWizard();
+}
+document.getElementById('grille').innerHTML=themes.map((th,i)=>`
+  <button class="vignette" onclick="ouvrirTheme(${i})">
+    <span class="emo">${th.emo}</span><span class="lbl">${th.lbl}</span>
+  </button>`).join('');
+
+function ouvrirTheme(i){
+  const th=themes[i];
+  if(th.choix.length===0){
+    etat.emo='✏️';
+    document.getElementById('titre-libre').value='';
+    document.getElementById('voile-libre').classList.add('visible');
+    setTimeout(()=>document.getElementById('titre-libre').focus(),100);
+    return;
+  }
+  document.getElementById('popup-theme-titre').textContent=th.emo+' '+th.lbl;
+  document.getElementById('popup-theme-liste').innerHTML=
+    th.choix.map((c,j)=>`
+      <button class="btn-popup" onclick="choisirPrecis(${i},${j})">
+        <span class="p-emo">${c.emo}</span> ${c.t}
+      </button>`).join('')
+    +`<button class="btn-popup autre" onclick="autreDansTheme(${i})">✏️ Autre chose…</button>`;
+  document.getElementById('voile-theme').classList.add('visible');
+}
+function choisirPrecis(i,j){
+  const c=themes[i].choix[j];
+  etat.emo=c.emo;etat.titre=c.t;
+  fermer('voile-theme');
+  setTimeout(()=>allerWizard(2),200);
+}
+function autreDansTheme(i){
+  etat.emo=themes[i].emo;
+  fermer('voile-theme');
+  document.getElementById('titre-libre').value='';
+  document.getElementById('voile-libre').classList.add('visible');
+  setTimeout(()=>document.getElementById('titre-libre').focus(),100);
+}
+function validerLibre(){
+  const v=document.getElementById('titre-libre').value.trim();
+  if(!v){alert('Écrivez ou dictez votre rappel d\'abord.');return;}
+  etat.titre=v;
+  fermer('voile-libre');
+  setTimeout(()=>allerWizard(2),200);
+}
+function dicter(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const btn=document.getElementById('btn-micro');
+  if(!SR){alert('La dictée vocale n\'est pas disponible dans ce navigateur (elle le sera dans l\'appli).');return;}
+  const rec=new SR();
+  rec.lang='fr-FR';
+  btn.classList.add('ecoute');
+  rec.onresult=e=>{document.getElementById('titre-libre').value=e.results[0][0].transcript;};
+  rec.onend=()=>btn.classList.remove('ecoute');
+  rec.onerror=()=>btn.classList.remove('ecoute');
+  rec.start();
+}
+
+// --- Étape 2 : quand ---
+document.getElementById('jours').innerHTML=nomsJours.map((n,i)=>`
+  <button class="jour" id="jr-${i}" onclick="cocherJour(${i})">${n}</button>`).join('');
+function choisirQuand(q){
+  etat.quand=q;
+  if(q==='certains'){
+    document.getElementById('btn-certains').classList.add('choisi');
+    document.getElementById('jours').classList.add('visible');
+    majValiderJours();
+    return;
+  }
+  document.getElementById('btn-certains').classList.remove('choisi');
+  document.getElementById('jours').classList.remove('visible');
+  document.getElementById('btn-valider-jours').classList.add('cache');
+  setTimeout(()=>allerWizard(3),200);
+}
+function cocherJour(i){
+  etat.joursCoches[i]=!etat.joursCoches[i];
+  document.getElementById('jr-'+i).classList.toggle('coche',etat.joursCoches[i]);
+  majValiderJours();
+}
+function majValiderJours(){
+  document.getElementById('btn-valider-jours').classList.toggle('cache',!etat.joursCoches.some(j=>j));
+}
+
+// --- Calendrier ---
+let calDate=new Date();
+function ouvrirCalendrier(){
+  calDate=new Date();calRendu();
+  document.getElementById('voile-cal').classList.add('visible');
+}
+function calNav(d){calDate.setMonth(calDate.getMonth()+d);calRendu();}
+function calRendu(){
+  const annee=calDate.getFullYear(),mois=calDate.getMonth();
+  document.getElementById('cal-mois').textContent=
+    calDate.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  const auj=new Date();auj.setHours(0,0,0,0);
+  const decalage=(new Date(annee,mois,1).getDay()+6)%7; // lundi=0
+  const nbJours=new Date(annee,mois+1,0).getDate();
+  let html=nomsJours.map(n=>`<div class="cal-jour-nom">${n}</div>`).join('');
+  for(let i=0;i<decalage;i++)html+=`<div class="cal-case vide"></div>`;
+  for(let j=1;j<=nbJours;j++){
+    const d=new Date(annee,mois,j);
+    const passe=d<auj;
+    const estAuj=d.getTime()===auj.getTime();
+    html+=`<button class="cal-case ${passe?'passe':''} ${estAuj?'auj':''}"
+      ${passe?'':`onclick="choisirDateCal(${annee},${mois},${j})"`}>${j}</button>`;
+  }
+  document.getElementById('cal-grille').innerHTML=html;
+}
+function choisirDateCal(a,m,j){
+  etat.quand='date';
+  etat.dateLibre=new Date(a,m,j);
+  fermer('voile-cal');
+  setTimeout(()=>allerWizard(3),200);
+}
+
+// --- Étape 3 : heure + garde "heure passée" ---
+function changerHeure(d){etat.h=(etat.h+d+24)%24;majHeure();}
+function changerMin(d){etat.m=(etat.m+d+60)%60;majHeure();}
+function majHeure(){
+  document.getElementById('val-h').textContent=String(etat.h).padStart(2,'0');
+  document.getElementById('val-m').textContent=String(etat.m).padStart(2,'0');
+}
+function validerHeure(){
+  // Si "Aujourd'hui" et heure déjà passée → on prévient
+  if(etat.quand==='aujourdhui'){
+    const mnt=new Date();
+    if(etat.h*60+etat.m<=mnt.getHours()*60+mnt.getMinutes()){
+      document.getElementById('voile-passe').classList.add('visible');
+      return;
+    }
+  }
+  allerWizard(4);
+}
+function passePourDemain(){
+  etat.quand='demain';
+  fermer('voile-passe');
+  allerWizard(4);
+}
+
+// --- Étape 4 : récap ---
+function texteQuand(){return texteQuandTache(etat);}
+function texteHeureEtat(){return String(etat.h).padStart(2,'0')+'h'+String(etat.m).padStart(2,'0');}
+function majRecap(){
+  document.getElementById('recap').innerHTML=`
+    <div class="recap-heure">${texteHeureEtat()}</div>
+    <div class="recap-ligne">
+      <div class="recap-icone">${etat.emo}</div>
+      <div>
+        <div class="recap-titre" onclick="ouvrirTitre()">${etat.titre||'(sans titre)'} <span class="crayon">✏️</span></div>
+        ${etat.note?`<div class="recap-note">${etat.note}</div>`:''}
+      </div>
+    </div>
+    ${etat.adresse?`<div class="recap-adresse">📍 ${etat.adresse}</div>`:''}
+    ${aDepart(etat)?`<div class="recap-quand" onclick="ouvrirTrajet()" style="cursor:pointer">🚗 Départ : ${heureDepartTexte(etat)} (${etat.trajet} min de trajet) <span class="crayon">✏️</span></div>`:''}
+    <div class="recap-quand">📅 ${texteQuand()}</div>`;
+  document.getElementById('btn-maps').style.display=etat.adresse?'block':'none';
+  document.getElementById('btn-detail').textContent=etat.note?'✏️ Modifier le détail':'➕ Ajouter un détail';
+  document.getElementById('btn-adresse').textContent=etat.adresse?'✏️ Modifier l\'adresse':'📍 Ajouter une adresse';
+}
+function ouvrirTitre(){
+  document.getElementById('inp-titre').value=etat.titre;
+  document.getElementById('voile-titre').classList.add('visible');
+}
+function validerTitre(){
+  const v=document.getElementById('inp-titre').value.trim();
+  if(v)etat.titre=v;
+  fermer('voile-titre');majRecap();
+}
+function ouvrirDetailInput(){
+  document.getElementById('inp-detail').value=etat.note;
+  document.getElementById('voile-detailtxt').classList.add('visible');
+}
+function validerDetailTxt(){
+  etat.note=document.getElementById('inp-detail').value.trim();
+  fermer('voile-detailtxt');majRecap();
+}
+function ouvrirAdresse(){
+  document.getElementById('inp-adresse').value=etat.adresse;
+  document.getElementById('voile-adresse').classList.add('visible');
+}
+function validerAdresse(){
+  const avant=etat.adresse;
+  etat.adresse=document.getElementById('inp-adresse').value.trim();
+  fermer('voile-adresse');majRecap();
+  // Nouvelle adresse → on demande le temps de trajet
+  if(etat.adresse&&etat.adresse!==avant)setTimeout(ouvrirTrajet,250);
+}
+function ouvrirTrajet(){document.getElementById('voile-trajet').classList.add('visible');}
+function choisirTrajet(n){
+  etat.trajet=n;
+  fermer('voile-trajet');majRecap();
+}
+let mapsDepuisDetail=false;
+function demanderMaps(depuisDetail){
+  mapsDepuisDetail=depuisDetail;
+  document.getElementById('voile-maps').classList.add('visible');
+}
+function ouvrirMaps(){
+  fermer('voile-maps');
+  const adr=mapsDepuisDetail?tacheOuverte.adresse:etat.adresse;
+  window.open('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(adr),'_blank');
+}
+function lireRecap(){
+  let msg=`${texteQuand()}, à ${etat.h} heures ${etat.m||''}. ${etat.titre}.`;
+  if(etat.note)msg+=` ${etat.note}.`;
+  if(etat.adresse)msg+=` Adresse : ${etat.adresse}.`;
+  lire(msg);
+}
+function enregistrer(){
+  if(editionId){
+    // Modification d'un rappel existant
+    const t=taches.find(t=>t.id===editionId);
+    Object.assign(t,{
+      emo:etat.emo,titre:etat.titre,note:etat.note,adresse:etat.adresse,trajet:etat.trajet,
+      quand:etat.quand,dateLibre:etat.dateLibre,h:etat.h,m:etat.m,
+      joursCoches:etat.quand==='certains'?[...etat.joursCoches]:null
+    });
+  }else{
+    taches.push({
+      id:prochainId++,
+      emo:etat.emo,titre:etat.titre,note:etat.note,adresse:etat.adresse,trajet:etat.trajet,
+      quand:etat.quand,dateLibre:etat.dateLibre,h:etat.h,m:etat.m,
+      joursCoches:etat.quand==='certains'?[...etat.joursCoches]:null,
+      fait:false
+    });
+  }
+  voir('accueil');
+}
+
+// --- Navigation wizard ---
+function allerWizard(n){etape=n;afficherWizard();}
+function retourWizard(){if(etape>1){etape--;afficherWizard();}}
+function afficherWizard(){
+  for(let i=1;i<=4;i++)document.getElementById('p'+i).classList.toggle('visible',i===etape);
+  document.getElementById('prog-barre').innerHTML=
+    [1,2,3,4].map(i=>`<div class="prog-seg ${i<=etape?'actif':''}"></div>`).join('');
+  document.getElementById('prog-etape').textContent=`Étape ${etape} sur 4`;
+  document.getElementById('btn-retour').style.visibility=(etape===1)?'hidden':'visible';
+  if(etape===4)majRecap();
+  setTimeout(()=>montrerBulle(false),80);
+}
+function demanderAbandon(){document.getElementById('voile-abandon').classList.add('visible');}
+function abandonner(){fermer('voile-abandon');voir('accueil');}
+
+/* ================================================================
+   ALARME PLEIN ÉCRAN
+   Règles : son en boucle jusqu'à réponse.
+   "Plus tard" = re-sonne 10 min après (démo : 15 secondes), 3 fois maximum.
+   Après 3 reports, l'alarme reste jusqu'à "C'est fait".
+   ================================================================ */
+let nbReports=0;
+let sonInterval=null;
+let ctxAudio=null;
+let alarmeModeDepart=false; // true = alarme "C'est l'heure de partir"
+
+function bip(){
+  // Deux bips aigus, façon réveil (Web Audio, pour la démo navigateur)
+  try{
+    if(!ctxAudio)ctxAudio=new (window.AudioContext||window.webkitAudioContext)();
+    [0,0.25].forEach(t=>{
+      const o=ctxAudio.createOscillator(),g=ctxAudio.createGain();
+      o.connect(g);g.connect(ctxAudio.destination);
+      o.frequency.value=880;o.type='square';
+      g.gain.setValueAtTime(0.12,ctxAudio.currentTime+t);
+      g.gain.exponentialRampToValueAtTime(0.001,ctxAudio.currentTime+t+0.2);
+      o.start(ctxAudio.currentTime+t);o.stop(ctxAudio.currentTime+t+0.22);
+    });
+    if(navigator.vibrate)navigator.vibrate([300,150,300]);
+  }catch(e){}
+}
+function testerAlarme(){
+  // Depuis les réglages : fait sonner le prochain rappel non fait (ou un exemple)
+  const t=prochaine()||taches[0]||{h:9,m:0,emo:'🔔',titre:'Exemple de rappel',note:'',adresse:''};
+  declencherAlarme(t,false);
+}
+function testerAlarmeDepart(){
+  // Depuis les réglages : fait sonner l'alarme de départ d'un rappel avec trajet (ou un exemple)
+  const t=taches.find(t=>aDepart(t)&&!t.fait)
+    ||{h:14,m:0,emo:'👨‍⚕️',titre:'Rendez-vous médecin',note:'',adresse:'12 rue Jeanne d\'Arc, Rouen',trajet:20};
+  declencherAlarme(t,true);
+}
+function declencherAlarme(t,depart){
+  tacheAlarme=t;nbReports=0;alarmeModeDepart=!!depart;
+  majEcranAlarme();
+  voir('alarmefs');
+  bip();
+  sonInterval=setInterval(bip,1200);
+  // Lecture vocale automatique du rappel
+  setTimeout(()=>lireAlarme(),600);
+}
+function majEcranAlarme(){
+  const t=tacheAlarme;
+  document.getElementById('ecran-alarmefs').classList.toggle('depart',alarmeModeDepart);
+  if(alarmeModeDepart){
+    document.getElementById('al-heure').textContent=heureDepartTexte(t);
+    document.getElementById('al-icone').textContent='🚗';
+    document.getElementById('al-titre').textContent='C\'est l\'heure de partir !';
+    document.getElementById('al-note').textContent=`${t.titre} à ${heureTexte(t)}`;
+    document.getElementById('btn-alarme-fait').textContent='✓ Je pars';
+  }else{
+    document.getElementById('al-heure').textContent=heureTexte(t);
+    document.getElementById('al-icone').textContent=t.emo;
+    document.getElementById('al-titre').textContent=t.titre;
+    document.getElementById('al-note').textContent=t.note||'';
+    document.getElementById('btn-alarme-fait').textContent='✓ C\'est fait';
+  }
+  document.getElementById('al-adresse').textContent=t.adresse?('📍 '+t.adresse):'';
+  document.getElementById('btn-alarme-maps').style.display=(alarmeModeDepart&&t.adresse)?'block':'none';
+  const btnTard=document.getElementById('btn-tard');
+  const avert=document.getElementById('al-avert');
+  if(nbReports===0){btnTard.disabled=false;btnTard.textContent='⏰ Plus tard (dans 10 minutes)';avert.textContent='';}
+  else if(nbReports<3){btnTard.disabled=false;btnTard.textContent=`⏰ Plus tard (${3-nbReports} fois encore)`;avert.textContent=`Déjà reporté ${nbReports} fois.`;}
+  else{btnTard.disabled=true;btnTard.textContent='⏰ Plus tard';avert.textContent='Trop de reports : l\'alarme restera jusqu\'à « C\'est fait ».';}
+}
+function stopperSon(){
+  if(sonInterval){clearInterval(sonInterval);sonInterval=null;}
+  if(navigator.vibrate)navigator.vibrate(0);
+  try{speechSynthesis.cancel();}catch(e){}
+}
+function alarmeFait(){
+  stopperSon();
+  // En mode départ, le rappel n'est pas "fait" : le rendez-vous reste à venir
+  if(!alarmeModeDepart&&tacheAlarme.id)marquerFait(tacheAlarme.id);
+  voir('accueil');
+}
+function mapsDepuisAlarme(){
+  stopperSon();
+  window.open('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(tacheAlarme.adresse),'_blank');
+  voir('accueil');
+}
+function alarmePlusTard(){
+  stopperSon();
+  nbReports++;
+  voir('accueil');
+  // Démo : re-sonne au bout de 15 secondes (dans l'appli : 10 minutes)
+  alert('D\'accord. L\'alarme re-sonnera dans 10 minutes.\n(Démo : dans 15 secondes.)');
+  setTimeout(()=>{
+    majEcranAlarme();
+    voir('alarmefs');
+    bip();sonInterval=setInterval(bip,1200);
+    setTimeout(()=>lireAlarme(),600);
+  },15000);
+}
+function lireAlarme(){
+  const t=tacheAlarme;
+  let msg;
+  if(alarmeModeDepart){
+    msg=`C'est l'heure de partir ! ${t.titre} à ${t.h} heures ${t.m||''}.`;
+    if(t.adresse)msg+=` Adresse : ${t.adresse}.`;
+  }else{
+    msg=`Il est ${t.h} heures ${t.m||''}. ${t.titre}.`;
+    if(t.note)msg+=` ${t.note}.`;
+  }
+  lire(msg);
+}
+
+/* ================================================================
+   RÉGLAGES
+   ================================================================ */
+function choisirOpt(btn,groupe){
+  // Un seul choix actif par ligne de réglage
+  btn.parentElement.querySelectorAll('.opt').forEach(o=>o.classList.remove('choisi'));
+  btn.classList.add('choisi');
+}
+
+/* ================================================================
+   BULLES D'AIDE (guide première fois)
+   Dans la vraie appli, "déjà vu" sera mémorisé sur le téléphone.
+   ================================================================ */
+const bullesVues={};
+const bulles={
+  1:{txt:'Appuyez sur ce que vous voulez vous rappeler.',cible:'#grille',dir:'dessous'},
+  2:{txt:'Appuyez sur le bon moment.',cible:'#choix-quand',dir:'dessous'},
+  3:{txt:'Réglez l\'heure avec les flèches ▲ et ▼, puis appuyez sur le bouton vert.',cible:'.heure-picker',dir:'dessous'},
+  4:{txt:'Vérifiez que tout est bon, puis appuyez sur le bouton vert pour enregistrer.',cible:'#btn-enregistrer',dir:'dessus'}
+};
+function montrerBulle(force){
+  if(!document.getElementById('ecran-wizard').classList.contains('visible'))return;
+  if(!force&&bullesVues[etape])return;
+  const cfg=bulles[etape];
+  const cible=document.querySelector(cfg.cible);
+  if(!cible)return;
+  const ph=document.getElementById('phone').getBoundingClientRect();
+  const r=cible.getBoundingClientRect();
+  const cx=r.left-ph.left+r.width/2;
+  const fleche=document.getElementById('fleche');
+  const bulle=document.getElementById('bulle');
+  document.getElementById('bulle-texte').textContent=cfg.txt;
+  bulle.classList.remove('pointe-haut','pointe-bas');
+  fleche.style.left=cx+'px';
+  if(cfg.dir==='dessous'){
+    const y=Math.min(r.bottom-ph.top-8,ph.height-220);
+    fleche.textContent='👆';
+    fleche.style.top=(y-36)+'px';
+    bulle.style.top=(y+16)+'px';bulle.style.bottom='';
+    bulle.classList.add('pointe-haut');
+  }else{
+    const y=r.top-ph.top;
+    fleche.textContent='👇';
+    fleche.style.top=(y-52)+'px';
+    bulle.style.bottom=(ph.height-y+62)+'px';bulle.style.top='';
+    bulle.classList.add('pointe-bas');
+  }
+  document.getElementById('bulle-zone').classList.add('visible');
+}
+function fermerBulle(){
+  bullesVues[etape]=true;
+  document.getElementById('bulle-zone').classList.remove('visible');
+  try{speechSynthesis.cancel();}catch(e){}
+}
+function lireBulle(){lire(bulles[etape].txt);}
+
+/* ================================================================
+   DIVERS
+   ================================================================ */
+function lire(texte){
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(texte);
+    u.lang='fr-FR';u.rate=0.95;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function fermer(id){document.getElementById(id).classList.remove('visible');}
+
+renduAccueil();
+</script>
+</body>
+</html>
