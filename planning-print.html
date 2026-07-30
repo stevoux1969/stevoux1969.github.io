@@ -23,7 +23,8 @@
   .entete{background:var(--bleu);color:white;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
   .entete-titre{font-size:20px;font-weight:800;letter-spacing:0.3px;}
   .entete-sous{font-size:11px;opacity:0.9;margin-top:2px;}
-  .entete-animateur{background:rgba(255,255,255,0.2);padding:8px 18px;border-radius:20px;font-size:13px;font-weight:800;}
+  .entete-animateur{background:rgba(255,255,255,0.2);padding:7px 18px;border-radius:18px;font-size:13px;font-weight:800;text-align:center;line-height:1.25;}
+  .entete-tel{font-size:12px;font-weight:700;opacity:0.95;margin-top:1px;letter-spacing:0.3px;}
   .grille{padding:10px;}
   .semaine{margin-bottom:8px;}
   .semaine-titre{display:none;}
@@ -60,7 +61,8 @@
     .entete{padding:8px 14px;}
     .entete-titre{font-size:15px;}
     .entete-sous{font-size:9px;}
-    .entete-animateur{font-size:10px;padding:4px 10px;}
+    .entete-animateur{font-size:10px;padding:4px 12px;}
+    .entete-tel{font-size:9px;}
     .grille{padding:6px;}
     .semaine{margin-bottom:5px;page-break-inside:avoid;break-inside:avoid;}
     .jours-row{gap:4px;}
@@ -123,6 +125,12 @@ const CSV_URLS = {
     juillet:    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTVyCIhrJco50xlQhnGeJ3wDpxvu-h5ZzHyN5Z-GrHb8ekkwtobyKxFFXevdr1QDDk4wZo-mtyirB8y/pub?gid=1325311580&single=true&output=csv",
     aout:       "https://docs.google.com/spreadsheets/d/e/2PACX-1vTVyCIhrJco50xlQhnGeJ3wDpxvu-h5ZzHyN5Z-GrHb8ekkwtobyKxFFXevdr1QDDk4wZo-mtyirB8y/pub?gid=803134238&single=true&output=csv",
   }
+};
+
+// Numeros de telephone affiches dans l'en-tete de chaque planning
+const TELS = {
+  steve: "06 46 63 24 30",
+  greg:  "06 66 60 16 19"
 };
 
 // Noms des mois
@@ -308,7 +316,7 @@ function construirePlanning(csv, animateur, mois) {
         <div class="entete-titre">📅 Planning ${titreMois}</div>
         <div class="entete-sous">Service AVP — Aide à la Vie Partagée | AVP La Clé, Rouen</div>
       </div>
-      <div class="entete-animateur">👤 Animateur : ${nomAnimateur}</div>
+      <div class="entete-animateur">👤 Animateur : ${nomAnimateur}${TELS[animateur] ? `<div class="entete-tel">📞 ${TELS[animateur]}</div>` : ''}</div>
     </div>
     <div class="grille">`;
 
