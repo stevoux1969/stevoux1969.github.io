@@ -62,7 +62,7 @@
     .entete-sous{font-size:9px;}
     .entete-animateur{font-size:10px;padding:4px 10px;}
     .grille{padding:6px;}
-    .semaine{margin-bottom:5px;}
+    .semaine{margin-bottom:5px;page-break-inside:avoid;break-inside:avoid;}
     .jours-row{gap:4px;}
     .jour{min-height:50px;}
     .jour-header{padding:3px 2px;}
@@ -84,6 +84,7 @@
   <select id="selectAnimateur" onchange="chargerPlanning()">
     <option value="steve">📋 Planning Steve</option>
     <option value="greg">📋 Planning Greg</option>
+    <option value="both">📄 Les deux (recto-verso)</option>
   </select>
 
   <label>Mois :</label>
@@ -131,30 +132,36 @@ const MOIS_NOMS = {
   octobre: "Octobre 2026", novembre: "Novembre 2026", decembre: "Décembre 2026"
 };
 
+// Recupere un CSV : proxy CORS d'abord, puis tentative directe
+function fetchCSV(url) {
+  const proxy = "https://corsproxy.io/?" + encodeURIComponent(url);
+  return fetch(proxy).then(r => r.text()).catch(() => fetch(url).then(r => r.text()));
+}
+
 function chargerPlanning() {
   const animateur = document.getElementById('selectAnimateur').value;
   const mois = document.getElementById('selectMois').value;
-  const url = (CSV_URLS[animateur] || {})[mois];
+  const cible = document.getElementById('contenu');
 
-  if (!url) {
-    document.getElementById('contenu').innerHTML = `<div class="erreur">⚠️ Ce planning n'est pas encore disponible.<br>Ajoute l'URL CSV pour ${animateur} / ${mois}.</div>`;
+  // "both" = Steve puis Greg, dans cet ordre (page 1 / page 2)
+  const liste = (animateur === 'both') ? ['steve', 'greg'] : [animateur];
+
+  const manquants = liste.filter(a => !(CSV_URLS[a] || {})[mois]);
+  if (manquants.length) {
+    cible.innerHTML = `<div class="erreur">⚠️ Ce planning n'est pas encore disponible.<br>Ajoute l'URL CSV pour ${manquants.join(' et ')} / ${mois}.</div>`;
     return;
   }
 
-  document.getElementById('contenu').innerHTML = '<div class="loading">⏳ Chargement...</div>';
+  cible.innerHTML = '<div class="loading">⏳ Chargement...</div>';
 
-  const proxy = "https://corsproxy.io/?" + encodeURIComponent(url);
-  fetch(proxy)
-    .then(r => r.text())
-    .then(csv => afficherPlanning(csv, animateur, mois))
+  Promise.all(liste.map(a => fetchCSV(CSV_URLS[a][mois]).then(csv => ({ a: a, csv: csv }))))
+    .then(res => {
+      let html = '';
+      res.forEach(x => { html += construirePlanning(x.csv, x.a, mois); });
+      cible.innerHTML = html;
+    })
     .catch(() => {
-      // Fallback direct
-      fetch(url)
-        .then(r => r.text())
-        .then(csv => afficherPlanning(csv, animateur, mois))
-        .catch(e => {
-          document.getElementById('contenu').innerHTML = `<div class="erreur">❌ Impossible de charger le planning.<br>Vérifie que le Sheet est bien publié en CSV.</div>`;
-        });
+      cible.innerHTML = `<div class="erreur">❌ Impossible de charger le planning.<br>Vérifie que le Sheet est bien publié en CSV.</div>`;
     });
 }
 
@@ -181,11 +188,12 @@ function nettoyer(txt) {
   return txt.trim();
 }
 
-function afficherPlanning(csv, animateur, mois) {
+// Construit et RETOURNE le HTML d'un planning (permet d'en empiler plusieurs)
+function construirePlanning(csv, animateur, mois) {
   const rows = parseCSV(csv);
+  const nomErr = (animateur === 'steve') ? 'Steve' : 'Greg';
   if (!rows || rows.length < 3) {
-    document.getElementById('contenu').innerHTML = '<div class="erreur">❌ Données CSV vides ou incorrectes.</div>';
-    return;
+    return '<div class="erreur">❌ Données CSV vides ou incorrectes (planning ' + nomErr + ').</div>';
   }
 
   // Titre depuis ligne 1
@@ -362,7 +370,7 @@ function afficherPlanning(csv, animateur, mois) {
     </div>
   </div>`;
 
-  document.getElementById('contenu').innerHTML = html;
+  return html;
 }
 
 // Chargement initial
