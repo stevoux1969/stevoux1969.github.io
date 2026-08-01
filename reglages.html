@@ -45,6 +45,7 @@
 </head>
 <body>
 <header>
+  <button onclick="retour()" style="background:rgba(255,255,255,0.18);border:none;color:#fff;font-family:inherit;font-size:1rem;font-weight:700;padding:8px 14px;border-radius:12px;margin-bottom:12px;cursor:pointer;">← Retour</button>
   <h1>🔔 Réglages des alarmes</h1>
   <p>Pour que les rappels sonnent, même téléphone verrouillé.</p>
 </header>
@@ -116,6 +117,8 @@ const NATIF = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
 const Alarme = (CAP && CAP.Plugins && CAP.Plugins.Alarme) ? CAP.Plugins.Alarme : null;
 
 const ID_TEST = 990001; // id réservé au test (hors espace des hash de rappels)
+
+function retour(){ if(history.length>1){ history.back(); } else { window.location.href = './'; } }
 
 const LIBELLES = {
   alarmesExactes: { nom:"Alarmes exactes", desc:"Sonner à l'heure pile (obligatoire)", methode:"demanderAlarmesExactes" },
