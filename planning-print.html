@@ -36,12 +36,13 @@
   .jour-vide .jour-header{background:#c3cdd9;}
   .jour-ferie .jour-header{background:#8a93a0;}
   .creneaux{padding:6px;display:flex;flex-direction:column;gap:6px;}
-  .creneau{border-radius:9px;padding:7px 6px;text-align:center;background:#f3f5f8;}
+  .creneau{border-radius:9px;padding:7px 8px;background:#f3f5f8;display:flex;align-items:center;gap:8px;text-align:left;}
+  .creneau-txt{flex:1;min-width:0;}
   .creneau-matin{background:var(--matin);}
   .creneau-aprem{background:var(--aprem);}
-  .creneau-ico{font-size:24px;line-height:1;}
-  .creneau-titre{font-size:13px;font-weight:800;color:var(--texte);margin-top:3px;line-height:1.15;}
-  .creneau-heure{font-size:12px;font-weight:800;margin-top:2px;color:#555;}
+  .creneau-ico{font-size:26px;line-height:1;flex:0 0 auto;}
+  .creneau-titre{font-size:14px;font-weight:800;color:var(--texte);line-height:1.15;}
+  .creneau-heure{font-size:13px;font-weight:800;margin-top:1px;color:#555;}
   .creneau-matin .creneau-heure{color:var(--matin-txt);}
   .creneau-aprem .creneau-heure{color:var(--aprem-txt);}
   .jour-vide .creneaux,.jour-ferie .creneaux{display:flex;align-items:center;justify-content:center;min-height:60px;color:#aaa;font-size:11px;font-style:italic;}
@@ -53,29 +54,32 @@
   .loading{text-align:center;padding:60px;font-size:16px;color:var(--bleu);font-weight:600;}
   .erreur{text-align:center;padding:40px;color:#c0392b;font-weight:600;}
   @media print{
-    @page{size:A4 landscape;margin:5mm;}
+    @page{size:A4 landscape;margin:4mm;}
+    /* Force l'impression des fonds colores (Chrome les supprime par defaut) */
+    *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
     body{background:white;padding:0;margin:0;}
     .controls{display:none !important;}
     .page{box-shadow:none;border-radius:0;margin:0;width:277mm;max-width:277mm;page-break-after:always;font-size:10px;}
     .page:last-child{page-break-after:avoid;}
-    .entete{padding:8px 14px;}
-    .entete-titre{font-size:15px;}
-    .entete-sous{font-size:9px;}
-    .entete-animateur{font-size:10px;padding:4px 12px;}
-    .entete-tel{font-size:9px;}
-    .grille{padding:6px;}
+    .entete{padding:7px 14px;}
+    .entete-titre{font-size:19px;}
+    .entete-sous{font-size:10px;}
+    .entete-animateur{font-size:12px;padding:4px 12px;}
+    .entete-tel{font-size:11px;}
+    .grille{padding:5px;}
     .semaine{margin-bottom:5px;page-break-inside:avoid;break-inside:avoid;}
     .jours-row{gap:4px;}
-    .jour{min-height:50px;}
+    .jour{min-height:48px;}
     .jour-header{padding:3px 2px;}
-    .jour-nom{font-size:9px;}
-    .jour-num{font-size:16px;}
+    .jour-nom{font-size:11px;}
+    .jour-num{font-size:20px;}
     .creneaux{padding:3px;gap:3px;}
-    .creneau{padding:4px 4px;}
-    .creneau-ico{font-size:18px;}
-    .creneau-titre{font-size:10px;line-height:1.2;}
-    .creneau-heure{font-size:9px;}
-    .pied{padding:4px 14px;font-size:8px;}
+    .creneau{padding:4px 5px;gap:5px;}
+    .creneau-ico{font-size:20px;line-height:1;}
+    .creneau-titre{font-size:14px;line-height:1.1;}
+    .creneau-heure{font-size:12.5px;}
+    .jour-vide .creneaux,.jour-ferie .creneaux{font-size:9px;min-height:0;}
+    .pied{padding:4px 14px;font-size:9px;}
   }
 </style>
 </head>
@@ -358,9 +362,11 @@ function construirePlanning(csv, animateur, mois) {
             const _e = extraireEmoji(c.activite);
             const _cls = /matin/i.test(c.periode) ? 'creneau creneau-matin' : (/apr/i.test(c.periode) ? 'creneau creneau-aprem' : 'creneau');
             html += `<div class="${_cls}">
+              <div class="creneau-txt">
+                <div class="creneau-titre">${_e.titre}</div>
+                ${c.heure ? `<div class="creneau-heure">${c.heure}</div>` : ''}
+              </div>
               <div class="creneau-ico">${_e.emoji || '📋'}</div>
-              <div class="creneau-titre">${_e.titre}</div>
-              ${c.heure ? `<div class="creneau-heure">${c.heure}</div>` : ''}
             </div>`;
           });
         }
