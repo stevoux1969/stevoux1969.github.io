@@ -589,6 +589,7 @@
 
 <div id="main-screen" class="screen">
   <header class="header">
+    <button id="btn-reglages" class="btn-arrow" aria-label="Réglages">⚙️</button>
     <button id="prev-day" class="btn-arrow" aria-label="Jour précédent">‹</button>
     <div class="header-title">
       <h1 id="day-title">Aujourd'hui</h1>
@@ -3229,6 +3230,7 @@ function renderPlanningInner(content,events){const seen=new Set();const uniqueEv
       content.querySelectorAll('[data-speech]').forEach(card=>{card.addEventListener('click',(ev)=>{if(ev.target.closest('[data-nospeech]'))return;speak(card.dataset.speech||'');});});
       content.querySelectorAll('.pcard-btn:not(.complet)').forEach(btn=>{btn.addEventListener('click',async e=>{e.stopPropagation();if(btn.disabled)return;const ev={date:btn.dataset.edate,time:btn.dataset.etime,title:btn.dataset.etitle,icon:btn.dataset.eicon};const limite=btn.dataset.elimite?parseInt(btn.dataset.elimite):null;const anim=btn.dataset.eanim||'Steve';const ek=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');const dejaInscrit=isInscrit(ek);if(dejaInscrit){await demanderDesinscription(ev,ek,anim,content,events);return;}if(!dejaInscrit&&limite!==null){btn.disabled=true;btn.textContent='⏳ Vérification...';const freshInscriptions=await loadAllInscriptions();const currentCount=(freshInscriptions[ek]||[]).length;if(currentCount>=limite){showConfirm({icon:'😔',title:'Atelier complet',text:`Désolé, les ${limite} places pour "${ev.title}" viennent d'être prises.`,okText:'OK',hideCancel:true});state.allInscriptions=freshInscriptions;renderPlanningInner(content,events);return;}}await toggleInscription(ev);state.allInscriptions=await loadAllInscriptions();renderPlanningInner(content,events);});});}
 
+document.getElementById('btn-reglages').addEventListener('click',()=>{window.location.href='reglages.html';});
 document.getElementById('prev-day').addEventListener('click',()=>{state.dayOffset--;render();});
 document.getElementById('next-day').addEventListener('click',()=>{state.dayOffset++;render();});
 document.getElementById('back-to-today').addEventListener('click',()=>{state.dayOffset=0;render();});
