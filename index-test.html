@@ -1274,11 +1274,11 @@ function _atMs(y,mo,d,hhmm){const p=(hhmm||'00:00').split(':');return new Date(y
 // Règle : ACTION (daily) → heure en alarme ; RDV (once/atelier) → anticipations en alarme, heure de l'événement en notification.
 function _occurrencesNatives(){
   const now=Date.now(),horizon=now+14*86400000,occ=[],seen={};
-  function add(cle,r,momentMs,mode){
+  function add(cle,r,momentMs,mode,anticip){
     if(momentMs<=now+30000||momentMs>horizon)return;
     const id=_hashAlarme(cle);
     if(seen[id])return; seen[id]=1;
-    occ.push({id:id,titre:r.title||'Rappel',note:r.note||'',emoji:(typeof r.icon==='string'?r.icon:''),moment:momentMs,mode:mode});
+    occ.push({id:id,titre:r.title||'Rappel',note:r.note||'',emoji:(typeof r.icon==='string'?r.icon:''),moment:momentMs,mode:mode,anticip:!!anticip});
   }
   (state.reminders||[]).forEach(r=>{
     try{
@@ -1295,11 +1295,11 @@ function _occurrencesNatives(){
         if(!r.date||!r.time)return;
         const evMs=new Date(r.date+'T'+r.time+':00').getTime();
         const veille=new Date(evMs);veille.setDate(veille.getDate()-1);veille.setHours(15,0,0,0);
-        add(r.id+'|veille',r,veille.getTime(),'alarme');
-        add(r.id+'|2h',r,evMs-2*3600000,'alarme');
+        add(r.id+'|veille',r,veille.getTime(),'alarme',true);
+        add(r.id+'|2h',r,evMs-2*3600000,'alarme',true);
         add(r.id+'|ev',r,evMs,'notification');
       }else{
-        if(r.date&&r.time)add(r.id+'|sonn',r,new Date(r.date+'T'+r.time+':00').getTime(),'alarme');
+        if(r.date&&r.time)add(r.id+'|sonn',r,new Date(r.date+'T'+r.time+':00').getTime(),'alarme',!!(r.eventDate&&r.eventTime));
         if(r.eventDate&&r.eventTime)add('ev|'+r.eventDate+'|'+r.eventTime+'|'+(r.title||''),r,new Date(r.eventDate+'T'+r.eventTime+':00').getTime(),'notification');
       }
     }catch(e){console.error('[Alarme] occurrence',e);}
@@ -1319,7 +1319,7 @@ function _sousTitreWidget(ms){
 }
 function _prochainPourWidget(){
   const occ=_occurrencesNatives();let best=null;
-  for(const o of occ){if(!best||o.moment<best.moment)best=o;}
+  for(const o of occ){if(o.anticip)continue;if(!best||o.moment<best.moment)best=o;}
   return best?{emoji:best.emoji||'',titre:best.titre||'',sousTitre:_sousTitreWidget(best.moment)}:null;
 }
 async function majWidgetAVP(){
