@@ -1307,24 +1307,19 @@ function _occurrencesNatives(){
   return occ;
 }
 
-// --- Widget écran d'accueil : alimente le « prochain rappel » depuis les occurrences natives ---
-// Réutilise _occurrencesNatives() pour rester synchro avec les alarmes. Le natif ne fait qu'afficher.
-function _sousTitreWidget(ms){
-  const j=new Date(ms),now=new Date(),demain=new Date(now);demain.setDate(now.getDate()+1);
-  const quand=dateKey(j)===dateKey(now)?"Aujourd'hui"
-    :(dateKey(j)===dateKey(demain)?'Demain'
-    :j.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}));
-  const h=j.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}).replace(':','h');
-  return quand+' à '+h;
-}
-function _prochainPourWidget(){
-  const occ=_occurrencesNatives();let best=null;
-  for(const o of occ){if(o.anticip)continue;if(!best||o.moment<best.moment)best=o;}
-  return best?{emoji:best.emoji||'',titre:best.titre||'',sousTitre:_sousTitreWidget(best.moment)}:null;
+// --- Widget écran d'accueil : envoie la LISTE des prochains rappels au natif ---
+// Réutilise _occurrencesNatives() pour rester synchro avec les alarmes. Le natif
+// filtre les rappels déjà passés, en affiche 3 et met l'heure en forme lui-même.
+function _listePourWidget(){
+  return _occurrencesNatives()
+    .filter(o=>!o.anticip)                        // ignore veille / 2h avant / alerte de départ
+    .sort((a,b)=>a.moment-b.moment)
+    .slice(0,8)                                   // marge : le natif en montre 3 et avance sur les suivants
+    .map(o=>({emoji:o.emoji||'',titre:o.titre||'',moment:o.moment}));
 }
 async function majWidgetAVP(){
   const A=_alarmePlugin();if(!A||!A.majWidget)return;   // repli : anciennes APK / web, ne rien casser
-  try{const p=_prochainPourWidget();await A.majWidget(p||{});}catch(e){}  // {} => état neutre « Aucun rappel »
+  try{await A.majWidget({data:JSON.stringify(_listePourWidget())});}catch(e){}
 }
 
 // Planifie de VRAIES notifications Android pour les 14 prochains jours (rappels même app fermée)
