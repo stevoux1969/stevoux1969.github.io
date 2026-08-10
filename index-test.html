@@ -216,6 +216,16 @@
     .card-note { font-size:0.875rem; color: #48547a; margin-top: 3px; }
     .card-note a { color: #2c3e91; text-decoration: underline; }
     .card-eventtime { display: inline-block; font-size:0.875rem; font-weight: 700; color: #2c3e91; background: #eef1fb; padding: 3px 8px; border-radius: 8px; margin-top: 6px; }
+    /* Adresse, temps de trajet et bouton Google Maps */
+    .trajet-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .trajet-btn { padding:12px 6px; border:2px solid #d5dcea; border-radius:12px; background:#fff; font-size:0.95rem; font-weight:600; color:#2c3e91; cursor:pointer; font-family:inherit; }
+    .trajet-btn.active { border-color:#2c3e91; background:#eef1fb; }
+    .trajet-note { font-size:0.78rem; color:#5b6785; margin-top:10px; line-height:1.4; }
+    .input-adresse { width:100%; padding:12px; border-radius:10px; border:1.5px solid #d1d5db; font-size:0.9375rem; box-sizing:border-box; font-family:inherit; }
+    .rdv-trajet { padding:10px 14px 0; }
+    .rdv-meta { display:flex; align-items:center; gap:6px; font-size:0.9rem; color:#3d4a66; padding:5px 0; }
+    .rdv-meta-sub { color:#8892a8; }
+    .btn-maps { display:block; text-align:center; padding:12px; border-radius:12px; font-weight:700; margin-top:8px; border:2px solid #2c3e91; color:#2c3e91; background:#fff; text-decoration:none; }
     .rec-badge { display: inline-block; margin-top: 6px; font-size:0.6875rem; font-weight: 600; color: #8a5a00; background: #ffeecb; padding: 3px 8px; border-radius: 6px; }
     .avp-badge { display: inline-block; margin-top: 6px; font-size:0.6875rem; font-weight: 600; color: #0a6e31; background: #dcfce7; padding: 3px 8px; border-radius: 6px; }
     .card-check { font-size:1.75rem; color: #22a559; margin-left: 4px; }
@@ -741,6 +751,22 @@
           <button type="button" class="sonnerie-choix-btn" data-choix="veille">🔔 La veille à 15h00</button>
           <button type="button" class="sonnerie-choix-btn" data-choix="les2">🔔 Les deux</button>
         </div>
+      </details>
+      <details class="wizard-fold" id="adresse-rdv-details" style="display:none">
+        <summary>📍 Ajouter une adresse <span class="wizard-fold-hint">(facultatif)</span></summary>
+        <input id="f-address" class="input-adresse" placeholder="Ex : 32 rue du Moulin, Maromme" maxlength="120" style="margin-top:10px">
+      </details>
+      <details class="wizard-fold" id="trajet-rdv-details" style="display:none">
+        <summary>🚗 Temps de trajet <span class="wizard-fold-hint">(ajoute une alarme au départ)</span></summary>
+        <div id="trajet-choix" class="trajet-grid" style="margin-top:10px">
+          <button type="button" class="trajet-btn" data-min="10">10 min</button>
+          <button type="button" class="trajet-btn" data-min="20">20 min</button>
+          <button type="button" class="trajet-btn" data-min="30">30 min</button>
+          <button type="button" class="trajet-btn" data-min="45">45 min</button>
+          <button type="button" class="trajet-btn" data-min="60">1 h</button>
+          <button type="button" class="trajet-btn active" data-min="0">Pas besoin</button>
+        </div>
+        <p class="trajet-note">L'alarme sonnera à l'heure de partir (avec 10 min de préparation en plus), en gardant les rappels d'anticipation.</p>
       </details>
       <details class="wizard-fold">
         <summary>✏️ Ajouter une remarque <span class="wizard-fold-hint">(facultatif)</span></summary>
@@ -1272,6 +1298,69 @@ function _hashAlarme(s){let h=5381;for(let i=0;i<s.length;i++){h=((h<<5)+h+s.cha
 function _atMs(y,mo,d,hhmm){const p=(hhmm||'00:00').split(':');return new Date(y,mo,d,parseInt(p[0])||0,parseInt(p[1])||0,0).getTime();}
 // Toutes les occurrences natives des 14 prochains jours, avec leur mode ('alarme' | 'notification').
 // Règle : ACTION (daily) → heure en alarme ; RDV (once/atelier) → anticipations en alarme, heure de l'événement en notification.
+// --- Adresse, temps de trajet et bouton Google Maps (reprise de Sonneo) ---
+let wizTravel=0;   // temps de trajet choisi dans l'assistant (minutes ; 0 = pas besoin)
+
+// Adresse + trajet + heure de départ d'un rappel (perso OU atelier), ou null.
+// Départ = heure de l'événement − temps de trajet − 10 min de préparation.
+function _trajetInfo(r){
+  if(!r)return null;
+  let adresse='',travelMin=0,eventMs=0;
+  if(r.source==='atelier'){
+    if(!r.date||!r.time)return null;
+    eventMs=new Date(r.date+'T'+r.time+':00').getTime();
+    const dsc=(state.atelierDescs&&state.atelierDescs[descKey(r.title,r.date,r.time)])||null;
+    adresse=(dsc&&dsc.adresse)?dsc.adresse:(r.note||'');
+    travelMin=(dsc&&dsc.travelMin)?dsc.travelMin:0;
+  }else if(r.recurrence==='once'&&r.eventDate&&r.eventTime){
+    eventMs=new Date(r.eventDate+'T'+r.eventTime+':00').getTime();
+    adresse=r.address||'';
+    travelMin=r.travelMin||0;
+  }else{
+    return null;
+  }
+  if(!adresse&&travelMin<=0)return null;
+  const mapQuery=adresse?encodeURIComponent(adresse):'';
+  const departMs=travelMin>0?eventMs-(travelMin+10)*60000:0;
+  return {adresse,mapQuery,travelMin,eventMs,departMs};
+}
+
+function _txtDepart(ms){
+  const diff=ms-Date.now();
+  if(diff<=0)return "🚗 C'est l'heure de partir";
+  const totalMin=Math.round(diff/60000);
+  const h=Math.floor(totalMin/60),m=totalMin%60;
+  return h>0?`🚗 Départ dans ${h} h ${pad2(m)}`:`🚗 Départ dans ${m} min`;
+}
+// Rafraîchit tous les comptes à rebours affichés (sans re-render complet).
+function _majComptesARebours(){
+  document.querySelectorAll('[data-depart]').forEach(el=>{
+    const ms=parseInt(el.getAttribute('data-depart'),10);
+    if(ms)el.textContent=_txtDepart(ms);
+  });
+}
+setInterval(_majComptesARebours,30000);
+
+// Sélection d'un temps de trajet (assistant #trajet-choix OU admin #desc-trajet).
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.trajet-btn');if(!b)return;
+  const cont=b.parentElement;
+  cont.querySelectorAll('.trajet-btn').forEach(x=>x.classList.toggle('active',x===b));
+  if(cont.id==='trajet-choix')wizTravel=parseInt(b.dataset.min,10)||0;
+});
+
+// Charge les descriptions d'ateliers (adresse + trajet) pour l'écran d'accueil,
+// puis rafraîchit l'affichage et (si natif) reprogramme les alarmes de départ.
+async function chargerAtelierDescs(){
+  try{
+    const snap=await db.collection('atelier_descriptions').get();
+    state.atelierDescs={};
+    snap.docs.forEach(d=>{state.atelierDescs[d.id]={...d.data()};});
+    render();
+    if(typeof estNatifAlarme==='function'&&estNatifAlarme()){try{await planifierNotifsSysteme();}catch(e){}}
+  }catch(e){}
+}
+
 function _occurrencesNatives(){
   const now=Date.now(),horizon=now+14*86400000,occ=[],seen={};
   function add(cle,r,momentMs,mode,anticip){
@@ -1298,9 +1387,13 @@ function _occurrencesNatives(){
         add(r.id+'|veille',r,veille.getTime(),'alarme',true);
         add(r.id+'|2h',r,evMs-2*3600000,'alarme',true);
         add(r.id+'|ev',r,evMs,'notification');
+        const tiA=_trajetInfo(r);
+        if(tiA&&tiA.departMs)add(r.id+'|depart',r,tiA.departMs,'alarme',true);
       }else{
         if(r.date&&r.time)add(r.id+'|sonn',r,new Date(r.date+'T'+r.time+':00').getTime(),'alarme',!!(r.eventDate&&r.eventTime));
         if(r.eventDate&&r.eventTime)add('ev|'+r.eventDate+'|'+r.eventTime+'|'+(r.title||''),r,new Date(r.eventDate+'T'+r.eventTime+':00').getTime(),'notification');
+        const tiP=_trajetInfo(r);
+        if(tiP&&tiP.departMs)add(r.id+'|depart',r,tiP.departMs,'alarme',true);
       }
     }catch(e){console.error('[Alarme] occurrence',e);}
   });
@@ -1383,7 +1476,7 @@ function enterApp(){
   const initials=currentUser.prenom.slice(0,1).toUpperCase();
   userBtn.innerHTML=`<div class="user-avatar" style="width:36px;height:36px;font-size:1rem">${initials}</div><span class="header-user-name">${esc(currentUser.prenom)}</span>`;
   userBtn.onclick=()=>openUserMenu();
-  showScreen('main-screen');render();loadAVPPlanning();checkReminders();checkMessagesAdmin();
+  showScreen('main-screen');render();chargerAtelierDescs();loadAVPPlanning();checkReminders();checkMessagesAdmin();
   if(shouldShowTutorial()){setTimeout(()=>startTutorial(),800);}
   else{setTimeout(()=>montrerTuto('accueil'),900);}
 }
@@ -1706,7 +1799,7 @@ async function showAdminDescriptions(){
   }catch(e){content.innerHTML='<div class="planning-empty">Erreur.</div>';}
 }
 
-function showAddDescriptionForm(cle,titre,dateLabel,desc='',adresse='',lien=''){
+function showAddDescriptionForm(cle,titre,dateLabel,desc='',adresse='',lien='',travelMin=0){
   document.getElementById('descriptions-content').innerHTML=`
     <h3 style="font-size:1rem;font-weight:800;color:#1a2340;margin:0 0 4px;">${esc(titre)}</h3>
     <div style="font-size:0.8125rem;color:#5b6785;margin-bottom:16px;">${esc(dateLabel)}</div>
@@ -1714,6 +1807,9 @@ function showAddDescriptionForm(cle,titre,dateLabel,desc='',adresse='',lien=''){
     <textarea id="desc-texte" placeholder="Ex: Rendez-vous à la petite maison. Prévoir des chaussures confortables." style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:0.9375rem;box-sizing:border-box;font-family:inherit;min-height:100px;">${esc(desc)}</textarea></div>
     <div style="margin-bottom:12px;"><label style="font-size:0.8125rem;font-weight:700;color:#48547a;display:block;margin-bottom:6px;">Adresse (facultatif)</label>
     <input id="desc-adresse" value="${esc(adresse)}" placeholder="Ex: 12 rue de la Paix, Petit-Quevilly" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:0.9375rem;box-sizing:border-box;font-family:inherit;"></div>
+    <div style="margin-bottom:16px;"><label style="font-size:0.8125rem;font-weight:700;color:#48547a;display:block;margin-bottom:6px;">🚗 Temps de trajet (facultatif)</label>
+    <div id="desc-trajet" class="trajet-grid">${[20,30,45,60,0].map(mn=>`<button type="button" class="trajet-btn${mn===(travelMin||0)?' active':''}" data-min="${mn}">${mn===0?'Pas besoin':(mn===60?'1 h':mn+' min')}</button>`).join('')}</div>
+    <div style="font-size:0.75rem;color:#8892a8;margin-top:6px;">Ajoute une alarme « heure de partir » (avec 10 min de préparation) pour les bénéficiaires inscrits.</div></div>
     <div style="margin-bottom:20px;"><label style="font-size:0.8125rem;font-weight:700;color:#48547a;display:block;margin-bottom:6px;">Lien « En savoir plus » (facultatif)</label>
     <input id="desc-lien" value="${esc(lien)}" placeholder="Ex: https://youtu.be/..." style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;font-size:0.9375rem;box-sizing:border-box;font-family:inherit;"></div>
     <button id="desc-save-btn" style="width:100%;padding:14px;background:#6d28d9;color:white;border:none;border-radius:12px;font-size:0.9375rem;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;">💾 Enregistrer</button>
@@ -1725,10 +1821,12 @@ async function saveDescription(cle){
   const desc=document.getElementById('desc-texte').value.trim();
   const adresse=document.getElementById('desc-adresse').value.trim();
   let lien=document.getElementById('desc-lien').value.trim();
+  const _tb=document.querySelector('#desc-trajet .trajet-btn.active');
+  const travelMin=_tb?(parseInt(_tb.dataset.min,10)||0):0;
   // Sécurité : on n'accepte que les liens http(s), sinon on ignore
   if(lien && !/^https?:\/\//i.test(lien)) lien='https://'+lien;
   try{
-    await db.collection('atelier_descriptions').doc(cle).set({description:desc,adresse,lien,updatedAt:Date.now()});
+    await db.collection('atelier_descriptions').doc(cle).set({description:desc,adresse,lien,travelMin,updatedAt:Date.now()});
     await showAdminDescriptions();
   }catch(e){alert('Erreur sauvegarde.');}
 }
@@ -1739,7 +1837,7 @@ async function editDescription(cle,titre){
   // Libellé date à partir de la clé titre|date|heure
   const parts=cle.split('|');
   const dateLabel=parts.length>=3?(formatShortDate(parts[1])+' · '+parts[2].replace(':','h')):'';
-  showAddDescriptionForm(cle,titre||parts[0],dateLabel,d.description||'',d.adresse||'',d.lien||'');
+  showAddDescriptionForm(cle,titre||parts[0],dateLabel,d.description||'',d.adresse||'',d.lien||'',d.travelMin||0);
 }
 
 async function deleteDescription(titre){
@@ -3021,7 +3119,7 @@ async function showAdminAvis(){
   }catch(e){list.innerHTML='<div style="text-align:center;padding:30px;color:#d63447">Erreur de chargement des avis.</div>';}
 }
 
-function render(){const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key)).map(r=>({...r,_source:'personal'}));const items=[...personal].sort((a,b)=>a.time.localeCompare(b.time));if(items.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;return;}const now=new Date();const isToday=state.dayOffset===0;const nowMinutes=now.getHours()*60+now.getMinutes();let upcomingId=null;if(isToday){const up=items.find(r=>{const[h,m]=r.time.split(':').map(Number);return(h*60+m)>=nowMinutes&&!(r.done&&r.done[key]);});if(up)upcomingId=up.id;}list.innerHTML=items.map(r=>{const isDone=r.done&&r.done[key];const isAVP=r._source==='avp';const isAtelier=r.source==='atelier';const eventDate=r.eventDate||r.date;const eventTime=r.eventTime||r.time;const dateDiffers=r.recurrence==='once'&&eventDate&&eventDate!==r.date;const timeDiffers=r.recurrence==='once'&&eventTime&&eventTime!==r.time;const hasDiffEvent=dateDiffers||timeDiffers;let noteText='';if(r.note){if(r.mapLink){noteText=`<a href="${r.mapLink}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{const iconDef=ICONS.find(ic=>ic.title===r.title||(r.icon&&ic.emoji===r.icon));if(iconDef&&iconDef.address){noteText=`<a href="https://www.google.com/maps/search/?api=1&query=${iconDef.address}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{noteText=esc(r.note);}}}const checkHTML=(isAVP||isAtelier)?'':`<div class="card-check ${isDone?'':'unchecked'}" data-check="${r.id}" style="position:absolute;top:12px;right:12px;">${isDone?'✓':'○'}</div>`;if(hasDiffEvent||isAtelier){const agendaLink=buildGoogleCalendarLink(r);let sonnerieText;if(isAtelier){const atelierDate=new Date(r.date+'T'+r.time+':00');const veille=new Date(atelierDate);veille.setDate(veille.getDate()-1);const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const h2=String(avant2h.getHours()).padStart(2,'0');const m2=String(avant2h.getMinutes()).padStart(2,'0');sonnerieText=`🔔 <strong>2 sonneries prévues :</strong><br>• La veille (${formatShortDate(veille.toISOString().slice(0,10))}) à <strong>15h00</strong><br>• 2h avant, à <strong>${h2}h${m2}</strong>`;}else if(dateDiffers){sonnerieText=`🔔 Sonnerie le <strong>${formatRelativeDate(r.date)} à ${r.time.replace(':','h')}</strong>`;}else{sonnerieText=`🔔 Sonnerie à <strong>${r.time.replace(':','h')}</strong>`;}const typeLabel=isAtelier?'Atelier AVP':'Rendez-vous';const badgeAtelier=isAtelier?'<span style="display:inline-block;margin-top:4px;font-size:0.6875rem;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">✅ Je participe</span>':'';return`<div class="card-rdv ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="rdv-top"><div class="rdv-left"><div class="rdv-date">${formatShortDate(eventDate)}</div><div class="rdv-heure">${eventTime.replace(':','h')}</div></div><div class="rdv-image">${iconHTML(r.icon)}</div><div class="rdv-body"><div class="rdv-type">${typeLabel}</div><div class="rdv-titre">${esc(r.title)}</div>${noteText?`<div class="rdv-note">${noteText}</div>`:''} ${badgeAtelier}</div></div><div class="rdv-sonnerie">${sonnerieText}</div><a href="${agendaLink}" target="_blank" class="btn-agenda" onclick="event.stopPropagation()">📅 Ajouter à mon agenda Google</a></div>`;}const badge=isAVP?'<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:0.6875rem;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">📋 Planning AVP</span>':'';const sonnerieType=isAVP?'Atelier':'Sonnerie';return`<div class="card-sonnerie ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="sonnerie-left"><div class="sonnerie-date">${r.recurrence==='daily'?'Tous les jours':(r.date?formatShortDate(r.date):'')}</div><div class="sonnerie-heure">${r.time.replace(':','h')}</div></div><div class="sonnerie-icon">${iconHTML(r.icon)}</div><div class="sonnerie-body"><div class="sonnerie-type">${sonnerieType}</div><div class="sonnerie-titre">${esc(r.title)}</div>${noteText?`<div class="sonnerie-note">${noteText}</div>`:''}${badge}</div></div>`;}).join('');}
+function render(){const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key)).map(r=>({...r,_source:'personal'}));const items=[...personal].sort((a,b)=>a.time.localeCompare(b.time));if(items.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;return;}const now=new Date();const isToday=state.dayOffset===0;const nowMinutes=now.getHours()*60+now.getMinutes();let upcomingId=null;if(isToday){const up=items.find(r=>{const[h,m]=r.time.split(':').map(Number);return(h*60+m)>=nowMinutes&&!(r.done&&r.done[key]);});if(up)upcomingId=up.id;}list.innerHTML=items.map(r=>{const isDone=r.done&&r.done[key];const isAVP=r._source==='avp';const isAtelier=r.source==='atelier';const _ti=_trajetInfo(r);let trajetHTML='';if(_ti){let _lg='';if(_ti.departMs){const _hd=new Date(_ti.departMs);_lg+=`<div class="rdv-meta"><span data-depart="${_ti.departMs}">${_txtDepart(_ti.departMs)}</span></div>`;_lg+=`<div class="rdv-meta">🚗 Départ : ${pad2(_hd.getHours())}h${pad2(_hd.getMinutes())} <span class="rdv-meta-sub">(${_ti.travelMin} min de trajet)</span></div>`;}if(_ti.adresse&&!(isAtelier&&r.note))_lg+=`<div class="rdv-meta">📍 ${esc(_ti.adresse)}</div>`;const _mb=_ti.mapQuery?`<a class="btn-maps" href="https://www.google.com/maps/search/?api=1&query=${_ti.mapQuery}" target="_blank" onclick="event.stopPropagation()">🗺️ Y aller (Google Maps)</a>`:'';if(_lg||_mb)trajetHTML=`<div class="rdv-trajet">${_lg}${_mb}</div>`;}const eventDate=r.eventDate||r.date;const eventTime=r.eventTime||r.time;const dateDiffers=r.recurrence==='once'&&eventDate&&eventDate!==r.date;const timeDiffers=r.recurrence==='once'&&eventTime&&eventTime!==r.time;const hasDiffEvent=dateDiffers||timeDiffers;let noteText='';if(r.note){if(r.mapLink){noteText=`<a href="${r.mapLink}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{const iconDef=ICONS.find(ic=>ic.title===r.title||(r.icon&&ic.emoji===r.icon));if(iconDef&&iconDef.address){noteText=`<a href="https://www.google.com/maps/search/?api=1&query=${iconDef.address}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{noteText=esc(r.note);}}}const checkHTML=(isAVP||isAtelier)?'':`<div class="card-check ${isDone?'':'unchecked'}" data-check="${r.id}" style="position:absolute;top:12px;right:12px;">${isDone?'✓':'○'}</div>`;if(hasDiffEvent||isAtelier){const agendaLink=buildGoogleCalendarLink(r);let sonnerieText;if(isAtelier){const atelierDate=new Date(r.date+'T'+r.time+':00');const veille=new Date(atelierDate);veille.setDate(veille.getDate()-1);const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const h2=String(avant2h.getHours()).padStart(2,'0');const m2=String(avant2h.getMinutes()).padStart(2,'0');sonnerieText=`🔔 <strong>2 sonneries prévues :</strong><br>• La veille (${formatShortDate(veille.toISOString().slice(0,10))}) à <strong>15h00</strong><br>• 2h avant, à <strong>${h2}h${m2}</strong>`;}else if(dateDiffers){sonnerieText=`🔔 Sonnerie le <strong>${formatRelativeDate(r.date)} à ${r.time.replace(':','h')}</strong>`;}else{sonnerieText=`🔔 Sonnerie à <strong>${r.time.replace(':','h')}</strong>`;}const typeLabel=isAtelier?'Atelier AVP':'Rendez-vous';const badgeAtelier=isAtelier?'<span style="display:inline-block;margin-top:4px;font-size:0.6875rem;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">✅ Je participe</span>':'';return`<div class="card-rdv ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="rdv-top"><div class="rdv-left"><div class="rdv-date">${formatShortDate(eventDate)}</div><div class="rdv-heure">${eventTime.replace(':','h')}</div></div><div class="rdv-image">${iconHTML(r.icon)}</div><div class="rdv-body"><div class="rdv-type">${typeLabel}</div><div class="rdv-titre">${esc(r.title)}</div>${noteText?`<div class="rdv-note">${noteText}</div>`:''} ${badgeAtelier}</div></div>${trajetHTML}<div class="rdv-sonnerie">${sonnerieText}</div><a href="${agendaLink}" target="_blank" class="btn-agenda" onclick="event.stopPropagation()">📅 Ajouter à mon agenda Google</a></div>`;}const badge=isAVP?'<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:0.6875rem;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">📋 Planning AVP</span>':'';const sonnerieType=isAVP?'Atelier':'Sonnerie';return`<div class="card-sonnerie ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="sonnerie-left"><div class="sonnerie-date">${r.recurrence==='daily'?'Tous les jours':(r.date?formatShortDate(r.date):'')}</div><div class="sonnerie-heure">${r.time.replace(':','h')}</div></div><div class="sonnerie-icon">${iconHTML(r.icon)}</div><div class="sonnerie-body"><div class="sonnerie-type">${sonnerieType}</div><div class="sonnerie-titre">${esc(r.title)}</div>${noteText?`<div class="sonnerie-note">${noteText}</div>`:''}${badge}</div></div>`;}).join('');}
 
 async function loadAVPPlanning(force){
   // Cache du planning par animateur (Steve/Greg), valable 5 minutes
@@ -3272,13 +3370,13 @@ if(r.source!=='atelier')openEdit(id);}}}});
 
 async function toggleDone(id){const r=state.reminders.find(x=>x.id===id);if(!r)return;if(!r.done)r.done={};const key=dateKey(getCurrentDate());r.done[key]=!r.done[key];await saveUserData();render();if(r.done[key])speak('Bravo !');}
 
-function openEdit(id){state.editing=id;const r=id?state.reminders.find(x=>x.id===id):null;document.getElementById('edit-title').textContent=r?'Modifier le rappel':'Nouveau rappel';const vs=document.getElementById('voice-status');if(vs){vs.className='voice-status';vs.innerHTML='';}document.getElementById('voice-btn').querySelector('.voice-label').textContent='Dicter au lieu de taper';setTPVal('f-time',r?r.time:'08:00');document.getElementById('f-title').value=r?r.title:'';document.getElementById('f-note').value=r?r.note:'';document.getElementById('delete-btn').style.display=r?'block':'none';const rec=r?(r.recurrence||'daily'):'daily';setRecurrence(rec);document.getElementById('f-date').value=r&&r.date?r.date:dateKey(getCurrentDate());document.getElementById('f-event-date').value=r&&r.eventDate?r.eventDate:(r&&r.date?r.date:dateKey(getCurrentDate()));setTPVal('f-event-time',r&&r.eventTime?r.eventTime:'14:00');const choix=r&&r.sonnerieChoix?r.sonnerieChoix:'avant2h';document.querySelectorAll('.sonnerie-choix-btn').forEach(b=>b.classList.toggle('active',b.dataset.choix===choix));renderIcons(r?r.icon:null);showScreen('edit-screen');goToStep(r?4:1);}
+function openEdit(id){state.editing=id;const r=id?state.reminders.find(x=>x.id===id):null;document.getElementById('edit-title').textContent=r?'Modifier le rappel':'Nouveau rappel';const vs=document.getElementById('voice-status');if(vs){vs.className='voice-status';vs.innerHTML='';}document.getElementById('voice-btn').querySelector('.voice-label').textContent='Dicter au lieu de taper';setTPVal('f-time',r?r.time:'08:00');document.getElementById('f-title').value=r?r.title:'';document.getElementById('f-note').value=r?r.note:'';document.getElementById('delete-btn').style.display=r?'block':'none';const rec=r?(r.recurrence||'daily'):'daily';setRecurrence(rec);document.getElementById('f-date').value=r&&r.date?r.date:dateKey(getCurrentDate());document.getElementById('f-event-date').value=r&&r.eventDate?r.eventDate:(r&&r.date?r.date:dateKey(getCurrentDate()));setTPVal('f-event-time',r&&r.eventTime?r.eventTime:'14:00');const choix=r&&r.sonnerieChoix?r.sonnerieChoix:'avant2h';document.querySelectorAll('.sonnerie-choix-btn').forEach(b=>b.classList.toggle('active',b.dataset.choix===choix));const fa=document.getElementById('f-address');if(fa)fa.value=r&&r.address?r.address:'';wizTravel=r&&r.travelMin?r.travelMin:0;document.querySelectorAll('#trajet-choix .trajet-btn').forEach(b=>b.classList.toggle('active',(parseInt(b.dataset.min,10)||0)===wizTravel));renderIcons(r?r.icon:null);showScreen('edit-screen');goToStep(r?4:1);}
 
 function renderIcons(selected){wizIcon=selected||'🗓️';renderThemeGrid();}
 let wizIcon='🗓️'; // icône choisie dans le parcours (remplace la sélection DOM de l'ancienne grille)
 function getSelectedIcon(){return wizIcon||'🗓️';}
 let wizRec='daily'; // récurrence choisie (remplace les boutons segmentés)
-function setRecurrence(rec){wizRec=rec;const isOnce=rec==='once';const al=document.getElementById('alarm-section');if(al)al.style.display=isOnce?'none':'block';const evt=document.getElementById('event-time-section');if(evt)evt.style.display=isOnce?'block':'none';const srd=document.getElementById('sonnerie-rdv-details');if(srd)srd.style.display=isOnce?'block':'none';}
+function setRecurrence(rec){wizRec=rec;const isOnce=rec==='once';const al=document.getElementById('alarm-section');if(al)al.style.display=isOnce?'none':'block';const evt=document.getElementById('event-time-section');if(evt)evt.style.display=isOnce?'block':'none';const srd=document.getElementById('sonnerie-rdv-details');if(srd)srd.style.display=isOnce?'block':'none';const ard=document.getElementById('adresse-rdv-details');if(ard)ard.style.display=isOnce?'block':'none';const trd=document.getElementById('trajet-rdv-details');if(trd)trd.style.display=isOnce?'block':'none';}
 function getSelectedRecurrence(){return wizRec||'daily';}
 document.querySelectorAll('.seg-btn').forEach(btn=>btn.addEventListener('click',()=>setRecurrence(btn.dataset.rec)));
 // ===== Parcours en étapes "Nouveau rappel" =====
@@ -3490,7 +3588,7 @@ function calcSonnerieVeille(rdvDate){const d=new Date(rdvDate+'T12:00:00');d.set
 document.getElementById('add-btn').addEventListener('click',()=>openEdit(null));
 document.getElementById('back-btn').addEventListener('click',()=>{if(state.editingAdminMode&&adminEditingUid){const uid=adminEditingUid;state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showAdminUserDetail(uid);return;}showScreen('main-screen');});
 
-document.getElementById('save-btn').addEventListener('click',async()=>{const title=document.getElementById('f-title').value.trim();if(!title){showConfirm({icon:'⚠️',title:'Titre manquant',text:"Appuyez sur une image ou écrivez ce qu'il faut faire.",okText:'OK',hideCancel:true});return;}const rec=getSelectedRecurrence();const data={time:getTPVal('f-time'),title,icon:getSelectedIcon(),note:document.getElementById('f-note').value.trim(),recurrence:rec};if(rec==='once'){const rdvDate=document.getElementById('f-event-date').value||dateKey(getCurrentDate());const rdvTime=getTPVal('f-event-time');const choix=getSonnerieChoix();data.eventDate=rdvDate;data.eventTime=rdvTime;data.sonnerieChoix=choix;// Calculer sonnerie(s) selon choix
+document.getElementById('save-btn').addEventListener('click',async()=>{const title=document.getElementById('f-title').value.trim();if(!title){showConfirm({icon:'⚠️',title:'Titre manquant',text:"Appuyez sur une image ou écrivez ce qu'il faut faire.",okText:'OK',hideCancel:true});return;}const rec=getSelectedRecurrence();const data={time:getTPVal('f-time'),title,icon:getSelectedIcon(),note:document.getElementById('f-note').value.trim(),recurrence:rec};if(rec==='once'){const rdvDate=document.getElementById('f-event-date').value||dateKey(getCurrentDate());const rdvTime=getTPVal('f-event-time');const choix=getSonnerieChoix();data.eventDate=rdvDate;data.eventTime=rdvTime;data.sonnerieChoix=choix;const _adr=(document.getElementById('f-address')?document.getElementById('f-address').value.trim():'');data.address=_adr;data.mapQuery=_adr?encodeURIComponent(_adr):'';data.travelMin=wizTravel||0;// Calculer sonnerie(s) selon choix
 const sonnAvant=calcSonnerieAvant2h(rdvDate,rdvTime);const sonnVeille=calcSonnerieVeille(rdvDate);if(choix==='avant2h'){data.date=sonnAvant.date;data.time=sonnAvant.time;}else if(choix==='veille'){data.date=sonnVeille.date;data.time=sonnVeille.time;}else{// Les deux : sonnerie principale = 2h avant
 data.date=sonnAvant.date;data.time=sonnAvant.time;}if(!data.date){showConfirm({icon:'⚠️',title:'Date manquante',text:'Choisissez la date du rendez-vous.',okText:'OK',hideCancel:true});return;}if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}});}// Pour "les deux" : ajouter aussi la sonnerie veille
 if(choix==='les2'&&!state.editing){state.reminders.push({id:uid(),...data,date:sonnVeille.date,time:sonnVeille.time,done:{}});}
