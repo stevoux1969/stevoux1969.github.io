@@ -247,6 +247,37 @@
     .card-rdv:active { transform: scale(0.98); }
     .card-rdv.done { opacity: 0.55; }
     .card-rdv.done .rdv-titre { text-decoration: line-through; }
+    /* ===== Carte de rappel repensée (maquette carte-rappel) ===== */
+    .c-card { background:#fff; border:1px solid #d9e1f0; border-radius:18px; overflow:hidden; box-shadow:0 2px 8px rgba(20,30,60,.06); margin-bottom:14px; cursor:pointer; }
+    .c-card.done { opacity:.55; }
+    .c-card.done .c-titre h3 { text-decoration:line-through; }
+    .c-top { display:flex; align-items:flex-start; gap:12px; padding:14px 14px 12px; }
+    .c-datebox { background:#123a7a; color:#fff; border-radius:14px; padding:10px 12px; text-align:center; flex-shrink:0; }
+    .c-datebox-d { font-size:.68rem; font-weight:700; letter-spacing:.5px; opacity:.9; }
+    .c-datebox-h { font-size:1.75rem; font-weight:800; line-height:1.05; margin-top:1px; }
+    .c-emoji { width:64px; height:64px; border-radius:14px; background:#f4f6fa; border:1px solid #e4e9f3; display:flex; align-items:center; justify-content:center; font-size:2rem; flex-shrink:0; }
+    .c-titre { flex:1; min-width:0; padding-top:4px; }
+    .c-titre h3 { font-size:1.3rem; font-weight:800; line-height:1.2; }
+    .c-speak { width:44px; height:44px; border-radius:12px; background:#eaf0fb; border:2px solid #123a7a; display:flex; align-items:center; justify-content:center; font-size:1.25rem; flex-shrink:0; cursor:pointer; color:#123a7a; padding:0; }
+    .c-speak.on { background:#123a7a; color:#fff; }
+    .c-depart { margin:0 14px 12px; background:#eaf0fb; border:2px solid #123a7a; border-radius:14px; padding:12px 14px; display:flex; align-items:center; gap:12px; }
+    .c-depart-ic { font-size:1.6rem; flex-shrink:0; }
+    .c-depart-lbl { font-size:.72rem; font-weight:800; letter-spacing:.8px; color:#123a7a; text-transform:uppercase; }
+    .c-depart-val { font-size:1.55rem; font-weight:800; color:#123a7a; line-height:1.1; }
+    .c-depart-sm { font-size:.82rem; color:#5b6785; margin-top:1px; }
+    .c-depart-cd { margin-left:auto; text-align:right; flex-shrink:0; }
+    .c-depart-cd-t { font-size:.7rem; color:#5b6785; font-weight:600; }
+    .c-depart-cd-n { font-size:1.35rem; font-weight:800; color:#c2410c; line-height:1.1; }
+    .c-rows { padding:0 14px; }
+    .c-row { display:flex; align-items:center; gap:12px; padding:11px 0; }
+    .c-row + .c-row { border-top:1px solid #eef1f6; }
+    .c-row-ic { font-size:1.3rem; width:26px; text-align:center; flex-shrink:0; }
+    .c-row-tx { flex:1; min-width:0; }
+    .c-row-t1 { font-size:1rem; font-weight:600; }
+    .c-row-t2 { font-size:.8rem; color:#8892a8; margin-top:1px; }
+    .c-maps { display:block; margin:12px 14px 0; text-align:center; border:2px solid #123a7a; border-radius:14px; padding:14px; font-size:1.05rem; font-weight:700; color:#123a7a; background:#fff; text-decoration:none; }
+    .c-done { display:block; width:calc(100% - 28px); margin:10px 14px 14px; text-align:center; background:#22a559; color:#fff; border:none; border-radius:14px; padding:14px; font-size:1.05rem; font-weight:700; font-family:inherit; cursor:pointer; }
+    .c-badge { display:inline-block; margin:2px 14px 14px; font-size:.72rem; font-weight:600; color:#0a6e31; background:#dcfce7; padding:5px 10px; border-radius:8px; }
     .rdv-top { display: flex; align-items: center; gap: 14px; }
     .rdv-left { background: #2c3e91; color: white; border-radius: 10px; padding: 10px 12px; text-align: center; min-width: 90px; flex-shrink: 0; }
     .rdv-date { font-size:0.8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1; }
@@ -1346,18 +1377,19 @@ function _trajetInfo(r){
   return {adresse,mapQuery,travelMin,eventMs,departMs};
 }
 
-function _txtDepart(ms){
+// Compte à rebours court affiché dans le bloc Départ (« 3 h 01 » / « 20 min »).
+function _txtDepartCourt(ms){
   const diff=ms-Date.now();
-  if(diff<=0)return "🚗 C'est l'heure de partir";
+  if(diff<=0)return 'à partir';
   const totalMin=Math.round(diff/60000);
   const h=Math.floor(totalMin/60),m=totalMin%60;
-  return h>0?`🚗 Départ dans ${h} h ${pad2(m)}`:`🚗 Départ dans ${m} min`;
+  return h>0?(h+' h '+pad2(m)):(m+' min');
 }
 // Rafraîchit tous les comptes à rebours affichés (sans re-render complet).
 function _majComptesARebours(){
-  document.querySelectorAll('[data-depart]').forEach(el=>{
-    const ms=parseInt(el.getAttribute('data-depart'),10);
-    if(ms)el.textContent=_txtDepart(ms);
+  document.querySelectorAll('[data-depart-court]').forEach(el=>{
+    const ms=parseInt(el.getAttribute('data-depart-court'),10);
+    if(ms)el.textContent=_txtDepartCourt(ms);
   });
 }
 setInterval(_majComptesARebours,30000);
@@ -3140,7 +3172,85 @@ async function showAdminAvis(){
   }catch(e){list.innerHTML='<div style="text-align:center;padding:30px;color:#d63447">Erreur de chargement des avis.</div>';}
 }
 
-function render(){const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key)).map(r=>({...r,_source:'personal'}));const items=[...personal].sort((a,b)=>a.time.localeCompare(b.time));if(items.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;return;}const now=new Date();const isToday=state.dayOffset===0;const nowMinutes=now.getHours()*60+now.getMinutes();let upcomingId=null;if(isToday){const up=items.find(r=>{const[h,m]=r.time.split(':').map(Number);return(h*60+m)>=nowMinutes&&!(r.done&&r.done[key]);});if(up)upcomingId=up.id;}list.innerHTML=items.map(r=>{const isDone=r.done&&r.done[key];const isAVP=r._source==='avp';const isAtelier=r.source==='atelier';const _ti=_trajetInfo(r);let trajetHTML='';if(_ti){let _lg='';if(_ti.departMs){const _hd=new Date(_ti.departMs);_lg+=`<div class="rdv-meta"><span data-depart="${_ti.departMs}">${_txtDepart(_ti.departMs)}</span></div>`;_lg+=`<div class="rdv-meta">🚗 Départ : ${pad2(_hd.getHours())}h${pad2(_hd.getMinutes())} <span class="rdv-meta-sub">(${_ti.travelMin} min de trajet)</span></div>`;}if(_ti.adresse&&!(isAtelier&&r.note))_lg+=`<div class="rdv-meta">📍 ${esc(_ti.adresse)}</div>`;const _mb=_ti.mapQuery?`<a class="btn-maps" href="https://www.google.com/maps/search/?api=1&query=${_ti.mapQuery}" target="_blank" onclick="event.stopPropagation()">🗺️ Y aller (Google Maps)</a>`:'';if(_lg||_mb)trajetHTML=`<div class="rdv-trajet">${_lg}${_mb}</div>`;}const eventDate=r.eventDate||r.date;const eventTime=r.eventTime||r.time;const dateDiffers=r.recurrence==='once'&&eventDate&&eventDate!==r.date;const timeDiffers=r.recurrence==='once'&&eventTime&&eventTime!==r.time;const hasDiffEvent=dateDiffers||timeDiffers;let noteText='';if(r.note){if(r.mapLink){noteText=`<a href="${r.mapLink}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{const iconDef=ICONS.find(ic=>ic.title===r.title||(r.icon&&ic.emoji===r.icon));if(iconDef&&iconDef.address){noteText=`<a href="https://www.google.com/maps/search/?api=1&query=${iconDef.address}" target="_blank" onclick="event.stopPropagation()">${esc(r.note)} 📍</a>`;}else{noteText=esc(r.note);}}}const checkHTML=(isAVP||isAtelier)?'':`<div class="card-check ${isDone?'':'unchecked'}" data-check="${r.id}" style="position:absolute;top:12px;right:12px;">${isDone?'✓':'○'}</div>`;if(hasDiffEvent||isAtelier){const agendaLink=buildGoogleCalendarLink(r);let sonnerieText;if(isAtelier){const atelierDate=new Date(r.date+'T'+r.time+':00');const veille=new Date(atelierDate);veille.setDate(veille.getDate()-1);const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const h2=String(avant2h.getHours()).padStart(2,'0');const m2=String(avant2h.getMinutes()).padStart(2,'0');sonnerieText=`🔔 <strong>2 sonneries prévues :</strong><br>• La veille (${formatShortDate(veille.toISOString().slice(0,10))}) à <strong>15h00</strong><br>• 2h avant, à <strong>${h2}h${m2}</strong>`;}else if(dateDiffers){sonnerieText=`🔔 Sonnerie le <strong>${formatRelativeDate(r.date)} à ${r.time.replace(':','h')}</strong>`;}else{sonnerieText=`🔔 Sonnerie à <strong>${r.time.replace(':','h')}</strong>`;}const typeLabel=isAtelier?'Atelier AVP':'Rendez-vous';const badgeAtelier=isAtelier?'<span style="display:inline-block;margin-top:4px;font-size:0.6875rem;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">✅ Je participe</span>':'';return`<div class="card-rdv ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="rdv-top"><div class="rdv-left"><div class="rdv-date">${formatShortDate(eventDate)}</div><div class="rdv-heure">${eventTime.replace(':','h')}</div></div><div class="rdv-image">${iconHTML(r.icon)}</div><div class="rdv-body"><div class="rdv-type">${typeLabel}</div><div class="rdv-titre">${esc(r.title)}</div>${noteText?`<div class="rdv-note">${noteText}</div>`:''} ${badgeAtelier}</div></div>${trajetHTML}<div class="rdv-sonnerie">${sonnerieText}</div><a href="${agendaLink}" target="_blank" class="btn-agenda" onclick="event.stopPropagation()">📅 Ajouter à mon agenda Google</a></div>`;}const badge=isAVP?'<span class="avp-badge" style="display:inline-block;margin-top:4px;font-size:0.6875rem;font-weight:600;color:#0a6e31;background:#dcfce7;padding:3px 8px;border-radius:6px;">📋 Planning AVP</span>':'';const sonnerieType=isAVP?'Atelier':'Sonnerie';return`<div class="card-sonnerie ${isDone?'done':''}" data-id="${r.id}" data-source="${r._source||'personal'}" style="position:relative">${checkHTML}<div class="sonnerie-left"><div class="sonnerie-date">${r.recurrence==='daily'?'Tous les jours':(r.date?formatShortDate(r.date):'')}</div><div class="sonnerie-heure">${r.time.replace(':','h')}</div></div><div class="sonnerie-icon">${iconHTML(r.icon)}</div><div class="sonnerie-body"><div class="sonnerie-type">${sonnerieType}</div><div class="sonnerie-titre">${esc(r.title)}</div>${noteText?`<div class="sonnerie-note">${noteText}</div>`:''}${badge}</div></div>`;}).join('');}
+// ===== Carte de rappel (maquette carte-rappel) =====
+// Construit le HTML d'une carte : bloc Départ dominant, détails en lignes fines,
+// bouton Maps, « C'est fait », et bouton 🔊 Écouter en haut à droite.
+function _carteRappel(r,key){
+  const isDone=r.done&&r.done[key];
+  const isAtelier=r.source==='atelier';
+  const isDaily=r.recurrence==='daily';
+  const ti=_trajetInfo(r);
+  const eventDate=r.eventDate||r.date;
+  const eventTime=r.eventTime||r.time;
+  const dbLabel=isDaily?'TOUS LES JOURS':(eventDate?formatShortDate(eventDate).toUpperCase():'');
+  const dbHeure=(isDaily?r.time:eventTime).replace(':','h');
+
+  let departHTML='';
+  if(ti&&ti.departMs){const hd=new Date(ti.departMs);
+    departHTML=`<div class="c-depart"><div class="c-depart-ic">🚗</div><div><div class="c-depart-lbl">Départ</div><div class="c-depart-val">${pad2(hd.getHours())}h${pad2(hd.getMinutes())}</div><div class="c-depart-sm">${ti.travelMin} min de trajet</div></div><div class="c-depart-cd"><div class="c-depart-cd-t">dans</div><div class="c-depart-cd-n" data-depart-court="${ti.departMs}">${_txtDepartCourt(ti.departMs)}</div></div></div>`;
+  }
+
+  let rows='';
+  if(ti&&ti.adresse)rows+=`<div class="c-row"><div class="c-row-ic">📍</div><div class="c-row-tx"><div class="c-row-t1">${esc(ti.adresse)}</div></div></div>`;
+  if(r.note&&!isAtelier)rows+=`<div class="c-row"><div class="c-row-ic">✏️</div><div class="c-row-tx"><div class="c-row-t1">${esc(r.note)}</div></div></div>`;
+  let sonnT1,sonnT2='Vous serez prévenu à cette heure-là';
+  if(isAtelier){const ev=new Date(r.date+'T'+r.time+':00');const a2=new Date(ev.getTime()-2*3600000);sonnT1=`Sonnerie la veille à 15h00 et à ${pad2(a2.getHours())}h${pad2(a2.getMinutes())}`;sonnT2='Deux sonneries avant l\'atelier';}
+  else if(isDaily){sonnT1='Sonnerie à '+r.time.replace(':','h');}
+  else{sonnT1='Sonnerie à '+(r.time||eventTime).replace(':','h');if(r.date&&r.date!==eventDate)sonnT1+=' ('+formatRelativeDate(r.date)+')';}
+  rows+=`<div class="c-row"><div class="c-row-ic">🔔</div><div class="c-row-tx"><div class="c-row-t1">${sonnT1}</div><div class="c-row-t2">${sonnT2}</div></div></div>`;
+
+  const mapsHTML=(ti&&ti.mapQuery)?`<a class="c-maps" href="https://www.google.com/maps/search/?api=1&query=${ti.mapQuery}" target="_blank" onclick="event.stopPropagation()">🗺️ Y aller (Google Maps)</a>`:'';
+  const actionHTML=isAtelier?`<div class="c-badge">✅ Je participe</div>`:`<button type="button" class="c-done" data-check="${r.id}">${isDone?'✓ Fait':"✓ C'est fait"}</button>`;
+
+  return `<div class="c-card${isDone?' done':''}" data-id="${r.id}" data-source="personal">`
+    +`<div class="c-top"><div class="c-datebox"><div class="c-datebox-d">${dbLabel}</div><div class="c-datebox-h">${dbHeure}</div></div>`
+    +`<div class="c-emoji">${iconHTML(r.icon)}</div><div class="c-titre"><h3>${esc(r.title)}</h3></div>`
+    +`<button type="button" class="c-speak" data-speak="${r.id}">🔊</button></div>`
+    +departHTML+`<div class="c-rows">${rows}</div>`+mapsHTML+actionHTML+`</div>`;
+}
+
+// Phrase lue par le bouton 🔊 : titre, date, heure, adresse, départ, trajet, sonnerie.
+function _phraseCarte(r){
+  const isAtelier=r.source==='atelier';
+  const ti=_trajetInfo(r);
+  let p=(r.title||'Rappel')+'.';
+  if(r.recurrence==='daily'){p+=' Tous les jours, à '+timeToSpeech(r.time)+'.';}
+  else{const eD=r.eventDate||r.date,eT=r.eventTime||r.time;p+=' '+(eD?formatRelativeDate(eD):'')+', à '+timeToSpeech(eT)+'.';}
+  if(ti&&ti.adresse)p+=' Adresse : '+ti.adresse+'.';
+  if(ti&&ti.departMs){const dp=new Date(ti.departMs);p+=' Départ à '+timeToSpeech(pad2(dp.getHours())+':'+pad2(dp.getMinutes()))+', '+ti.travelMin+' minutes de trajet.';}
+  if(isAtelier){const ev=new Date(r.date+'T'+r.time+':00');const a2=new Date(ev.getTime()-2*3600000);p+=' Sonnerie la veille à 15 heures, et 2 heures avant, à '+timeToSpeech(pad2(a2.getHours())+':'+pad2(a2.getMinutes()))+'.';}
+  else if(r.time){p+=' Sonnerie à '+timeToSpeech(r.time)+'.';}
+  if(r.note&&!isAtelier)p+=' '+r.note+'.';
+  return p;
+}
+
+// Bouton 🔊 : un appui lit, un 2e appui arrête ; le bouton change d'apparence.
+let _carteLectureBtn=null;
+function _arreterLectureCarte(){
+  try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech)window.Capacitor.Plugins.TextToSpeech.stop();}catch(e){}
+  try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){}
+  if(_carteLectureBtn){_carteLectureBtn.classList.remove('on');_carteLectureBtn.textContent='🔊';_carteLectureBtn=null;}
+}
+function _lireCarte(id,btn){
+  const memeCarte=(_carteLectureBtn===btn);
+  _arreterLectureCarte();
+  if(memeCarte)return;   // 2e appui sur la même carte = arrêt
+  const r=state.reminders.find(x=>x.id===id);if(!r)return;
+  const phrase=_phraseCarte(r);
+  _carteLectureBtn=btn;btn.classList.add('on');btn.textContent='⏹️';
+  try{
+    if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech){
+      window.Capacitor.Plugins.TextToSpeech.speak({text:phrase,lang:'fr-FR',rate:1.0,pitch:1.0,volume:1.0,category:'ambient'}).then(()=>{if(_carteLectureBtn===btn)_arreterLectureCarte();}).catch(()=>{if(_carteLectureBtn===btn)_arreterLectureCarte();});
+    }else if('speechSynthesis' in window){
+      window.speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance(phrase);u.lang='fr-FR';u.rate=0.95;u.volume=1;
+      u.onend=()=>{if(_carteLectureBtn===btn)_arreterLectureCarte();};
+      window.speechSynthesis.speak(u);
+    }
+  }catch(e){_arreterLectureCarte();}
+}
+
+function render(){_arreterLectureCarte();const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key)).map(r=>({...r,_source:'personal'}));const items=[...personal].sort((a,b)=>a.time.localeCompare(b.time));if(items.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;return;}list.innerHTML=items.map(r=>_carteRappel(r,key)).join('');}
 
 async function loadAVPPlanning(force){
   // Cache du planning par animateur (Steve/Greg), valable 5 minutes
@@ -3381,13 +3491,15 @@ document.getElementById('planning-refresh-btn').addEventListener('click',async()
   btn.style.opacity='1';btn.disabled=false;
 });
 
-document.getElementById('reminders-list').addEventListener('click',e=>{if(e.target.closest('a'))return;const checkId=e.target.closest('[data-check]')?.dataset.check;const card=e.target.closest('.card, .card-sonnerie, .card-rdv');if(checkId){toggleDone(checkId);e.stopPropagation();return;}if(card){const source=card.dataset.source;const id=card.dataset.id;if(source==='avp'){const avpItem=state.avpEvents.find(e=>('avp_'+e.date+'_'+e.time+'_'+e.title.slice(0,10))===id);if(avpItem)speak(`${avpItem.title}, à ${timeToSpeech(avpItem.time)}`);}else{const r=state.reminders.find(x=>x.id===id);if(r){
-// Lecture complète : titre + jour + heure + remarque
-let quand,heure;
-if(r.recurrence==='daily'){quand='tous les jours';heure=r.time;}
-else{const d=r.eventDate||r.date;quand=d?formatRelativeDate(d):'';heure=r.eventTime||r.time;}
-speak(`${r.title}. ${quand}, à ${timeToSpeech(heure)}. ${r.note||''}`);
-if(r.source!=='atelier')openEdit(id);}}}});
+document.getElementById('reminders-list').addEventListener('click',e=>{
+  if(e.target.closest('a'))return;
+  const sp=e.target.closest('[data-speak]');
+  if(sp){_lireCarte(sp.dataset.speak,sp);e.stopPropagation();return;}
+  const checkId=e.target.closest('[data-check]')?.dataset.check;
+  if(checkId){toggleDone(checkId);e.stopPropagation();return;}
+  const card=e.target.closest('.c-card');
+  if(card){const id=card.dataset.id;const r=state.reminders.find(x=>x.id===id);if(r&&r.source!=='atelier')openEdit(id);}
+});
 
 async function toggleDone(id){const r=state.reminders.find(x=>x.id===id);if(!r)return;if(!r.done)r.done={};const key=dateKey(getCurrentDate());r.done[key]=!r.done[key];await saveUserData();render();if(r.done[key])speak('Bravo !');}
 
