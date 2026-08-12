@@ -255,9 +255,9 @@
     .c-datebox { background:#123a7a; color:#fff; border-radius:14px; padding:10px 12px; text-align:center; flex-shrink:0; }
     .c-datebox-d { font-size:.68rem; font-weight:700; letter-spacing:.5px; opacity:.9; }
     .c-datebox-h { font-size:1.75rem; font-weight:800; line-height:1.05; margin-top:1px; }
-    .c-emoji { width:64px; height:64px; border-radius:14px; background:#f4f6fa; border:1px solid #e4e9f3; display:flex; align-items:center; justify-content:center; font-size:2rem; flex-shrink:0; }
+    .c-emoji { width:56px; height:56px; border-radius:14px; background:#f4f6fa; border:1px solid #e4e9f3; display:flex; align-items:center; justify-content:center; font-size:1.8rem; flex-shrink:0; }
     .c-titre { flex:1; min-width:0; padding-top:4px; }
-    .c-titre h3 { font-size:1.3rem; font-weight:800; line-height:1.2; }
+    .c-titre h3 { font-size:1.2rem; font-weight:800; line-height:1.2; overflow-wrap:break-word; word-break:break-word; }
     .c-speak { width:44px; height:44px; border-radius:12px; background:#eaf0fb; border:2px solid #123a7a; display:flex; align-items:center; justify-content:center; font-size:1.25rem; flex-shrink:0; cursor:pointer; color:#123a7a; padding:0; }
     .c-speak.on { background:#123a7a; color:#fff; }
     .c-depart { margin:0 14px 12px; background:#eaf0fb; border:2px solid #123a7a; border-radius:14px; padding:12px 14px; display:flex; align-items:center; gap:12px; }
@@ -3172,6 +3172,17 @@ async function showAdminAvis(){
   }catch(e){list.innerHTML='<div style="text-align:center;padding:30px;color:#d63447">Erreur de chargement des avis.</div>';}
 }
 
+// Réserve sous la liste exactement la hauteur de la zone fixe du bas (bouton
+// « Ajouter » + avis + pied de page), pour que la dernière carte ne soit jamais
+// masquée. Calculé dynamiquement → marche sur tous les écrans.
+function _ajusterPaddingListe(){
+  const bz=document.getElementById('bottom-zone');
+  const lw=document.querySelector('#main-screen .list-wrap');
+  if(!bz||!lw)return;
+  lw.style.paddingBottom=(bz.offsetHeight+Math.round(1.8*16)+24)+'px';
+}
+window.addEventListener('resize',()=>{try{_ajusterPaddingListe();}catch(e){}});
+
 // ===== Carte de rappel (maquette carte-rappel) =====
 // Construit le HTML d'une carte : bloc Départ dominant, détails en lignes fines,
 // bouton Maps, « C'est fait », et bouton 🔊 Écouter en haut à droite.
@@ -3250,7 +3261,7 @@ function _lireCarte(id,btn){
   }catch(e){_arreterLectureCarte();}
 }
 
-function render(){_arreterLectureCarte();const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key)).map(r=>({...r,_source:'personal'}));const items=[...personal].sort((a,b)=>a.time.localeCompare(b.time));if(items.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;return;}list.innerHTML=items.map(r=>_carteRappel(r,key)).join('');}
+function render(){_arreterLectureCarte();const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key)).map(r=>({...r,_source:'personal'}));const items=[...personal].sort((a,b)=>a.time.localeCompare(b.time));if(items.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;_ajusterPaddingListe();return;}list.innerHTML=items.map(r=>_carteRappel(r,key)).join('');_ajusterPaddingListe();}
 
 async function loadAVPPlanning(force){
   // Cache du planning par animateur (Steve/Greg), valable 5 minutes
@@ -3614,7 +3625,10 @@ const THEMES=[
     {icon:'🧠',t:'Rendez-vous psychiatre'},
     {icon:'🦷',t:'Rendez-vous dentiste'},
     {icon:'🏥',t:'Rendez-vous hôpital'},
-    {icon:'🩺',t:'Rendez-vous spécialiste'}]},
+    {icon:'🩺',t:'Rendez-vous spécialiste'},
+    {icon:'svg:HDJ',t:'Hôpital de jour'},
+    {icon:'svg:CMP',t:'Rendez-vous CMP'},
+    {icon:'svg:AUX',t:'Visite auxiliaire de vie'}]},
   {emo:'🍽️',lbl:'Repas',choix:[
     {icon:'🥐',t:'Petit-déjeuner'},
     {icon:'🍽️',t:'Repas de midi'},
@@ -3647,11 +3661,8 @@ const THEMES=[
     {icon:'🎨',t:'Activité'},
     {icon:'🚶',t:'Sortie / promenade'}]},
   {emo:'🔑',lbl:'AVP',choix:[
-    {icon:'svg:HDJ',t:'Hôpital de jour'},
-    {icon:'svg:CMP',t:'Rendez-vous CMP'},
-    {icon:'svg:AUX',t:'Visite auxiliaire de vie'},
-    {icon:'svg:MAISON',t:'Atelier AVP petite maison',note:'80 bis boulevard du 11 novembre, Petit-Quevilly'},
-    {icon:'svg:CLE',t:'Atelier AVP la clé',note:'22 Place Henri Gadeau de Kerville, 76100 Rouen'}]},
+    {icon:'svg:MAISON',t:'Atelier AVP petite maison',adresse:'83 bis boulevard du 11 Novembre, Le Petit-Quevilly'},
+    {icon:'svg:CLE',t:'Atelier AVP la clé',adresse:'22 place Henri Gadeau de Kerville, Rouen'}]},
   {emo:'✏️',lbl:'Autre',libre:true,choix:[]}
 ];
 
@@ -3680,6 +3691,8 @@ function wizChoisir(c){
   wizIcon=c.icon;
   document.getElementById('f-title').value=c.t;
   if(c.note&&!document.getElementById('f-note').value)document.getElementById('f-note').value=c.note;
+  // Adresse pré-remplie (ateliers AVP) — reste modifiable à l'étape « Où ? »
+  if(c.adresse){const fa=document.getElementById('f-address');if(fa)fa.value=c.adresse;}
   wizFermer('wiz-voile-theme');
   goToStep(2);
 }
