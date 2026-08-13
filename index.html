@@ -3973,7 +3973,7 @@ async function init(){
   document.getElementById('field-prenom').style.display='none';
   // Afficher numéro de version dans le footer
   const verEl=document.getElementById('app-version-display');
-  if(verEl)verEl.textContent=APP_VERSION;
+  if(verEl){verEl.textContent=APP_VERSION;detectAppVersion().then(v=>{if(v)verEl.textContent=v;}).catch(()=>{});}
   // Vérifier les mises à jour APK (APK seulement)
   checkUpdate();
   // Afficher bouton téléchargement APK uniquement sur navigateur Android (pas dans l'APK Capacitor)
