@@ -143,13 +143,22 @@
     .header { background: #2c3e91; color: white; padding: 24px 20px 20px; padding-top: calc(24px + env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
     .btn-arrow { background: rgba(255,255,255,0.18); border: none; color: white; width: 48px; height: 48px; min-width: 48px; border-radius: 50%; font-size:1.875rem; font-weight: 700; cursor: pointer; font-family: inherit; line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0; }
     .btn-arrow:active { background: rgba(255,255,255,0.3); }
-    .header-left-group { display: flex; gap: 8px; }
-    .jour-nav-bar { background: #fff; padding: 10px 14px; display: flex; align-items: center; justify-content: center; gap: 14px; flex-shrink: 0; border-bottom: 1px solid #e5e9f2; }
-    .jour-nav-bar .btn-jour { background: #eef1fb; border: none; color: #2c3e91; width: 38px; height: 38px; min-width: 38px; border-radius: 50%; font-size:1.5rem; font-weight: 700; cursor: pointer; font-family: inherit; line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0; }
-    .jour-nav-bar .btn-jour:active { background: #dde3f7; }
-    .jour-nav-titre { text-align: center; min-width: 0; }
-    .jour-nav-titre h1 { font-size:1.0625rem; font-weight: 700; color: #1a2340; }
-    .jour-nav-titre .date { font-size:0.8125rem; color: #5b6785; margin-top: 2px; text-transform: capitalize; }
+    .header-title { flex: 1; min-width: 0; text-align: center; }
+    .header-title h1 { font-size:clamp(1.125rem, 5.5vw, 1.625rem); font-weight: 700; letter-spacing: -0.5px; }
+    .header-title .date { font-size:0.875rem; opacity: 0.85; margin-top: 4px; text-transform: capitalize; }
+    /* Languette discrète sur le bord gauche : glisser depuis là ouvre le tiroir menu */
+    .menu-languette { position:fixed; left:0; top:50%; transform:translateY(-50%); width:7px; height:52px; background:rgba(44,62,145,0.35); border-radius:0 8px 8px 0; z-index:40; transition:background .2s ease, width .2s ease; }
+    .menu-languette.touchee { background:rgba(44,62,145,0.6); width:10px; }
+    .voile-tiroir { position:fixed; inset:0; background:rgba(20,26,50,.45); opacity:0; pointer-events:none; transition:opacity .3s ease; z-index:70; }
+    .voile-tiroir.visible { opacity:1; pointer-events:auto; }
+    .tiroir-menu { position:fixed; top:0; bottom:0; left:0; width:78%; max-width:300px; background:#fff; box-shadow:4px 0 24px rgba(0,0,0,.2); transform:translateX(-100%); transition:transform .3s ease; z-index:71; padding:calc(26px + env(safe-area-inset-top)) 0 20px; overflow-y:auto; }
+    .tiroir-menu.visible { transform:translateX(0); }
+    .tiroir-menu h2 { color:#2c3e91; font-size:1.05rem; margin:0 20px 16px; }
+    .tiroir-menu .tiroir-item { display:flex; align-items:center; gap:12px; padding:14px 20px; font-size:1rem; font-weight:600; color:#1a2340; cursor:pointer; }
+    .tiroir-menu .tiroir-item:active { background:#f1f3f8; }
+    .tiroir-menu .tiroir-item .tiroir-ic { font-size:1.3rem; width:26px; text-align:center; }
+    .tiroir-menu .tiroir-item.a-venir { color:#a8b0c8; cursor:default; }
+    .tiroir-menu .tiroir-item.a-venir .tiroir-tag { margin-left:auto; font-size:.68rem; font-weight:700; background:#eef1fb; color:#8992b8; padding:3px 8px; border-radius:8px; text-transform:uppercase; letter-spacing:.03em; }
     .header-user { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 6px 12px; cursor: pointer; border: none; color: white; font-family: inherit; }
     .header-user-name { font-size:0.875rem; font-weight: 600; max-width: 18vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .today-bar { background: #ffeecb; padding: 10px 16px; text-align: center; flex-shrink: 0; border-bottom: 1px solid #f0d89b; }
@@ -346,7 +355,10 @@
     .ib-small { font-size:0.5rem; font-weight: 600; color: #48547a; margin-top: 2px; text-align: center; text-transform: lowercase; }
     .btn-add { position: static; width: fit-content; margin-left: auto; padding: 14px 20px 14px 16px; background: #0e8f82; color: white; border: none; border-radius: 30px; font-size:1rem; font-weight: 700; cursor: pointer; box-shadow: 0 6px 18px rgba(14,143,130,0.45); font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .btn-add:active { background: #0b756a; }
-    .btn-add .plus { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.28); color: white; font-size:1.05rem; line-height: 1; font-weight: 800; }
+    .btn-add .plus { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.28); color: white; font-size:1.05rem; line-height: 1; font-weight: 800; flex-shrink: 0; }
+    .btn-add-texte { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+    .btn-add-l1 { font-size:1.05rem; font-weight: 800; }
+    .btn-add-l2 { font-size:.76rem; font-weight: 600; opacity: .9; }
     .edit-header { background: white; padding: 18px 16px; padding-top: calc(18px + env(safe-area-inset-top)); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e5e9f2; flex-shrink: 0; }
     .back-btn { background: none; border: none; font-size:1.625rem; color: #2c3e91; cursor: pointer; padding: 4px 8px; font-family: inherit; }
     .edit-header h2 { font-size:1.375rem; font-weight: 700; flex: 1; }
@@ -679,19 +691,15 @@
 
 <div id="main-screen" class="screen">
   <header class="header">
-    <div class="header-left-group">
-      <button id="btn-reglages" class="btn-arrow" aria-label="Réglages">⚙️</button>
-      <button id="btn-aide-accueil" class="btn-arrow" aria-label="Aide" style="font-size:1.5rem;">?</button>
-    </div>
-  </header>
-  <div class="jour-nav-bar">
-    <button id="prev-day" class="btn-jour" aria-label="Jour précédent">‹</button>
-    <div class="jour-nav-titre">
+    <button id="btn-aide-accueil" class="btn-arrow" aria-label="Aide" style="font-size:1.5rem;">?</button>
+    <button id="prev-day" class="btn-arrow" aria-label="Jour précédent">‹</button>
+    <div class="header-title">
       <h1 id="day-title">Aujourd'hui</h1>
       <p id="day-date" class="date"></p>
     </div>
-    <button id="next-day" class="btn-jour" aria-label="Jour suivant">›</button>
-  </div>
+    <button id="next-day" class="btn-arrow" aria-label="Jour suivant">›</button>
+  </header>
+  <div class="menu-languette" id="menu-languette"></div>
   <div class="today-bar" id="today-bar" style="display:none">
     <button id="back-to-today">Revenir à aujourd'hui</button>
   </div>
@@ -725,10 +733,16 @@
     <button type="button" class="aide-lire-btn" id="aide-lire-btn">🔊 Écouter les explications</button>
     <button type="button" class="aide-fermer-btn" id="aide-fermer-btn">Fermer</button>
   </div>
+  <div class="voile-tiroir" id="voile-tiroir"></div>
+  <div class="tiroir-menu" id="tiroir-menu">
+    <h2>Menu</h2>
+    <div class="tiroir-item" id="tiroir-item-reglages"><span class="tiroir-ic">⚙️</span><span>Réglages</span></div>
+    <div class="tiroir-item a-venir"><span class="tiroir-ic">🔤</span><span>Taille du texte</span><span class="tiroir-tag">bientôt</span></div>
+  </div>
   <div id="bottom-zone" style="position:fixed;bottom:1.8rem;left:0;right:0;max-width:480px;margin:0 auto;padding:10px 16px 0;background:linear-gradient(to top,#eef1f8 80%,transparent);z-index:55;">
     <button id="add-btn" class="btn-add" style="margin-bottom:4px;">
       <span class="plus">+</span>
-      <span>Ajouter un rappel personnel</span>
+      <span class="btn-add-texte"><span class="btn-add-l1">Nouveau</span><span class="btn-add-l2">rappel personnel</span></span>
     </button>
     <button id="avis-btn" type="button" style="width:100%;background:transparent;color:#2c3e91;border:none;padding:6px 8px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;animation:avisBlink 1s steps(1) infinite;">
       💬 Donner mon avis sur l'application
@@ -3608,7 +3622,25 @@ function renderPlanningInner(content,events){const seen=new Set();const uniqueEv
       content.querySelectorAll('[data-speech]').forEach(card=>{card.addEventListener('click',(ev)=>{if(ev.target.closest('[data-nospeech]'))return;speak(card.dataset.speech||'');});});
       content.querySelectorAll('.pcard-btn:not(.complet)').forEach(btn=>{btn.addEventListener('click',async e=>{e.stopPropagation();if(btn.disabled)return;const ev={date:btn.dataset.edate,time:btn.dataset.etime,title:btn.dataset.etitle,icon:btn.dataset.eicon};const limite=btn.dataset.elimite?parseInt(btn.dataset.elimite):null;const anim=btn.dataset.eanim||'Steve';const ek=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');const dejaInscrit=isInscrit(ek);if(dejaInscrit){await demanderDesinscription(ev,ek,anim,content,events);return;}if(!dejaInscrit&&limite!==null){btn.disabled=true;btn.textContent='⏳ Vérification...';const freshInscriptions=await loadAllInscriptions();const currentCount=(freshInscriptions[ek]||[]).length;if(currentCount>=limite){showConfirm({icon:'😔',title:'Atelier complet',text:`Désolé, les ${limite} places pour "${ev.title}" viennent d'être prises.`,okText:'OK',hideCancel:true});state.allInscriptions=freshInscriptions;renderPlanningInner(content,events);return;}}await toggleInscription(ev);state.allInscriptions=await loadAllInscriptions();renderPlanningInner(content,events);});});}
 
-document.getElementById('btn-reglages').addEventListener('click',()=>{window.location.href='reglages.html';});
+// ===== Tiroir menu, ouvert par la languette du bord gauche ou un glissé depuis le bord (§2) =====
+document.getElementById('tiroir-item-reglages').addEventListener('click',()=>{window.location.href='reglages.html';});
+function _ouvrirTiroirMenu(){document.getElementById('voile-tiroir').classList.add('visible');document.getElementById('tiroir-menu').classList.add('visible');}
+function _fermerTiroirMenu(){document.getElementById('voile-tiroir').classList.remove('visible');document.getElementById('tiroir-menu').classList.remove('visible');}
+document.getElementById('voile-tiroir').addEventListener('click',_fermerTiroirMenu);
+const _languetteMenu=document.getElementById('menu-languette');
+_languetteMenu.addEventListener('click',_ouvrirTiroirMenu);
+let _tiroirDepartX=null;
+document.getElementById('main-screen').addEventListener('touchstart',e=>{
+  const x=e.touches[0].clientX;
+  if(x<24){_tiroirDepartX=x;_languetteMenu.classList.add('touchee');}else{_tiroirDepartX=null;}
+},{passive:true});
+document.getElementById('main-screen').addEventListener('touchmove',e=>{
+  if(_tiroirDepartX===null)return;
+  const dx=e.touches[0].clientX-_tiroirDepartX;
+  if(dx>60){_ouvrirTiroirMenu();_tiroirDepartX=null;_languetteMenu.classList.remove('touchee');}
+},{passive:true});
+document.getElementById('main-screen').addEventListener('touchend',()=>{_tiroirDepartX=null;_languetteMenu.classList.remove('touchee');});
+
 document.getElementById('prev-day').addEventListener('click',()=>{state.dayOffset--;render();});
 document.getElementById('next-day').addEventListener('click',()=>{state.dayOffset++;render();});
 document.getElementById('back-to-today').addEventListener('click',()=>{state.dayOffset=0;render();});
@@ -3695,20 +3727,31 @@ document.getElementById('aide-lire-btn').addEventListener('click',()=>{
   setTimeout(()=>btn.classList.remove('actif'),2500);
 });
 
-// ===== Flèche « Plus de rappels » : appui bref = descend, appui maintenu = défilement continu (§6) =====
+// ===== Flèche « Descendre » / « Remonter » : appui bref = un cran, appui maintenu = défilement continu (§6) =====
 const _zoneListeAccueil=document.querySelector('#main-screen .list-wrap');
 const _hintListeAccueil=document.getElementById('scroll-hint-accueil');
+function _enBasListeAccueil(){return _zoneListeAccueil.scrollTop+_zoneListeAccueil.clientHeight>=_zoneListeAccueil.scrollHeight-20;}
 function _checkScrollHint(){
   if(!_zoneListeAccueil||!_hintListeAccueil)return;
-  const bas=_zoneListeAccueil.scrollTop+_zoneListeAccueil.clientHeight>=_zoneListeAccueil.scrollHeight-20;
-  _hintListeAccueil.style.opacity=bas?'0':'1';
-  _hintListeAccueil.style.pointerEvents=bas?'none':'auto';
+  const peutScroller=_zoneListeAccueil.scrollHeight-_zoneListeAccueil.clientHeight>20;
+  if(!peutScroller){_hintListeAccueil.style.opacity='0';_hintListeAccueil.style.pointerEvents='none';return;}
+  _hintListeAccueil.style.opacity='1';
+  _hintListeAccueil.style.pointerEvents='auto';
+  const bas=_enBasListeAccueil();
+  _hintListeAccueil.querySelector('.sh-fleche').textContent=bas?'⌃':'⌄';
+  _hintListeAccueil.querySelector('.sh-texte').textContent=bas?'Remonter':'Descendre';
 }
 if(_zoneListeAccueil)_zoneListeAccueil.addEventListener('scroll',_checkScrollHint);
 window.addEventListener('resize',_checkScrollHint);
-function _descendreListeAccueil(){if(_zoneListeAccueil)_zoneListeAccueil.scrollBy({top:280,behavior:'smooth'});}
-let _boucleScrollAccueil=null;
-function _demarrerScrollAccueil(e){e.preventDefault();_descendreListeAccueil();clearInterval(_boucleScrollAccueil);_boucleScrollAccueil=setInterval(()=>{if(_zoneListeAccueil)_zoneListeAccueil.scrollBy({top:28,behavior:'auto'});},90);}
+let _boucleScrollAccueil=null,_sensScrollAccueil=1;
+function _demarrerScrollAccueil(e){
+  e.preventDefault();
+  if(!_zoneListeAccueil)return;
+  _sensScrollAccueil=_enBasListeAccueil()?-1:1;
+  _zoneListeAccueil.scrollBy({top:_sensScrollAccueil*280,behavior:'smooth'});
+  clearInterval(_boucleScrollAccueil);
+  _boucleScrollAccueil=setInterval(()=>{_zoneListeAccueil.scrollBy({top:_sensScrollAccueil*28,behavior:'auto'});},90);
+}
 function _arreterScrollAccueil(){clearInterval(_boucleScrollAccueil);_boucleScrollAccueil=null;}
 if(_hintListeAccueil){
   _hintListeAccueil.addEventListener('touchstart',_demarrerScrollAccueil,{passive:false});
