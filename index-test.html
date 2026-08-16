@@ -153,7 +153,10 @@
     .voile-tiroir.visible { opacity:1; pointer-events:auto; }
     .tiroir-menu { position:fixed; top:0; bottom:0; left:0; width:78%; max-width:300px; background:#fff; box-shadow:4px 0 24px rgba(0,0,0,.2); transform:translateX(-100%); transition:transform .3s ease; z-index:71; padding:calc(26px + env(safe-area-inset-top)) 0 20px; overflow-y:auto; }
     .tiroir-menu.visible { transform:translateX(0); }
-    .tiroir-menu h2 { color:#2c3e91; font-size:1.05rem; margin:0 20px 16px; }
+    .tiroir-entete { display:flex; align-items:center; justify-content:space-between; margin:0 12px 16px 20px; }
+    .tiroir-menu h2 { color:#2c3e91; font-size:1.05rem; margin:0; }
+    .tiroir-fermer { background:#f1f3f8; border:none; color:#5b6785; width:34px; height:34px; border-radius:50%; font-size:1.1rem; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; padding:0; flex-shrink:0; }
+    .tiroir-fermer:active { background:#e5e9f2; }
     .tiroir-menu .tiroir-item { display:flex; align-items:center; gap:12px; padding:14px 20px; font-size:1rem; font-weight:600; color:#1a2340; cursor:pointer; }
     .tiroir-menu .tiroir-item:active { background:#f1f3f8; }
     .tiroir-menu .tiroir-item .tiroir-ic { font-size:1.3rem; width:26px; text-align:center; }
@@ -735,7 +738,7 @@
   </div>
   <div class="voile-tiroir" id="voile-tiroir"></div>
   <div class="tiroir-menu" id="tiroir-menu">
-    <h2>Menu</h2>
+    <div class="tiroir-entete"><h2>Menu</h2><button type="button" class="tiroir-fermer" id="tiroir-fermer-btn" aria-label="Fermer">✕</button></div>
     <div class="tiroir-item" id="tiroir-item-reglages"><span class="tiroir-ic">⚙️</span><span>Réglages</span></div>
     <div class="tiroir-item a-venir"><span class="tiroir-ic">🔤</span><span>Taille du texte</span><span class="tiroir-tag">bientôt</span></div>
   </div>
@@ -3627,12 +3630,13 @@ document.getElementById('tiroir-item-reglages').addEventListener('click',()=>{wi
 function _ouvrirTiroirMenu(){document.getElementById('voile-tiroir').classList.add('visible');document.getElementById('tiroir-menu').classList.add('visible');}
 function _fermerTiroirMenu(){document.getElementById('voile-tiroir').classList.remove('visible');document.getElementById('tiroir-menu').classList.remove('visible');}
 document.getElementById('voile-tiroir').addEventListener('click',_fermerTiroirMenu);
+document.getElementById('tiroir-fermer-btn').addEventListener('click',_fermerTiroirMenu);
 const _languetteMenu=document.getElementById('menu-languette');
 _languetteMenu.addEventListener('click',_ouvrirTiroirMenu);
 let _tiroirDepartX=null;
 document.getElementById('main-screen').addEventListener('touchstart',e=>{
   const x=e.touches[0].clientX;
-  if(x<24){_tiroirDepartX=x;_languetteMenu.classList.add('touchee');}else{_tiroirDepartX=null;}
+  if(x<24&&!document.getElementById('tiroir-menu').classList.contains('visible')){_tiroirDepartX=x;_languetteMenu.classList.add('touchee');}else{_tiroirDepartX=null;}
 },{passive:true});
 document.getElementById('main-screen').addEventListener('touchmove',e=>{
   if(_tiroirDepartX===null)return;
@@ -3640,6 +3644,17 @@ document.getElementById('main-screen').addEventListener('touchmove',e=>{
   if(dx>60){_ouvrirTiroirMenu();_tiroirDepartX=null;_languetteMenu.classList.remove('touchee');}
 },{passive:true});
 document.getElementById('main-screen').addEventListener('touchend',()=>{_tiroirDepartX=null;_languetteMenu.classList.remove('touchee');});
+
+// Glissé vers la gauche sur le tiroir ouvert = le referme
+const _tiroirMenuEl=document.getElementById('tiroir-menu');
+let _tiroirFermeDepartX=null;
+_tiroirMenuEl.addEventListener('touchstart',e=>{_tiroirFermeDepartX=e.touches[0].clientX;},{passive:true});
+_tiroirMenuEl.addEventListener('touchmove',e=>{
+  if(_tiroirFermeDepartX===null)return;
+  const dx=e.touches[0].clientX-_tiroirFermeDepartX;
+  if(dx<-50){_fermerTiroirMenu();_tiroirFermeDepartX=null;}
+},{passive:true});
+_tiroirMenuEl.addEventListener('touchend',()=>{_tiroirFermeDepartX=null;});
 
 document.getElementById('prev-day').addEventListener('click',()=>{state.dayOffset--;render();});
 document.getElementById('next-day').addEventListener('click',()=>{state.dayOffset++;render();});
