@@ -143,9 +143,13 @@
     .header { background: #2c3e91; color: white; padding: 24px 20px 20px; padding-top: calc(24px + env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
     .btn-arrow { background: rgba(255,255,255,0.18); border: none; color: white; width: 48px; height: 48px; min-width: 48px; border-radius: 50%; font-size:1.875rem; font-weight: 700; cursor: pointer; font-family: inherit; line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0; }
     .btn-arrow:active { background: rgba(255,255,255,0.3); }
-    .header-title { flex: 1; min-width: 0; text-align: center; }
-    .header-title h1 { font-size:clamp(1.125rem, 5.5vw, 1.625rem); font-weight: 700; letter-spacing: -0.5px; }
-    .header-title .date { font-size:0.875rem; opacity: 0.85; margin-top: 4px; text-transform: capitalize; }
+    .header-left-group { display: flex; gap: 8px; }
+    .jour-nav-bar { background: #fff; padding: 10px 14px; display: flex; align-items: center; justify-content: center; gap: 14px; flex-shrink: 0; border-bottom: 1px solid #e5e9f2; }
+    .jour-nav-bar .btn-jour { background: #eef1fb; border: none; color: #2c3e91; width: 38px; height: 38px; min-width: 38px; border-radius: 50%; font-size:1.5rem; font-weight: 700; cursor: pointer; font-family: inherit; line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .jour-nav-bar .btn-jour:active { background: #dde3f7; }
+    .jour-nav-titre { text-align: center; min-width: 0; }
+    .jour-nav-titre h1 { font-size:1.0625rem; font-weight: 700; color: #1a2340; }
+    .jour-nav-titre .date { font-size:0.8125rem; color: #5b6785; margin-top: 2px; text-transform: capitalize; }
     .header-user { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 6px 12px; cursor: pointer; border: none; color: white; font-family: inherit; }
     .header-user-name { font-size:0.875rem; font-weight: 600; max-width: 18vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .today-bar { background: #ffeecb; padding: 10px 16px; text-align: center; flex-shrink: 0; border-bottom: 1px solid #f0d89b; }
@@ -304,7 +308,7 @@
     .tout-fait .prochain .quand { font-size:.75rem; color:#7a84a8; font-weight:700; text-transform:uppercase; }
     .tout-fait .prochain .quoi { font-size:.98rem; font-weight:700; color:#2a3350; margin-top:2px; }
     /* Flèche « Plus de rappels », appui maintenu = défilement continu */
-    .scroll-hint-accueil { position:fixed; left:16px; bottom:calc(20px + env(safe-area-inset-bottom)); display:flex; align-items:center; gap:8px; background:#fff; border-radius:26px; padding:8px 14px 8px 8px; box-shadow:0 4px 14px rgba(30,40,90,.2); z-index:25; transition:opacity .25s ease; }
+    .scroll-hint-accueil { position:fixed; left:16px; bottom:calc(20px + env(safe-area-inset-bottom)); display:flex; align-items:center; gap:8px; background:#fff; border-radius:26px; padding:8px 14px 8px 8px; box-shadow:0 4px 14px rgba(30,40,90,.2); z-index:56; transition:opacity .25s ease; }
     .scroll-hint-accueil .sh-texte { font-size:.82rem; color:#2c3e91; font-weight:700; }
     .scroll-hint-accueil .sh-fleche { width:30px; height:30px; border-radius:50%; background:#2c3e91; color:#fff; display:flex; align-items:center; justify-content:center; font-size:1rem; animation:shBob 1.2s ease-in-out infinite; flex-shrink:0; }
     @keyframes shBob { 0%,100%{transform:translateY(0);} 50%{transform:translateY(5px);} }
@@ -675,15 +679,19 @@
 
 <div id="main-screen" class="screen">
   <header class="header">
-    <button id="btn-reglages" class="btn-arrow" aria-label="Réglages">⚙️</button>
-    <button id="btn-aide-accueil" class="btn-arrow" aria-label="Aide" style="font-size:1.5rem;">?</button>
-    <button id="prev-day" class="btn-arrow" aria-label="Jour précédent">‹</button>
-    <div class="header-title">
+    <div class="header-left-group">
+      <button id="btn-reglages" class="btn-arrow" aria-label="Réglages">⚙️</button>
+      <button id="btn-aide-accueil" class="btn-arrow" aria-label="Aide" style="font-size:1.5rem;">?</button>
+    </div>
+  </header>
+  <div class="jour-nav-bar">
+    <button id="prev-day" class="btn-jour" aria-label="Jour précédent">‹</button>
+    <div class="jour-nav-titre">
       <h1 id="day-title">Aujourd'hui</h1>
       <p id="day-date" class="date"></p>
     </div>
-    <button id="next-day" class="btn-arrow" aria-label="Jour suivant">›</button>
-  </header>
+    <button id="next-day" class="btn-jour" aria-label="Jour suivant">›</button>
+  </div>
   <div class="today-bar" id="today-bar" style="display:none">
     <button id="back-to-today">Revenir à aujourd'hui</button>
   </div>
