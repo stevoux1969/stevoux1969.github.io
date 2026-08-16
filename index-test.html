@@ -270,23 +270,16 @@
     .card-rdv.done { opacity: 0.55; }
     .card-rdv.done .rdv-titre { text-decoration: line-through; }
     /* ===== Carte de rappel repensée v7 (maquette-accueil-v7 / regle-sonnerie-unique) ===== */
-    .label-carte { font-size:.72rem; font-weight:800; color:#8992b8; letter-spacing:.04em; text-transform:uppercase; margin:0 4px 6px; transition:opacity .5s ease, max-height .45s ease, margin .45s ease; max-height:40px; overflow:hidden; }
-    .label-carte.retard { color:#b8845a; }
-    .label-carte.disparue { max-height:0; opacity:0; margin:0; }
+    .label-carte { font-size:.72rem; font-weight:800; color:#8992b8; letter-spacing:.04em; text-transform:uppercase; margin:0 4px 6px; overflow:hidden; }
     .c-card { background:#fff; border:2px solid #2c3e91; border-radius:18px; overflow:hidden; box-shadow:0 2px 10px rgba(30,40,90,.07); margin-bottom:22px; padding:16px; cursor:pointer;
-      max-height:600px; opacity:0; transform:translateY(20px);
-      transition:max-height .45s ease, opacity .7s ease, margin-bottom .45s ease, border-color .3s ease, transform .6s ease, padding .4s ease; }
+      opacity:0; transform:translateY(20px);
+      transition:opacity .7s ease, transform .6s ease; }
     .c-card.apparue { opacity:1; transform:translateY(0); }
-    .c-card.en-retard { border-color:#b8845a; }
-    .c-card.flash { border-color:#22a559; }
-    .c-card.flash .c-titre h3::after { content:" ✓"; color:#22a559; }
-    .c-card.disparue { max-height:0; margin-bottom:0; opacity:0; padding:0; border-width:0; }
     .c-top { display:flex; align-items:center; gap:12px; margin-bottom:2px; }
     .c-emoji { font-size:2rem; line-height:1; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
     .c-emoji img { width:36px; height:36px; }
     .c-titre { flex:1; min-width:0; }
     .c-titre .c-heure { font-size:1.5rem; font-weight:800; line-height:1.15; color:#2c3e91; }
-    .c-card.en-retard .c-titre .c-heure { color:#b8845a; }
     .c-titre .c-sonnerie-inline { font-size:.78rem; font-weight:600; color:#7a84a8; margin-left:5px; white-space:nowrap; }
     .c-titre h3 { font-size:1rem; font-weight:700; color:#222; line-height:1.25; margin-top:1px; overflow-wrap:break-word; word-break:break-word; }
     .c-speak { width:44px; height:44px; border-radius:12px; background:#eef1fb; border:1.5px solid #d6dcf0; display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0; cursor:pointer; color:#2c3e91; padding:0; }
@@ -313,17 +306,11 @@
     .c-maps-p { font-weight:700; font-size:.86rem; }
     .c-maps-s { font-weight:500; font-size:.62rem; opacity:.75; }
     .c-plus-infos { border:1.5px solid #d6dcf0; color:#5b6b8c; border-radius:12px; display:flex; align-items:center; justify-content:center; text-align:center; font-weight:700; font-size:.76rem; line-height:1.2; padding:9px 4px; cursor:pointer; }
-    .c-done { border:none; background:#22a559; color:#fff; border-radius:12px; text-align:center; font-weight:700; font-size:.78rem; font-family:inherit; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:9px 4px; }
     .c-details { max-height:0; overflow:hidden; transition:max-height .35s ease, margin .35s ease; margin-top:0; }
     .c-details.ouvert { max-height:160px; margin-top:8px; }
     .c-details-ligne { display:flex; align-items:center; gap:8px; font-size:.88rem; color:#333; padding:8px 0; border-top:1px solid #eef1fb; }
     .c-details-ligne:first-child { border-top:none; }
     .c-badge { display:inline-block; margin-top:10px; font-size:.72rem; font-weight:600; color:#0a6e31; background:#dcfce7; padding:5px 10px; border-radius:8px; }
-    /* Bandeau « Rappel validé » avec Annuler, 5 secondes */
-    .annuler-bar { position:fixed; left:14px; right:14px; max-width:452px; margin:0 auto; bottom:calc(90px + env(safe-area-inset-bottom)); background:#2a3350; color:#fff; border-radius:14px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; z-index:60; opacity:0; transform:translateY(14px); pointer-events:none; transition:opacity .3s ease, transform .3s ease; box-shadow:0 8px 24px rgba(0,0,0,.25); }
-    .annuler-bar.visible { opacity:1; transform:translateY(0); pointer-events:auto; }
-    .annuler-bar .annuler-txt { font-size:.9rem; font-weight:600; }
-    .annuler-bar .annuler-btn { background:#fff; color:#2a3350; border:none; border-radius:10px; padding:9px 16px; font-weight:800; font-size:.86rem; flex-shrink:0; cursor:pointer; font-family:inherit; }
     /* Écran « tout est fait » */
     .tout-fait { display:none; text-align:center; padding:40px 24px; }
     .tout-fait.visible { display:block; animation:toutFaitFade .6s ease; }
@@ -372,15 +359,15 @@
     .ib-big { font-size:0.9375rem; font-weight: 800; color: #2c3e91; letter-spacing: 0.5px; }
     .ib-small { font-size:0.5rem; font-weight: 600; color: #48547a; margin-top: 2px; text-align: center; text-transform: lowercase; }
     /* Quart de disque "Nouveau rappel", colle aux deux bords, respire en continu (§3) */
-    .quart-nouveau { position:fixed; right:0; bottom:0; width:140px; height:140px; background:#0e8f82; border-top-left-radius:140px; z-index:30; cursor:pointer; box-shadow:-3px -3px 12px rgba(0,0,0,.12); animation:respirerQuart 2.4s ease-in-out infinite; transform-origin:bottom right; }
+    .quart-nouveau { position:fixed; right:0; bottom:0; width:170px; height:170px; background:#0e8f82; border-top-left-radius:170px; z-index:30; cursor:pointer; box-shadow:-3px -3px 12px rgba(0,0,0,.12); animation:respirerQuart 2.4s ease-in-out infinite; transform-origin:bottom right; }
     @keyframes respirerQuart {
       0%,100% { transform:scale(1); background:#0e8f82; box-shadow:-3px -3px 12px rgba(0,0,0,.12); }
       50% { transform:scale(1.05); background:#14b09f; box-shadow:-3px -3px 22px rgba(14,143,130,.55); }
     }
-    .quart-nouveau .qn-plus { position:absolute; left:28px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); color:#fff; text-align:center; pointer-events:none; }
+    .quart-nouveau .qn-plus { position:absolute; left:56px; right:14px; bottom:calc(15px + env(safe-area-inset-bottom)); color:#fff; text-align:center; pointer-events:none; }
     .quart-nouveau .qn-signe { font-size:1.3rem; font-weight:800; line-height:1; }
-    .quart-nouveau .qn-texte { font-size:.66rem; font-weight:800; line-height:1.15; margin-top:2px; white-space:nowrap; }
-    .quart-nouveau .qn-sous { font-size:.56rem; font-weight:600; opacity:.9; line-height:1.15; white-space:nowrap; }
+    .quart-nouveau .qn-texte { font-size:.6rem; font-weight:800; line-height:1.15; margin-top:2px; white-space:nowrap; }
+    .quart-nouveau .qn-sous { font-size:.52rem; font-weight:600; opacity:.9; line-height:1.15; white-space:nowrap; }
     /* Popup "Ton avis compte", premiere ouverture du jour tant que pas repondu (§1) */
     .avis-popup-overlay { position:fixed; inset:0; background:rgba(20,26,50,.5); opacity:0; pointer-events:none; transition:opacity .3s ease; z-index:80; display:flex; align-items:center; justify-content:center; padding:24px; }
     .avis-popup-overlay.visible { opacity:1; pointer-events:auto; }
@@ -746,10 +733,6 @@
   </button>
   <div class="list-wrap">
     <div id="reminders-list"></div>
-  </div>
-  <div class="annuler-bar" id="annuler-bar">
-    <div class="annuler-txt">✓ Rappel validé</div>
-    <button type="button" class="annuler-btn" id="annuler-btn">Annuler</button>
   </div>
   <div class="scroll-hint-accueil" id="scroll-hint-accueil">
     <div class="sh-fleche">⌄</div>
@@ -3089,10 +3072,13 @@ function showMesRendezVous(){
   const list=document.getElementById('mes-rdv-list');
   const todayKey=dateKey(new Date());
   // On garde tout ce qui est à venir (date >= aujourd'hui). Les rappels quotidiens sont inclus avec la date du jour.
+  const now=Date.now();
   const items=(state.reminders||[]).map(r=>{
     let d=r.eventDate||r.date;
     if(r.recurrence==='daily'){d=todayKey;}
-    return {...r,_d:d,_t:r.eventTime||r.time||'00:00'};
+    const t=r.eventTime||r.time||'00:00';
+    const passe=d===todayKey&&new Date(d+'T'+t+':00').getTime()<now;
+    return {...r,_d:d,_t:t,_passe:passe};
   }).filter(r=>r._d&&r._d>=todayKey)
     .sort((a,b)=>a._d!==b._d?a._d.localeCompare(b._d):a._t.localeCompare(b._t));
 
@@ -3101,8 +3087,8 @@ function showMesRendezVous(){
     return;
   }
 
-  // ===== Carte héros : le tout prochain rendez-vous (on saute ceux déjà cochés "fait" aujourd'hui) =====
-  const heroIdx=items.findIndex(r=>!(r._d===todayKey&&r.done&&r.done[todayKey]));
+  // ===== Carte héros : le tout prochain rendez-vous (on saute ceux passés ou déjà cochés "fait" aujourd'hui) =====
+  const heroIdx=items.findIndex(r=>!r._passe&&!(r._d===todayKey&&r.done&&r.done[todayKey]));
   const hero=heroIdx>=0?items[heroIdx]:null;
   const reste=hero?items.filter((_,i)=>i!==heroIdx):items;
 
@@ -3115,8 +3101,6 @@ function showMesRendezVous(){
       ?'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#e8ecfb;color:#2c3e91;">Atelier AVP</span>'
       :'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#fdf0dc;color:#a8650a;">Rappel perso</span>';
     const noteH=hero.note?`<div style="font-size:0.95rem;color:#48547a;margin-top:3px;">${esc(hero.note)}</div>`:'';
-    // "C'est fait" seulement si c'est aujourd'hui et que ce n'est pas un atelier (cohérent avec l'accueil)
-    const montrerFait=estAujourdhui&&!isAtelierH;
     html+=`<div style="font-size:0.8rem;font-weight:800;color:#2c3e91;text-transform:uppercase;letter-spacing:.5px;margin:2px 0 8px;">Mon prochain rendez-vous</div>
     <div style="background:white;border-radius:20px;border:3px solid #2c3e91;box-shadow:0 6px 20px rgba(44,62,145,0.18);padding:18px;margin-bottom:6px;">
       <div style="font-size:1rem;font-weight:700;color:#48547a;">${quand}</div>
@@ -3130,8 +3114,7 @@ function showMesRendezVous(){
         </div>
       </div>
       <div style="display:flex;gap:10px;margin-top:16px;">
-        ${montrerFait?`<button id="hero-fait-btn" style="flex:1;padding:16px;border:none;border-radius:14px;background:#22a559;color:white;font-family:inherit;font-size:1.15rem;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(34,165,89,0.3);">✓ C'est fait</button>`:''}
-        <button id="hero-audio-btn" style="${montrerFait?'width:64px;font-size:1.5rem;':'flex:1;padding:16px;font-size:1.05rem;'}border:none;border-radius:14px;background:#eef1f8;color:#2c3e91;font-family:inherit;font-weight:700;cursor:pointer;">🔊${montrerFait?'':' Écouter'}</button>
+        <button id="hero-audio-btn" style="flex:1;padding:16px;font-size:1.05rem;border:none;border-radius:14px;background:#eef1f8;color:#2c3e91;font-family:inherit;font-weight:700;cursor:pointer;">🔊 Écouter</button>
       </div>
       <button id="hero-annuler-btn" style="width:100%;margin-top:10px;border:none;background:#fdecec;color:#c0392b;font-family:inherit;font-size:0.95rem;font-weight:700;padding:12px;border-radius:12px;cursor:pointer;">🗑️ Annuler ce rendez-vous</button>
     </div>`;
@@ -3146,38 +3129,31 @@ function showMesRendezVous(){
     const moisLabel=MOIS[dObj.getMonth()]+' '+dObj.getFullYear();
     if(moisLabel!==dernierMois){html+=`<div style="font-size:0.8rem;font-weight:800;color:#2c3e91;text-transform:uppercase;letter-spacing:.5px;margin:18px 0 8px;">${moisLabel}</div>`;dernierMois=moisLabel;}
     const isAtelier=r.source==='atelier';
-    const couleur=isAtelier?'#2c3e91':'#e0901c';
+    // Rappel personnel passé aujourd'hui : discret, consultation seulement (pas d'atelier concerné).
+    const passeDiscret=r._passe&&!isAtelier;
+    const couleur=passeDiscret?'#c7cdd9':(isAtelier?'#2c3e91':'#e0901c');
     const badge=isAtelier?'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#e8ecfb;color:#2c3e91;">Atelier AVP</span>':'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#fdf0dc;color:#a8650a;">Rappel perso</span>';
     const jour=dObj.getDate();
     const moisCourt=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'][dObj.getMonth()];
-    html+=`<div class="rdv-row" style="background:white;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;gap:14px;align-items:center;box-shadow:0 2px 8px rgba(26,35,64,0.06);border-left:5px solid ${couleur};">
+    const titreCouleur=passeDiscret?'#8992a8':'#1a2340';
+    const annulerBtnHTML=passeDiscret?'':`<button class="rdv-annuler-btn" data-id="${r.id}" style="border:none;background:#fdecec;color:#c0392b;font-family:inherit;font-size:0.85rem;font-weight:700;padding:10px 14px;border-radius:12px;cursor:pointer;flex-shrink:0;">Annuler</button>`;
+    html+=`<div class="rdv-row" style="background:white;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;gap:14px;align-items:center;box-shadow:0 2px 8px rgba(26,35,64,0.06);border-left:5px solid ${couleur};${passeDiscret?'opacity:.7;':''}">
       <div style="text-align:center;min-width:48px;">
-        <div style="font-size:1.3rem;font-weight:800;color:#1a2340;line-height:1;">${jour}</div>
-        <div style="font-size:0.7rem;color:#48547a;text-transform:uppercase;font-weight:700;">${moisCourt}</div>
+        <div style="font-size:1.3rem;font-weight:800;color:${titreCouleur};line-height:1;">${jour}</div>
+        <div style="font-size:0.7rem;color:#8992a8;text-transform:uppercase;font-weight:700;">${moisCourt}</div>
       </div>
       <div style="flex:1;">
-        <div style="font-size:1rem;font-weight:700;color:#1a2340;">${esc(r.title||'')}</div>
-        <div style="font-size:0.85rem;color:#48547a;margin-top:2px;">à ${(r._t||'').replace(':','h')}</div>
+        <div style="font-size:1rem;font-weight:700;color:${titreCouleur};">${esc(r.title||'')}</div>
+        <div style="font-size:0.85rem;color:#8992a8;margin-top:2px;">à ${(r._t||'').replace(':','h')}</div>
         <div style="margin-top:5px;">${badge}</div>
       </div>
-      <button class="rdv-annuler-btn" data-id="${r.id}" style="border:none;background:#fdecec;color:#c0392b;font-family:inherit;font-size:0.85rem;font-weight:700;padding:10px 14px;border-radius:12px;cursor:pointer;flex-shrink:0;">Annuler</button>
+      ${annulerBtnHTML}
     </div>`;
   });
   list.innerHTML=html;
 
   // ===== Écouteurs =====
   if(hero){
-    const fb=document.getElementById('hero-fait-btn');
-    if(fb)fb.addEventListener('click',async()=>{
-      const r=(state.reminders||[]).find(x=>x.id===hero.id);
-      if(!r)return;
-      if(!r.done)r.done={};
-      r.done[todayKey]=true;
-      await saveUserData();
-      speak('Bravo !');
-      render(); // met à jour la coche sur l'accueil
-      showMesRendezVous(); // le suivant devient le héros
-    });
     const ab=document.getElementById('hero-audio-btn');
     if(ab)ab.addEventListener('click',()=>{
       const quand=hero._d===todayKey?"Aujourd'hui":formatShortDate(hero._d);
@@ -3301,11 +3277,11 @@ async function showAdminAvis(){
 }
 
 // Réserve sous la liste assez de place pour que la dernière carte ne soit
-// jamais cachée derrière le quart de disque (140px, taille fixe).
+// jamais cachée derrière le quart de disque (170px, taille fixe).
 function _ajusterPaddingListe(){
   const lw=document.querySelector('#main-screen .list-wrap');
   if(!lw)return;
-  lw.style.paddingBottom='180px';
+  lw.style.paddingBottom='210px';
 }
 window.addEventListener('resize',()=>{try{_ajusterPaddingListe();}catch(e){}});
 
@@ -3320,15 +3296,15 @@ function _sonnerieUniqueMs(r,ti,jourAffiche){
 }
 // Construit l'étiquette de date + la carte : bloc Départ compact, sonnerie unique
 // affichée à côté de l'heure, bouton Maps, « C'est fait », 🔊 Écouter.
-function _carteRappel(r,key,isOverdue,jourAffiche){
+function _carteRappel(r,key,jourAffiche){
   const isAtelier=r.source==='atelier';
   const isDaily=r.recurrence==='daily';
   const ti=_trajetInfo(r);
   const eventDate=r.eventDate||r.date;
   const eventTime=r.eventTime||r.time;
   const dbHeure=(isDaily?r.time:eventTime).replace(':','h');
-  const labelTxt=isOverdue?`⏰ Toujours à faire — ${formatShortDate(key)}, ${dbHeure}`:(isDaily?'TOUS LES JOURS':(eventDate?formatShortDate(eventDate).toUpperCase():''));
-  const labelHTML=`<div class="label-carte${isOverdue?' retard':''}">${esc(labelTxt)}</div>`;
+  const labelTxt=isDaily?'TOUS LES JOURS':(eventDate?formatShortDate(eventDate).toUpperCase():'');
+  const labelHTML=`<div class="label-carte">${esc(labelTxt)}</div>`;
 
   let departHTML='';
   if(ti&&ti.departMs){
@@ -3348,7 +3324,7 @@ function _carteRappel(r,key,isOverdue,jourAffiche){
     const sonnMs=_sonnerieUniqueMs(r,ti,jourAffiche);
     if(sonnMs!==null){
       const hm=pad2(new Date(sonnMs).getHours())+'h'+pad2(new Date(sonnMs).getMinutes());
-      sonnerieInline=isOverdue?` <span class="c-sonnerie-inline">🔔 a sonné à ${hm}</span>`:` <span class="c-sonnerie-inline">🔔 sonnerie ${hm}</span>`;
+      sonnerieInline=` <span class="c-sonnerie-inline">🔔 sonnerie ${hm}</span>`;
     }
   }
 
@@ -3363,12 +3339,12 @@ function _carteRappel(r,key,isOverdue,jourAffiche){
     if(r.note)detailsItems.push(`<div class="c-details-ligne">✏️ ${esc(r.note)}</div>`);
     const aDesDetails=detailsItems.length>0;
     const plusInfosHTML=aDesDetails?`<div class="c-plus-infos">+ Plus d'infos</div>`:'';
-    const doneHTML=`<button type="button" class="c-done" data-check="${r.id}">✓ C'est fait</button>`;
     const detailsHTML=aDesDetails?`<div class="c-details">${detailsItems.join('')}</div>`:'';
-    actionZoneHTML=`<div class="c-ligne-actions">${mapsHTML}${plusInfosHTML}${doneHTML}</div>${detailsHTML}`;
+    const hasLigneActions=mapsHTML||plusInfosHTML;
+    actionZoneHTML=hasLigneActions?`<div class="c-ligne-actions">${mapsHTML}${plusInfosHTML}</div>${detailsHTML}`:'';
   }
 
-  const cardHTML=`<div class="c-card${isOverdue?' en-retard':''}" data-id="${r.id}" data-source="personal">`
+  const cardHTML=`<div class="c-card" data-id="${r.id}" data-source="personal">`
     +`<div class="c-top"><div class="c-emoji">${iconHTML(r.icon)}</div><div class="c-titre"><div class="c-heure">${dbHeure}${sonnerieInline}</div><h3>${esc(r.title)}</h3></div>`
     +`<button type="button" class="c-speak" data-speak="${r.id}">🔊</button></div>`
     +departHTML+(rows?`<div class="c-rows">${rows}</div>`:'')+actionZoneHTML+`</div>`;
@@ -3430,7 +3406,8 @@ function _prochainApercu(){
 function _ecranToutFait(){
   const prochain=state.dayOffset===0?_prochainApercu():null;
   const prochainHTML=prochain?`<div class="prochain"><div class="emoji" style="font-size:1.8rem">${prochain.emoji}</div><div class="txt"><div class="quand">${esc(prochain.quand)}</div><div class="quoi">${esc(prochain.quoi)}</div></div></div>`:'';
-  return `<div class="tout-fait visible"><div class="rond-vert">✅</div><h3>Tout est fait${state.dayOffset===0?' pour aujourd\'hui':''}</h3><p>Bravo, tu as validé tous tes rappels${state.dayOffset===0?' de la journée':' de ce jour-là'}.</p>${prochainHTML}</div>`;
+  const titre=state.dayOffset===0?"Plus rien de prévu aujourd'hui":'Plus rien de prévu ce jour-là';
+  return `<div class="tout-fait visible"><div class="rond-vert">🌿</div><h3>${titre}</h3>${prochainHTML}</div>`;
 }
 // Les 3 premières cartes apparaissent l'une après l'autre, le reste ensemble (§7).
 function _jouerEntreeCartes(){
@@ -3441,10 +3418,16 @@ function _jouerEntreeCartes(){
 }
 function render(){_arreterLectureCarte();const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key));if(personal.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;_ajusterPaddingListe();return;}
 const now=Date.now();
-const enrichis=personal.map(r=>{const isDone=!!(r.done&&r.done[key]);const ti=_trajetInfo(r);const sonnMs=r.source==='atelier'?null:_sonnerieUniqueMs(r,ti,d);const isOverdue=!isDone&&r.source!=='atelier'&&sonnMs!==null&&sonnMs<now;return{r,isDone,isOverdue};});
-const visibles=enrichis.filter(x=>!x.isDone).sort((a,b)=>{if(a.isOverdue!==b.isOverdue)return a.isOverdue?1:-1;return a.r.time.localeCompare(b.r.time);});
+// Un rappel personnel dont l'heure est passée disparaît simplement de l'accueil (pas de retard, pas de validation).
+// Les ateliers ne sont pas concernés : toujours visibles.
+const visibles=personal.filter(r=>{
+  if(r.source==='atelier')return true;
+  const ti=_trajetInfo(r);
+  const sonnMs=_sonnerieUniqueMs(r,ti,d);
+  return sonnMs===null||sonnMs>=now;
+}).sort((a,b)=>a.time.localeCompare(b.time));
 if(visibles.length===0){list.innerHTML=_ecranToutFait();_ajusterPaddingListe();return;}
-list.innerHTML=visibles.map(x=>_carteRappel(x.r,key,x.isOverdue,d)).join('');_ajusterPaddingListe();_majComptesARebours();_jouerEntreeCartes();if(typeof _checkScrollHint==='function')setTimeout(_checkScrollHint,50);}
+list.innerHTML=visibles.map(r=>_carteRappel(r,key,d)).join('');_ajusterPaddingListe();_majComptesARebours();_jouerEntreeCartes();if(typeof _checkScrollHint==='function')setTimeout(_checkScrollHint,50);}
 
 async function loadAVPPlanning(force){
   // Cache du planning par animateur (Steve/Greg), valable 5 minutes
@@ -3721,8 +3704,6 @@ document.getElementById('reminders-list').addEventListener('click',e=>{
   if(e.target.closest('a'))return;
   const sp=e.target.closest('[data-speak]');
   if(sp){_lireCarte(sp.dataset.speak,sp);e.stopPropagation();return;}
-  const checkId=e.target.closest('[data-check]')?.dataset.check;
-  if(checkId){_marquerFait(checkId);e.stopPropagation();return;}
   const plusBtn=e.target.closest('.c-plus-infos');
   if(plusBtn){
     const details=plusBtn.closest('.c-card')?.querySelector('.c-details');
@@ -3731,48 +3712,6 @@ document.getElementById('reminders-list').addEventListener('click',e=>{
   }
   const card=e.target.closest('.c-card');
   if(card){const id=card.dataset.id;const r=state.reminders.find(x=>x.id===id);if(r&&r.source!=='atelier')openEdit(id);}
-});
-
-// Validation d'un rappel (§4) : flash vert, puis la carte se replie et disparaît,
-// avec un bandeau « Annuler » pendant 5 secondes. Le rappel reste dans l'agenda.
-let _annulerTimer=null,_annulerInfo=null;
-function _marquerFait(id){
-  const r=state.reminders.find(x=>x.id===id);if(!r)return;
-  const card=document.querySelector(`.c-card[data-id="${id}"]`);
-  if(!card||card.classList.contains('flash'))return;
-  const label=card.previousElementSibling&&card.previousElementSibling.classList.contains('label-carte')?card.previousElementSibling:null;
-  card.classList.add('flash');
-  if(!r.done)r.done={};
-  const key=dateKey(getCurrentDate());
-  r.done[key]=true;
-  saveUserData();
-  speak('Bravo !');
-  setTimeout(()=>{
-    card.classList.add('disparue');
-    if(label)label.classList.add('disparue');
-    setTimeout(()=>{
-      const resteVisible=[...document.querySelectorAll('#reminders-list .c-card')].some(c=>!c.classList.contains('disparue'));
-      if(!resteVisible)document.getElementById('reminders-list').innerHTML=_ecranToutFait();
-    },500);
-  },450);
-  _annulerInfo={id,key};
-  _afficherAnnulation();
-}
-function _afficherAnnulation(){
-  const bar=document.getElementById('annuler-bar');
-  bar.classList.add('visible');
-  clearTimeout(_annulerTimer);
-  _annulerTimer=setTimeout(()=>{bar.classList.remove('visible');_annulerInfo=null;},5000);
-}
-document.getElementById('annuler-btn').addEventListener('click',()=>{
-  if(!_annulerInfo)return;
-  const r=state.reminders.find(x=>x.id===_annulerInfo.id);
-  if(r&&r.done)r.done[_annulerInfo.key]=false;
-  saveUserData();
-  document.getElementById('annuler-bar').classList.remove('visible');
-  clearTimeout(_annulerTimer);
-  _annulerInfo=null;
-  render();
 });
 
 // ===== Panneau d'aide de l'accueil (§6) =====
@@ -3793,6 +3732,40 @@ document.getElementById('aide-lire-btn').addEventListener('click',()=>{
   speak(texte);
   setTimeout(()=>btn.classList.remove('actif'),2500);
 });
+
+// ===== Bouton retour Android (brief retrait-validation, §6) =====
+// Inerte pour l'instant : le plugin natif @capacitor/app n'est pas encore installé
+// (chantier natif prévu avec le nettoyage des alarmes, pas encore fait). Une fois le
+// plugin present dans l'APK, ce code gere la navigation interne au lieu de laisser
+// Android fermer l'application brutalement.
+let _dernierAppuiRetour=0;
+function _gererBoutonRetourAndroid(){
+  const tiroir=document.getElementById('tiroir-menu');
+  if(tiroir&&tiroir.classList.contains('visible')){_fermerTiroirMenu();return;}
+  const aide=document.getElementById('aide-panel-accueil');
+  if(aide&&aide.classList.contains('visible')){_fermerAideAccueil();return;}
+  const ecranAccueil=(currentUser&&currentUser.isAdmin)?'admin-screen':'main-screen';
+  const actif=document.querySelector('.screen.active');
+  if(actif&&actif.id!==ecranAccueil&&actif.id!=='login-screen'&&actif.id!=='tutorial-screen'){
+    if(ecranAccueil==='main-screen'){showScreen('main-screen');render();}
+    else if(typeof showAdminScreen==='function')showAdminScreen();
+    return;
+  }
+  // Déjà sur l'accueil, rien à fermer : double pression pour quitter.
+  const maintenant=Date.now();
+  if(maintenant-_dernierAppuiRetour<2000){
+    try{const A=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App;if(A&&A.exitApp)A.exitApp();}catch(e){}
+    return;
+  }
+  _dernierAppuiRetour=maintenant;
+  speak('Appuyez de nouveau pour quitter');
+}
+(function(){
+  try{
+    const A=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App;
+    if(A&&A.addListener)A.addListener('backButton',_gererBoutonRetourAndroid);
+  }catch(e){}
+})();
 
 // ===== Flèche « Descendre » / « Remonter » : appui bref = un cran, appui maintenu = défilement continu (§6) =====
 const _zoneListeAccueil=document.querySelector('#main-screen .list-wrap');
