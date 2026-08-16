@@ -113,6 +113,13 @@
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body { height: 100%; overflow: hidden; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f3f8; color: #1a2340; font-size:1.125rem; line-height: 1.4; -webkit-font-smoothing: antialiased; user-select: none; -webkit-touch-callout: none; }
+    /* Cadre téléphone simulé sur grand écran (PC/tablette) : aucun effet sur mobile.
+       Le transform sur body fait de lui le point de référence de tous les éléments
+       position:fixed de l'appli (écrans, popups), qui se calent alors sur sa largeur. */
+    @media (min-width: 600px) {
+      html { background: #0d1220; }
+      body { max-width: 420px; margin: 0 auto; transform: translateZ(0); box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+    }
     .screen { position: fixed; inset: 0; display: none; flex-direction: column; background: #f1f3f8; }
     .screen.active { display: flex; }
     .login-wrap { flex: 1; overflow-y: auto; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
@@ -300,8 +307,17 @@
     .c-row-tx { flex:1; min-width:0; }
     .c-row-t1 { font-size:.95rem; font-weight:600; }
     .c-row-t2 { font-size:.8rem; color:#8892a8; margin-top:1px; }
-    .c-maps { display:block; margin-top:8px; text-align:center; border:1.5px solid #2c3e91; border-radius:12px; padding:11px; font-size:.88rem; font-weight:700; color:#2c3e91; background:#fff; text-decoration:none; }
-    .c-done { display:block; width:100%; margin-top:12px; text-align:center; background:#22a559; color:#fff; border:none; border-radius:12px; padding:13px; font-size:.9rem; font-weight:700; font-family:inherit; cursor:pointer; }
+    .c-ligne-actions { display:flex; gap:7px; margin-top:10px; align-items:stretch; }
+    .c-ligne-actions > * { flex:1; min-width:0; }
+    .c-maps { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; border:1.5px solid #2c3e91; border-radius:12px; padding:9px 4px; color:#2c3e91; background:#fff; text-decoration:none; line-height:1.2; }
+    .c-maps-p { font-weight:700; font-size:.86rem; }
+    .c-maps-s { font-weight:500; font-size:.62rem; opacity:.75; }
+    .c-plus-infos { border:1.5px solid #d6dcf0; color:#5b6b8c; border-radius:12px; display:flex; align-items:center; justify-content:center; text-align:center; font-weight:700; font-size:.76rem; line-height:1.2; padding:9px 4px; cursor:pointer; }
+    .c-done { border:none; background:#22a559; color:#fff; border-radius:12px; text-align:center; font-weight:700; font-size:.78rem; font-family:inherit; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:9px 4px; }
+    .c-details { max-height:0; overflow:hidden; transition:max-height .35s ease, margin .35s ease; margin-top:0; }
+    .c-details.ouvert { max-height:160px; margin-top:8px; }
+    .c-details-ligne { display:flex; align-items:center; gap:8px; font-size:.88rem; color:#333; padding:8px 0; border-top:1px solid #eef1fb; }
+    .c-details-ligne:first-child { border-top:none; }
     .c-badge { display:inline-block; margin-top:10px; font-size:.72rem; font-weight:600; color:#0a6e31; background:#dcfce7; padding:5px 10px; border-radius:8px; }
     /* Bandeau « Rappel validé » avec Annuler, 5 secondes */
     .annuler-bar { position:fixed; left:14px; right:14px; max-width:452px; margin:0 auto; bottom:calc(90px + env(safe-area-inset-bottom)); background:#2a3350; color:#fff; border-radius:14px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; z-index:60; opacity:0; transform:translateY(14px); pointer-events:none; transition:opacity .3s ease, transform .3s ease; box-shadow:0 8px 24px rgba(0,0,0,.25); }
@@ -3322,14 +3338,12 @@ function _carteRappel(r,key,isOverdue,jourAffiche){
   }
 
   let rows='';
-  if(ti&&ti.adresse)rows+=`<div class="c-row"><div class="c-row-ic">📍</div><div class="c-row-tx"><div class="c-row-t1">${esc(ti.adresse)}</div></div></div>`;
-  if(r.note&&!isAtelier)rows+=`<div class="c-row"><div class="c-row-ic">✏️</div><div class="c-row-tx"><div class="c-row-t1">${esc(r.note)}</div></div></div>`;
-
   let sonnerieInline='';
   if(isAtelier){
     const ev=new Date(r.date+'T'+r.time+':00');const a2=new Date(ev.getTime()-2*3600000);
     const sonnT1=`Sonnerie la veille à 15h00 et à ${pad2(a2.getHours())}h${pad2(a2.getMinutes())}`;
     rows+=`<div class="c-row"><div class="c-row-ic">🔔</div><div class="c-row-tx"><div class="c-row-t1">${sonnT1}</div><div class="c-row-t2">Deux sonneries avant l'atelier</div></div></div>`;
+    if(ti&&ti.adresse)rows+=`<div class="c-row"><div class="c-row-ic">📍</div><div class="c-row-tx"><div class="c-row-t1">${esc(ti.adresse)}</div></div></div>`;
   }else{
     const sonnMs=_sonnerieUniqueMs(r,ti,jourAffiche);
     if(sonnMs!==null){
@@ -3338,13 +3352,26 @@ function _carteRappel(r,key,isOverdue,jourAffiche){
     }
   }
 
-  const mapsHTML=(ti&&ti.mapQuery)?`<a class="c-maps" href="https://www.google.com/maps/search/?api=1&query=${ti.mapQuery}" target="_blank" onclick="event.stopPropagation()">🗺️ Y aller (Google Maps)</a>`:'';
-  const actionHTML=isAtelier?`<div class="c-badge">✅ Je participe</div>`:`<button type="button" class="c-done" data-check="${r.id}">✓ C'est fait</button>`;
+  const mapsHTML=(ti&&ti.mapQuery)?`<a class="c-maps" href="https://www.google.com/maps/search/?api=1&query=${ti.mapQuery}" target="_blank" onclick="event.stopPropagation()"><span class="c-maps-p">🗺️ Y aller</span><span class="c-maps-s">(Google Maps)</span></a>`:'';
+
+  let actionZoneHTML;
+  if(isAtelier){
+    actionZoneHTML=mapsHTML+`<div class="c-badge">✅ Je participe</div>`;
+  }else{
+    const detailsItems=[];
+    if(ti&&ti.adresse)detailsItems.push(`<div class="c-details-ligne">📍 ${esc(ti.adresse)}</div>`);
+    if(r.note)detailsItems.push(`<div class="c-details-ligne">✏️ ${esc(r.note)}</div>`);
+    const aDesDetails=detailsItems.length>0;
+    const plusInfosHTML=aDesDetails?`<div class="c-plus-infos">+ Plus d'infos</div>`:'';
+    const doneHTML=`<button type="button" class="c-done" data-check="${r.id}">✓ C'est fait</button>`;
+    const detailsHTML=aDesDetails?`<div class="c-details">${detailsItems.join('')}</div>`:'';
+    actionZoneHTML=`<div class="c-ligne-actions">${mapsHTML}${plusInfosHTML}${doneHTML}</div>${detailsHTML}`;
+  }
 
   const cardHTML=`<div class="c-card${isOverdue?' en-retard':''}" data-id="${r.id}" data-source="personal">`
     +`<div class="c-top"><div class="c-emoji">${iconHTML(r.icon)}</div><div class="c-titre"><div class="c-heure">${dbHeure}${sonnerieInline}</div><h3>${esc(r.title)}</h3></div>`
     +`<button type="button" class="c-speak" data-speak="${r.id}">🔊</button></div>`
-    +departHTML+(rows?`<div class="c-rows">${rows}</div>`:'')+mapsHTML+actionHTML+`</div>`;
+    +departHTML+(rows?`<div class="c-rows">${rows}</div>`:'')+actionZoneHTML+`</div>`;
 
   return labelHTML+cardHTML;
 }
@@ -3653,7 +3680,9 @@ _languetteMenu.addEventListener('click',_ouvrirTiroirMenu);
 let _tiroirDepartX=null;
 document.getElementById('main-screen').addEventListener('touchstart',e=>{
   const x=e.touches[0].clientX;
-  if(x<24&&!document.getElementById('tiroir-menu').classList.contains('visible')){_tiroirDepartX=x;_languetteMenu.classList.add('touchee');}else{_tiroirDepartX=null;}
+  // Bord réel du cadre (0 sur mobile, décalé sur grand écran si le cadre téléphone est centré)
+  const bordGauche=document.body.getBoundingClientRect().left;
+  if(x<bordGauche+24&&!document.getElementById('tiroir-menu').classList.contains('visible')){_tiroirDepartX=x;_languetteMenu.classList.add('touchee');}else{_tiroirDepartX=null;}
 },{passive:true});
 document.getElementById('main-screen').addEventListener('touchmove',e=>{
   if(_tiroirDepartX===null)return;
@@ -3694,6 +3723,12 @@ document.getElementById('reminders-list').addEventListener('click',e=>{
   if(sp){_lireCarte(sp.dataset.speak,sp);e.stopPropagation();return;}
   const checkId=e.target.closest('[data-check]')?.dataset.check;
   if(checkId){_marquerFait(checkId);e.stopPropagation();return;}
+  const plusBtn=e.target.closest('.c-plus-infos');
+  if(plusBtn){
+    const details=plusBtn.closest('.c-card')?.querySelector('.c-details');
+    if(details){const ouvert=details.classList.toggle('ouvert');plusBtn.textContent=ouvert?'− Moins':"+ Plus d'infos";}
+    e.stopPropagation();return;
+  }
   const card=e.target.closest('.c-card');
   if(card){const id=card.dataset.id;const r=state.reminders.find(x=>x.id===id);if(r&&r.source!=='atelier')openEdit(id);}
 });
