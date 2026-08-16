@@ -359,15 +359,13 @@
     .ib-big { font-size:0.9375rem; font-weight: 800; color: #2c3e91; letter-spacing: 0.5px; }
     .ib-small { font-size:0.5rem; font-weight: 600; color: #48547a; margin-top: 2px; text-align: center; text-transform: lowercase; }
     /* Quart de disque "Nouveau rappel", colle aux deux bords, respire en continu (§3) */
-    .quart-nouveau { position:fixed; right:0; bottom:0; width:170px; height:170px; background:#0e8f82; border-top-left-radius:170px; z-index:30; cursor:pointer; box-shadow:-3px -3px 12px rgba(0,0,0,.12); animation:respirerQuart 2.4s ease-in-out infinite; transform-origin:bottom right; }
-    @keyframes respirerQuart {
-      0%,100% { transform:scale(1); background:#0e8f82; box-shadow:-3px -3px 12px rgba(0,0,0,.12); }
-      50% { transform:scale(1.05); background:#14b09f; box-shadow:-3px -3px 22px rgba(14,143,130,.55); }
+    .btn-nouveau-rappel { position:fixed; right:16px; bottom:calc(20px + env(safe-area-inset-bottom)); display:flex; align-items:center; gap:8px; background:#0e8f82; color:#fff; border-radius:26px; padding:10px 16px 10px 10px; box-shadow:0 4px 14px rgba(14,143,130,.35); z-index:56; cursor:pointer; border:none; font-family:inherit; animation:respirerBouton 2.4s ease-in-out infinite; }
+    @keyframes respirerBouton {
+      0%,100% { transform:scale(1); background:#0e8f82; box-shadow:0 4px 14px rgba(14,143,130,.35); }
+      50% { transform:scale(1.05); background:#14b09f; box-shadow:0 6px 22px rgba(14,143,130,.6); }
     }
-    .quart-nouveau .qn-plus { position:absolute; left:56px; right:14px; bottom:calc(15px + env(safe-area-inset-bottom)); color:#fff; text-align:center; pointer-events:none; }
-    .quart-nouveau .qn-signe { font-size:1.3rem; font-weight:800; line-height:1; }
-    .quart-nouveau .qn-texte { font-size:.6rem; font-weight:800; line-height:1.15; margin-top:2px; white-space:nowrap; }
-    .quart-nouveau .qn-sous { font-size:.52rem; font-weight:600; opacity:.9; line-height:1.15; white-space:nowrap; }
+    .btn-nouveau-rappel .bn-plus { width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.25); display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:800; flex-shrink:0; }
+    .btn-nouveau-rappel .bn-texte { font-size:.9rem; font-weight:700; white-space:nowrap; }
     /* Popup "Ton avis compte", premiere ouverture du jour tant que pas repondu (§1) */
     .avis-popup-overlay { position:fixed; inset:0; background:rgba(20,26,50,.5); opacity:0; pointer-events:none; transition:opacity .3s ease; z-index:80; display:flex; align-items:center; justify-content:center; padding:24px; }
     .avis-popup-overlay.visible { opacity:1; pointer-events:auto; }
@@ -756,13 +754,10 @@
     <div class="tiroir-item" id="tiroir-item-reglages"><span class="tiroir-ic">⚙️</span><span>Réglages</span></div>
     <div class="tiroir-item a-venir"><span class="tiroir-ic">🔤</span><span>Taille du texte</span><span class="tiroir-tag">bientôt</span></div>
   </div>
-  <div id="add-btn" class="quart-nouveau">
-    <div class="qn-plus">
-      <div class="qn-signe">+</div>
-      <div class="qn-texte">Nouveau rappel</div>
-      <div class="qn-sous">personnel</div>
-    </div>
-  </div>
+  <button type="button" id="add-btn" class="btn-nouveau-rappel">
+    <div class="bn-plus">+</div>
+    <div class="bn-texte">Nouveau rappel personnel</div>
+  </button>
   <div class="avis-popup-overlay" id="avis-popup-overlay">
     <div class="avis-popup-carte">
       <div class="avis-popup-emoji">💬</div>
@@ -3277,11 +3272,11 @@ async function showAdminAvis(){
 }
 
 // Réserve sous la liste assez de place pour que la dernière carte ne soit
-// jamais cachée derrière le quart de disque (170px, taille fixe).
+// jamais cachée derrière le bouton "Nouveau rappel" ou la flèche de défilement.
 function _ajusterPaddingListe(){
   const lw=document.querySelector('#main-screen .list-wrap');
   if(!lw)return;
-  lw.style.paddingBottom='210px';
+  lw.style.paddingBottom='110px';
 }
 window.addEventListener('resize',()=>{try{_ajusterPaddingListe();}catch(e){}});
 
