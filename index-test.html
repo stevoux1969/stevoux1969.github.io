@@ -372,12 +372,12 @@
     .ib-big { font-size:0.9375rem; font-weight: 800; color: #2c3e91; letter-spacing: 0.5px; }
     .ib-small { font-size:0.5rem; font-weight: 600; color: #48547a; margin-top: 2px; text-align: center; text-transform: lowercase; }
     /* Quart de disque "Nouveau rappel", colle aux deux bords, respire en continu (§3) */
-    .quart-nouveau { position:fixed; right:0; bottom:0; width:108px; height:108px; background:#0e8f82; border-top-left-radius:108px; z-index:30; cursor:pointer; box-shadow:-3px -3px 12px rgba(0,0,0,.12); animation:respirerQuart 2.4s ease-in-out infinite; transform-origin:bottom right; }
+    .quart-nouveau { position:fixed; right:0; bottom:0; width:140px; height:140px; background:#0e8f82; border-top-left-radius:140px; z-index:30; cursor:pointer; box-shadow:-3px -3px 12px rgba(0,0,0,.12); animation:respirerQuart 2.4s ease-in-out infinite; transform-origin:bottom right; }
     @keyframes respirerQuart {
       0%,100% { transform:scale(1); background:#0e8f82; box-shadow:-3px -3px 12px rgba(0,0,0,.12); }
       50% { transform:scale(1.05); background:#14b09f; box-shadow:-3px -3px 22px rgba(14,143,130,.55); }
     }
-    .quart-nouveau .qn-plus { position:absolute; left:2px; right:8px; bottom:calc(14px + env(safe-area-inset-bottom)); color:#fff; text-align:center; pointer-events:none; }
+    .quart-nouveau .qn-plus { position:absolute; left:28px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); color:#fff; text-align:center; pointer-events:none; }
     .quart-nouveau .qn-signe { font-size:1.3rem; font-weight:800; line-height:1; }
     .quart-nouveau .qn-texte { font-size:.66rem; font-weight:800; line-height:1.15; margin-top:2px; white-space:nowrap; }
     .quart-nouveau .qn-sous { font-size:.56rem; font-weight:600; opacity:.9; line-height:1.15; white-space:nowrap; }
@@ -3301,11 +3301,11 @@ async function showAdminAvis(){
 }
 
 // Réserve sous la liste assez de place pour que la dernière carte ne soit
-// jamais cachée derrière le quart de disque (108px, taille fixe).
+// jamais cachée derrière le quart de disque (140px, taille fixe).
 function _ajusterPaddingListe(){
   const lw=document.querySelector('#main-screen .list-wrap');
   if(!lw)return;
-  lw.style.paddingBottom='150px';
+  lw.style.paddingBottom='180px';
 }
 window.addEventListener('resize',()=>{try{_ajusterPaddingListe();}catch(e){}});
 
