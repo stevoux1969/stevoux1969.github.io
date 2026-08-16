@@ -187,7 +187,6 @@
     .btn-inscrit:active { background: #1d8b4b; }
     .btn-inscrit.inscrit { background: #eef1fb; color: #2c3e91; border: 2px solid #2c3e91; }
     .planning-empty { text-align: center; padding: 40px 20px; color: #6c7a99; font-size:1.0625rem; }
-    @keyframes avisBlink { 50% { opacity: 0.2; } }
     .list-wrap { flex: 1; overflow-y: auto; padding: 16px 16px 14rem; -webkit-overflow-scrolling: touch; }
     /* Nouvelles cartes planning aérées (vue bénéficiaire) */
     .pcard { background: white; border: 2px solid #2c3e91; border-radius: 18px; margin-bottom: 14px; box-shadow: 0 2px 10px rgba(26,35,64,0.07); overflow: hidden; position: relative; cursor: pointer; }
@@ -356,12 +355,28 @@
     .icon-badge { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; padding: 4px 6px; background: #eef1fb; border-radius: 10px; border: 2px solid #2c3e91; min-width: 52px; }
     .ib-big { font-size:0.9375rem; font-weight: 800; color: #2c3e91; letter-spacing: 0.5px; }
     .ib-small { font-size:0.5rem; font-weight: 600; color: #48547a; margin-top: 2px; text-align: center; text-transform: lowercase; }
-    .btn-add { position: static; width: fit-content; margin-left: auto; padding: 14px 20px 14px 16px; background: #0e8f82; color: white; border: none; border-radius: 30px; font-size:1rem; font-weight: 700; cursor: pointer; box-shadow: 0 6px 18px rgba(14,143,130,0.45); font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn-add:active { background: #0b756a; }
-    .btn-add .plus { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.28); color: white; font-size:1.05rem; line-height: 1; font-weight: 800; flex-shrink: 0; }
-    .btn-add-texte { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
-    .btn-add-l1 { font-size:1.05rem; font-weight: 800; }
-    .btn-add-l2 { font-size:.76rem; font-weight: 600; opacity: .9; }
+    /* Quart de disque "Nouveau rappel", colle aux deux bords, respire en continu (§3) */
+    .quart-nouveau { position:fixed; right:0; bottom:0; width:108px; height:108px; background:#0e8f82; border-top-left-radius:108px; z-index:30; cursor:pointer; box-shadow:-3px -3px 12px rgba(0,0,0,.12); animation:respirerQuart 2.4s ease-in-out infinite; transform-origin:bottom right; }
+    @keyframes respirerQuart {
+      0%,100% { transform:scale(1); background:#0e8f82; box-shadow:-3px -3px 12px rgba(0,0,0,.12); }
+      50% { transform:scale(1.05); background:#14b09f; box-shadow:-3px -3px 22px rgba(14,143,130,.55); }
+    }
+    .quart-nouveau .qn-plus { position:absolute; right:14px; bottom:calc(14px + env(safe-area-inset-bottom)); color:#fff; text-align:center; pointer-events:none; }
+    .quart-nouveau .qn-signe { font-size:1.3rem; font-weight:800; line-height:1; }
+    .quart-nouveau .qn-texte { font-size:.66rem; font-weight:800; margin-top:2px; white-space:nowrap; }
+    .quart-nouveau .qn-sous { font-size:.56rem; font-weight:600; opacity:.9; white-space:nowrap; }
+    /* Popup "Ton avis compte", premiere ouverture du jour tant que pas repondu (§1) */
+    .avis-popup-overlay { position:fixed; inset:0; background:rgba(20,26,50,.5); opacity:0; pointer-events:none; transition:opacity .3s ease; z-index:80; display:flex; align-items:center; justify-content:center; padding:24px; }
+    .avis-popup-overlay.visible { opacity:1; pointer-events:auto; }
+    .avis-popup-carte { background:#fff; border-radius:20px; padding:26px 22px; text-align:center; max-width:320px; transform:scale(.92); transition:transform .3s ease; }
+    .avis-popup-overlay.visible .avis-popup-carte { transform:scale(1); }
+    .avis-popup-emoji { font-size:2.4rem; margin-bottom:10px; }
+    .avis-popup-carte h3 { color:#2c3e91; font-size:1.1rem; margin:0 0 8px; }
+    .avis-popup-carte p { color:#5a6480; font-size:.9rem; line-height:1.5; margin:0 0 18px; }
+    .avis-popup-boutons { display:flex; flex-direction:column; gap:8px; }
+    .avis-popup-boutons button { border:none; border-radius:12px; padding:12px; font-weight:700; font-size:.88rem; font-family:inherit; cursor:pointer; }
+    .btn-avis-oui { background:#22a559; color:#fff; }
+    .btn-avis-non { background:#eef1fb; color:#2c3e91; }
     .edit-header { background: white; padding: 18px 16px; padding-top: calc(18px + env(safe-area-inset-top)); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e5e9f2; flex-shrink: 0; }
     .back-btn { background: none; border: none; font-size:1.625rem; color: #2c3e91; cursor: pointer; padding: 4px 8px; font-family: inherit; }
     .edit-header h2 { font-size:1.375rem; font-weight: 700; flex: 1; }
@@ -742,14 +757,23 @@
     <div class="tiroir-item" id="tiroir-item-reglages"><span class="tiroir-ic">⚙️</span><span>Réglages</span></div>
     <div class="tiroir-item a-venir"><span class="tiroir-ic">🔤</span><span>Taille du texte</span><span class="tiroir-tag">bientôt</span></div>
   </div>
-  <div id="bottom-zone" style="position:fixed;bottom:1.8rem;left:0;right:0;max-width:480px;margin:0 auto;padding:10px 16px 0;background:linear-gradient(to top,#eef1f8 80%,transparent);z-index:55;">
-    <button id="add-btn" class="btn-add" style="margin-bottom:4px;">
-      <span class="plus">+</span>
-      <span class="btn-add-texte"><span class="btn-add-l1">Nouveau</span><span class="btn-add-l2">rappel personnel</span></span>
-    </button>
-    <button id="avis-btn" type="button" style="width:100%;background:transparent;color:#2c3e91;border:none;padding:6px 8px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;animation:avisBlink 1s steps(1) infinite;">
-      💬 Donner mon avis sur l'application
-    </button>
+  <div id="add-btn" class="quart-nouveau">
+    <div class="qn-plus">
+      <div class="qn-signe">+</div>
+      <div class="qn-texte">Nouveau rappel</div>
+      <div class="qn-sous">personnel</div>
+    </div>
+  </div>
+  <div class="avis-popup-overlay" id="avis-popup-overlay">
+    <div class="avis-popup-carte">
+      <div class="avis-popup-emoji">💬</div>
+      <h3>Ton avis compte</h3>
+      <p>Est-ce que l'application t'aide bien au quotidien ? Donne ton avis à Steve.</p>
+      <div class="avis-popup-boutons">
+        <button type="button" class="btn-avis-oui" id="avis-popup-oui">Donner mon avis</button>
+        <button type="button" class="btn-avis-non" id="avis-popup-non">Plus tard</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1281,24 +1305,16 @@ async function logConnexion(){
   }catch(e){}
 }
 
-// Popup "votre avis" : max 1 fois / 30 jours, jamais si avis donné il y a moins de 30 j
+// Popup "Ton avis compte" : une fois par jour (première ouverture), jamais si un avis a déjà été envoyé
 function maybeShowAvisPopup(){
   try{
     if(!currentUser||currentUser.isAdmin)return;
-    const M30=30*24*60*60*1000;
-    const vu=parseInt(localStorage.getItem('avp_avis_popup')||'0');
-    const donne=parseInt(localStorage.getItem('avp_avis_done')||'0');
-    if(Date.now()-vu<M30||Date.now()-donne<M30)return;
-    localStorage.setItem('avp_avis_popup',String(Date.now()));
+    if(localStorage.getItem('avp_avis_done'))return; // déjà répondu un jour : ne plus jamais montrer
+    const aujourdhui=dateKey(new Date());
+    if(localStorage.getItem('avp_avis_popup_jour')===aujourdhui)return; // déjà montré aujourd'hui
+    localStorage.setItem('avp_avis_popup_jour',aujourdhui);
     setTimeout(()=>{
-      showConfirm({
-        icon:'👋',
-        title:'Un petit mot de Steve et Greg',
-        text:"Votre avis compte pour nous ! Dites-nous ce que vous aimez ou ce qu'on peut améliorer, sur l'application ou sur l'AVP. Ça nous aide à faire mieux pour vous.",
-        okText:'Donner mon avis',
-        cancelText:'Plus tard',
-        onOk:()=>showScreen('avis-benef-screen')
-      });
+      document.getElementById('avis-popup-overlay').classList.add('visible');
     },1500); // léger délai pour laisser l'accueil s'afficher
   }catch(e){}
 }
@@ -1633,14 +1649,16 @@ document.getElementById('um-alarmes').addEventListener('click',()=>{document.get
 document.getElementById('user-menu').addEventListener('click',e=>{if(e.target===document.getElementById('user-menu'))document.getElementById('user-menu').classList.remove('active');});
 document.getElementById('um-planning').addEventListener('click',async()=>{document.getElementById('user-menu').classList.remove('active');state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';await loadAVPPlanning();renderPlanning();});
 document.getElementById('mes-rdv-btn').addEventListener('click',()=>showMesRendezVous());
-document.getElementById('avis-btn').addEventListener('click',()=>{
+function _ouvrirEcranAvis(){
   // Réinitialise l'écran avant de l'ouvrir
   avisNoteSelectionnee=0;
   const t=document.getElementById('avis-texte');if(t)t.value='';
   const n=document.getElementById('avis-nom');if(n)n.value='';
   document.querySelectorAll('.avis-emoji').forEach(b=>{b.style.borderColor='transparent';b.style.background='#f1f3f8';b.style.transform='none';});
   showScreen('avis-benef-screen');
-});
+}
+document.getElementById('avis-popup-oui').addEventListener('click',()=>{document.getElementById('avis-popup-overlay').classList.remove('visible');_ouvrirEcranAvis();});
+document.getElementById('avis-popup-non').addEventListener('click',()=>{document.getElementById('avis-popup-overlay').classList.remove('visible');});
 document.getElementById('avis-benef-back').addEventListener('click',()=>showScreen('main-screen'));
 document.getElementById('admin-avis-btn').addEventListener('click',()=>showAdminAvis());
 document.getElementById('avis-back').addEventListener('click',()=>showScreen('admin-screen'));
@@ -3266,14 +3284,12 @@ async function showAdminAvis(){
   }catch(e){list.innerHTML='<div style="text-align:center;padding:30px;color:#d63447">Erreur de chargement des avis.</div>';}
 }
 
-// Réserve sous la liste exactement la hauteur de la zone fixe du bas (bouton
-// « Ajouter » + avis + pied de page), pour que la dernière carte ne soit jamais
-// masquée. Calculé dynamiquement → marche sur tous les écrans.
+// Réserve sous la liste assez de place pour que la dernière carte ne soit
+// jamais cachée derrière le quart de disque (108px, taille fixe).
 function _ajusterPaddingListe(){
-  const bz=document.getElementById('bottom-zone');
   const lw=document.querySelector('#main-screen .list-wrap');
-  if(!bz||!lw)return;
-  lw.style.paddingBottom=(bz.offsetHeight+Math.round(1.8*16)+24)+'px';
+  if(!lw)return;
+  lw.style.paddingBottom='150px';
 }
 window.addEventListener('resize',()=>{try{_ajusterPaddingListe();}catch(e){}});
 
