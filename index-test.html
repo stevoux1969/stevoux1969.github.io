@@ -1273,7 +1273,7 @@ async function handleLogin() {
     if(!prenom){showError('Entrez votre prénom.');return;}
     try{const snap=await db.collection('users').get();const existing=snap.docs.find(d=>d.data().prenom.toLowerCase()===prenom.toLowerCase());if(existing){showError('Ce prénom existe déjà. Connectez-vous.');return;}const userId=uid();await db.collection('users').doc(userId).set({prenom,code,createdAt:Date.now(),reminders:[],inscriptions:{},tutosVus:{}});currentUser={id:userId,prenom,isAdmin:false};saveSession();tagOneSignalUser(prenom);state.reminders=[];state.inscriptions={};state.tutosVus={};enterApp();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
   }else{
-    try{const snap=await db.collection('users').get();let found=null;snap.docs.forEach(d=>{if(d.data().code===code)found={id:d.id,...d.data()};});if(!found){showError('Code incorrect.');pinValue='';updatePinDots();return;}currentUser={id:found.id,prenom:found.prenom,isAdmin:false};saveSession();tagOneSignalUser(found.prenom);tagOneSignalAvpUser();await loadUserData();logConnexion();enterApp();maybeShowAvisPopup();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
+    try{const snap=await db.collection('users').get();let found=null;snap.docs.forEach(d=>{if(d.data().code===code)found={id:d.id,...d.data()};});if(!found){showError('Code incorrect.');pinValue='';updatePinDots();return;}currentUser={id:found.id,prenom:found.prenom,isAdmin:false};saveSession();tagOneSignalUser(found.prenom);tagOneSignalAvpUser();await loadUserData();logConnexion();enterApp();maybeShowAvisPopup();if(estNatifAlarme())planifierNotifsSysteme();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
   }
 }
 
@@ -1547,10 +1547,11 @@ function _occurrencesNatives(){
         const tiA=_trajetInfo(r);
         if(tiA&&tiA.departMs)add(r.id+'|depart',r,tiA.departMs,'alarme',true);
       }else{
-        if(r.date&&r.time)add(r.id+'|sonn',r,new Date(r.date+'T'+r.time+':00').getTime(),'alarme',!!(r.eventDate&&r.eventTime));
         if(r.eventDate&&r.eventTime)add('ev|'+r.eventDate+'|'+r.eventTime+'|'+(r.title||''),r,new Date(r.eventDate+'T'+r.eventTime+':00').getTime(),'notification');
+        // Sonnerie unique par rappel : avant le départ s'il y a un trajet, sinon à l'heure du rappel.
         const tiP=_trajetInfo(r);
         if(tiP&&tiP.departMs)add(r.id+'|depart',r,tiP.departMs,'alarme',true);
+        else if(r.date&&r.time)add(r.id+'|sonn',r,new Date(r.date+'T'+r.time+':00').getTime(),'alarme',!!(r.eventDate&&r.eventTime));
       }
     }catch(e){console.error('[Alarme] occurrence',e);}
   });
@@ -4246,7 +4247,7 @@ async function init(){
     }
   }catch(e){}
   const session=loadSession();
-  if(session){currentUser=session;if(currentUser.isAdmin){showAdminScreen();}else{tagOneSignalUser(currentUser.prenom);await loadUserData();logConnexion();enterApp();maybeShowAvisPopup();loadAVPPlanning();}}else{showScreen('login-screen');}
+  if(session){currentUser=session;if(currentUser.isAdmin){showAdminScreen();}else{tagOneSignalUser(currentUser.prenom);await loadUserData();logConnexion();enterApp();maybeShowAvisPopup();loadAVPPlanning();if(estNatifAlarme())planifierNotifsSysteme();}}else{showScreen('login-screen');}
   setInterval(checkReminders,30000);
   setInterval(render,60000);
   setInterval(()=>{const n=new Date();if(n.getHours()===0&&n.getMinutes()===0)firedToday.clear();},60000);
