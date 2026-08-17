@@ -3759,8 +3759,11 @@ function _gererBoutonRetourAndroid(){
   return false;
 }
 (function(){
+  console.log('[AVP-Back-JS] avant pushState, history.length='+history.length);
   history.pushState({avpNav:1},'',location.href);
+  console.log('[AVP-Back-JS] apres pushState, history.length='+history.length);
   window.addEventListener('popstate',()=>{
+    console.log('[AVP-Back-JS] popstate recu');
     const quitter=_gererBoutonRetourAndroid();
     if(!quitter)history.pushState({avpNav:1},'',location.href);
   });
