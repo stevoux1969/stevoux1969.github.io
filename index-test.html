@@ -605,11 +605,8 @@
 .wizard-btn{flex:1;border:none;border-radius:14px;padding:18px;font-size:1.1rem;font-weight:800;cursor:pointer;font-family:inherit;min-height:56px;}
 .wizard-btn-prev{background:#e3e8f4;color:#2c3e91;flex:0 0 38%;}
 .wizard-btn-next{background:#2c3e91;color:#fff;}
-.wizard-recap{background:#f5f7fc;border-radius:14px;padding:8px 16px;margin-bottom:16px;}
-.recap-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #e3e8f4;}
-.recap-row:last-child{border-bottom:none;}
-.recap-ic{font-size:1.6rem;width:34px;text-align:center;flex:0 0 auto;}
-.recap-txt{font-size:1.05rem;font-weight:600;color:#1a2340;}
+.wizard-recap{margin-bottom:20px;}
+.wizard-recap .c-card{margin-bottom:0;opacity:1;transform:none;}
 .wizard-fold{background:#f5f7fc;border-radius:12px;margin-bottom:12px;padding:14px 16px;}
 .wizard-fold summary{font-size:1rem;font-weight:700;color:#2c3e91;cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;}
 .wizard-fold summary::-webkit-details-marker{display:none;}
@@ -3892,34 +3889,53 @@ function wizToggleOption(opt){
 }
 function wizValiderOption(opt){
   document.getElementById('opt-inline-'+opt).classList.remove('ouvert');
+  renderWizardRecap();
   wizRenderOptionsRow();
 }
-function renderWizardRecap(){
-  const title=document.getElementById('f-title').value.trim()||'(sans titre)';
+// Construit un rappel « brouillon » à partir des champs de l'assistant, avec les
+// mêmes règles de calcul de sonnerie que l'enregistrement (voir save-btn),
+// pour que l'aperçu corresponde exactement au rappel qui sera sauvegardé.
+function wizDraftReminder(){
   const rec=getSelectedRecurrence();
-  let rows='<div class="recap-row"><span class="recap-ic">'+getSelectedIcon()+'</span><span class="recap-txt">'+esc(title)+'</span></div>';
-  if(rec==='daily'){
-    rows+='<div class="recap-row"><span class="recap-ic">📅</span><span class="recap-txt">Tous les jours</span></div>';
-    rows+='<div class="recap-row"><span class="recap-ic">🕐</span><span class="recap-txt">à '+getTPVal('f-time').replace(':','h')+'</span></div>';
-  }else{
-    const rdvDate=document.getElementById('f-event-date').value;
-    const rdvTime=getTPVal('f-event-time');
-    rows+='<div class="recap-row"><span class="recap-ic">📅</span><span class="recap-txt">'+(rdvDate?formatRelativeDate(rdvDate):'(jour à choisir)')+'</span></div>';
-    rows+='<div class="recap-row"><span class="recap-ic">🕐</span><span class="recap-txt">à '+rdvTime.replace(':','h')+'</span></div>';
-    const hasTrajet=wizTravel>0&&rdvDate&&rdvTime;
-    if(!hasTrajet){
-      const choix=getSonnerieChoix();let sonnTxt;
-      if(choix==='veille'){sonnTxt='la veille à 15h00';}
-      else{const min=choix==='heure'?0:(choix==='30min'?30:(choix==='1h'?60:120));const s=calcSonnerieAvant(rdvDate,rdvTime,min);sonnTxt='à '+s.time.replace(':','h')+(s.date!==rdvDate?(' ('+formatRelativeDate(s.date)+')'):'');}
-      rows+='<div class="recap-row"><span class="recap-ic">🔔</span><span class="recap-txt">Sonnerie '+sonnTxt+'</span></div>';
-    }
-    const adr=(document.getElementById('f-address')?document.getElementById('f-address').value.trim():'');
-    if(adr)rows+='<div class="recap-row"><span class="recap-ic">📍</span><span class="recap-txt">'+esc(adr)+'</span></div>';
-    if(hasTrajet){const dp=new Date(new Date(rdvDate+'T'+rdvTime+':00').getTime()-(wizTravel+10)*60000);rows+='<div class="recap-row"><span class="recap-ic">🚗</span><span class="recap-txt">Départ à '+pad2(dp.getHours())+'h'+pad2(dp.getMinutes())+' <span style="color:#8892a8">('+wizTravel+' min)</span></span></div>';}
-  }
+  const title=document.getElementById('f-title').value.trim()||'(sans titre)';
+  const icon=getSelectedIcon();
   const note=(document.getElementById('f-note')?document.getElementById('f-note').value.trim():'');
-  if(note)rows+='<div class="recap-row"><span class="recap-ic">✏️</span><span class="recap-txt">'+esc(note)+'</span></div>';
-  document.getElementById('wizard-recap').innerHTML=rows;
+  if(rec==='daily')return{recurrence:'daily',time:getTPVal('f-time'),title,icon,note};
+  const eventDate=document.getElementById('f-event-date').value;
+  const eventTime=getTPVal('f-event-time');
+  const address=(document.getElementById('f-address')?document.getElementById('f-address').value.trim():'');
+  const travelMin=wizTravel||0;
+  let sonn={date:eventDate,time:eventTime};
+  if(eventDate&&eventTime)sonn=_calcSonnerieRappel(eventDate,eventTime,getSonnerieChoix(),travelMin);
+  return{recurrence:'once',eventDate,eventTime,date:sonn.date,time:sonn.time,title,icon,note,address,travelMin};
+}
+// Réutilise le même gabarit visuel que les cartes de l'accueil (.c-card/.c-top)
+// pour que l'aperçu du récap soit identique au résultat final.
+function renderWizardRecap(){
+  const r=wizDraftReminder();
+  const isDaily=r.recurrence==='daily';
+  const ti=_trajetInfo(r);
+  const eventDate=r.eventDate||r.date;
+  const eventTime=r.eventTime||r.time;
+  const heureBrute=isDaily?r.time:eventTime;
+  const heure=heureBrute?heureBrute.replace(':','h'):'--h--';
+  const labelTxt=isDaily?'TOUS LES JOURS':(eventDate?formatShortDate(eventDate).toUpperCase():'(jour à choisir)');
+  let sonnerieInline='';
+  if(!(ti&&ti.departMs)){
+    const sonnMs=_sonnerieUniqueMs(r,ti,getCurrentDate());
+    if(sonnMs!==null){
+      const hm=pad2(new Date(sonnMs).getHours())+'h'+pad2(new Date(sonnMs).getMinutes());
+      sonnerieInline=' <span class="c-sonnerie-inline">🔔 sonnerie '+hm+'</span>';
+    }
+  }
+  document.getElementById('wizard-recap').innerHTML=
+    '<div class="label-carte">'+esc(labelTxt)+'</div>'
+    +'<div class="c-card" style="cursor:default">'
+      +'<div class="c-top">'
+        +'<div class="c-emoji">'+iconHTML(r.icon)+'</div>'
+        +'<div class="c-titre"><div class="c-heure">'+heure+sonnerieInline+'</div><h3>'+esc(r.title)+'</h3></div>'
+      +'</div>'
+    +'</div>';
 }
 // ===== Bulles de tutoriel : une par écran/étape, mémorisées par bénéficiaire (tutosVus) =====
 // Fermeture par appui n'importe où sur l'écran (ou sur "J'ai compris") ; le 🔊 relit sans fermer.
@@ -4112,11 +4128,17 @@ document.querySelectorAll('.sonnerie-choix-btn').forEach(btn=>btn.addEventListen
 function getSonnerieChoix(){return document.querySelector('.sonnerie-choix-btn.active')?.dataset.choix||'2h';}
 function calcSonnerieAvant(rdvDate,rdvTime,min){const rdvMs=new Date(rdvDate+'T'+rdvTime+':00').getTime();const d=new Date(rdvMs-min*60000);return{date:dateKey(d),time:pad2(d.getHours())+':'+pad2(d.getMinutes())};}
 function calcSonnerieVeille(rdvDate){const d=new Date(rdvDate+'T12:00:00');d.setDate(d.getDate()-1);return{date:dateKey(d),time:'15:00'};}
+// Sonnerie effective d'un rendez-vous : au départ s'il y a un trajet, sinon selon le choix d'anticipation.
+function _calcSonnerieRappel(rdvDate,rdvTime,choix,travelMin){
+  if(travelMin>0){const depMs=new Date(rdvDate+'T'+rdvTime+':00').getTime()-(travelMin+10)*60000;const rd=new Date(depMs);return{date:dateKey(rd),time:pad2(rd.getHours())+':'+pad2(rd.getMinutes())};}
+  if(choix==='veille')return calcSonnerieVeille(rdvDate);
+  const min=choix==='heure'?0:(choix==='30min'?30:(choix==='1h'?60:120));
+  return calcSonnerieAvant(rdvDate,rdvTime,min);
+}
 document.getElementById('add-btn').addEventListener('click',()=>openEdit(null));
 document.getElementById('back-btn').addEventListener('click',()=>{if(state.editingAdminMode&&adminEditingUid){const uid=adminEditingUid;state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showAdminUserDetail(uid);return;}showScreen('main-screen');});
 
-document.getElementById('save-btn').addEventListener('click',async()=>{const title=document.getElementById('f-title').value.trim();if(!title){showConfirm({icon:'⚠️',title:'Titre manquant',text:"Appuyez sur une image ou écrivez ce qu'il faut faire.",okText:'OK',hideCancel:true});return;}const rec=getSelectedRecurrence();const data={time:getTPVal('f-time'),title,icon:getSelectedIcon(),note:document.getElementById('f-note').value.trim(),recurrence:rec};if(rec==='once'){const rdvDate=document.getElementById('f-event-date').value||dateKey(getCurrentDate());const rdvTime=getTPVal('f-event-time');const choix=getSonnerieChoix();data.eventDate=rdvDate;data.eventTime=rdvTime;data.sonnerieChoix=choix;const _adr=(document.getElementById('f-address')?document.getElementById('f-address').value.trim():'');data.address=_adr;data.mapQuery=_adr?encodeURIComponent(_adr):'';data.travelMin=wizTravel||0;// Calculer sonnerie(s) selon choix
-let _sonn;if(data.travelMin>0){const _depMs=new Date(rdvDate+'T'+rdvTime+':00').getTime()-(data.travelMin+10)*60000;const _rd=new Date(_depMs);_sonn={date:dateKey(_rd),time:pad2(_rd.getHours())+':'+pad2(_rd.getMinutes())};}else if(choix==='veille'){_sonn=calcSonnerieVeille(rdvDate);}else{const _min=choix==='heure'?0:(choix==='30min'?30:(choix==='1h'?60:120));_sonn=calcSonnerieAvant(rdvDate,rdvTime,_min);}data.date=_sonn.date;data.time=_sonn.time;if(!data.date){showConfirm({icon:'⚠️',title:'Date manquante',text:'Choisissez la date du rendez-vous.',okText:'OK',hideCancel:true});return;}if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}});}
+document.getElementById('save-btn').addEventListener('click',async()=>{const title=document.getElementById('f-title').value.trim();if(!title){showConfirm({icon:'⚠️',title:'Titre manquant',text:"Appuyez sur une image ou écrivez ce qu'il faut faire.",okText:'OK',hideCancel:true});return;}const rec=getSelectedRecurrence();const data={time:getTPVal('f-time'),title,icon:getSelectedIcon(),note:document.getElementById('f-note').value.trim(),recurrence:rec};if(rec==='once'){const rdvDate=document.getElementById('f-event-date').value||dateKey(getCurrentDate());const rdvTime=getTPVal('f-event-time');const choix=getSonnerieChoix();data.eventDate=rdvDate;data.eventTime=rdvTime;data.sonnerieChoix=choix;const _adr=(document.getElementById('f-address')?document.getElementById('f-address').value.trim():'');data.address=_adr;data.mapQuery=_adr?encodeURIComponent(_adr):'';data.travelMin=wizTravel||0;const _sonn=_calcSonnerieRappel(rdvDate,rdvTime,choix,data.travelMin);data.date=_sonn.date;data.time=_sonn.time;if(!data.date){showConfirm({icon:'⚠️',title:'Date manquante',text:'Choisissez la date du rendez-vous.',okText:'OK',hideCancel:true});return;}if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}});}
 }else{data.date=null;data.eventDate=null;data.eventTime=null;if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}}); }}await saveUserData();if(state.editingAdminMode&&adminEditingUid){const targetUid=adminEditingUid;const prenom=state.editingAdminPrenom;if(rec==='once'&&data.date&&prenom){queueNotification('🔔 '+data.title,data.note?('📍 '+data.note+'\n⏰ '+data.date+' à '+data.time.replace(':','h')):('⏰ '+data.date+' à '+data.time.replace(':','h')+' · Appuyez pour ouvrir l\'app'),data.date,data.time,{key:'prenom',value:prenom.toLowerCase()});}state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showConfirm({icon:'✅',title:'Rappel ajouté !',text:`Le rappel a été ajouté pour ${prenom}.`,okText:'OK',hideCancel:true,onOk:()=>showAdminUserDetail(targetUid)});return;}render();showScreen('main-screen');if(rec==='once'&&data.date){const userPrenom=currentUser?currentUser.prenom.toLowerCase():null;if(userPrenom&&!estNatifAlarme()){queueNotification('🔔 '+data.title,data.note?('📍 '+data.note+'\n⏰ Aujourd\'hui à '+data.time.replace(':','h')):('⏰ Aujourd\'hui à '+data.time.replace(':','h')+' · Appuyez pour ouvrir l\'app'),data.date,data.time,{key:'prenom',value:userPrenom});}const rdvHeure=data.eventTime?data.eventTime.replace(':','h'):data.time.replace(':','h');showConfirm({icon:'✅',title:'Rappel enregistré !',text:`Votre rendez-vous du ${formatRelativeDate(data.eventDate||data.date)} à ${rdvHeure} est bien enregistré.`,okText:'Super !',hideCancel:true});}});
 
 document.getElementById('delete-btn').addEventListener('click',()=>{showConfirm({icon:'🗑️',title:'Supprimer ce rappel ?',text:'Cette action ne peut pas être annulée.',okText:'Supprimer',danger:true,onOk:async()=>{const del=state.reminders.find(x=>x.id===state.editing);state.reminders=state.reminders.filter(x=>x.id!==state.editing);if(del&&del.source==='atelier'&&del.date&&del.time){const key=del.date+'_'+del.time+'_'+(del.title||'').slice(0,20).replace(/\s/g,'_');delete state.inscriptions[key];try{await db.collection('users').doc(currentUser.id).update({['inscriptions.'+key]:firebase.firestore.FieldValue.delete()});}catch(e){}}await saveUserData();render();showScreen('main-screen');}});});
