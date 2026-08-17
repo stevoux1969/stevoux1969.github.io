@@ -307,9 +307,10 @@
     .c-maps-s { font-weight:500; font-size:.62rem; opacity:.75; }
     .c-plus-infos { border:1.5px solid #d6dcf0; color:#5b6b8c; border-radius:12px; display:flex; align-items:center; justify-content:center; text-align:center; font-weight:700; font-size:.76rem; line-height:1.2; padding:9px 4px; cursor:pointer; }
     .c-details { max-height:0; overflow:hidden; transition:max-height .35s ease, margin .35s ease; margin-top:0; }
-    .c-details.ouvert { max-height:160px; margin-top:8px; }
+    .c-details.ouvert { max-height:220px; margin-top:8px; }
     .c-details-ligne { display:flex; align-items:center; gap:8px; font-size:.88rem; color:#333; padding:8px 0; border-top:1px solid #eef1fb; }
     .c-details-ligne:first-child { border-top:none; }
+    .c-details-modifier { color:#2c3e91; font-weight:700; cursor:pointer; }
     .c-badge { display:inline-block; margin-top:10px; font-size:.72rem; font-weight:600; color:#0a6e31; background:#dcfce7; padding:5px 10px; border-radius:8px; }
     /* Écran « tout est fait » */
     .tout-fait { display:none; text-align:center; padding:40px 24px; }
@@ -612,6 +613,18 @@
 .wizard-fold{background:#f5f7fc;border-radius:12px;margin-bottom:12px;padding:14px 16px;}
 .wizard-fold summary{font-size:1rem;font-weight:700;color:#2c3e91;cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;}
 .wizard-fold summary::-webkit-details-marker{display:none;}
+/* ===== Étape 8 : vignettes optionnelles (détail / adresse / trajet) ===== */
+.options-row{display:flex;gap:10px;margin-bottom:4px;}
+.opt-btn{flex:1;border:1.5px dashed #c3cae4;border-radius:14px;padding:14px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#5b6b8c;font-weight:700;font-size:0.78rem;text-align:center;min-height:74px;cursor:pointer;font-family:inherit;}
+.opt-btn .icone-opt{font-size:1.3rem;}
+.opt-btn.rempli{border-style:solid;border-color:#2c3e91;color:#2c3e91;background:#eef1fb;}
+.opt-btn .modif{font-size:0.66rem;opacity:0.7;font-weight:600;}
+.opt-inline{max-height:0;overflow:hidden;transition:max-height .3s ease, margin .3s ease;}
+.opt-inline.ouvert{max-height:220px;margin-top:10px;}
+.opt-inline input,.opt-inline textarea{width:100%;border:1.5px solid #2c3e91;border-radius:10px;padding:11px 12px;font-size:0.9rem;margin-bottom:8px;font-family:inherit;box-sizing:border-box;}
+.opt-inline textarea{resize:none;min-height:70px;}
+.opt-inline .trajet-grid{margin-bottom:8px;}
+.opt-inline .valider{background:#22a559;color:#fff;text-align:center;border-radius:10px;padding:10px;font-weight:700;font-size:0.85rem;border:none;width:100%;cursor:pointer;font-family:inherit;}
 /* ===== Nouveau parcours : thèmes, quand, popups, calendrier ===== */
 .wizard-topline{display:flex;justify-content:flex-end;margin:-6px 0 10px;min-height:40px;}
 .btn-retour-haut{border:none;background:white;color:#2c3e91;font-family:inherit;font-size:0.95rem;font-weight:700;padding:9px 16px;border-radius:12px;cursor:pointer;box-shadow:0 2px 6px rgba(26,35,64,0.08);}
@@ -711,7 +724,6 @@
 <div id="main-screen" class="screen">
   <header class="header">
     <button id="btn-aide-accueil" class="btn-arrow" aria-label="Aide" style="font-size:1.5rem;">?</button>
-    <button id="prev-day" class="btn-arrow" aria-label="Jour précédent">‹</button>
     <div class="header-title">
       <h1 id="day-title">Aujourd'hui</h1>
       <p id="day-date" class="date"></p>
@@ -893,44 +905,43 @@
       <button type="button" class="btn-save" onclick="wizGoNext()" style="margin-top:18px">✓ Continuer</button>
     </div>
 
-    <!-- ÉTAPE 5 : Adresse (facultatif) -->
-    <div class="wizard-step" data-step="5">
-      <h3 class="wizard-q">📍 Où est-ce que ça se passe ?</h3>
-      <p class="wizard-qsub">Pour pouvoir ouvrir l'itinéraire en un seul appui</p>
-      <input id="f-address" class="input-adresse" placeholder="Ex : 32 rue du Moulin, Maromme" maxlength="120">
-      <button type="button" class="btn-save" onclick="wizGoNext()" style="margin-top:18px">✓ Continuer</button>
-      <button type="button" class="btn-passer" onclick="wizPasserAdresse()">Passer — pas d'adresse</button>
-    </div>
-
-    <!-- ÉTAPE 6 : Temps de trajet (seulement si une adresse a été saisie) -->
-    <div class="wizard-step" data-step="6">
-      <h3 class="wizard-q">🚗 Combien de temps pour y aller ?</h3>
-      <p class="wizard-qsub">Une sonnerie vous préviendra quand il sera l'heure de partir</p>
-      <div id="trajet-choix" class="trajet-grid">
-        <button type="button" class="trajet-btn" data-min="10">10 min</button>
-        <button type="button" class="trajet-btn" data-min="20">20 min</button>
-        <button type="button" class="trajet-btn" data-min="30">30 min</button>
-        <button type="button" class="trajet-btn" data-min="45">45 min</button>
-        <button type="button" class="trajet-btn" data-min="60">1 h</button>
-        <button type="button" class="trajet-btn" data-min="90">1 h 30</button>
-      </div>
-      <button type="button" class="btn-save" onclick="wizGoNext()" style="margin-top:18px">✓ Continuer</button>
-      <button type="button" class="btn-passer" onclick="wizPasserTrajet()">Passer — pas de trajet</button>
-    </div>
-
-    <!-- ÉTAPE 7 : Remarque (facultatif) -->
-    <div class="wizard-step" data-step="7">
-      <h3 class="wizard-q">✏️ Une remarque à ajouter ?</h3>
-      <p class="wizard-qsub">Par exemple : « penser à la carte vitale »</p>
-      <textarea id="f-note" class="textarea" placeholder="Ex : Avec de l'eau" maxlength="120"></textarea>
-      <button type="button" class="btn-save" onclick="wizGoNext()" style="margin-top:18px">✓ Continuer</button>
-      <button type="button" class="btn-passer" onclick="wizPasserRemarque()">Passer — pas de remarque</button>
-    </div>
-
-    <!-- ÉTAPE 8 : Récap « C'est bien ça ? » -->
+    <!-- ÉTAPE 8 : Récap « C'est bien ça ? » + vignettes optionnelles (détail / adresse / trajet) -->
     <div class="wizard-step" data-step="8">
       <h3 class="wizard-q">C'est bien ça ?</h3>
       <div id="wizard-recap" class="wizard-recap"></div>
+
+      <div class="options-row" id="wizard-options-row">
+        <div class="opt-btn" id="opt-btn-detail" data-opt="detail" onclick="wizToggleOption('detail')">
+          <div class="icone-opt">➕</div><div>Ajouter<br>un détail</div>
+        </div>
+        <div class="opt-btn" id="opt-btn-adresse" data-opt="adresse" onclick="wizToggleOption('adresse')">
+          <div class="icone-opt">📍</div><div>Ajouter<br>une adresse</div>
+        </div>
+        <div class="opt-btn" id="opt-btn-trajet" data-opt="trajet" onclick="wizToggleOption('trajet')">
+          <div class="icone-opt">🚗</div><div>Temps de<br>trajet</div>
+        </div>
+      </div>
+
+      <div class="opt-inline" id="opt-inline-detail">
+        <textarea id="f-note" class="textarea" placeholder="Ex : Avec de l'eau" maxlength="120"></textarea>
+        <button type="button" class="valider" onclick="wizValiderOption('detail')">✓ Valider</button>
+      </div>
+      <div class="opt-inline" id="opt-inline-adresse">
+        <input id="f-address" class="input-adresse" placeholder="Ex : 32 rue du Moulin, Maromme" maxlength="120">
+        <button type="button" class="valider" onclick="wizValiderOption('adresse')">✓ Valider</button>
+      </div>
+      <div class="opt-inline" id="opt-inline-trajet">
+        <div id="trajet-choix" class="trajet-grid">
+          <button type="button" class="trajet-btn" data-min="10">10 min</button>
+          <button type="button" class="trajet-btn" data-min="20">20 min</button>
+          <button type="button" class="trajet-btn" data-min="30">30 min</button>
+          <button type="button" class="trajet-btn" data-min="45">45 min</button>
+          <button type="button" class="trajet-btn" data-min="60">1 h</button>
+          <button type="button" class="trajet-btn" data-min="90">1 h 30</button>
+        </div>
+        <button type="button" class="valider" onclick="wizValiderOption('trajet')">✓ Valider</button>
+      </div>
+
       <button type="button" id="wizard-ecouter" class="btn-ecouter-recap">🔊 Écouter</button>
       <button id="save-btn" class="btn-save">✓ C'est bon, enregistrer</button>
     </div>
@@ -3335,6 +3346,7 @@ function _carteRappel(r,key,jourAffiche){
     if(ti&&ti.adresse)detailsItems.push(`<div class="c-details-ligne">📍 ${esc(ti.adresse)}</div>`);
     if(r.note)detailsItems.push(`<div class="c-details-ligne">✏️ ${esc(r.note)}</div>`);
     const aDesDetails=detailsItems.length>0;
+    if(aDesDetails)detailsItems.push(`<div class="c-details-ligne c-details-modifier" data-modifier-id="${r.id}">✎ Modifier</div>`);
     const plusInfosHTML=aDesDetails?`<div class="c-plus-infos">+ Plus d'infos</div>`:'';
     const detailsHTML=aDesDetails?`<div class="c-details">${detailsItems.join('')}</div>`:'';
     const hasLigneActions=mapsHTML||plusInfosHTML;
@@ -3685,7 +3697,6 @@ _tiroirMenuEl.addEventListener('touchmove',e=>{
 },{passive:true});
 _tiroirMenuEl.addEventListener('touchend',()=>{_tiroirFermeDepartX=null;});
 
-document.getElementById('prev-day').addEventListener('click',()=>{state.dayOffset--;render();});
 document.getElementById('next-day').addEventListener('click',()=>{state.dayOffset++;render();});
 document.getElementById('back-to-today').addEventListener('click',()=>{state.dayOffset=0;render();});
 document.getElementById('open-planning-steve').addEventListener('click',async()=>{state.currentAnim='Steve';state.avpEvents=[];document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';await loadAVPPlanning();renderPlanning();});
@@ -3710,6 +3721,8 @@ document.getElementById('reminders-list').addEventListener('click',e=>{
     if(details){const ouvert=details.classList.toggle('ouvert');plusBtn.textContent=ouvert?'− Moins':"+ Plus d'infos";}
     e.stopPropagation();return;
   }
+  const modifBtn=e.target.closest('[data-modifier-id]');
+  if(modifBtn){openEdit(modifBtn.dataset.modifierId);e.stopPropagation();return;}
   const card=e.target.closest('.c-card');
   if(card){const id=card.dataset.id;const r=state.reminders.find(x=>x.id===id);if(r&&r.source!=='atelier')openEdit(id);}
 });
@@ -3805,7 +3818,7 @@ if(_hintListeAccueil){
 }
 setTimeout(_checkScrollHint,300);
 
-function openEdit(id){state.editing=id;const r=id?state.reminders.find(x=>x.id===id):null;document.getElementById('edit-title').textContent=r?'Modifier le rappel':'Nouveau rappel';const vs=document.getElementById('voice-status');if(vs){vs.className='voice-status';vs.innerHTML='';}document.getElementById('voice-btn').querySelector('.voice-label').textContent='Dicter au lieu de taper';setTPVal('f-time',r?r.time:'08:00');document.getElementById('f-title').value=r?r.title:'';document.getElementById('f-note').value=r?r.note:'';document.getElementById('delete-btn').style.display=r?'block':'none';const rec=r?(r.recurrence||'daily'):'daily';setRecurrence(rec);document.getElementById('f-date').value=r&&r.date?r.date:dateKey(getCurrentDate());document.getElementById('f-event-date').value=r&&r.eventDate?r.eventDate:(r&&r.date?r.date:dateKey(getCurrentDate()));setTPVal('f-event-time',r&&r.eventTime?r.eventTime:'14:00');let choix=r&&r.sonnerieChoix?r.sonnerieChoix:'2h';if(choix==='avant2h'||choix==='les2')choix='2h';document.querySelectorAll('.sonnerie-choix-btn').forEach(b=>b.classList.toggle('active',b.dataset.choix===choix));const fa=document.getElementById('f-address');if(fa)fa.value=r&&r.address?r.address:'';wizTravel=r&&r.travelMin?r.travelMin:0;document.querySelectorAll('#trajet-choix .trajet-btn').forEach(b=>b.classList.toggle('active',(parseInt(b.dataset.min,10)||0)===wizTravel));renderIcons(r?r.icon:null);showScreen('edit-screen');goToStep(r?8:1);}
+function openEdit(id){state.editing=id;const r=id?state.reminders.find(x=>x.id===id):null;document.getElementById('edit-title').textContent=r?'Modifier le rappel':'Nouveau rappel';const vs=document.getElementById('voice-status');if(vs){vs.className='voice-status';vs.innerHTML='';}document.getElementById('voice-btn').querySelector('.voice-label').textContent='Dicter au lieu de taper';setTPVal('f-time',r?r.time:'08:00');document.getElementById('f-title').value=r?r.title:'';document.getElementById('f-note').value=r?r.note:'';document.getElementById('delete-btn').style.display=r?'block':'none';const rec=r?(r.recurrence||'daily'):'daily';setRecurrence(rec);document.getElementById('f-date').value=r&&r.date?r.date:dateKey(getCurrentDate());document.getElementById('f-event-date').value=r&&r.eventDate?r.eventDate:(r&&r.date?r.date:dateKey(getCurrentDate()));setTPVal('f-event-time',r&&r.eventTime?r.eventTime:'14:00');let choix=r&&r.sonnerieChoix?r.sonnerieChoix:'2h';if(choix==='avant2h'||choix==='les2')choix='2h';document.querySelectorAll('.sonnerie-choix-btn').forEach(b=>b.classList.toggle('active',b.dataset.choix===choix));const fa=document.getElementById('f-address');if(fa)fa.value=r&&r.address?r.address:'';wizTravel=r&&r.travelMin?r.travelMin:0;document.querySelectorAll('#trajet-choix .trajet-btn').forEach(b=>b.classList.toggle('active',(parseInt(b.dataset.min,10)||0)===wizTravel));renderIcons(r?r.icon:null);document.getElementById('save-btn').textContent=r?'✓ Enregistrer les modifications':"✓ C'est bon, enregistrer";document.querySelectorAll('#edit-screen .opt-inline').forEach(el=>el.classList.remove('ouvert'));showScreen('edit-screen');goToStep(r?8:1);}
 
 function renderIcons(selected){wizIcon=selected||'🗓️';renderThemeGrid();}
 let wizIcon='🗓️'; // icône choisie dans le parcours (remplace la sélection DOM de l'ancienne grille)
@@ -3816,26 +3829,15 @@ function getSelectedRecurrence(){return wizRec||'daily';}
 document.querySelectorAll('.seg-btn').forEach(btn=>btn.addEventListener('click',()=>setRecurrence(btn.dataset.rec)));
 // ===== Parcours en étapes "Nouveau rappel" =====
 let wizardStep=1;
-// Séquence d'étapes selon le type de rappel et la présence d'une adresse.
-// L'étape 6 (trajet) n'apparaît que si une adresse a été saisie ; les rappels
-// quotidiens sautent prévenir/adresse/trajet.
+// Séquence d'étapes selon le type de rappel. Détail/adresse/trajet ne sont
+// plus des étapes séparées : ce sont des vignettes optionnelles sur l'étape 8.
 function wizSequence(){
   const rec=getSelectedRecurrence();
-  if(rec==='daily')return [1,2,3,7,8];
-  const fa=document.getElementById('f-address');
-  const hasAdresse=!!(fa&&fa.value.trim());
-  const hasTrajet=hasAdresse&&wizTravel>0;
-  const seq=[1,2,3,5];
-  if(hasAdresse)seq.push(6);
-  if(!hasTrajet)seq.push(4);
-  seq.push(7,8);
-  return seq;
+  if(rec==='daily')return [1,2,3,8];
+  return [1,2,3,4,8];
 }
 function wizGoNext(){const s=wizSequence();const i=s.indexOf(wizardStep);goToStep(i>=0&&i<s.length-1?s[i+1]:s[s.length-1]);}
 function wizGoPrev(){const s=wizSequence();const i=s.indexOf(wizardStep);goToStep(i>0?s[i-1]:s[0]);}
-function wizPasserAdresse(){const fa=document.getElementById('f-address');if(fa)fa.value='';wizGoNext();}
-function wizPasserTrajet(){wizTravel=0;document.querySelectorAll('#trajet-choix .trajet-btn').forEach(b=>b.classList.remove('active'));wizGoNext();}
-function wizPasserRemarque(){const fn=document.getElementById('f-note');if(fn)fn.value='';wizGoNext();}
 function goToStep(n){
   wizardStep=n;
   document.querySelectorAll('#edit-screen .wizard-step').forEach(st=>st.classList.toggle('active',parseInt(st.dataset.step)===n));
@@ -3843,9 +3845,54 @@ function goToStep(n){
   document.getElementById('wizard-step-label').textContent='Étape '+(idx+1)+' sur '+seq.length;
   document.getElementById('wizard-progress-fill').style.width=Math.round((idx+1)/seq.length*100)+'%';
   document.getElementById('wizard-prev').style.visibility=(n===1)?'hidden':'visible';
-  if(n===8)renderWizardRecap();
+  if(n===8){renderWizardRecap();wizRenderOptionsRow();}
   const body=document.querySelector('#edit-screen .edit-body');if(body)body.scrollTop=0;
   if(typeof montrerTuto==='function')setTimeout(()=>montrerTuto('wiz'+n),300);
+}
+// ===== Étape 8 : vignettes optionnelles (détail / adresse / trajet) =====
+const WIZ_OPTS={
+  detail:{icon:'➕',label:'Ajouter<br>un détail'},
+  adresse:{icon:'📍',label:'Ajouter<br>une adresse'},
+  trajet:{icon:'🚗',label:'Temps de<br>trajet'}
+};
+function wizOptValeur(opt){
+  if(opt==='detail'){const el=document.getElementById('f-note');return el?el.value.trim():'';}
+  if(opt==='adresse'){const el=document.getElementById('f-address');return el?el.value.trim():'';}
+  if(opt==='trajet'){const b=document.querySelector('#trajet-choix .trajet-btn.active');return b?b.textContent.trim():'';}
+  return '';
+}
+function wizRenderOptionsRow(){
+  const showAdresseTrajet=getSelectedRecurrence()!=='daily';
+  document.getElementById('opt-btn-adresse').style.display=showAdresseTrajet?'':'none';
+  document.getElementById('opt-btn-trajet').style.display=showAdresseTrajet?'':'none';
+  ['detail','adresse','trajet'].forEach(opt=>{
+    if(opt!=='detail'&&!showAdresseTrajet){document.getElementById('opt-inline-'+opt).classList.remove('ouvert');return;}
+    const btn=document.getElementById('opt-btn-'+opt);
+    const meta=WIZ_OPTS[opt];
+    const val=wizOptValeur(opt);
+    if(val){
+      const resume=val.length>18?val.slice(0,18)+'…':val;
+      btn.classList.add('rempli');
+      btn.innerHTML='<div class="icone-opt">'+meta.icon+'</div><div>'+esc(resume)+'<div class="modif">✎ modifier</div></div>';
+    }else{
+      btn.classList.remove('rempli');
+      btn.innerHTML='<div class="icone-opt">'+meta.icon+'</div><div>'+meta.label+'</div>';
+    }
+  });
+}
+function wizToggleOption(opt){
+  ['detail','adresse','trajet'].forEach(o=>{if(o!==opt)document.getElementById('opt-inline-'+o).classList.remove('ouvert');});
+  const inline=document.getElementById('opt-inline-'+opt);
+  const ouverture=!inline.classList.contains('ouvert');
+  inline.classList.toggle('ouvert');
+  if(ouverture){
+    const champ=document.getElementById(opt==='detail'?'f-note':(opt==='adresse'?'f-address':''));
+    if(champ)setTimeout(()=>champ.focus(),150);
+  }
+}
+function wizValiderOption(opt){
+  document.getElementById('opt-inline-'+opt).classList.remove('ouvert');
+  wizRenderOptionsRow();
 }
 function renderWizardRecap(){
   const title=document.getElementById('f-title').value.trim()||'(sans titre)';
@@ -3882,10 +3929,7 @@ const TUTOS={
   wiz2:{txt:"Appuyez sur le jour du rappel."},
   wiz3:{txt:"Réglez l'heure, puis appuyez sur le bouton vert."},
   wiz4:{txt:"Choisissez quand être prévenu, puis appuyez sur Continuer."},
-  wiz5:{txt:"Indiquez l'adresse, ou appuyez sur Passer."},
-  wiz6:{txt:"Choisissez le temps de trajet, ou appuyez sur Passer."},
-  wiz7:{txt:"Ajoutez une remarque, ou appuyez sur Passer."},
-  wiz8:{txt:"Vérifiez, puis appuyez sur le bouton vert pour enregistrer."},
+  wiz8:{txt:"Vérifiez. Vous pouvez ajouter un détail, une adresse ou un temps de trajet si besoin, puis appuyez sur le bouton vert pour enregistrer."},
   agenda:{txt:"Votre prochain rendez-vous est en haut. Appuyez sur Annuler pour annuler un rendez-vous."}
 };
 let tutoCleActive=null;
