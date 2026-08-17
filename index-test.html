@@ -3734,37 +3734,36 @@ document.getElementById('aide-lire-btn').addEventListener('click',()=>{
 });
 
 // ===== Bouton retour Android (brief retrait-validation, §6) =====
-// Inerte pour l'instant : le plugin natif @capacitor/app n'est pas encore installé
-// (chantier natif prévu avec le nettoyage des alarmes, pas encore fait). Une fois le
-// plugin present dans l'APK, ce code gere la navigation interne au lieu de laisser
-// Android fermer l'application brutalement.
+// Sans plugin natif : Capacitor retombe par défaut sur webView.goBack() si l'historique
+// JS le permet (sinon il ferme l'app). On maintient donc un historique JS artificiel
+// (pushState) pour intercepter chaque appui via popstate, et gérer la navigation nous-mêmes.
 let _dernierAppuiRetour=0;
+// Renvoie true si on doit laisser l'app se fermer (double appui confirmé), false sinon.
 function _gererBoutonRetourAndroid(){
   const tiroir=document.getElementById('tiroir-menu');
-  if(tiroir&&tiroir.classList.contains('visible')){_fermerTiroirMenu();return;}
+  if(tiroir&&tiroir.classList.contains('visible')){_fermerTiroirMenu();return false;}
   const aide=document.getElementById('aide-panel-accueil');
-  if(aide&&aide.classList.contains('visible')){_fermerAideAccueil();return;}
+  if(aide&&aide.classList.contains('visible')){_fermerAideAccueil();return false;}
   const ecranAccueil=(currentUser&&currentUser.isAdmin)?'admin-screen':'main-screen';
   const actif=document.querySelector('.screen.active');
   if(actif&&actif.id!==ecranAccueil&&actif.id!=='login-screen'&&actif.id!=='tutorial-screen'){
     if(ecranAccueil==='main-screen'){showScreen('main-screen');render();}
     else if(typeof showAdminScreen==='function')showAdminScreen();
-    return;
+    return false;
   }
   // Déjà sur l'accueil, rien à fermer : double pression pour quitter.
   const maintenant=Date.now();
-  if(maintenant-_dernierAppuiRetour<2000){
-    try{const A=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App;if(A&&A.exitApp)A.exitApp();}catch(e){}
-    return;
-  }
+  if(maintenant-_dernierAppuiRetour<2000)return true;
   _dernierAppuiRetour=maintenant;
   speak('Appuyez de nouveau pour quitter');
+  return false;
 }
 (function(){
-  try{
-    const A=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App;
-    if(A&&A.addListener)A.addListener('backButton',_gererBoutonRetourAndroid);
-  }catch(e){}
+  history.pushState({avpNav:1},'',location.href);
+  window.addEventListener('popstate',()=>{
+    const quitter=_gererBoutonRetourAndroid();
+    if(!quitter)history.pushState({avpNav:1},'',location.href);
+  });
 })();
 
 // ===== Flèche « Descendre » / « Remonter » : appui bref = un cran, appui maintenu = défilement continu (§6) =====
