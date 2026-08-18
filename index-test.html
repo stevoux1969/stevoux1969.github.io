@@ -598,6 +598,9 @@
 .wizard-step.active{display:block;animation:wizFade .2s ease;}
 @keyframes wizFade{from{opacity:0;transform:translateX(8px);}to{opacity:1;transform:none;}}
 .wizard-q{font-size:1.35rem;font-weight:800;color:#1a2340;text-align:center;margin:0 0 18px;}
+[data-step="3"] .wizard-q{margin-bottom:6px;}
+[data-step="3"] .field-hint{margin-top:0;margin-bottom:4px;}
+[data-step="3"] .tp{padding:8px;}
 .segmented-big .seg-btn{padding:18px 12px;font-size:1.05rem;}
 .input-big{font-size:1.1rem;padding:16px;text-align:center;}
 .tp-field{display:flex;justify-content:center;}
@@ -605,14 +608,14 @@
 .wizard-btn{flex:1;border:none;border-radius:14px;padding:18px;font-size:1.1rem;font-weight:800;cursor:pointer;font-family:inherit;min-height:56px;}
 .wizard-btn-prev{background:#e3e8f4;color:#2c3e91;flex:0 0 38%;}
 .wizard-btn-next{background:#2c3e91;color:#fff;}
-.wizard-recap{border:2px solid #2c3e91;border-radius:18px;padding:16px 18px;margin-bottom:20px;background:#fff;}
-.wr-heure{font-size:2rem;font-weight:800;color:#2c3e91;line-height:1.1;}
-.wr-titre-row{display:flex;align-items:center;gap:10px;margin-top:8px;}
-.wr-emoji{width:42px;height:42px;border-radius:12px;background:#eef1fb;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;}
-.wr-emoji img{width:30px;height:30px;}
-.wr-titre{font-size:1.02rem;font-weight:700;color:#222;}
-.wr-sep{height:1px;background:#eef1fb;margin:14px 0;}
-.wr-date{font-size:0.88rem;color:#5b6785;text-align:center;}
+.wizard-recap{border:2px solid #2c3e91;border-radius:14px;padding:10px 14px;margin-bottom:12px;background:#fff;}
+.wr-heure{font-size:1.5rem;font-weight:800;color:#2c3e91;line-height:1.1;}
+.wr-titre-row{display:flex;align-items:center;gap:8px;margin-top:5px;}
+.wr-emoji{width:32px;height:32px;border-radius:9px;background:#eef1fb;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.wr-emoji img{width:22px;height:22px;}
+.wr-titre{font-size:0.95rem;font-weight:700;color:#222;}
+.wr-sep{height:1px;background:#eef1fb;margin:8px 0;}
+.wr-date{font-size:0.8rem;color:#5b6785;text-align:center;}
 .wizard-fold{background:#f5f7fc;border-radius:12px;margin-bottom:12px;padding:14px 16px;}
 .wizard-fold summary{font-size:1rem;font-weight:700;color:#2c3e91;cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;}
 .wizard-fold summary::-webkit-details-marker{display:none;}
