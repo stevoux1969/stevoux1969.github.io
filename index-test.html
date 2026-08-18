@@ -464,6 +464,15 @@
     .admin-list { padding: 16px; }
     .admin-user-card { background: white; border-radius: 16px; padding: 16px 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(26,35,64,0.06); cursor: pointer; }
     .admin-user-card:active { transform: scale(0.98); }
+    .ver-pill { font-size: 0.75rem; font-weight: 800; padding: 5px 10px; border-radius: 20px; white-space: nowrap; flex-shrink:0; }
+    .ver-pill.ver-ok { background:#e3f5ea; color:#1c7d45; border:1.5px solid #b6e3c8; }
+    .ver-pill.ver-vieux { background:#fff2e0; color:#b56a00; border:1.5px solid #f3d199; }
+    .ver-pill.ver-inconnu { background:#eef0f5; color:#7a8399; border:1.5px solid #dde1ea; }
+    .maj-compteur { background:#eef1fb; padding:14px 16px; border-radius:14px; text-align:center; margin-bottom:14px; }
+    .maj-compteur-chiffre { font-size:1.375rem; font-weight:800; color:#2c3e91; }
+    .maj-compteur-txt { font-size:0.8125rem; color:#556; margin-top:2px; }
+    .maj-barre { height:8px; background:#dfe4f2; border-radius:6px; margin-top:10px; overflow:hidden; }
+    .maj-barre > i { display:block; height:100%; background:#2c9e5b; border-radius:6px; transition:width .3s; }
     .admin-user-info { flex: 1; }
     .admin-user-name { font-size:1.125rem; font-weight: 700; color: #1a2340; }
     .admin-user-meta { font-size:0.875rem; color: #48547a; margin-top: 2px; }
@@ -1335,9 +1344,9 @@ async function handleLogin() {
   if(code===ADMIN_GREG_CODE&&loginMode==='login'){currentUser={id:'adminGreg',prenom:'Greg',isAdmin:true,isGreg:true};saveSession();showAdminScreen();return;}
   if(loginMode==='register'){
     if(!prenom){showError('Entrez votre prénom.');return;}
-    try{const snap=await db.collection('users').get();const existing=snap.docs.find(d=>d.data().prenom.toLowerCase()===prenom.toLowerCase());if(existing){showError('Ce prénom existe déjà. Connectez-vous.');return;}const userId=uid();await db.collection('users').doc(userId).set({prenom,code,createdAt:Date.now(),reminders:[],inscriptions:{},tutosVus:{}});currentUser={id:userId,prenom,isAdmin:false};saveSession();tagOneSignalUser(prenom);state.reminders=[];state.inscriptions={};state.tutosVus={};enterApp();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
+    try{const snap=await db.collection('users').get();const existing=snap.docs.find(d=>d.data().prenom.toLowerCase()===prenom.toLowerCase());if(existing){showError('Ce prénom existe déjà. Connectez-vous.');return;}const userId=uid();await db.collection('users').doc(userId).set({prenom,code,createdAt:Date.now(),reminders:[],inscriptions:{},tutosVus:{}});currentUser={id:userId,prenom,isAdmin:false};saveSession();recordAppVersion(userId);tagOneSignalUser(prenom);state.reminders=[];state.inscriptions={};state.tutosVus={};enterApp();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
   }else{
-    try{const snap=await db.collection('users').get();let found=null;snap.docs.forEach(d=>{if(d.data().code===code)found={id:d.id,...d.data()};});if(!found){showError('Code incorrect.');pinValue='';updatePinDots();return;}currentUser={id:found.id,prenom:found.prenom,isAdmin:false};saveSession();tagOneSignalUser(found.prenom);tagOneSignalAvpUser();await loadUserData();logConnexion();enterApp();maybeShowAvisPopup();if(estNatifAlarme())planifierNotifsSysteme();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
+    try{const snap=await db.collection('users').get();let found=null;snap.docs.forEach(d=>{if(d.data().code===code)found={id:d.id,...d.data()};});if(!found){showError('Code incorrect.');pinValue='';updatePinDots();return;}currentUser={id:found.id,prenom:found.prenom,isAdmin:false};saveSession();tagOneSignalUser(found.prenom);tagOneSignalAvpUser();await loadUserData();recordAppVersion(found.id);logConnexion();enterApp();maybeShowAvisPopup();if(estNatifAlarme())planifierNotifsSysteme();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
   }
 }
 
@@ -1509,6 +1518,19 @@ function _notifId(dateStr,r){const base=dateStr+'|'+(r.id||'')+'|'+(r.time||'');
 // (anciennes APK non mises à jour). Voir planifierNotifsSysteme / requestBenefNotifPermission.
 function estNatifAlarme(){return !!(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Alarme);}
 function _alarmePlugin(){return estNatifAlarme()?window.Capacitor.Plugins.Alarme:null;}
+// ---- Repère de version d'APK (admin) ----
+async function detectAppVersion(){
+  try{const App=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App;if(App&&App.getInfo){const info=await App.getInfo();if(info&&info.version)return info.version;}}catch(e){}
+  try{if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())return estNatifAlarme()?'1.0.4':'1.0.3';}catch(e){}
+  return null;
+}
+async function recordAppVersion(userId){try{if(!userId)return;const v=await detectAppVersion();if(!v)return;await db.collection('users').doc(userId).update({appVersion:v,appVersionAt:Date.now()});}catch(e){}}
+function _estAJour(v){try{return !!v&&compareVersions(v,'1.0.4')>=0;}catch(e){return false;}}
+function versionPill(v){
+  if(!v)return '<span class="ver-pill ver-inconnu">à confirmer</span>';
+  if(_estAJour(v))return '<span class="ver-pill ver-ok">✓ '+esc(v)+'</span>';
+  return '<span class="ver-pill ver-vieux">'+esc(v)+'</span>';
+}
 // Hash stable → entier 31 bits positif non nul. Même clé ⇒ même id (annulation/repro fiable).
 function _hashAlarme(s){let h=5381;for(let i=0;i<s.length;i++){h=((h<<5)+h+s.charCodeAt(i))|0;}return (h&0x7fffffff)||1;}
 function _atMs(y,mo,d,hhmm){const p=(hhmm||'00:00').split(':');return new Date(y,mo,d,parseInt(p[0])||0,parseInt(p[1])||0,0).getTime();}
@@ -1849,7 +1871,7 @@ async function showAdminScreen(){
     if(btn) btn.textContent = actif ? '✅ '+moisNoms[moisSuivant]+' activé — Désactiver' : '🗓️ Activer '+moisNoms[moisSuivant];
   }catch(e){}
 }
-async function loadAdminUsers(){const list=document.getElementById('admin-user-list');list.innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';try{const snap=await db.collection('users').get();if(snap.empty){list.innerHTML='<div class="planning-empty">Aucun compte créé.</div>';return;}list.innerHTML=snap.docs.map(d=>{const u=d.data();const nb=(u.reminders||[]).length;return`<div class="admin-user-card" data-uid="${d.id}"><div class="user-avatar">${u.prenom.slice(0,1).toUpperCase()}</div><div class="admin-user-info"><div class="admin-user-name">${esc(u.prenom)}</div><div class="admin-user-meta">${nb} rappel${nb>1?'s':''} · Code : ${u.code}</div></div><span style="font-size:1.375rem;color:#48547a">›</span></div>`;}).join('');}catch(e){list.innerHTML='<div class="planning-empty">Erreur de chargement.</div>';}}
+async function loadAdminUsers(){const list=document.getElementById('admin-user-list');list.innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';try{const snap=await db.collection('users').get();if(snap.empty){list.innerHTML='<div class="planning-empty">Aucun compte créé.</div>';return;}const docs=snap.docs;let nbAJour=0;docs.forEach(d=>{if(_estAJour(d.data().appVersion))nbAJour++;});const total=docs.length;const pct=total?Math.round(nbAJour/total*100):0;const cards=docs.map(d=>{const u=d.data();const nb=(u.reminders||[]).length;return`<div class="admin-user-card" data-uid="${d.id}"><div class="user-avatar">${u.prenom.slice(0,1).toUpperCase()}</div><div class="admin-user-info"><div class="admin-user-name">${esc(u.prenom)}</div><div class="admin-user-meta">${nb} rappel${nb>1?'s':''} · Code : ${u.code}</div></div>${versionPill(u.appVersion)}</div>`;}).join('');list.innerHTML=`<div class="maj-compteur"><div class="maj-compteur-chiffre">${nbAJour} / ${total} à jour</div><div class="maj-compteur-txt">Passés en 1.0.4</div><div class="maj-barre"><i style="width:${pct}%"></i></div></div>`+cards;}catch(e){list.innerHTML='<div class="planning-empty">Erreur de chargement.</div>';}}
 
 document.getElementById('admin-back-btn').addEventListener('click',()=>{clearSession();currentUser=null;showScreen('login-screen');});
 document.getElementById('admin-new-user-btn').addEventListener('click',()=>{showScreen('login-screen');loginMode='register';document.getElementById('login-card-title').textContent='Créer un compte';document.getElementById('field-prenom').style.display='block';document.getElementById('login-switch-text').textContent='';document.getElementById('login-switch-btn').textContent='';pinValue='';updatePinDots();});
@@ -2493,6 +2515,7 @@ function renderAdminUserDetail(uid,u){
       <div class="admin-detail-top-info">
         <div class="admin-detail-top-name">${esc(u.prenom)}</div>
         <div class="admin-detail-top-code">Code PIN : <strong>${esc(u.code)}</strong></div>
+        <div style="margin-top:6px">${versionPill(u.appVersion)}</div>
       </div>
     </div>
     <button class="btn-admin-action" id="admin-add-reminder" style="margin:0 0 10px;">➕ Ajouter un rappel pour ${esc(u.prenom)}</button>
@@ -4419,9 +4442,6 @@ async function init(){
   createTimePicker('f-event-time', defaultTime, 5);
   updatePinDots();
   document.getElementById('field-prenom').style.display='none';
-  // Afficher numéro de version dans le footer
-  const verEl=document.getElementById('app-version-display');
-  if(verEl)verEl.textContent=APP_VERSION;
   // Vérifier les mises à jour APK (APK seulement)
   checkUpdate();
   // Afficher bouton téléchargement APK uniquement sur navigateur Android (pas dans l'APK Capacitor)
@@ -4433,7 +4453,7 @@ async function init(){
     }
   }catch(e){}
   const session=loadSession();
-  if(session){currentUser=session;if(currentUser.isAdmin){showAdminScreen();}else{tagOneSignalUser(currentUser.prenom);await loadUserData();logConnexion();enterApp();maybeShowAvisPopup();loadAVPPlanning();if(estNatifAlarme())planifierNotifsSysteme();}}else{showScreen('login-screen');}
+  if(session){currentUser=session;if(currentUser.isAdmin){showAdminScreen();}else{tagOneSignalUser(currentUser.prenom);await loadUserData();recordAppVersion(currentUser.id);logConnexion();enterApp();maybeShowAvisPopup();loadAVPPlanning();if(estNatifAlarme())planifierNotifsSysteme();}}else{showScreen('login-screen');}
   setInterval(checkReminders,30000);
   setInterval(render,60000);
   setInterval(()=>{const n=new Date();if(n.getHours()===0&&n.getMinutes()===0)firedToday.clear();},60000);
@@ -4442,7 +4462,7 @@ async function init(){
 
 init();
 </script>
-<div class="copyright">Application créée par Steve Legendre © 2026 · v<span id="app-version-display">1.0.3</span></div>
+<div class="copyright">Application créée par Steve Legendre © 2026</div>
 
 <!-- Bannière installation PWA -->
 <div id="pwa-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#2c3e91;color:white;padding:12px 16px;display:none;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.3);">

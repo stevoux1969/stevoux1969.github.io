@@ -112,7 +112,14 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body { height: 100%; overflow: hidden; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f3f8; color: #1a2340; font-size:1.125rem; line-height: 1.4; -webkit-font-smoothing: antialiased; user-select: none; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f3f8; color: #1a2340; font-size:1.125rem; line-height: 1.4; -webkit-font-smoothing: antialiased; user-select: none; -webkit-touch-callout: none; }
+    /* Cadre téléphone simulé sur grand écran (PC/tablette) : aucun effet sur mobile.
+       Le transform sur body fait de lui le point de référence de tous les éléments
+       position:fixed de l'appli (écrans, popups), qui se calent alors sur sa largeur. */
+    @media (min-width: 600px) {
+      html { background: #0d1220; }
+      body { max-width: 420px; margin: 0 auto; transform: translateZ(0); box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+    }
     .screen { position: fixed; inset: 0; display: none; flex-direction: column; background: #f1f3f8; }
     .screen.active { display: flex; }
     .login-wrap { flex: 1; overflow-y: auto; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
@@ -146,6 +153,22 @@
     .header-title { flex: 1; min-width: 0; text-align: center; }
     .header-title h1 { font-size:clamp(1.125rem, 5.5vw, 1.625rem); font-weight: 700; letter-spacing: -0.5px; }
     .header-title .date { font-size:0.875rem; opacity: 0.85; margin-top: 4px; text-transform: capitalize; }
+    /* Languette discrète sur le bord gauche : glisser depuis là ouvre le tiroir menu */
+    .menu-languette { position:fixed; left:0; top:50%; transform:translateY(-50%); width:7px; height:52px; background:rgba(44,62,145,0.35); border-radius:0 8px 8px 0; z-index:40; transition:background .2s ease, width .2s ease; }
+    .menu-languette.touchee { background:rgba(44,62,145,0.6); width:10px; }
+    .voile-tiroir { position:fixed; inset:0; background:rgba(20,26,50,.45); opacity:0; pointer-events:none; transition:opacity .3s ease; z-index:70; }
+    .voile-tiroir.visible { opacity:1; pointer-events:auto; }
+    .tiroir-menu { position:fixed; top:0; bottom:0; left:0; width:78%; max-width:300px; background:#fff; box-shadow:4px 0 24px rgba(0,0,0,.2); transform:translateX(-100%); transition:transform .3s ease; z-index:71; padding:calc(26px + env(safe-area-inset-top)) 0 20px; overflow-y:auto; }
+    .tiroir-menu.visible { transform:translateX(0); }
+    .tiroir-entete { display:flex; align-items:center; justify-content:space-between; margin:0 12px 16px 20px; }
+    .tiroir-menu h2 { color:#2c3e91; font-size:1.05rem; margin:0; }
+    .tiroir-fermer { background:#f1f3f8; border:none; color:#5b6785; width:34px; height:34px; border-radius:50%; font-size:1.1rem; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; padding:0; flex-shrink:0; }
+    .tiroir-fermer:active { background:#e5e9f2; }
+    .tiroir-menu .tiroir-item { display:flex; align-items:center; gap:12px; padding:14px 20px; font-size:1rem; font-weight:600; color:#1a2340; cursor:pointer; }
+    .tiroir-menu .tiroir-item:active { background:#f1f3f8; }
+    .tiroir-menu .tiroir-item .tiroir-ic { font-size:1.3rem; width:26px; text-align:center; }
+    .tiroir-menu .tiroir-item.a-venir { color:#a8b0c8; cursor:default; }
+    .tiroir-menu .tiroir-item.a-venir .tiroir-tag { margin-left:auto; font-size:.68rem; font-weight:700; background:#eef1fb; color:#8992b8; padding:3px 8px; border-radius:8px; text-transform:uppercase; letter-spacing:.03em; }
     .header-user { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 6px 12px; cursor: pointer; border: none; color: white; font-family: inherit; }
     .header-user-name { font-size:0.875rem; font-weight: 600; max-width: 18vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .today-bar { background: #ffeecb; padding: 10px 16px; text-align: center; flex-shrink: 0; border-bottom: 1px solid #f0d89b; }
@@ -153,8 +176,8 @@
     .planning-btn { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 12px 16px 0; padding: 14px 20px; background: #eef1fb; color: #2c3e91; border: 2px solid #8fa3df; border-radius: 14px; font-size:1.0625rem; font-weight: 700; text-decoration: none; font-family: inherit; flex-shrink: 0; cursor: pointer; }
     .planning-btn:active { background: #dde3f7; }
     .planning-btns-row { display: flex; gap: 8px; margin: 12px 16px 0; flex-shrink: 0; }
-    .planning-btn-split { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 14px 10px; background: #eef1fb; color: #2c3e91; border: 2px solid #8fa3df; border-radius: 14px; font-size:0.9375rem; font-weight: 700; font-family: inherit; cursor: pointer; }
-    .planning-btn-split:active { background: #dde3f7; }
+    .planning-btn-split { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 14px 10px; background: #0e8f82; color: #fff; border: none; border-radius: 14px; font-size:0.9375rem; font-weight: 700; font-family: inherit; cursor: pointer; box-shadow: 0 3px 8px rgba(14,143,130,0.3); }
+    .planning-btn-split:active { background: #0b756a; }
     .planning-btn-split.disabled { background: #f1f3f8; color: #707a96; border-color: #d5dae6; cursor: not-allowed; opacity: 0.7; }
     .planning-header-anim { background: #22a559; color: white; padding: 10px 16px; text-align: center; font-size:0.9375rem; font-weight: 700; letter-spacing: 0.5px; }
     .planning-day-header { background: #2c3e91; color: white; padding: 12px 16px; margin: 16px 0 8px; border-radius: 12px; font-size:1.0625rem; font-weight: 700; text-transform: capitalize; }
@@ -171,10 +194,9 @@
     .btn-inscrit:active { background: #1d8b4b; }
     .btn-inscrit.inscrit { background: #eef1fb; color: #2c3e91; border: 2px solid #2c3e91; }
     .planning-empty { text-align: center; padding: 40px 20px; color: #6c7a99; font-size:1.0625rem; }
-    @keyframes avisBlink { 50% { opacity: 0.2; } }
     .list-wrap { flex: 1; overflow-y: auto; padding: 16px 16px 14rem; -webkit-overflow-scrolling: touch; }
     /* Nouvelles cartes planning aérées (vue bénéficiaire) */
-    .pcard { background: white; border-radius: 16px; margin-bottom: 14px; box-shadow: 0 2px 10px rgba(26,35,64,0.07); overflow: hidden; position: relative; cursor: pointer; }
+    .pcard { background: white; border: 2px solid #2c3e91; border-radius: 18px; margin-bottom: 14px; box-shadow: 0 2px 10px rgba(26,35,64,0.07); overflow: hidden; position: relative; cursor: pointer; }
     .pcard-annule { background: #fdf0f2; border-left: 4px solid #d63447; opacity: 0.9; }
     .audio-badge { position: absolute; top: 12px; right: 12px; background: #eef1fb; color: #2c3e91; border-radius: 20px; font-size:0.75rem; font-weight: 700; padding: 5px 10px; }
     .pcard-top { display: flex; align-items: center; gap: 14px; padding: 16px 16px 12px; padding-right: 5.75rem; }
@@ -247,37 +269,77 @@
     .card-rdv:active { transform: scale(0.98); }
     .card-rdv.done { opacity: 0.55; }
     .card-rdv.done .rdv-titre { text-decoration: line-through; }
-    /* ===== Carte de rappel repensée (maquette carte-rappel) ===== */
-    .c-card { background:#fff; border:1px solid #d9e1f0; border-radius:18px; overflow:hidden; box-shadow:0 2px 8px rgba(20,30,60,.06); margin-bottom:14px; cursor:pointer; }
-    .c-card.done { opacity:.55; }
-    .c-card.done .c-titre h3 { text-decoration:line-through; }
-    .c-top { display:flex; align-items:flex-start; gap:12px; padding:14px 14px 12px; }
-    .c-datebox { background:#123a7a; color:#fff; border-radius:14px; padding:10px 12px; text-align:center; flex-shrink:0; }
-    .c-datebox-d { font-size:.68rem; font-weight:700; letter-spacing:.5px; opacity:.9; }
-    .c-datebox-h { font-size:1.75rem; font-weight:800; line-height:1.05; margin-top:1px; }
-    .c-emoji { width:56px; height:56px; border-radius:14px; background:#f4f6fa; border:1px solid #e4e9f3; display:flex; align-items:center; justify-content:center; font-size:1.8rem; flex-shrink:0; }
-    .c-titre { flex:1; min-width:0; padding-top:4px; }
-    .c-titre h3 { font-size:1.2rem; font-weight:800; line-height:1.2; overflow-wrap:break-word; word-break:break-word; }
-    .c-speak { width:44px; height:44px; border-radius:12px; background:#eaf0fb; border:2px solid #123a7a; display:flex; align-items:center; justify-content:center; font-size:1.25rem; flex-shrink:0; cursor:pointer; color:#123a7a; padding:0; }
-    .c-speak.on { background:#123a7a; color:#fff; }
-    .c-depart { margin:0 14px 12px; background:#eaf0fb; border:2px solid #123a7a; border-radius:14px; padding:12px 14px; display:flex; align-items:center; gap:12px; }
-    .c-depart-ic { font-size:1.6rem; flex-shrink:0; }
-    .c-depart-lbl { font-size:.72rem; font-weight:800; letter-spacing:.8px; color:#123a7a; text-transform:uppercase; }
-    .c-depart-val { font-size:1.55rem; font-weight:800; color:#123a7a; line-height:1.1; }
-    .c-depart-sm { font-size:.82rem; color:#5b6785; margin-top:1px; }
-    .c-depart-cd { margin-left:auto; text-align:right; flex-shrink:0; }
-    .c-depart-cd-t { font-size:.7rem; color:#5b6785; font-weight:600; }
-    .c-depart-cd-n { font-size:1.35rem; font-weight:800; color:#c2410c; line-height:1.1; }
-    .c-rows { padding:0 14px; }
-    .c-row { display:flex; align-items:center; gap:12px; padding:11px 0; }
+    /* ===== Carte de rappel repensée v7 (maquette-accueil-v7 / regle-sonnerie-unique) ===== */
+    .label-carte { font-size:.72rem; font-weight:800; color:#8992b8; letter-spacing:.04em; text-transform:uppercase; margin:0 4px 6px; overflow:hidden; }
+    .c-card { background:#fff; border:2px solid #2c3e91; border-radius:18px; overflow:hidden; box-shadow:0 2px 10px rgba(30,40,90,.07); margin-bottom:22px; padding:16px; cursor:pointer;
+      opacity:0; transform:translateY(20px);
+      transition:opacity .7s ease, transform .6s ease; }
+    .c-card.apparue { opacity:1; transform:translateY(0); }
+    .c-top { display:flex; align-items:center; gap:12px; margin-bottom:2px; }
+    .c-emoji { font-size:2rem; line-height:1; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+    .c-emoji img { width:36px; height:36px; }
+    .c-titre { flex:1; min-width:0; }
+    .c-titre .c-heure { font-size:1.5rem; font-weight:800; line-height:1.15; color:#2c3e91; }
+    .c-titre .c-sonnerie-inline { font-size:.78rem; font-weight:600; color:#7a84a8; margin-left:5px; white-space:nowrap; }
+    .c-titre h3 { font-size:1rem; font-weight:700; color:#222; line-height:1.25; margin-top:1px; overflow-wrap:break-word; word-break:break-word; }
+    .c-speak { width:44px; height:44px; border-radius:12px; background:#eef1fb; border:1.5px solid #d6dcf0; display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0; cursor:pointer; color:#2c3e91; padding:0; }
+    .c-speak.on { background:#2c3e91; color:#fff; }
+    .c-depart { margin:12px 0 4px; background:#eef1fb; border-radius:12px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .c-depart-ic { font-size:1.3rem; flex-shrink:0; }
+    .c-depart-gauche { display:flex; align-items:center; gap:9px; }
+    .c-depart-val { font-size:.98rem; font-weight:700; color:#3a4570; }
+    .c-depart-cd { color:#fff; border-radius:9px; padding:7px 11px; flex-shrink:0; text-align:center; line-height:1.15; }
+    .c-depart-cd.loin { background:#5b6b8c; }
+    .c-depart-cd.proche { background:#e85d2c; }
+    .c-depart-cd-n { font-size:1.02rem; font-weight:800; font-variant-numeric:tabular-nums; }
+    .c-depart-cd-t { font-size:.6rem; font-weight:600; opacity:.9; letter-spacing:.03em; }
+    .c-rows { padding-top:2px; }
+    .c-row { display:flex; align-items:center; gap:12px; padding:9px 0; }
     .c-row + .c-row { border-top:1px solid #eef1f6; }
-    .c-row-ic { font-size:1.3rem; width:26px; text-align:center; flex-shrink:0; }
+    .c-row-ic { font-size:1.2rem; width:26px; text-align:center; flex-shrink:0; }
     .c-row-tx { flex:1; min-width:0; }
-    .c-row-t1 { font-size:1rem; font-weight:600; }
+    .c-row-t1 { font-size:.95rem; font-weight:600; }
     .c-row-t2 { font-size:.8rem; color:#8892a8; margin-top:1px; }
-    .c-maps { display:block; margin:12px 14px 0; text-align:center; border:2px solid #123a7a; border-radius:14px; padding:14px; font-size:1.05rem; font-weight:700; color:#123a7a; background:#fff; text-decoration:none; }
-    .c-done { display:block; width:calc(100% - 28px); margin:10px 14px 14px; text-align:center; background:#22a559; color:#fff; border:none; border-radius:14px; padding:14px; font-size:1.05rem; font-weight:700; font-family:inherit; cursor:pointer; }
-    .c-badge { display:inline-block; margin:2px 14px 14px; font-size:.72rem; font-weight:600; color:#0a6e31; background:#dcfce7; padding:5px 10px; border-radius:8px; }
+    .c-ligne-actions { display:flex; gap:7px; margin-top:10px; align-items:stretch; }
+    .c-ligne-actions > * { flex:1; min-width:0; }
+    .c-maps { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; border:1.5px solid #2c3e91; border-radius:12px; padding:9px 4px; color:#2c3e91; background:#fff; text-decoration:none; line-height:1.2; }
+    .c-maps-p { font-weight:700; font-size:.86rem; }
+    .c-maps-s { font-weight:500; font-size:.62rem; opacity:.75; }
+    .c-plus-infos { border:1.5px solid #d6dcf0; color:#5b6b8c; border-radius:12px; display:flex; align-items:center; justify-content:center; text-align:center; font-weight:700; font-size:.76rem; line-height:1.2; padding:9px 4px; cursor:pointer; }
+    .c-details { max-height:0; overflow:hidden; transition:max-height .35s ease, margin .35s ease; margin-top:0; }
+    .c-details.ouvert { max-height:220px; margin-top:8px; }
+    .c-details-ligne { display:flex; align-items:center; gap:8px; font-size:.88rem; color:#333; padding:8px 0; border-top:1px solid #eef1fb; }
+    .c-details-ligne:first-child { border-top:none; }
+    .c-details-modifier { color:#2c3e91; font-weight:700; cursor:pointer; }
+    .c-badge { display:inline-block; margin-top:10px; font-size:.72rem; font-weight:600; color:#0a6e31; background:#dcfce7; padding:5px 10px; border-radius:8px; }
+    /* Écran « tout est fait » */
+    .tout-fait { display:none; text-align:center; padding:40px 24px; }
+    .tout-fait.visible { display:block; animation:toutFaitFade .6s ease; }
+    @keyframes toutFaitFade { from{opacity:0;transform:translateY(16px);} to{opacity:1;transform:translateY(0);} }
+    .tout-fait .rond-vert { width:88px; height:88px; border-radius:50%; background:#e8f7ee; display:flex; align-items:center; justify-content:center; font-size:2.6rem; margin:0 auto 18px; }
+    .tout-fait h3 { color:#22a559; font-size:1.3rem; margin:0 0 8px; }
+    .tout-fait p { color:#5a6480; font-size:.95rem; line-height:1.6; margin:0 0 20px; }
+    .tout-fait .prochain { background:#eef1fb; border-radius:14px; padding:16px; text-align:left; display:flex; align-items:center; gap:12px; }
+    .tout-fait .prochain .quand { font-size:.75rem; color:#7a84a8; font-weight:700; text-transform:uppercase; }
+    .tout-fait .prochain .quoi { font-size:.98rem; font-weight:700; color:#2a3350; margin-top:2px; }
+    /* Flèche « Plus de rappels », appui maintenu = défilement continu */
+    .scroll-hint-accueil { position:fixed; left:16px; bottom:calc(20px + env(safe-area-inset-bottom)); display:flex; align-items:center; gap:8px; background:#fff; border-radius:26px; padding:8px 14px 8px 8px; box-shadow:0 4px 14px rgba(30,40,90,.2); z-index:56; transition:opacity .25s ease; }
+    .scroll-hint-accueil .sh-texte { font-size:.82rem; color:#2c3e91; font-weight:700; }
+    .scroll-hint-accueil .sh-fleche { width:30px; height:30px; border-radius:50%; background:#2c3e91; color:#fff; display:flex; align-items:center; justify-content:center; font-size:1rem; animation:shBob 1.2s ease-in-out infinite; flex-shrink:0; }
+    @keyframes shBob { 0%,100%{transform:translateY(0);} 50%{transform:translateY(5px);} }
+    /* Panneau d'aide de l'accueil */
+    .aide-overlay-accueil { position:fixed; inset:0; background:rgba(20,26,50,.45); opacity:0; pointer-events:none; transition:opacity .3s ease; z-index:70; }
+    .aide-overlay-accueil.visible { opacity:1; pointer-events:auto; }
+    .aide-panel-accueil { position:fixed; left:0; right:0; bottom:0; background:#fff; border-radius:24px 24px 0 0; padding:10px 22px calc(24px + env(safe-area-inset-bottom)); transform:translateY(100%); transition:transform .35s ease; z-index:71; box-shadow:0 -10px 30px rgba(0,0,0,.2); max-height:80vh; overflow-y:auto; }
+    .aide-panel-accueil.visible { transform:translateY(0); }
+    .aide-panel-accueil .aide-handle { width:42px; height:5px; background:#dcdfec; border-radius:3px; margin:8px auto 14px; }
+    .aide-panel-accueil h2 { color:#2c3e91; font-size:1.2rem; margin:0 0 14px; }
+    .aide-panel-accueil .aide-etape { display:flex; gap:10px; align-items:flex-start; margin-bottom:13px; }
+    .aide-panel-accueil .aide-etape .aide-num { background:#5b6b8c; color:#fff; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:800; flex-shrink:0; margin-top:1px; }
+    .aide-panel-accueil .aide-etape p { font-size:.94rem; line-height:1.55; color:#333; margin:0; }
+    .aide-panel-accueil .aide-lire-btn { background:#eef1fb; color:#2c3e91; border:none; border-radius:12px; padding:13px; text-align:center; font-weight:700; font-size:.9rem; margin-top:10px; width:100%; cursor:pointer; font-family:inherit; }
+    .aide-panel-accueil .aide-lire-btn.actif { background:#2c3e91; color:#fff; }
+    .aide-panel-accueil .aide-fermer-btn { text-align:center; color:#8992b8; font-weight:700; font-size:.88rem; padding:14px 0 4px; background:none; border:none; width:100%; cursor:pointer; font-family:inherit; }
     .rdv-top { display: flex; align-items: center; gap: 14px; }
     .rdv-left { background: #2c3e91; color: white; border-radius: 10px; padding: 10px 12px; text-align: center; min-width: 90px; flex-shrink: 0; }
     .rdv-date { font-size:0.8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1; }
@@ -297,9 +359,26 @@
     .icon-badge { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; padding: 4px 6px; background: #eef1fb; border-radius: 10px; border: 2px solid #2c3e91; min-width: 52px; }
     .ib-big { font-size:0.9375rem; font-weight: 800; color: #2c3e91; letter-spacing: 0.5px; }
     .ib-small { font-size:0.5rem; font-weight: 600; color: #48547a; margin-top: 2px; text-align: center; text-transform: lowercase; }
-    .btn-add { position: fixed; bottom: 20px; left: 16px; right: 16px; padding: 20px; background: #22a559; color: white; border: none; border-radius: 40px; font-size:1.25rem; font-weight: 700; cursor: pointer; box-shadow: 0 6px 20px rgba(34,165,89,0.35); font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 10px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
-    .btn-add:active { background: #1d8b4b; }
-    .btn-add .plus { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: white; color: #22a559; font-size:1.5rem; line-height: 1; font-weight: 700; }
+    /* Quart de disque "Nouveau rappel", colle aux deux bords, respire en continu (§3) */
+    .btn-nouveau-rappel { position:fixed; right:16px; bottom:calc(20px + env(safe-area-inset-bottom)); display:flex; align-items:center; gap:8px; background:#0e8f82; color:#fff; border-radius:26px; padding:10px 16px 10px 10px; box-shadow:0 4px 14px rgba(14,143,130,.35); z-index:56; cursor:pointer; border:none; font-family:inherit; animation:respirerBouton 2.4s ease-in-out infinite; }
+    @keyframes respirerBouton {
+      0%,100% { transform:scale(1); background:#0e8f82; box-shadow:0 4px 14px rgba(14,143,130,.35); }
+      50% { transform:scale(1.05); background:#14b09f; box-shadow:0 6px 22px rgba(14,143,130,.6); }
+    }
+    .btn-nouveau-rappel .bn-plus { width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.25); display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:800; flex-shrink:0; }
+    .btn-nouveau-rappel .bn-texte { font-size:.9rem; font-weight:700; white-space:nowrap; }
+    /* Popup "Ton avis compte", premiere ouverture du jour tant que pas repondu (§1) */
+    .avis-popup-overlay { position:fixed; inset:0; background:rgba(20,26,50,.5); opacity:0; pointer-events:none; transition:opacity .3s ease; z-index:80; display:flex; align-items:center; justify-content:center; padding:24px; }
+    .avis-popup-overlay.visible { opacity:1; pointer-events:auto; }
+    .avis-popup-carte { background:#fff; border-radius:20px; padding:26px 22px; text-align:center; max-width:320px; transform:scale(.92); transition:transform .3s ease; }
+    .avis-popup-overlay.visible .avis-popup-carte { transform:scale(1); }
+    .avis-popup-emoji { font-size:2.4rem; margin-bottom:10px; }
+    .avis-popup-carte h3 { color:#2c3e91; font-size:1.1rem; margin:0 0 8px; }
+    .avis-popup-carte p { color:#5a6480; font-size:.9rem; line-height:1.5; margin:0 0 18px; }
+    .avis-popup-boutons { display:flex; flex-direction:column; gap:8px; }
+    .avis-popup-boutons button { border:none; border-radius:12px; padding:12px; font-weight:700; font-size:.88rem; font-family:inherit; cursor:pointer; }
+    .btn-avis-oui { background:#22a559; color:#fff; }
+    .btn-avis-non { background:#eef1fb; color:#2c3e91; }
     .edit-header { background: white; padding: 18px 16px; padding-top: calc(18px + env(safe-area-inset-top)); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e5e9f2; flex-shrink: 0; }
     .back-btn { background: none; border: none; font-size:1.625rem; color: #2c3e91; cursor: pointer; padding: 4px 8px; font-family: inherit; }
     .edit-header h2 { font-size:1.375rem; font-weight: 700; flex: 1; }
@@ -354,7 +433,7 @@
     .tp-val { font-size:2.625rem; font-weight: 800; color: #1a2340; width: 100%; text-align: center; padding: 6px 0; font-variant-numeric: tabular-nums; background: #f8f9fd; border-radius: 10px; }
     .tp-sep { font-size:2.5rem; font-weight: 800; color: #1a2340; padding: 0 4px; margin-top: 28px; }
     .tp-label { font-size:0.6875rem; font-weight: 700; color: #5b6785; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-    .sonnerie-choix-btn { width:100%; padding:16px; background:#eef1fb; color:#2c3e91; border:2px solid #8fa3df; border-radius:14px; font-size:1rem; font-weight:700; cursor:pointer; font-family:inherit; text-align:left; margin-bottom:10px; }
+    .sonnerie-choix-btn { width:100%; padding:10px 14px; background:#eef1fb; color:#2c3e91; border:2px solid #8fa3df; border-radius:12px; font-size:0.9rem; font-weight:700; cursor:pointer; font-family:inherit; text-align:left; margin-bottom:8px; }
     .sonnerie-choix-btn.active { background:#2c3e91; color:white; border-color:#2c3e91; }
     .sonnerie-choix-btn:active { transform:scale(0.98); }
     .btn-save { width: 100%; padding: 20px; background: #22a559; color: white; border: none; border-radius: 16px; font-size:1.1875rem; font-weight: 700; cursor: pointer; margin-top: 8px; font-family: inherit; }
@@ -528,6 +607,11 @@
 .wizard-step.active{display:block;animation:wizFade .2s ease;}
 @keyframes wizFade{from{opacity:0;transform:translateX(8px);}to{opacity:1;transform:none;}}
 .wizard-q{font-size:1.35rem;font-weight:800;color:#1a2340;text-align:center;margin:0 0 18px;}
+[data-step="3"] .wizard-q{margin-bottom:6px;}
+[data-step="3"] .field-hint{margin-top:0;margin-bottom:4px;}
+[data-step="3"] .tp{padding:8px;}
+[data-step="4"] .wizard-q{font-size:0.9rem;white-space:nowrap;margin-bottom:4px;}
+[data-step="4"] .wizard-qsub{margin:0 0 10px;}
 .segmented-big .seg-btn{padding:18px 12px;font-size:1.05rem;}
 .input-big{font-size:1.1rem;padding:16px;text-align:center;}
 .tp-field{display:flex;justify-content:center;}
@@ -535,14 +619,29 @@
 .wizard-btn{flex:1;border:none;border-radius:14px;padding:18px;font-size:1.1rem;font-weight:800;cursor:pointer;font-family:inherit;min-height:56px;}
 .wizard-btn-prev{background:#e3e8f4;color:#2c3e91;flex:0 0 38%;}
 .wizard-btn-next{background:#2c3e91;color:#fff;}
-.wizard-recap{background:#f5f7fc;border-radius:14px;padding:8px 16px;margin-bottom:16px;}
-.recap-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #e3e8f4;}
-.recap-row:last-child{border-bottom:none;}
-.recap-ic{font-size:1.6rem;width:34px;text-align:center;flex:0 0 auto;}
-.recap-txt{font-size:1.05rem;font-weight:600;color:#1a2340;}
+.wizard-recap{border:2px solid #2c3e91;border-radius:14px;padding:10px 14px;margin-bottom:12px;background:#fff;}
+.wr-heure{font-size:1.5rem;font-weight:800;color:#2c3e91;line-height:1.1;}
+.wr-titre-row{display:flex;align-items:center;gap:8px;margin-top:5px;}
+.wr-emoji{width:32px;height:32px;border-radius:9px;background:#eef1fb;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.wr-emoji img{width:22px;height:22px;}
+.wr-titre{font-size:0.95rem;font-weight:700;color:#222;}
+.wr-sep{height:1px;background:#eef1fb;margin:8px 0;}
+.wr-date{font-size:0.8rem;color:#5b6785;text-align:center;}
 .wizard-fold{background:#f5f7fc;border-radius:12px;margin-bottom:12px;padding:14px 16px;}
 .wizard-fold summary{font-size:1rem;font-weight:700;color:#2c3e91;cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;}
 .wizard-fold summary::-webkit-details-marker{display:none;}
+/* ===== Étape 8 : vignettes optionnelles (détail / adresse / trajet) ===== */
+.options-row{display:flex;gap:10px;margin-bottom:4px;}
+.opt-btn{flex:1;border:1.5px dashed #c3cae4;border-radius:14px;padding:14px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#5b6b8c;font-weight:700;font-size:0.78rem;text-align:center;min-height:74px;cursor:pointer;font-family:inherit;}
+.opt-btn .icone-opt{font-size:1.3rem;}
+.opt-btn.rempli{border-style:solid;border-color:#2c3e91;color:#2c3e91;background:#eef1fb;}
+.opt-btn .modif{font-size:0.66rem;opacity:0.7;font-weight:600;}
+.opt-inline{max-height:0;overflow:hidden;transition:max-height .3s ease, margin .3s ease;}
+.opt-inline.ouvert{max-height:220px;margin-top:10px;}
+.opt-inline input,.opt-inline textarea{width:100%;border:1.5px solid #2c3e91;border-radius:10px;padding:11px 12px;font-size:0.9rem;margin-bottom:8px;font-family:inherit;box-sizing:border-box;}
+.opt-inline textarea{resize:none;min-height:70px;}
+.opt-inline .trajet-grid{margin-bottom:8px;}
+.opt-inline .valider{background:#22a559;color:#fff;text-align:center;border-radius:10px;padding:10px;font-weight:700;font-size:0.85rem;border:none;width:100%;cursor:pointer;font-family:inherit;}
 /* ===== Nouveau parcours : thèmes, quand, popups, calendrier ===== */
 .wizard-topline{display:flex;justify-content:flex-end;margin:-6px 0 10px;min-height:40px;}
 .btn-retour-haut{border:none;background:white;color:#2c3e91;font-family:inherit;font-size:0.95rem;font-weight:700;padding:9px 16px;border-radius:12px;cursor:pointer;box-shadow:0 2px 6px rgba(26,35,64,0.08);}
@@ -559,8 +658,10 @@
 .wiz-popup{background:white;border-radius:24px 24px 0 0;padding:20px;width:100%;max-width:480px;max-height:75vh;overflow-y:auto;}
 .wiz-popup-titre{font-size:1.2rem;font-weight:800;color:#1a2340;text-align:center;margin-bottom:14px;}
 .wiz-popup-liste{display:flex;flex-direction:column;gap:10px;}
-.wiz-popup-item{background:#eef1f8;border:2px solid transparent;border-radius:14px;padding:14px 16px;font-family:inherit;font-size:1.05rem;font-weight:700;color:#1a2340;cursor:pointer;text-align:left;display:flex;align-items:center;gap:12px;}
+.wiz-popup-item{width:100%;background:#eef1f8;border:2px solid transparent;border-radius:14px;padding:14px 16px;font-family:inherit;font-size:1.05rem;font-weight:700;color:#1a2340;cursor:pointer;text-align:left;display:flex;align-items:center;gap:12px;}
 .wiz-popup-item .e{font-size:1.5rem;display:flex;align-items:center;}
+.wiz-popup-item .t{display:flex;flex-direction:column;gap:2px;}
+.wiz-popup-item .t small{font-size:0.76rem;font-weight:600;color:#8992b8;}
 .wiz-popup-fermer{width:100%;margin-top:14px;padding:14px;border:none;border-radius:14px;background:#eef1f8;color:#48547a;font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;}
 .wiz-popup-valider{width:100%;margin-top:12px;padding:14px;border:none;border-radius:14px;background:#22a559;color:white;font-family:inherit;font-size:1.05rem;font-weight:800;cursor:pointer;}
 .wiz-input{width:100%;border:2px solid #dde2f0;border-radius:12px;padding:14px;font-family:inherit;font-size:1.05rem;box-sizing:border-box;}
@@ -571,6 +672,9 @@
 .wiz-cal-jour{aspect-ratio:1;border:none;border-radius:10px;background:#eef1f8;font-family:inherit;font-size:0.95rem;font-weight:700;color:#1a2340;cursor:pointer;}
 .wiz-cal-jour:disabled{opacity:0.3;cursor:default;}
 .wiz-cal-jour.entete{background:none;color:#48547a;font-size:0.75rem;cursor:default;}
+.wiz-cal-jour.charge{position:relative;background:#dde4fb;color:#2c3e91;}
+.wiz-cal-jour.charge::after{content:'';position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:#2c3e91;}
+.wiz-cal-jour.aujourdhui{outline:2px solid #22a559;outline-offset:-2px;}
 .btn-ecouter-recap{width:100%;padding:14px;border:2px solid #dde2f0;border-radius:14px;background:white;color:#2c3e91;font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;margin-bottom:14px;}
 /* ===== Bulles de tutoriel ===== */
 #tuto-zone{display:none;position:fixed;left:12px;right:12px;bottom:16px;z-index:80;pointer-events:none;}
@@ -641,14 +745,15 @@
 
 <div id="main-screen" class="screen">
   <header class="header">
-    <button id="btn-reglages" class="btn-arrow" aria-label="Réglages">⚙️</button>
-    <button id="prev-day" class="btn-arrow" aria-label="Jour précédent">‹</button>
+    <button id="btn-aide-accueil" class="btn-arrow" aria-label="Aide" style="font-size:1.5rem;">?</button>
+    <button id="prev-day" class="btn-arrow" aria-label="Jour précédent" style="visibility:hidden">‹</button>
     <div class="header-title">
       <h1 id="day-title">Aujourd'hui</h1>
       <p id="day-date" class="date"></p>
     </div>
     <button id="next-day" class="btn-arrow" aria-label="Jour suivant">›</button>
   </header>
+  <div class="menu-languette" id="menu-languette"></div>
   <div class="today-bar" id="today-bar" style="display:none">
     <button id="back-to-today">Revenir à aujourd'hui</button>
   </div>
@@ -662,14 +767,42 @@
   <div class="list-wrap">
     <div id="reminders-list"></div>
   </div>
-  <div id="bottom-zone" style="position:fixed;bottom:1.8rem;left:0;right:0;max-width:480px;margin:0 auto;padding:10px 16px 0;background:linear-gradient(to top,#eef1f8 80%,transparent);z-index:55;">
-    <button id="add-btn" class="btn-add" style="position:static;left:auto;right:auto;bottom:auto;margin-bottom:4px;padding-bottom:18px;">
-      <span class="plus">+</span>
-      <span>Ajouter un rappel personnel</span>
-    </button>
-    <button id="avis-btn" type="button" style="width:100%;background:transparent;color:#2c3e91;border:none;padding:6px 8px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;animation:avisBlink 1s steps(1) infinite;">
-      💬 Donner mon avis sur l'application
-    </button>
+  <div class="scroll-hint-accueil" id="scroll-hint-accueil">
+    <div class="sh-fleche">⌄</div>
+    <div class="sh-texte">Plus de rappels</div>
+  </div>
+  <div class="aide-overlay-accueil" id="aide-overlay-accueil"></div>
+  <div class="aide-panel-accueil" id="aide-panel-accueil">
+    <div class="aide-handle"></div>
+    <h2>🏠 Ton écran d'accueil</h2>
+    <div class="aide-etape"><div class="aide-num">1</div><p>Chaque carte est une chose à faire aujourd'hui, avec l'heure prévue.</p></div>
+    <div class="aide-etape"><div class="aide-num">2</div><p>Appuie sur 🔊 pour écouter le rappel à voix haute.</p></div>
+    <div class="aide-etape"><div class="aide-num">3</div><p>Une fois l'heure passée, le rappel disparaît tout seul de l'accueil. Pas besoin de le valider.</p></div>
+    <div class="aide-etape"><div class="aide-num">4</div><p>Appuie sur une carte pour la modifier. Si elle a une adresse ou une note, <b>« + Plus d'infos »</b> les affiche.</p></div>
+    <div class="aide-etape"><div class="aide-num">5</div><p>Le bouton <b>« + Nouveau rappel personnel »</b> en bas permet d'ajouter quelque chose.</p></div>
+    <button type="button" class="aide-lire-btn" id="aide-lire-btn">🔊 Écouter les explications</button>
+    <button type="button" class="aide-fermer-btn" id="aide-fermer-btn">Fermer</button>
+  </div>
+  <div class="voile-tiroir" id="voile-tiroir"></div>
+  <div class="tiroir-menu" id="tiroir-menu">
+    <div class="tiroir-entete"><h2>Menu</h2><button type="button" class="tiroir-fermer" id="tiroir-fermer-btn" aria-label="Fermer">✕</button></div>
+    <div class="tiroir-item" id="tiroir-item-reglages"><span class="tiroir-ic">⚙️</span><span>Réglages</span></div>
+    <div class="tiroir-item a-venir"><span class="tiroir-ic">🔤</span><span>Taille du texte</span><span class="tiroir-tag">bientôt</span></div>
+  </div>
+  <button type="button" id="add-btn" class="btn-nouveau-rappel">
+    <div class="bn-plus">+</div>
+    <div class="bn-texte">Nouveau rappel personnel</div>
+  </button>
+  <div class="avis-popup-overlay" id="avis-popup-overlay">
+    <div class="avis-popup-carte">
+      <div class="avis-popup-emoji">💬</div>
+      <h3>Ton avis compte</h3>
+      <p>Est-ce que l'application t'aide bien au quotidien ? Donne ton avis à Steve.</p>
+      <div class="avis-popup-boutons">
+        <button type="button" class="btn-avis-oui" id="avis-popup-oui">Donner mon avis</button>
+        <button type="button" class="btn-avis-non" id="avis-popup-non">Plus tard</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -716,11 +849,28 @@
 <div id="mes-rdv-screen" class="screen">
   <div class="edit-header">
     <button class="back-btn" id="mes-rdv-back">‹ Retour</button>
-    <h1 style="flex:1">📅 Mon agenda</h1>
+    <h1 style="flex:1" id="mes-rdv-titre">📅 Mon agenda</h1>
     <button type="button" class="btn-aide-tuto" onclick="montrerTuto('agenda',true)" aria-label="Aide">?</button>
   </div>
   <div class="list-wrap">
     <div id="mes-rdv-list"></div>
+  </div>
+</div>
+
+<div id="mois-screen" class="screen">
+  <div class="edit-header">
+    <button class="back-btn" id="mois-back">‹ Retour</button>
+    <h1 style="flex:1">🗓️ Mon mois</h1>
+    <button type="button" class="btn-aide-tuto" onclick="montrerTuto('mois',true)" aria-label="Aide">?</button>
+  </div>
+  <div class="list-wrap" style="padding:16px;">
+    <div class="wiz-cal-entete">
+      <button type="button" class="wiz-cal-nav" onclick="moisCalNav(-1)">‹</button>
+      <div class="wiz-cal-mois" id="mois-cal-titre"></div>
+      <button type="button" class="wiz-cal-nav" onclick="moisCalNav(1)">›</button>
+    </div>
+    <div class="wiz-cal-grille" id="mois-cal-grille"></div>
+    <p style="text-align:center;color:#8992a8;font-size:0.85rem;margin-top:16px;">🔵 Jour avec un rappel — appuyez sur un jour pour le voir sur l'accueil</p>
   </div>
 </div>
 
@@ -737,6 +887,10 @@
       <div class="wizard-progress-track"><div class="wizard-progress-fill" id="wizard-progress-fill" style="width:25%"></div></div>
     </div>
     <div class="wizard-topline"><button type="button" id="wizard-prev" class="btn-retour-haut" style="visibility:hidden">‹ Retour</button></div>
+
+    <!-- Vignette récap persistante : apparaît dès que l'heure est connue (étape 3),
+         reste visible et à jour sur les étapes suivantes au lieu de n'apparaître qu'au récap final. -->
+    <div id="wizard-recap" class="wizard-recap" style="display:none"></div>
 
     <!-- ÉTAPE 1 : Quel est votre rappel ? (thèmes → choix précis) -->
     <div class="wizard-step active" data-step="1">
@@ -786,6 +940,7 @@
       <h3 class="wizard-q">🔔 Quand voulez-vous être prévenu ?</h3>
       <p class="wizard-qsub">Une sonnerie avant le rendez-vous</p>
       <div id="sonnerie-rdv-section">
+        <button type="button" class="sonnerie-choix-btn" data-choix="heure">🔔 À l'heure même</button>
         <button type="button" class="sonnerie-choix-btn" data-choix="30min">🔔 30 minutes avant</button>
         <button type="button" class="sonnerie-choix-btn" data-choix="1h">🔔 1 heure avant</button>
         <button type="button" class="sonnerie-choix-btn active" data-choix="2h">🔔 2 heures avant</button>
@@ -794,44 +949,42 @@
       <button type="button" class="btn-save" onclick="wizGoNext()" style="margin-top:18px">✓ Continuer</button>
     </div>
 
-    <!-- ÉTAPE 5 : Adresse (facultatif) -->
-    <div class="wizard-step" data-step="5">
-      <h3 class="wizard-q">📍 Où est-ce que ça se passe ?</h3>
-      <p class="wizard-qsub">Pour pouvoir ouvrir l'itinéraire en un seul appui</p>
-      <input id="f-address" class="input-adresse" placeholder="Ex : 32 rue du Moulin, Maromme" maxlength="120">
-      <button type="button" class="btn-save" onclick="wizGoNext()" style="margin-top:18px">✓ Continuer</button>
-      <button type="button" class="btn-passer" onclick="wizPasserAdresse()">Passer — pas d'adresse</button>
-    </div>
-
-    <!-- ÉTAPE 6 : Temps de trajet (seulement si une adresse a été saisie) -->
-    <div class="wizard-step" data-step="6">
-      <h3 class="wizard-q">🚗 Combien de temps pour y aller ?</h3>
-      <p class="wizard-qsub">Une deuxième sonnerie vous préviendra quand il sera l'heure de partir</p>
-      <div id="trajet-choix" class="trajet-grid">
-        <button type="button" class="trajet-btn" data-min="10">10 min</button>
-        <button type="button" class="trajet-btn" data-min="20">20 min</button>
-        <button type="button" class="trajet-btn" data-min="30">30 min</button>
-        <button type="button" class="trajet-btn" data-min="45">45 min</button>
-        <button type="button" class="trajet-btn" data-min="60">1 h</button>
-        <button type="button" class="trajet-btn" data-min="90">1 h 30</button>
-      </div>
-      <button type="button" class="btn-save" onclick="wizGoNext()" style="margin-top:18px">✓ Continuer</button>
-      <button type="button" class="btn-passer" onclick="wizPasserTrajet()">Passer — pas de trajet</button>
-    </div>
-
-    <!-- ÉTAPE 7 : Remarque (facultatif) -->
-    <div class="wizard-step" data-step="7">
-      <h3 class="wizard-q">✏️ Une remarque à ajouter ?</h3>
-      <p class="wizard-qsub">Par exemple : « penser à la carte vitale »</p>
-      <textarea id="f-note" class="textarea" placeholder="Ex : Avec de l'eau" maxlength="120"></textarea>
-      <button type="button" class="btn-save" onclick="wizGoNext()" style="margin-top:18px">✓ Continuer</button>
-      <button type="button" class="btn-passer" onclick="wizPasserRemarque()">Passer — pas de remarque</button>
-    </div>
-
-    <!-- ÉTAPE 8 : Récap « C'est bien ça ? » -->
+    <!-- ÉTAPE 8 : Récap « C'est bien ça ? » + vignettes optionnelles (détail / adresse / trajet) -->
     <div class="wizard-step" data-step="8">
       <h3 class="wizard-q">C'est bien ça ?</h3>
-      <div id="wizard-recap" class="wizard-recap"></div>
+
+      <div class="options-row" id="wizard-options-row">
+        <div class="opt-btn" id="opt-btn-detail" data-opt="detail" onclick="wizToggleOption('detail')">
+          <div class="icone-opt">➕</div><div>Ajouter<br>un détail</div>
+        </div>
+        <div class="opt-btn" id="opt-btn-adresse" data-opt="adresse" onclick="wizToggleOption('adresse')">
+          <div class="icone-opt">📍</div><div>Ajouter<br>une adresse</div>
+        </div>
+        <div class="opt-btn" id="opt-btn-trajet" data-opt="trajet" onclick="wizToggleOption('trajet')">
+          <div class="icone-opt">🚗</div><div>Temps de<br>trajet</div>
+        </div>
+      </div>
+
+      <div class="opt-inline" id="opt-inline-detail">
+        <textarea id="f-note" class="textarea" placeholder="Ex : Avec de l'eau" maxlength="120"></textarea>
+        <button type="button" class="valider" onclick="wizValiderOption('detail')">✓ Valider</button>
+      </div>
+      <div class="opt-inline" id="opt-inline-adresse">
+        <input id="f-address" class="input-adresse" placeholder="Ex : 32 rue du Moulin, Maromme" maxlength="120">
+        <button type="button" class="valider" onclick="wizValiderOption('adresse')">✓ Valider</button>
+      </div>
+      <div class="opt-inline" id="opt-inline-trajet">
+        <div id="trajet-choix" class="trajet-grid">
+          <button type="button" class="trajet-btn" data-min="10">10 min</button>
+          <button type="button" class="trajet-btn" data-min="20">20 min</button>
+          <button type="button" class="trajet-btn" data-min="30">30 min</button>
+          <button type="button" class="trajet-btn" data-min="45">45 min</button>
+          <button type="button" class="trajet-btn" data-min="60">1 h</button>
+          <button type="button" class="trajet-btn" data-min="90">1 h 30</button>
+        </div>
+        <button type="button" class="valider" onclick="wizValiderOption('trajet')">✓ Valider</button>
+      </div>
+
       <button type="button" id="wizard-ecouter" class="btn-ecouter-recap">🔊 Écouter</button>
       <button id="save-btn" class="btn-save">✓ C'est bon, enregistrer</button>
     </div>
@@ -866,6 +1019,25 @@
     </div>
     <div class="wiz-cal-grille" id="wiz-cal-grille"></div>
     <button type="button" class="wiz-popup-fermer" onclick="wizFermer('wiz-voile-cal')">Fermer</button>
+  </div>
+</div>
+
+<!-- Menu "Que voulez-vous voir ?" ouvert depuis "Voir tout mon agenda" -->
+<div class="wiz-voile" id="voile-agenda-menu">
+  <div class="wiz-popup">
+    <div class="wiz-popup-titre">Que voulez-vous voir ?</div>
+    <div class="wiz-popup-liste">
+      <button type="button" class="wiz-popup-item" onclick="wizFermer('voile-agenda-menu');showMesRendezVous('jour')">
+        <span class="e">☀️</span><span class="t"><b>Ma journée</b><small>Ce qui reste aujourd'hui</small></span>
+      </button>
+      <button type="button" class="wiz-popup-item" onclick="wizFermer('voile-agenda-menu');showMesRendezVous('semaine')">
+        <span class="e">📅</span><span class="t"><b>Ma semaine</b><small>Jusqu'à dimanche</small></span>
+      </button>
+      <button type="button" class="wiz-popup-item" onclick="wizFermer('voile-agenda-menu');showMoisScreen()">
+        <span class="e">🗓️</span><span class="t"><b>Mon mois</b><small>Voir les jours chargés</small></span>
+      </button>
+    </div>
+    <button type="button" class="wiz-popup-fermer" onclick="wizFermer('voile-agenda-menu')">Fermer</button>
   </div>
 </div>
 
@@ -1039,7 +1211,7 @@
   <div class="alert-title" id="alert-title"></div>
   <div class="alert-eventtime" id="alert-eventtime" style="display:none"></div>
   <div class="alert-note" id="alert-note"></div>
-  <button class="alert-btn" id="alert-dismiss">✓ C'est fait</button>
+  <button class="alert-btn" id="alert-dismiss">✓ J'ai vu</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -1174,7 +1346,7 @@ async function handleLogin() {
     if(!prenom){showError('Entrez votre prénom.');return;}
     try{const snap=await db.collection('users').get();const existing=snap.docs.find(d=>d.data().prenom.toLowerCase()===prenom.toLowerCase());if(existing){showError('Ce prénom existe déjà. Connectez-vous.');return;}const userId=uid();await db.collection('users').doc(userId).set({prenom,code,createdAt:Date.now(),reminders:[],inscriptions:{},tutosVus:{}});currentUser={id:userId,prenom,isAdmin:false};saveSession();recordAppVersion(userId);tagOneSignalUser(prenom);state.reminders=[];state.inscriptions={};state.tutosVus={};enterApp();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
   }else{
-    try{const snap=await db.collection('users').get();let found=null;snap.docs.forEach(d=>{if(d.data().code===code)found={id:d.id,...d.data()};});if(!found){showError('Code incorrect.');pinValue='';updatePinDots();return;}currentUser={id:found.id,prenom:found.prenom,isAdmin:false};saveSession();tagOneSignalUser(found.prenom);tagOneSignalAvpUser();await loadUserData();recordAppVersion(found.id);logConnexion();enterApp();maybeShowAvisPopup();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
+    try{const snap=await db.collection('users').get();let found=null;snap.docs.forEach(d=>{if(d.data().code===code)found={id:d.id,...d.data()};});if(!found){showError('Code incorrect.');pinValue='';updatePinDots();return;}currentUser={id:found.id,prenom:found.prenom,isAdmin:false};saveSession();tagOneSignalUser(found.prenom);tagOneSignalAvpUser();await loadUserData();recordAppVersion(found.id);logConnexion();enterApp();maybeShowAvisPopup();if(estNatifAlarme())planifierNotifsSysteme();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
   }
 }
 
@@ -1200,24 +1372,16 @@ async function logConnexion(){
   }catch(e){}
 }
 
-// Popup "votre avis" : max 1 fois / 30 jours, jamais si avis donné il y a moins de 30 j
+// Popup "Ton avis compte" : une fois par jour (première ouverture), jamais si un avis a déjà été envoyé
 function maybeShowAvisPopup(){
   try{
     if(!currentUser||currentUser.isAdmin)return;
-    const M30=30*24*60*60*1000;
-    const vu=parseInt(localStorage.getItem('avp_avis_popup')||'0');
-    const donne=parseInt(localStorage.getItem('avp_avis_done')||'0');
-    if(Date.now()-vu<M30||Date.now()-donne<M30)return;
-    localStorage.setItem('avp_avis_popup',String(Date.now()));
+    if(localStorage.getItem('avp_avis_done'))return; // déjà répondu un jour : ne plus jamais montrer
+    const aujourdhui=dateKey(new Date());
+    if(localStorage.getItem('avp_avis_popup_jour')===aujourdhui)return; // déjà montré aujourd'hui
+    localStorage.setItem('avp_avis_popup_jour',aujourdhui);
     setTimeout(()=>{
-      showConfirm({
-        icon:'👋',
-        title:'Un petit mot de Steve et Greg',
-        text:"Votre avis compte pour nous ! Dites-nous ce que vous aimez ou ce qu'on peut améliorer, sur l'application ou sur l'AVP. Ça nous aide à faire mieux pour vous.",
-        okText:'Donner mon avis',
-        cancelText:'Plus tard',
-        onOk:()=>showScreen('avis-benef-screen')
-      });
+      document.getElementById('avis-popup-overlay').classList.add('visible');
     },1500); // léger délai pour laisser l'accueil s'afficher
   }catch(e){}
 }
@@ -1399,22 +1563,26 @@ function _trajetInfo(r){
   return {adresse,mapQuery,travelMin,eventMs,departMs};
 }
 
-// Compte à rebours court affiché dans le bloc Départ (« 3 h 01 » / « 20 min »).
-function _txtDepartCourt(ms){
-  const diff=ms-Date.now();
-  if(diff<=0)return 'à partir';
-  const totalMin=Math.round(diff/60000);
-  const h=Math.floor(totalMin/60),m=totalMin%60;
-  return h>0?(h+' h '+pad2(m)):(m+' min');
+// Compte à rebours du bloc Départ, à la seconde près (« 1:28:00 » / « 13:00 »).
+function _txtDepartSec(ms){
+  const diff=Math.max(0,Math.round((ms-Date.now())/1000));
+  if(diff<=0)return "C'est l'heure";
+  const h=Math.floor(diff/3600),m=Math.floor((diff%3600)/60),s=diff%60;
+  const dc=n=>String(n).padStart(2,'0');
+  return h>0?`${h}:${dc(m)}:${dc(s)}`:`${m}:${dc(s)}`;
 }
-// Rafraîchit tous les comptes à rebours affichés (sans re-render complet).
+// Rafraîchit tous les comptes à rebours affichés (sans re-render complet) + bascule gris/orange à 30 min.
 function _majComptesARebours(){
-  document.querySelectorAll('[data-depart-court]').forEach(el=>{
-    const ms=parseInt(el.getAttribute('data-depart-court'),10);
-    if(ms)el.textContent=_txtDepartCourt(ms);
+  document.querySelectorAll('.c-depart-cd[data-depart-ms]').forEach(el=>{
+    const ms=parseInt(el.getAttribute('data-depart-ms'),10);
+    if(!ms)return;
+    const diff=ms-Date.now();
+    const n=el.querySelector('.c-depart-cd-n');if(n)n.textContent=_txtDepartSec(ms);
+    el.classList.toggle('proche',diff<=1800000);
+    el.classList.toggle('loin',diff>1800000);
   });
 }
-setInterval(_majComptesARebours,30000);
+setInterval(_majComptesARebours,1000);
 
 // Sélection d'un temps de trajet (assistant #trajet-choix OU admin #desc-trajet).
 document.addEventListener('click',e=>{
@@ -1465,10 +1633,11 @@ function _occurrencesNatives(){
         const tiA=_trajetInfo(r);
         if(tiA&&tiA.departMs)add(r.id+'|depart',r,tiA.departMs,'alarme',true);
       }else{
-        if(r.date&&r.time)add(r.id+'|sonn',r,new Date(r.date+'T'+r.time+':00').getTime(),'alarme',!!(r.eventDate&&r.eventTime));
         if(r.eventDate&&r.eventTime)add('ev|'+r.eventDate+'|'+r.eventTime+'|'+(r.title||''),r,new Date(r.eventDate+'T'+r.eventTime+':00').getTime(),'notification');
+        // Sonnerie unique par rappel : avant le départ s'il y a un trajet, sinon à l'heure du rappel.
         const tiP=_trajetInfo(r);
         if(tiP&&tiP.departMs)add(r.id+'|depart',r,tiP.departMs,'alarme',true);
+        else if(r.date&&r.time)add(r.id+'|sonn',r,new Date(r.date+'T'+r.time+':00').getTime(),'alarme',!!(r.eventDate&&r.eventTime));
       }
     }catch(e){console.error('[Alarme] occurrence',e);}
   });
@@ -1560,15 +1729,17 @@ function openUserMenu(){document.getElementById('um-name').textContent=currentUs
 document.getElementById('um-alarmes').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');window.location.href='reglages.html';});
 document.getElementById('user-menu').addEventListener('click',e=>{if(e.target===document.getElementById('user-menu'))document.getElementById('user-menu').classList.remove('active');});
 document.getElementById('um-planning').addEventListener('click',async()=>{document.getElementById('user-menu').classList.remove('active');state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';await loadAVPPlanning();renderPlanning();});
-document.getElementById('mes-rdv-btn').addEventListener('click',()=>showMesRendezVous());
-document.getElementById('avis-btn').addEventListener('click',()=>{
+document.getElementById('mes-rdv-btn').addEventListener('click',()=>wizOuvrir('voile-agenda-menu'));
+function _ouvrirEcranAvis(){
   // Réinitialise l'écran avant de l'ouvrir
   avisNoteSelectionnee=0;
   const t=document.getElementById('avis-texte');if(t)t.value='';
   const n=document.getElementById('avis-nom');if(n)n.value='';
   document.querySelectorAll('.avis-emoji').forEach(b=>{b.style.borderColor='transparent';b.style.background='#f1f3f8';b.style.transform='none';});
   showScreen('avis-benef-screen');
-});
+}
+document.getElementById('avis-popup-oui').addEventListener('click',()=>{document.getElementById('avis-popup-overlay').classList.remove('visible');_ouvrirEcranAvis();});
+document.getElementById('avis-popup-non').addEventListener('click',()=>{document.getElementById('avis-popup-overlay').classList.remove('visible');});
 document.getElementById('avis-benef-back').addEventListener('click',()=>showScreen('main-screen'));
 document.getElementById('admin-avis-btn').addEventListener('click',()=>showAdminAvis());
 document.getElementById('avis-back').addEventListener('click',()=>showScreen('admin-screen'));
@@ -2979,25 +3150,47 @@ function annulerRdvAgenda(id){
   }
 }
 
-function showMesRendezVous(){
+// Portée du dernier "Voir tout mon agenda" choisi (jour / semaine / tout), pour que les
+// rafraîchissements (après annulation d'un rdv) gardent le même filtre sans le repréciser.
+let mesRdvScope='tout';
+// Date-clé du dimanche de la semaine en cours (aujourd'hui inclus si on est déjà dimanche).
+function _finSemaineKey(){
+  const d=new Date();const dow=d.getDay();
+  d.setDate(d.getDate()+(dow===0?0:7-dow));
+  return dateKey(d);
+}
+function showMesRendezVous(scope){
+  if(scope)mesRdvScope=scope;else scope=mesRdvScope;
   showScreen('mes-rdv-screen');
+  const titreEl=document.getElementById('mes-rdv-titre');
+  if(titreEl)titreEl.textContent=scope==='jour'?'☀️ Ma journée':(scope==='semaine'?'📅 Ma semaine':'📅 Mon agenda');
   const list=document.getElementById('mes-rdv-list');
   const todayKey=dateKey(new Date());
-  // On garde tout ce qui est à venir (date >= aujourd'hui). Les rappels quotidiens sont inclus avec la date du jour.
+  const finSemaine=_finSemaineKey();
+  // On garde tout ce qui est à venir (date >= aujourd'hui), puis on filtre selon la portée choisie.
+  // Les rappels quotidiens sont inclus avec la date du jour.
+  const now=Date.now();
   const items=(state.reminders||[]).map(r=>{
     let d=r.eventDate||r.date;
     if(r.recurrence==='daily'){d=todayKey;}
-    return {...r,_d:d,_t:r.eventTime||r.time||'00:00'};
-  }).filter(r=>r._d&&r._d>=todayKey)
-    .sort((a,b)=>a._d!==b._d?a._d.localeCompare(b._d):a._t.localeCompare(b._t));
+    const t=r.eventTime||r.time||'00:00';
+    const passe=d===todayKey&&new Date(d+'T'+t+':00').getTime()<now;
+    return {...r,_d:d,_t:t,_passe:passe};
+  }).filter(r=>{
+    if(!r._d||r._d<todayKey)return false;
+    if(scope==='jour')return r._d===todayKey;
+    if(scope==='semaine')return r._d<=finSemaine;
+    return true;
+  }).sort((a,b)=>a._d!==b._d?a._d.localeCompare(b._d):a._t.localeCompare(b._t));
 
   if(items.length===0){
-    list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem">🌿</div><div class="empty-text" style="margin-top:12px">Vous n'avez aucun rendez-vous à venir.</div></div>`;
+    const videTxt=scope==='jour'?"Vous n'avez aucun rendez-vous aujourd'hui.":(scope==='semaine'?"Vous n'avez aucun rendez-vous cette semaine.":"Vous n'avez aucun rendez-vous à venir.");
+    list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem">🌿</div><div class="empty-text" style="margin-top:12px">${videTxt}</div></div>`;
     return;
   }
 
-  // ===== Carte héros : le tout prochain rendez-vous (on saute ceux déjà cochés "fait" aujourd'hui) =====
-  const heroIdx=items.findIndex(r=>!(r._d===todayKey&&r.done&&r.done[todayKey]));
+  // ===== Carte héros : le tout prochain rendez-vous (on saute ceux passés ou déjà cochés "fait" aujourd'hui) =====
+  const heroIdx=items.findIndex(r=>!r._passe&&!(r._d===todayKey&&r.done&&r.done[todayKey]));
   const hero=heroIdx>=0?items[heroIdx]:null;
   const reste=hero?items.filter((_,i)=>i!==heroIdx):items;
 
@@ -3010,8 +3203,6 @@ function showMesRendezVous(){
       ?'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#e8ecfb;color:#2c3e91;">Atelier AVP</span>'
       :'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#fdf0dc;color:#a8650a;">Rappel perso</span>';
     const noteH=hero.note?`<div style="font-size:0.95rem;color:#48547a;margin-top:3px;">${esc(hero.note)}</div>`:'';
-    // "C'est fait" seulement si c'est aujourd'hui et que ce n'est pas un atelier (cohérent avec l'accueil)
-    const montrerFait=estAujourdhui&&!isAtelierH;
     html+=`<div style="font-size:0.8rem;font-weight:800;color:#2c3e91;text-transform:uppercase;letter-spacing:.5px;margin:2px 0 8px;">Mon prochain rendez-vous</div>
     <div style="background:white;border-radius:20px;border:3px solid #2c3e91;box-shadow:0 6px 20px rgba(44,62,145,0.18);padding:18px;margin-bottom:6px;">
       <div style="font-size:1rem;font-weight:700;color:#48547a;">${quand}</div>
@@ -3025,8 +3216,7 @@ function showMesRendezVous(){
         </div>
       </div>
       <div style="display:flex;gap:10px;margin-top:16px;">
-        ${montrerFait?`<button id="hero-fait-btn" style="flex:1;padding:16px;border:none;border-radius:14px;background:#22a559;color:white;font-family:inherit;font-size:1.15rem;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(34,165,89,0.3);">✓ C'est fait</button>`:''}
-        <button id="hero-audio-btn" style="${montrerFait?'width:64px;font-size:1.5rem;':'flex:1;padding:16px;font-size:1.05rem;'}border:none;border-radius:14px;background:#eef1f8;color:#2c3e91;font-family:inherit;font-weight:700;cursor:pointer;">🔊${montrerFait?'':' Écouter'}</button>
+        <button id="hero-audio-btn" style="flex:1;padding:16px;font-size:1.05rem;border:none;border-radius:14px;background:#eef1f8;color:#2c3e91;font-family:inherit;font-weight:700;cursor:pointer;">🔊 Écouter</button>
       </div>
       <button id="hero-annuler-btn" style="width:100%;margin-top:10px;border:none;background:#fdecec;color:#c0392b;font-family:inherit;font-size:0.95rem;font-weight:700;padding:12px;border-radius:12px;cursor:pointer;">🗑️ Annuler ce rendez-vous</button>
     </div>`;
@@ -3041,38 +3231,31 @@ function showMesRendezVous(){
     const moisLabel=MOIS[dObj.getMonth()]+' '+dObj.getFullYear();
     if(moisLabel!==dernierMois){html+=`<div style="font-size:0.8rem;font-weight:800;color:#2c3e91;text-transform:uppercase;letter-spacing:.5px;margin:18px 0 8px;">${moisLabel}</div>`;dernierMois=moisLabel;}
     const isAtelier=r.source==='atelier';
-    const couleur=isAtelier?'#2c3e91':'#e0901c';
+    // Rappel ou atelier passé aujourd'hui : discret, consultation seulement.
+    const passeDiscret=r._passe;
+    const couleur=passeDiscret?'#c7cdd9':(isAtelier?'#2c3e91':'#e0901c');
     const badge=isAtelier?'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#e8ecfb;color:#2c3e91;">Atelier AVP</span>':'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#fdf0dc;color:#a8650a;">Rappel perso</span>';
     const jour=dObj.getDate();
     const moisCourt=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'][dObj.getMonth()];
-    html+=`<div class="rdv-row" style="background:white;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;gap:14px;align-items:center;box-shadow:0 2px 8px rgba(26,35,64,0.06);border-left:5px solid ${couleur};">
+    const titreCouleur=passeDiscret?'#8992a8':'#1a2340';
+    const annulerBtnHTML=passeDiscret?'':`<button class="rdv-annuler-btn" data-id="${r.id}" style="border:none;background:#fdecec;color:#c0392b;font-family:inherit;font-size:0.85rem;font-weight:700;padding:10px 14px;border-radius:12px;cursor:pointer;flex-shrink:0;">Annuler</button>`;
+    html+=`<div class="rdv-row" style="background:white;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;gap:14px;align-items:center;box-shadow:0 2px 8px rgba(26,35,64,0.06);border-left:5px solid ${couleur};${passeDiscret?'opacity:.7;':''}">
       <div style="text-align:center;min-width:48px;">
-        <div style="font-size:1.3rem;font-weight:800;color:#1a2340;line-height:1;">${jour}</div>
-        <div style="font-size:0.7rem;color:#48547a;text-transform:uppercase;font-weight:700;">${moisCourt}</div>
+        <div style="font-size:1.3rem;font-weight:800;color:${titreCouleur};line-height:1;">${jour}</div>
+        <div style="font-size:0.7rem;color:#8992a8;text-transform:uppercase;font-weight:700;">${moisCourt}</div>
       </div>
       <div style="flex:1;">
-        <div style="font-size:1rem;font-weight:700;color:#1a2340;">${esc(r.title||'')}</div>
-        <div style="font-size:0.85rem;color:#48547a;margin-top:2px;">à ${(r._t||'').replace(':','h')}</div>
+        <div style="font-size:1rem;font-weight:700;color:${titreCouleur};">${esc(r.title||'')}</div>
+        <div style="font-size:0.85rem;color:#8992a8;margin-top:2px;">à ${(r._t||'').replace(':','h')}</div>
         <div style="margin-top:5px;">${badge}</div>
       </div>
-      <button class="rdv-annuler-btn" data-id="${r.id}" style="border:none;background:#fdecec;color:#c0392b;font-family:inherit;font-size:0.85rem;font-weight:700;padding:10px 14px;border-radius:12px;cursor:pointer;flex-shrink:0;">Annuler</button>
+      ${annulerBtnHTML}
     </div>`;
   });
   list.innerHTML=html;
 
   // ===== Écouteurs =====
   if(hero){
-    const fb=document.getElementById('hero-fait-btn');
-    if(fb)fb.addEventListener('click',async()=>{
-      const r=(state.reminders||[]).find(x=>x.id===hero.id);
-      if(!r)return;
-      if(!r.done)r.done={};
-      r.done[todayKey]=true;
-      await saveUserData();
-      speak('Bravo !');
-      render(); // met à jour la coche sur l'accueil
-      showMesRendezVous(); // le suivant devient le héros
-    });
     const ab=document.getElementById('hero-audio-btn');
     if(ab)ab.addEventListener('click',()=>{
       const quand=hero._d===todayKey?"Aujourd'hui":formatShortDate(hero._d);
@@ -3195,52 +3378,82 @@ async function showAdminAvis(){
   }catch(e){list.innerHTML='<div style="text-align:center;padding:30px;color:#d63447">Erreur de chargement des avis.</div>';}
 }
 
-// Réserve sous la liste exactement la hauteur de la zone fixe du bas (bouton
-// « Ajouter » + avis + pied de page), pour que la dernière carte ne soit jamais
-// masquée. Calculé dynamiquement → marche sur tous les écrans.
+// Réserve sous la liste assez de place pour que la dernière carte ne soit
+// jamais cachée derrière le bouton "Nouveau rappel" ou la flèche de défilement.
 function _ajusterPaddingListe(){
-  const bz=document.getElementById('bottom-zone');
   const lw=document.querySelector('#main-screen .list-wrap');
-  if(!bz||!lw)return;
-  lw.style.paddingBottom=(bz.offsetHeight+Math.round(1.8*16)+24)+'px';
+  if(!lw)return;
+  lw.style.paddingBottom='110px';
 }
 window.addEventListener('resize',()=>{try{_ajusterPaddingListe();}catch(e){}});
 
-// ===== Carte de rappel (maquette carte-rappel) =====
-// Construit le HTML d'une carte : bloc Départ dominant, détails en lignes fines,
-// bouton Maps, « C'est fait », et bouton 🔊 Écouter en haut à droite.
-function _carteRappel(r,key){
-  const isDone=r.done&&r.done[key];
+// ===== Carte de rappel v7 (maquette-accueil-v7) =====
+// Une seule sonnerie par rappel : avant le départ s'il y a un trajet, sinon à l'heure du rappel.
+function _sonnerieUniqueMs(r,ti,jourAffiche){
+  if(ti&&ti.departMs)return ti.departMs;
+  if(r.recurrence==='daily'){if(!r.time)return null;return _atMs(jourAffiche.getFullYear(),jourAffiche.getMonth(),jourAffiche.getDate(),r.time);}
+  const t=r.time||r.eventTime,d=r.date||r.eventDate;
+  if(!t||!d)return null;
+  return new Date(d+'T'+t+':00').getTime();
+}
+// Construit l'étiquette de date + la carte : bloc Départ compact, sonnerie unique
+// affichée à côté de l'heure, bouton Maps, « + Plus d'infos », 🔊 Écouter.
+function _carteRappel(r,key,jourAffiche){
   const isAtelier=r.source==='atelier';
   const isDaily=r.recurrence==='daily';
   const ti=_trajetInfo(r);
   const eventDate=r.eventDate||r.date;
   const eventTime=r.eventTime||r.time;
-  const dbLabel=isDaily?'TOUS LES JOURS':(eventDate?formatShortDate(eventDate).toUpperCase():'');
   const dbHeure=(isDaily?r.time:eventTime).replace(':','h');
+  const labelTxt=isDaily?'TOUS LES JOURS':(eventDate?formatShortDate(eventDate).toUpperCase():'');
+  const labelHTML=`<div class="label-carte">${esc(labelTxt)}</div>`;
 
   let departHTML='';
-  if(ti&&ti.departMs){const hd=new Date(ti.departMs);
-    departHTML=`<div class="c-depart"><div class="c-depart-ic">🚗</div><div><div class="c-depart-lbl">Départ</div><div class="c-depart-val">${pad2(hd.getHours())}h${pad2(hd.getMinutes())}</div><div class="c-depart-sm">${ti.travelMin} min de trajet</div></div><div class="c-depart-cd"><div class="c-depart-cd-t">dans</div><div class="c-depart-cd-n" data-depart-court="${ti.departMs}">${_txtDepartCourt(ti.departMs)}</div></div></div>`;
+  if(ti&&ti.departMs){
+    const hd=new Date(ti.departMs);
+    const procheClasse=(ti.departMs-Date.now())<=1800000?'proche':'loin';
+    departHTML=`<div class="c-depart"><div class="c-depart-gauche"><div class="c-depart-ic">🚗</div><div class="c-depart-val">Départ : ${pad2(hd.getHours())}h${pad2(hd.getMinutes())}</div></div><div class="c-depart-cd ${procheClasse}" data-depart-ms="${ti.departMs}"><div class="c-depart-cd-n">${_txtDepartSec(ti.departMs)}</div><div class="c-depart-cd-t">AVANT DÉPART</div></div></div>`;
   }
 
   let rows='';
-  if(ti&&ti.adresse)rows+=`<div class="c-row"><div class="c-row-ic">📍</div><div class="c-row-tx"><div class="c-row-t1">${esc(ti.adresse)}</div></div></div>`;
-  if(r.note&&!isAtelier)rows+=`<div class="c-row"><div class="c-row-ic">✏️</div><div class="c-row-tx"><div class="c-row-t1">${esc(r.note)}</div></div></div>`;
-  let sonnT1,sonnT2='Vous serez prévenu à cette heure-là';
-  if(isAtelier){const ev=new Date(r.date+'T'+r.time+':00');const a2=new Date(ev.getTime()-2*3600000);sonnT1=`Sonnerie la veille à 15h00 et à ${pad2(a2.getHours())}h${pad2(a2.getMinutes())}`;sonnT2='Deux sonneries avant l\'atelier';}
-  else if(isDaily){sonnT1='Sonnerie à '+r.time.replace(':','h');}
-  else{sonnT1='Sonnerie à '+(r.time||eventTime).replace(':','h');if(r.date&&r.date!==eventDate)sonnT1+=' ('+formatRelativeDate(r.date)+')';}
-  rows+=`<div class="c-row"><div class="c-row-ic">🔔</div><div class="c-row-tx"><div class="c-row-t1">${sonnT1}</div><div class="c-row-t2">${sonnT2}</div></div></div>`;
+  let sonnerieInline='';
+  if(isAtelier){
+    const ev=new Date(r.date+'T'+r.time+':00');const a2=new Date(ev.getTime()-2*3600000);
+    const sonnT1=`Sonnerie la veille à 15h00 et à ${pad2(a2.getHours())}h${pad2(a2.getMinutes())}`;
+    rows+=`<div class="c-row"><div class="c-row-ic">🔔</div><div class="c-row-tx"><div class="c-row-t1">${sonnT1}</div><div class="c-row-t2">Deux sonneries avant l'atelier</div></div></div>`;
+    if(ti&&ti.adresse)rows+=`<div class="c-row"><div class="c-row-ic">📍</div><div class="c-row-tx"><div class="c-row-t1">${esc(ti.adresse)}</div></div></div>`;
+  }else if(!(ti&&ti.departMs)){
+    // S'il y a un trajet, le bloc « Départ » ci-dessus affiche déjà l'heure de sonnerie : pas besoin de la répéter ici.
+    const sonnMs=_sonnerieUniqueMs(r,ti,jourAffiche);
+    if(sonnMs!==null){
+      const hm=pad2(new Date(sonnMs).getHours())+'h'+pad2(new Date(sonnMs).getMinutes());
+      sonnerieInline=` <span class="c-sonnerie-inline">🔔 sonnerie ${hm}</span>`;
+    }
+  }
 
-  const mapsHTML=(ti&&ti.mapQuery)?`<a class="c-maps" href="https://www.google.com/maps/search/?api=1&query=${ti.mapQuery}" target="_blank" onclick="event.stopPropagation()">🗺️ Y aller (Google Maps)</a>`:'';
-  const actionHTML=isAtelier?`<div class="c-badge">✅ Je participe</div>`:`<button type="button" class="c-done" data-check="${r.id}">${isDone?'✓ Fait':"✓ C'est fait"}</button>`;
+  const mapsHTML=(ti&&ti.mapQuery)?`<a class="c-maps" href="https://www.google.com/maps/search/?api=1&query=${ti.mapQuery}" target="_blank" onclick="event.stopPropagation()"><span class="c-maps-p">🗺️ Y aller</span><span class="c-maps-s">(Google Maps)</span></a>`:'';
 
-  return `<div class="c-card${isDone?' done':''}" data-id="${r.id}" data-source="personal">`
-    +`<div class="c-top"><div class="c-datebox"><div class="c-datebox-d">${dbLabel}</div><div class="c-datebox-h">${dbHeure}</div></div>`
-    +`<div class="c-emoji">${iconHTML(r.icon)}</div><div class="c-titre"><h3>${esc(r.title)}</h3></div>`
+  let actionZoneHTML;
+  if(isAtelier){
+    actionZoneHTML=mapsHTML+`<div class="c-badge">✅ Je participe</div>`;
+  }else{
+    const detailsItems=[];
+    if(ti&&ti.adresse)detailsItems.push(`<div class="c-details-ligne">📍 ${esc(ti.adresse)}</div>`);
+    if(r.note)detailsItems.push(`<div class="c-details-ligne">✏️ ${esc(r.note)}</div>`);
+    const aDesDetails=detailsItems.length>0;
+    if(aDesDetails)detailsItems.push(`<div class="c-details-ligne c-details-modifier" data-modifier-id="${r.id}">✎ Modifier</div>`);
+    const plusInfosHTML=aDesDetails?`<div class="c-plus-infos">+ Plus d'infos</div>`:'';
+    const detailsHTML=aDesDetails?`<div class="c-details">${detailsItems.join('')}</div>`:'';
+    const hasLigneActions=mapsHTML||plusInfosHTML;
+    actionZoneHTML=hasLigneActions?`<div class="c-ligne-actions">${mapsHTML}${plusInfosHTML}</div>${detailsHTML}`:'';
+  }
+
+  const cardHTML=`<div class="c-card" data-id="${r.id}" data-source="personal">`
+    +`<div class="c-top"><div class="c-emoji">${iconHTML(r.icon)}</div><div class="c-titre"><div class="c-heure">${dbHeure}${sonnerieInline}</div><h3>${esc(r.title)}</h3></div>`
     +`<button type="button" class="c-speak" data-speak="${r.id}">🔊</button></div>`
-    +departHTML+`<div class="c-rows">${rows}</div>`+mapsHTML+actionHTML+`</div>`;
+    +departHTML+(rows?`<div class="c-rows">${rows}</div>`:'')+actionZoneHTML+`</div>`;
+
+  return labelHTML+cardHTML;
 }
 
 // Phrase lue par le bouton 🔊 : titre, date, heure, adresse, départ, trajet, sonnerie.
@@ -3253,7 +3466,7 @@ function _phraseCarte(r){
   if(ti&&ti.adresse)p+=' Adresse : '+ti.adresse+'.';
   if(ti&&ti.departMs){const dp=new Date(ti.departMs);p+=' Départ à '+timeToSpeech(pad2(dp.getHours())+':'+pad2(dp.getMinutes()))+', '+ti.travelMin+' minutes de trajet.';}
   if(isAtelier){const ev=new Date(r.date+'T'+r.time+':00');const a2=new Date(ev.getTime()-2*3600000);p+=' Sonnerie la veille à 15 heures, et 2 heures avant, à '+timeToSpeech(pad2(a2.getHours())+':'+pad2(a2.getMinutes()))+'.';}
-  else if(r.time){p+=' Sonnerie à '+timeToSpeech(r.time)+'.';}
+  else if(!(ti&&ti.departMs)){const sonnMs=_sonnerieUniqueMs(r,ti,getCurrentDate());if(sonnMs!==null)p+=' Sonnerie à '+timeToSpeech(pad2(new Date(sonnMs).getHours())+':'+pad2(new Date(sonnMs).getMinutes()))+'.';}
   if(r.note&&!isAtelier)p+=' '+r.note+'.';
   return p;
 }
@@ -3284,7 +3497,44 @@ function _lireCarte(id,btn){
   }catch(e){_arreterLectureCarte();}
 }
 
-function render(){_arreterLectureCarte();const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key)).map(r=>({...r,_source:'personal'}));const items=[...personal].sort((a,b)=>a.time.localeCompare(b.time));if(items.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;_ajusterPaddingListe();return;}list.innerHTML=items.map(r=>_carteRappel(r,key)).join('');_ajusterPaddingListe();}
+// Aperçu du prochain rappel de demain, pour l'écran « tout est fait ».
+function _prochainApercu(){
+  const d=new Date();d.setDate(d.getDate()+1);d.setHours(0,0,0,0);
+  const tk=dateKey(d);
+  const cands=(state.reminders||[]).filter(r=>reminderAppliesToDay(r,tk)).sort((a,b)=>a.time.localeCompare(b.time));
+  if(!cands.length)return null;
+  const r=cands[0];
+  const heure=(r.recurrence==='daily'?r.time:(r.eventTime||r.time)).replace(':','h');
+  return{emoji:iconHTML(r.icon),quand:'Demain '+heure,quoi:r.title};
+}
+function _ecranToutFait(){
+  const prochain=state.dayOffset===0?_prochainApercu():null;
+  const prochainHTML=prochain?`<div class="prochain"><div class="emoji" style="font-size:1.8rem">${prochain.emoji}</div><div class="txt"><div class="quand">${esc(prochain.quand)}</div><div class="quoi">${esc(prochain.quoi)}</div></div></div>`:'';
+  const titre=state.dayOffset===0?"Plus rien de prévu aujourd'hui":'Plus rien de prévu ce jour-là';
+  return `<div class="tout-fait visible"><div class="rond-vert">🌿</div><h3>${titre}</h3>${prochainHTML}</div>`;
+}
+// Les 3 premières cartes apparaissent l'une après l'autre, le reste ensemble (§7).
+function _jouerEntreeCartes(){
+  document.querySelectorAll('#reminders-list .c-card').forEach((c,i)=>{
+    const delai=i<3?(80+i*700):(80+3*700);
+    setTimeout(()=>c.classList.add('apparue'),delai);
+  });
+}
+function render(){_arreterLectureCarte();const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';document.getElementById('prev-day').style.visibility=state.dayOffset>0?'visible':'hidden';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key));if(personal.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;_ajusterPaddingListe();return;}
+const now=Date.now();
+// Un rappel personnel dont l'heure est passée disparaît simplement de l'accueil (pas de retard, pas de validation).
+// Un atelier reste visible jusqu'à 15 min après son heure de début, puis disparaît aussi.
+const visibles=personal.filter(r=>{
+  if(r.source==='atelier'){
+    if(!r.date||!r.time)return true;
+    return new Date(r.date+'T'+r.time+':00').getTime()+15*60000>=now;
+  }
+  const ti=_trajetInfo(r);
+  const sonnMs=_sonnerieUniqueMs(r,ti,d);
+  return sonnMs===null||sonnMs>=now;
+}).sort((a,b)=>a.time.localeCompare(b.time));
+if(visibles.length===0){list.innerHTML=_ecranToutFait();_ajusterPaddingListe();return;}
+list.innerHTML=visibles.map(r=>_carteRappel(r,key,d)).join('');_ajusterPaddingListe();_majComptesARebours();_jouerEntreeCartes();if(typeof _checkScrollHint==='function')setTimeout(_checkScrollHint,50);}
 
 async function loadAVPPlanning(force){
   // Cache du planning par animateur (Steve/Greg), valable 5 minutes
@@ -3509,8 +3759,40 @@ function renderPlanningInner(content,events){const seen=new Set();const uniqueEv
       content.querySelectorAll('[data-speech]').forEach(card=>{card.addEventListener('click',(ev)=>{if(ev.target.closest('[data-nospeech]'))return;speak(card.dataset.speech||'');});});
       content.querySelectorAll('.pcard-btn:not(.complet)').forEach(btn=>{btn.addEventListener('click',async e=>{e.stopPropagation();if(btn.disabled)return;const ev={date:btn.dataset.edate,time:btn.dataset.etime,title:btn.dataset.etitle,icon:btn.dataset.eicon};const limite=btn.dataset.elimite?parseInt(btn.dataset.elimite):null;const anim=btn.dataset.eanim||'Steve';const ek=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');const dejaInscrit=isInscrit(ek);if(dejaInscrit){await demanderDesinscription(ev,ek,anim,content,events);return;}if(!dejaInscrit&&limite!==null){btn.disabled=true;btn.textContent='⏳ Vérification...';const freshInscriptions=await loadAllInscriptions();const currentCount=(freshInscriptions[ek]||[]).length;if(currentCount>=limite){showConfirm({icon:'😔',title:'Atelier complet',text:`Désolé, les ${limite} places pour "${ev.title}" viennent d'être prises.`,okText:'OK',hideCancel:true});state.allInscriptions=freshInscriptions;renderPlanningInner(content,events);return;}}await toggleInscription(ev);state.allInscriptions=await loadAllInscriptions();renderPlanningInner(content,events);});});}
 
-document.getElementById('btn-reglages').addEventListener('click',()=>{window.location.href='reglages.html';});
-document.getElementById('prev-day').addEventListener('click',()=>{state.dayOffset--;render();});
+// ===== Tiroir menu, ouvert par la languette du bord gauche ou un glissé depuis le bord (§2) =====
+document.getElementById('tiroir-item-reglages').addEventListener('click',()=>{window.location.href='reglages.html';});
+function _ouvrirTiroirMenu(){document.getElementById('voile-tiroir').classList.add('visible');document.getElementById('tiroir-menu').classList.add('visible');}
+function _fermerTiroirMenu(){document.getElementById('voile-tiroir').classList.remove('visible');document.getElementById('tiroir-menu').classList.remove('visible');}
+document.getElementById('voile-tiroir').addEventListener('click',_fermerTiroirMenu);
+document.getElementById('tiroir-fermer-btn').addEventListener('click',_fermerTiroirMenu);
+const _languetteMenu=document.getElementById('menu-languette');
+_languetteMenu.addEventListener('click',_ouvrirTiroirMenu);
+let _tiroirDepartX=null;
+document.getElementById('main-screen').addEventListener('touchstart',e=>{
+  const x=e.touches[0].clientX;
+  // Bord réel du cadre (0 sur mobile, décalé sur grand écran si le cadre téléphone est centré)
+  const bordGauche=document.body.getBoundingClientRect().left;
+  if(x<bordGauche+24&&!document.getElementById('tiroir-menu').classList.contains('visible')){_tiroirDepartX=x;_languetteMenu.classList.add('touchee');}else{_tiroirDepartX=null;}
+},{passive:true});
+document.getElementById('main-screen').addEventListener('touchmove',e=>{
+  if(_tiroirDepartX===null)return;
+  const dx=e.touches[0].clientX-_tiroirDepartX;
+  if(dx>60){_ouvrirTiroirMenu();_tiroirDepartX=null;_languetteMenu.classList.remove('touchee');}
+},{passive:true});
+document.getElementById('main-screen').addEventListener('touchend',()=>{_tiroirDepartX=null;_languetteMenu.classList.remove('touchee');});
+
+// Glissé vers la gauche sur le tiroir ouvert = le referme
+const _tiroirMenuEl=document.getElementById('tiroir-menu');
+let _tiroirFermeDepartX=null;
+_tiroirMenuEl.addEventListener('touchstart',e=>{_tiroirFermeDepartX=e.touches[0].clientX;},{passive:true});
+_tiroirMenuEl.addEventListener('touchmove',e=>{
+  if(_tiroirFermeDepartX===null)return;
+  const dx=e.touches[0].clientX-_tiroirFermeDepartX;
+  if(dx<-50){_fermerTiroirMenu();_tiroirFermeDepartX=null;}
+},{passive:true});
+_tiroirMenuEl.addEventListener('touchend',()=>{_tiroirFermeDepartX=null;});
+
+document.getElementById('prev-day').addEventListener('click',()=>{if(state.dayOffset>0){state.dayOffset--;render();}});
 document.getElementById('next-day').addEventListener('click',()=>{state.dayOffset++;render();});
 document.getElementById('back-to-today').addEventListener('click',()=>{state.dayOffset=0;render();});
 document.getElementById('open-planning-steve').addEventListener('click',async()=>{state.currentAnim='Steve';state.avpEvents=[];document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';await loadAVPPlanning();renderPlanning();});
@@ -3529,15 +3811,110 @@ document.getElementById('reminders-list').addEventListener('click',e=>{
   if(e.target.closest('a'))return;
   const sp=e.target.closest('[data-speak]');
   if(sp){_lireCarte(sp.dataset.speak,sp);e.stopPropagation();return;}
-  const checkId=e.target.closest('[data-check]')?.dataset.check;
-  if(checkId){toggleDone(checkId);e.stopPropagation();return;}
+  const plusBtn=e.target.closest('.c-plus-infos');
+  if(plusBtn){
+    const details=plusBtn.closest('.c-card')?.querySelector('.c-details');
+    if(details){const ouvert=details.classList.toggle('ouvert');plusBtn.textContent=ouvert?'− Moins':"+ Plus d'infos";}
+    e.stopPropagation();return;
+  }
+  const modifBtn=e.target.closest('[data-modifier-id]');
+  if(modifBtn){openEdit(modifBtn.dataset.modifierId);e.stopPropagation();return;}
   const card=e.target.closest('.c-card');
   if(card){const id=card.dataset.id;const r=state.reminders.find(x=>x.id===id);if(r&&r.source!=='atelier')openEdit(id);}
 });
 
-async function toggleDone(id){const r=state.reminders.find(x=>x.id===id);if(!r)return;if(!r.done)r.done={};const key=dateKey(getCurrentDate());r.done[key]=!r.done[key];await saveUserData();render();if(r.done[key])speak('Bravo !');}
+// ===== Panneau d'aide de l'accueil (§6) =====
+document.getElementById('btn-aide-accueil').addEventListener('click',()=>{
+  document.getElementById('aide-overlay-accueil').classList.add('visible');
+  document.getElementById('aide-panel-accueil').classList.add('visible');
+});
+function _fermerAideAccueil(){
+  document.getElementById('aide-overlay-accueil').classList.remove('visible');
+  document.getElementById('aide-panel-accueil').classList.remove('visible');
+}
+document.getElementById('aide-overlay-accueil').addEventListener('click',_fermerAideAccueil);
+document.getElementById('aide-fermer-btn').addEventListener('click',_fermerAideAccueil);
+document.getElementById('aide-lire-btn').addEventListener('click',()=>{
+  const btn=document.getElementById('aide-lire-btn');
+  btn.classList.add('actif');
+  const texte=[...document.querySelectorAll('#aide-panel-accueil .aide-etape p')].map(p=>p.textContent).join(' ');
+  speak(texte);
+  setTimeout(()=>btn.classList.remove('actif'),2500);
+});
 
-function openEdit(id){state.editing=id;const r=id?state.reminders.find(x=>x.id===id):null;document.getElementById('edit-title').textContent=r?'Modifier le rappel':'Nouveau rappel';const vs=document.getElementById('voice-status');if(vs){vs.className='voice-status';vs.innerHTML='';}document.getElementById('voice-btn').querySelector('.voice-label').textContent='Dicter au lieu de taper';setTPVal('f-time',r?r.time:'08:00');document.getElementById('f-title').value=r?r.title:'';document.getElementById('f-note').value=r?r.note:'';document.getElementById('delete-btn').style.display=r?'block':'none';const rec=r?(r.recurrence||'daily'):'daily';setRecurrence(rec);document.getElementById('f-date').value=r&&r.date?r.date:dateKey(getCurrentDate());document.getElementById('f-event-date').value=r&&r.eventDate?r.eventDate:(r&&r.date?r.date:dateKey(getCurrentDate()));setTPVal('f-event-time',r&&r.eventTime?r.eventTime:'14:00');let choix=r&&r.sonnerieChoix?r.sonnerieChoix:'2h';if(choix==='avant2h'||choix==='les2')choix='2h';document.querySelectorAll('.sonnerie-choix-btn').forEach(b=>b.classList.toggle('active',b.dataset.choix===choix));const fa=document.getElementById('f-address');if(fa)fa.value=r&&r.address?r.address:'';wizTravel=r&&r.travelMin?r.travelMin:0;document.querySelectorAll('#trajet-choix .trajet-btn').forEach(b=>b.classList.toggle('active',(parseInt(b.dataset.min,10)||0)===wizTravel));renderIcons(r?r.icon:null);showScreen('edit-screen');goToStep(r?8:1);}
+// ===== Bouton retour Android (brief retrait-validation, §6) =====
+// Sans plugin natif : Capacitor retombe par défaut sur webView.goBack() si l'historique
+// JS le permet (sinon il ferme l'app). On maintient donc un historique JS artificiel
+// (pushState) pour intercepter chaque appui via popstate, et gérer la navigation nous-mêmes.
+let _dernierAppuiRetour=0;
+// Renvoie true si on doit laisser l'app se fermer (double appui confirmé), false sinon.
+function _gererBoutonRetourAndroid(){
+  const tiroir=document.getElementById('tiroir-menu');
+  if(tiroir&&tiroir.classList.contains('visible')){_fermerTiroirMenu();return false;}
+  const aide=document.getElementById('aide-panel-accueil');
+  if(aide&&aide.classList.contains('visible')){_fermerAideAccueil();return false;}
+  const ecranAccueil=(currentUser&&currentUser.isAdmin)?'admin-screen':'main-screen';
+  const actif=document.querySelector('.screen.active');
+  if(actif&&actif.id!==ecranAccueil&&actif.id!=='login-screen'&&actif.id!=='tutorial-screen'){
+    if(ecranAccueil==='main-screen'){showScreen('main-screen');render();}
+    else if(typeof showAdminScreen==='function')showAdminScreen();
+    return false;
+  }
+  // Déjà sur l'accueil, rien à fermer : double pression pour quitter.
+  const maintenant=Date.now();
+  if(maintenant-_dernierAppuiRetour<2000)return true;
+  _dernierAppuiRetour=maintenant;
+  speak('Appuyez de nouveau pour quitter');
+  return false;
+}
+(function(){
+  console.log('[AVP-Back-JS] avant pushState, history.length='+history.length);
+  history.pushState({avpNav:1},'',location.href);
+  console.log('[AVP-Back-JS] apres pushState, history.length='+history.length);
+  window.addEventListener('popstate',()=>{
+    console.log('[AVP-Back-JS] popstate recu');
+    const quitter=_gererBoutonRetourAndroid();
+    if(!quitter)history.pushState({avpNav:1},'',location.href);
+  });
+})();
+
+// ===== Flèche « Descendre » / « Remonter » : appui bref = un cran, appui maintenu = défilement continu (§6) =====
+const _zoneListeAccueil=document.querySelector('#main-screen .list-wrap');
+const _hintListeAccueil=document.getElementById('scroll-hint-accueil');
+function _enBasListeAccueil(){return _zoneListeAccueil.scrollTop+_zoneListeAccueil.clientHeight>=_zoneListeAccueil.scrollHeight-20;}
+function _checkScrollHint(){
+  if(!_zoneListeAccueil||!_hintListeAccueil)return;
+  const peutScroller=_zoneListeAccueil.scrollHeight-_zoneListeAccueil.clientHeight>20;
+  if(!peutScroller){_hintListeAccueil.style.opacity='0';_hintListeAccueil.style.pointerEvents='none';return;}
+  _hintListeAccueil.style.opacity='1';
+  _hintListeAccueil.style.pointerEvents='auto';
+  const bas=_enBasListeAccueil();
+  _hintListeAccueil.querySelector('.sh-fleche').textContent=bas?'⌃':'⌄';
+  _hintListeAccueil.querySelector('.sh-texte').textContent=bas?'Remonter':'Descendre';
+}
+if(_zoneListeAccueil)_zoneListeAccueil.addEventListener('scroll',_checkScrollHint);
+window.addEventListener('resize',_checkScrollHint);
+let _boucleScrollAccueil=null,_sensScrollAccueil=1;
+function _demarrerScrollAccueil(e){
+  e.preventDefault();
+  if(!_zoneListeAccueil)return;
+  _sensScrollAccueil=_enBasListeAccueil()?-1:1;
+  _zoneListeAccueil.scrollBy({top:_sensScrollAccueil*280,behavior:'smooth'});
+  clearInterval(_boucleScrollAccueil);
+  _boucleScrollAccueil=setInterval(()=>{_zoneListeAccueil.scrollBy({top:_sensScrollAccueil*28,behavior:'auto'});},90);
+}
+function _arreterScrollAccueil(){clearInterval(_boucleScrollAccueil);_boucleScrollAccueil=null;}
+if(_hintListeAccueil){
+  _hintListeAccueil.addEventListener('touchstart',_demarrerScrollAccueil,{passive:false});
+  _hintListeAccueil.addEventListener('touchend',_arreterScrollAccueil);
+  _hintListeAccueil.addEventListener('touchcancel',_arreterScrollAccueil);
+  _hintListeAccueil.addEventListener('mousedown',_demarrerScrollAccueil);
+  _hintListeAccueil.addEventListener('mouseup',_arreterScrollAccueil);
+  _hintListeAccueil.addEventListener('mouseleave',_arreterScrollAccueil);
+}
+setTimeout(_checkScrollHint,300);
+
+function openEdit(id){state.editing=id;const r=id?state.reminders.find(x=>x.id===id):null;document.getElementById('edit-title').textContent=r?'Modifier le rappel':'Nouveau rappel';const vs=document.getElementById('voice-status');if(vs){vs.className='voice-status';vs.innerHTML='';}document.getElementById('voice-btn').querySelector('.voice-label').textContent='Dicter au lieu de taper';setTPVal('f-time',r?r.time:'08:00');document.getElementById('f-title').value=r?r.title:'';document.getElementById('f-note').value=r?r.note:'';document.getElementById('delete-btn').style.display=r?'block':'none';const rec=r?(r.recurrence||'daily'):'daily';setRecurrence(rec);document.getElementById('f-date').value=r&&r.date?r.date:dateKey(getCurrentDate());document.getElementById('f-event-date').value=r&&r.eventDate?r.eventDate:(r&&r.date?r.date:dateKey(getCurrentDate()));setTPVal('f-event-time',r&&r.eventTime?r.eventTime:'14:00');let choix=r&&r.sonnerieChoix?r.sonnerieChoix:'2h';if(choix==='avant2h'||choix==='les2')choix='2h';document.querySelectorAll('.sonnerie-choix-btn').forEach(b=>b.classList.toggle('active',b.dataset.choix===choix));const fa=document.getElementById('f-address');if(fa)fa.value=r&&r.address?r.address:'';wizTravel=r&&r.travelMin?r.travelMin:0;document.querySelectorAll('#trajet-choix .trajet-btn').forEach(b=>b.classList.toggle('active',(parseInt(b.dataset.min,10)||0)===wizTravel));renderIcons(r?r.icon:null);document.getElementById('save-btn').textContent=r?'✓ Enregistrer les modifications':"✓ C'est bon, enregistrer";document.querySelectorAll('#edit-screen .opt-inline').forEach(el=>el.classList.remove('ouvert'));showScreen('edit-screen');goToStep(r?8:1);}
 
 function renderIcons(selected){wizIcon=selected||'🗓️';renderThemeGrid();}
 let wizIcon='🗓️'; // icône choisie dans le parcours (remplace la sélection DOM de l'ancienne grille)
@@ -3548,20 +3925,15 @@ function getSelectedRecurrence(){return wizRec||'daily';}
 document.querySelectorAll('.seg-btn').forEach(btn=>btn.addEventListener('click',()=>setRecurrence(btn.dataset.rec)));
 // ===== Parcours en étapes "Nouveau rappel" =====
 let wizardStep=1;
-// Séquence d'étapes selon le type de rappel et la présence d'une adresse.
-// L'étape 6 (trajet) n'apparaît que si une adresse a été saisie ; les rappels
-// quotidiens sautent prévenir/adresse/trajet.
+// Séquence d'étapes selon le type de rappel. Détail/adresse/trajet ne sont
+// plus des étapes séparées : ce sont des vignettes optionnelles sur l'étape 8.
 function wizSequence(){
   const rec=getSelectedRecurrence();
-  if(rec==='daily')return [1,2,3,7,8];
-  const fa=document.getElementById('f-address');
-  return (fa&&fa.value.trim())?[1,2,3,4,5,6,7,8]:[1,2,3,4,5,7,8];
+  if(rec==='daily')return [1,2,3,8];
+  return [1,2,3,4,8];
 }
 function wizGoNext(){const s=wizSequence();const i=s.indexOf(wizardStep);goToStep(i>=0&&i<s.length-1?s[i+1]:s[s.length-1]);}
 function wizGoPrev(){const s=wizSequence();const i=s.indexOf(wizardStep);goToStep(i>0?s[i-1]:s[0]);}
-function wizPasserAdresse(){const fa=document.getElementById('f-address');if(fa)fa.value='';wizGoNext();}
-function wizPasserTrajet(){wizTravel=0;document.querySelectorAll('#trajet-choix .trajet-btn').forEach(b=>b.classList.remove('active'));wizGoNext();}
-function wizPasserRemarque(){const fn=document.getElementById('f-note');if(fn)fn.value='';wizGoNext();}
 function goToStep(n){
   wizardStep=n;
   document.querySelectorAll('#edit-screen .wizard-step').forEach(st=>st.classList.toggle('active',parseInt(st.dataset.step)===n));
@@ -3569,33 +3941,93 @@ function goToStep(n){
   document.getElementById('wizard-step-label').textContent='Étape '+(idx+1)+' sur '+seq.length;
   document.getElementById('wizard-progress-fill').style.width=Math.round((idx+1)/seq.length*100)+'%';
   document.getElementById('wizard-prev').style.visibility=(n===1)?'hidden':'visible';
-  if(n===8)renderWizardRecap();
+  document.getElementById('wizard-recap').style.display=(n>=3)?'block':'none';
+  if(n>=3)renderWizardRecap();
+  if(n===8)wizRenderOptionsRow();
   const body=document.querySelector('#edit-screen .edit-body');if(body)body.scrollTop=0;
   if(typeof montrerTuto==='function')setTimeout(()=>montrerTuto('wiz'+n),300);
 }
-function renderWizardRecap(){
-  const title=document.getElementById('f-title').value.trim()||'(sans titre)';
-  const rec=getSelectedRecurrence();
-  let rows='<div class="recap-row"><span class="recap-ic">'+getSelectedIcon()+'</span><span class="recap-txt">'+esc(title)+'</span></div>';
-  if(rec==='daily'){
-    rows+='<div class="recap-row"><span class="recap-ic">📅</span><span class="recap-txt">Tous les jours</span></div>';
-    rows+='<div class="recap-row"><span class="recap-ic">🕐</span><span class="recap-txt">à '+getTPVal('f-time').replace(':','h')+'</span></div>';
-  }else{
-    const rdvDate=document.getElementById('f-event-date').value;
-    const rdvTime=getTPVal('f-event-time');
-    rows+='<div class="recap-row"><span class="recap-ic">📅</span><span class="recap-txt">'+(rdvDate?formatRelativeDate(rdvDate):'(jour à choisir)')+'</span></div>';
-    rows+='<div class="recap-row"><span class="recap-ic">🕐</span><span class="recap-txt">à '+rdvTime.replace(':','h')+'</span></div>';
-    const choix=getSonnerieChoix();let sonnTxt;
-    if(choix==='veille'){sonnTxt='la veille à 15h00';}
-    else{const min=choix==='30min'?30:(choix==='1h'?60:120);const s=calcSonnerieAvant(rdvDate,rdvTime,min);sonnTxt='à '+s.time.replace(':','h')+(s.date!==rdvDate?(' ('+formatRelativeDate(s.date)+')'):'');}
-    rows+='<div class="recap-row"><span class="recap-ic">🔔</span><span class="recap-txt">Sonnerie '+sonnTxt+'</span></div>';
-    const adr=(document.getElementById('f-address')?document.getElementById('f-address').value.trim():'');
-    if(adr)rows+='<div class="recap-row"><span class="recap-ic">📍</span><span class="recap-txt">'+esc(adr)+'</span></div>';
-    if(wizTravel>0&&rdvDate&&rdvTime){const dp=new Date(new Date(rdvDate+'T'+rdvTime+':00').getTime()-(wizTravel+10)*60000);rows+='<div class="recap-row"><span class="recap-ic">🚗</span><span class="recap-txt">Départ à '+pad2(dp.getHours())+'h'+pad2(dp.getMinutes())+' <span style="color:#8892a8">('+wizTravel+' min)</span></span></div>';}
+// ===== Étape 8 : vignettes optionnelles (détail / adresse / trajet) =====
+const WIZ_OPTS={
+  detail:{icon:'➕',label:'Ajouter<br>un détail'},
+  adresse:{icon:'📍',label:'Ajouter<br>une adresse'},
+  trajet:{icon:'🚗',label:'Temps de<br>trajet'}
+};
+function wizOptValeur(opt){
+  if(opt==='detail'){const el=document.getElementById('f-note');return el?el.value.trim():'';}
+  if(opt==='adresse'){const el=document.getElementById('f-address');return el?el.value.trim():'';}
+  if(opt==='trajet'){const b=document.querySelector('#trajet-choix .trajet-btn.active');return b?b.textContent.trim():'';}
+  return '';
+}
+function wizRenderOptionsRow(){
+  const showAdresseTrajet=getSelectedRecurrence()!=='daily';
+  document.getElementById('opt-btn-adresse').style.display=showAdresseTrajet?'':'none';
+  document.getElementById('opt-btn-trajet').style.display=showAdresseTrajet?'':'none';
+  ['detail','adresse','trajet'].forEach(opt=>{
+    if(opt!=='detail'&&!showAdresseTrajet){document.getElementById('opt-inline-'+opt).classList.remove('ouvert');return;}
+    const btn=document.getElementById('opt-btn-'+opt);
+    const meta=WIZ_OPTS[opt];
+    const val=wizOptValeur(opt);
+    if(val){
+      const resume=val.length>18?val.slice(0,18)+'…':val;
+      btn.classList.add('rempli');
+      btn.innerHTML='<div class="icone-opt">'+meta.icon+'</div><div>'+esc(resume)+'<div class="modif">✎ modifier</div></div>';
+    }else{
+      btn.classList.remove('rempli');
+      btn.innerHTML='<div class="icone-opt">'+meta.icon+'</div><div>'+meta.label+'</div>';
+    }
+  });
+}
+function wizToggleOption(opt){
+  ['detail','adresse','trajet'].forEach(o=>{if(o!==opt)document.getElementById('opt-inline-'+o).classList.remove('ouvert');});
+  const inline=document.getElementById('opt-inline-'+opt);
+  const ouverture=!inline.classList.contains('ouvert');
+  inline.classList.toggle('ouvert');
+  if(ouverture){
+    const champ=document.getElementById(opt==='detail'?'f-note':(opt==='adresse'?'f-address':''));
+    if(champ)setTimeout(()=>champ.focus(),150);
   }
+}
+function wizValiderOption(opt){
+  document.getElementById('opt-inline-'+opt).classList.remove('ouvert');
+  renderWizardRecap();
+  wizRenderOptionsRow();
+}
+// Construit un rappel « brouillon » à partir des champs de l'assistant, avec les
+// mêmes règles de calcul de sonnerie que l'enregistrement (voir save-btn),
+// pour que l'aperçu corresponde exactement au rappel qui sera sauvegardé.
+function wizDraftReminder(){
+  const rec=getSelectedRecurrence();
+  const title=document.getElementById('f-title').value.trim()||'(sans titre)';
+  const icon=getSelectedIcon();
   const note=(document.getElementById('f-note')?document.getElementById('f-note').value.trim():'');
-  if(note)rows+='<div class="recap-row"><span class="recap-ic">✏️</span><span class="recap-txt">'+esc(note)+'</span></div>';
-  document.getElementById('wizard-recap').innerHTML=rows;
+  if(rec==='daily')return{recurrence:'daily',time:getTPVal('f-time'),title,icon,note};
+  const eventDate=document.getElementById('f-event-date').value;
+  const eventTime=getTPVal('f-event-time');
+  const address=(document.getElementById('f-address')?document.getElementById('f-address').value.trim():'');
+  const travelMin=wizTravel||0;
+  let sonn={date:eventDate,time:eventTime};
+  if(eventDate&&eventTime)sonn=_calcSonnerieRappel(eventDate,eventTime,getSonnerieChoix(),travelMin);
+  return{recurrence:'once',eventDate,eventTime,date:sonn.date,time:sonn.time,title,icon,note,address,travelMin};
+}
+// Format compact : heure en gros en haut, icône + titre en dessous, séparateur fin,
+// date en petit tout en bas (pas de ligne sonnerie ici, elle est portée par les vignettes).
+function renderWizardRecap(){
+  const r=wizDraftReminder();
+  const isDaily=r.recurrence==='daily';
+  const eventDate=r.eventDate||r.date;
+  const eventTime=r.eventTime||r.time;
+  const heureBrute=isDaily?r.time:eventTime;
+  const heure=heureBrute?heureBrute.replace(':','h'):'--h--';
+  const dateTxt=isDaily?'Tous les jours':(eventDate?formatRelativeDate(eventDate):'(jour à choisir)');
+  document.getElementById('wizard-recap').innerHTML=
+    '<div class="wr-heure">'+heure+'</div>'
+    +'<div class="wr-titre-row">'
+      +'<div class="wr-emoji">'+iconHTML(r.icon)+'</div>'
+      +'<div class="wr-titre">'+esc(r.title)+'</div>'
+    +'</div>'
+    +'<div class="wr-sep"></div>'
+    +'<div class="wr-date">📅 '+esc(dateTxt)+'</div>';
 }
 // ===== Bulles de tutoriel : une par écran/étape, mémorisées par bénéficiaire (tutosVus) =====
 // Fermeture par appui n'importe où sur l'écran (ou sur "J'ai compris") ; le 🔊 relit sans fermer.
@@ -3605,11 +4037,9 @@ const TUTOS={
   wiz2:{txt:"Appuyez sur le jour du rappel."},
   wiz3:{txt:"Réglez l'heure, puis appuyez sur le bouton vert."},
   wiz4:{txt:"Choisissez quand être prévenu, puis appuyez sur Continuer."},
-  wiz5:{txt:"Indiquez l'adresse, ou appuyez sur Passer."},
-  wiz6:{txt:"Choisissez le temps de trajet, ou appuyez sur Passer."},
-  wiz7:{txt:"Ajoutez une remarque, ou appuyez sur Passer."},
-  wiz8:{txt:"Vérifiez, puis appuyez sur le bouton vert pour enregistrer."},
-  agenda:{txt:"Votre prochain rendez-vous est en haut. Appuyez sur Annuler pour annuler un rendez-vous."}
+  wiz8:{txt:"Vérifiez. Vous pouvez ajouter un détail, une adresse ou un temps de trajet si besoin, puis appuyez sur le bouton vert pour enregistrer."},
+  agenda:{txt:"Votre prochain rendez-vous est en haut. Appuyez sur Annuler pour annuler un rendez-vous."},
+  mois:{txt:"Les jours avec un point ont un rappel. Appuyez sur un jour pour le voir sur l'accueil."}
 };
 let tutoCleActive=null;
 function montrerTuto(cle,force){
@@ -3766,6 +4196,43 @@ function wizCalRender(){
     goToStep(3);
   }));
 }
+// ===== "Mon mois" : calendrier de consultation (accessible depuis "Voir tout mon agenda") =====
+let moisCalMois=null;
+function showMoisScreen(){
+  const t=new Date();
+  moisCalMois=new Date(t.getFullYear(),t.getMonth(),1);
+  showScreen('mois-screen');
+  moisCalRender();
+}
+function moisCalNav(d){moisCalMois=new Date(moisCalMois.getFullYear(),moisCalMois.getMonth()+d,1);moisCalRender();}
+function moisCalRender(){
+  const M=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  document.getElementById('mois-cal-titre').textContent=M[moisCalMois.getMonth()]+' '+moisCalMois.getFullYear();
+  const todayKey=dateKey(new Date());
+  let html=['L','M','M','J','V','S','D'].map(j=>`<div class="wiz-cal-jour entete">${j}</div>`).join('');
+  const premier=(moisCalMois.getDay()+6)%7; // lundi en premier
+  const nb=new Date(moisCalMois.getFullYear(),moisCalMois.getMonth()+1,0).getDate();
+  for(let i=0;i<premier;i++)html+='<div></div>';
+  for(let j=1;j<=nb;j++){
+    const k=dateKey(new Date(moisCalMois.getFullYear(),moisCalMois.getMonth(),j));
+    const classes=['wiz-cal-jour'];
+    // Seuls les rendez-vous ponctuels marquent un jour "chargé" : les rappels quotidiens
+    // s'appliquent à tous les jours et ne seraient pas un signal utile ici.
+    if((state.reminders||[]).some(r=>r.recurrence==='once'&&(r.eventDate||r.date)===k))classes.push('charge');
+    if(k===todayKey)classes.push('aujourdhui');
+    html+=`<button type="button" class="${classes.join(' ')}" ${k<todayKey?'disabled':''} data-k="${k}">${j}</button>`;
+  }
+  const g=document.getElementById('mois-cal-grille');
+  g.innerHTML=html;
+  g.querySelectorAll('.wiz-cal-jour[data-k]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.dataset.k;
+    const diffJours=Math.round((new Date(k+'T00:00:00').getTime()-new Date(todayKey+'T00:00:00').getTime())/86400000);
+    state.dayOffset=diffJours;
+    render();
+    showScreen('main-screen');
+  }));
+}
+document.getElementById('mois-back').addEventListener('click',()=>showScreen('main-screen'));
 function wizOuvrir(id){document.getElementById(id).classList.add('actif');}
 function wizFermer(id){document.getElementById(id).classList.remove('actif');}
 document.querySelectorAll('.wiz-voile').forEach(v=>v.addEventListener('click',e=>{if(e.target===v)wizFermer(v.id);}));
@@ -3791,11 +4258,17 @@ document.querySelectorAll('.sonnerie-choix-btn').forEach(btn=>btn.addEventListen
 function getSonnerieChoix(){return document.querySelector('.sonnerie-choix-btn.active')?.dataset.choix||'2h';}
 function calcSonnerieAvant(rdvDate,rdvTime,min){const rdvMs=new Date(rdvDate+'T'+rdvTime+':00').getTime();const d=new Date(rdvMs-min*60000);return{date:dateKey(d),time:pad2(d.getHours())+':'+pad2(d.getMinutes())};}
 function calcSonnerieVeille(rdvDate){const d=new Date(rdvDate+'T12:00:00');d.setDate(d.getDate()-1);return{date:dateKey(d),time:'15:00'};}
+// Sonnerie effective d'un rendez-vous : au départ s'il y a un trajet, sinon selon le choix d'anticipation.
+function _calcSonnerieRappel(rdvDate,rdvTime,choix,travelMin){
+  if(travelMin>0){const depMs=new Date(rdvDate+'T'+rdvTime+':00').getTime()-(travelMin+10)*60000;const rd=new Date(depMs);return{date:dateKey(rd),time:pad2(rd.getHours())+':'+pad2(rd.getMinutes())};}
+  if(choix==='veille')return calcSonnerieVeille(rdvDate);
+  const min=choix==='heure'?0:(choix==='30min'?30:(choix==='1h'?60:120));
+  return calcSonnerieAvant(rdvDate,rdvTime,min);
+}
 document.getElementById('add-btn').addEventListener('click',()=>openEdit(null));
 document.getElementById('back-btn').addEventListener('click',()=>{if(state.editingAdminMode&&adminEditingUid){const uid=adminEditingUid;state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showAdminUserDetail(uid);return;}showScreen('main-screen');});
 
-document.getElementById('save-btn').addEventListener('click',async()=>{const title=document.getElementById('f-title').value.trim();if(!title){showConfirm({icon:'⚠️',title:'Titre manquant',text:"Appuyez sur une image ou écrivez ce qu'il faut faire.",okText:'OK',hideCancel:true});return;}const rec=getSelectedRecurrence();const data={time:getTPVal('f-time'),title,icon:getSelectedIcon(),note:document.getElementById('f-note').value.trim(),recurrence:rec};if(rec==='once'){const rdvDate=document.getElementById('f-event-date').value||dateKey(getCurrentDate());const rdvTime=getTPVal('f-event-time');const choix=getSonnerieChoix();data.eventDate=rdvDate;data.eventTime=rdvTime;data.sonnerieChoix=choix;const _adr=(document.getElementById('f-address')?document.getElementById('f-address').value.trim():'');data.address=_adr;data.mapQuery=_adr?encodeURIComponent(_adr):'';data.travelMin=wizTravel||0;// Calculer sonnerie(s) selon choix
-let _sonn;if(choix==='veille'){_sonn=calcSonnerieVeille(rdvDate);}else{const _min=choix==='30min'?30:(choix==='1h'?60:120);_sonn=calcSonnerieAvant(rdvDate,rdvTime,_min);}data.date=_sonn.date;data.time=_sonn.time;if(!data.date){showConfirm({icon:'⚠️',title:'Date manquante',text:'Choisissez la date du rendez-vous.',okText:'OK',hideCancel:true});return;}if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}});}
+document.getElementById('save-btn').addEventListener('click',async()=>{const title=document.getElementById('f-title').value.trim();if(!title){showConfirm({icon:'⚠️',title:'Titre manquant',text:"Appuyez sur une image ou écrivez ce qu'il faut faire.",okText:'OK',hideCancel:true});return;}const rec=getSelectedRecurrence();const data={time:getTPVal('f-time'),title,icon:getSelectedIcon(),note:document.getElementById('f-note').value.trim(),recurrence:rec};if(rec==='once'){const rdvDate=document.getElementById('f-event-date').value||dateKey(getCurrentDate());const rdvTime=getTPVal('f-event-time');const choix=getSonnerieChoix();data.eventDate=rdvDate;data.eventTime=rdvTime;data.sonnerieChoix=choix;const _adr=(document.getElementById('f-address')?document.getElementById('f-address').value.trim():'');data.address=_adr;data.mapQuery=_adr?encodeURIComponent(_adr):'';data.travelMin=wizTravel||0;const _sonn=_calcSonnerieRappel(rdvDate,rdvTime,choix,data.travelMin);data.date=_sonn.date;data.time=_sonn.time;if(!data.date){showConfirm({icon:'⚠️',title:'Date manquante',text:'Choisissez la date du rendez-vous.',okText:'OK',hideCancel:true});return;}if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}});}
 }else{data.date=null;data.eventDate=null;data.eventTime=null;if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}}); }}await saveUserData();if(state.editingAdminMode&&adminEditingUid){const targetUid=adminEditingUid;const prenom=state.editingAdminPrenom;if(rec==='once'&&data.date&&prenom){queueNotification('🔔 '+data.title,data.note?('📍 '+data.note+'\n⏰ '+data.date+' à '+data.time.replace(':','h')):('⏰ '+data.date+' à '+data.time.replace(':','h')+' · Appuyez pour ouvrir l\'app'),data.date,data.time,{key:'prenom',value:prenom.toLowerCase()});}state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showConfirm({icon:'✅',title:'Rappel ajouté !',text:`Le rappel a été ajouté pour ${prenom}.`,okText:'OK',hideCancel:true,onOk:()=>showAdminUserDetail(targetUid)});return;}render();showScreen('main-screen');if(rec==='once'&&data.date){const userPrenom=currentUser?currentUser.prenom.toLowerCase():null;if(userPrenom&&!estNatifAlarme()){queueNotification('🔔 '+data.title,data.note?('📍 '+data.note+'\n⏰ Aujourd\'hui à '+data.time.replace(':','h')):('⏰ Aujourd\'hui à '+data.time.replace(':','h')+' · Appuyez pour ouvrir l\'app'),data.date,data.time,{key:'prenom',value:userPrenom});}const rdvHeure=data.eventTime?data.eventTime.replace(':','h'):data.time.replace(':','h');showConfirm({icon:'✅',title:'Rappel enregistré !',text:`Votre rendez-vous du ${formatRelativeDate(data.eventDate||data.date)} à ${rdvHeure} est bien enregistré.`,okText:'Super !',hideCancel:true});}});
 
 document.getElementById('delete-btn').addEventListener('click',()=>{showConfirm({icon:'🗑️',title:'Supprimer ce rappel ?',text:'Cette action ne peut pas être annulée.',okText:'Supprimer',danger:true,onOk:async()=>{const del=state.reminders.find(x=>x.id===state.editing);state.reminders=state.reminders.filter(x=>x.id!==state.editing);if(del&&del.source==='atelier'&&del.date&&del.time){const key=del.date+'_'+del.time+'_'+(del.title||'').slice(0,20).replace(/\s/g,'_');delete state.inscriptions[key];try{await db.collection('users').doc(currentUser.id).update({['inscriptions.'+key]:firebase.firestore.FieldValue.delete()});}catch(e){}}await saveUserData();render();showScreen('main-screen');}});});
@@ -3879,19 +4352,17 @@ function stopChime(){if(chimeInterval){clearInterval(chimeInterval);chimeInterva
 let alertCurrentId=null;const pendingRerings={}; // re-sonnerie unique si pas confirmé
 function fireAlert(r,isRering){alertCurrentId=r.id;if(!isRering){pendingRerings[r.id]={at:Date.now(),done:false};}document.getElementById('alert-icon').innerHTML=iconHTML(r.icon);document.getElementById('alert-time').textContent=r.time;document.getElementById('alert-title').textContent=(isRering?'Rappel : ':'')+r.title;document.getElementById('alert-note').textContent=r.note||'';const eD=r.eventDate||r.date,eT=r.eventTime||r.time;const dd=r.recurrence==='once'&&eD&&eD!==r.date,td=r.recurrence==='once'&&eT&&eT!==r.time,hd=dd||td;const ae=document.getElementById('alert-eventtime');if(hd){ae.textContent=`🗓️ Rendez-vous${dd?' '+formatRelativeDate(eD):''} à ${eT.replace(':','h')}`;ae.style.display='block';}else{ae.style.display='none';}document.getElementById('alert').classList.add('active');startChime();let phrase=`Il est ${timeToSpeech(r.time)}. ${r.title}`;if(hd){if(dd)phrase+=`, ${formatRelativeDate(eD)}`;phrase+=`, à ${timeToSpeech(eT)}`;}phrase+=`. ${r.note||''}`;setTimeout(()=>speak(phrase),1400);if('Notification' in window&&Notification.permission==='granted')try{new Notification('Ma Journée AVP',{body:`${r.time} — ${r.title}`})}catch(e){}}
 document.getElementById('alert-dismiss').addEventListener('click',async()=>{document.getElementById('alert').classList.remove('active');stopChime();
-// Confirmation "C'est fait" : marque le rappel fait pour aujourd'hui + annule la re-sonnerie
+// "J'ai vu" : arrête juste la sonnerie et annule la re-sonnerie — aucune notion de tâche accomplie.
 try{
   if(alertCurrentId){
     delete pendingRerings[alertCurrentId];
-    const r=state.reminders.find(x=>x.id===alertCurrentId);
-    if(r){if(!r.done)r.done={};const tk=dateKey(new Date());if(!r.done[tk]){r.done[tk]=true;await saveUserData();render();}}
     alertCurrentId=null;
   }
 }catch(e){}try{window.speechSynthesis?.cancel();}catch(e){}try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech)window.Capacitor.Plugins.TextToSpeech.stop();}catch(e){}});
 
 let firedToday=new Set();
 function checkReminders(){if(!currentUser)return;const now=new Date(),ct=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,tk=dateKey(new Date());state.reminders.forEach(r=>{if(!reminderAppliesToDay(r,tk))return;const fk=`${tk}_${r.id}_${r.time}`;if(r.time===ct&&!firedToday.has(fk)&&!(r.done&&r.done[tk])){firedToday.add(fk);fireAlert(r);}});
-// Re-sonnerie douce : 15 min après la sonnerie, une seule fois, si pas confirmé "C'est fait"
+// Re-sonnerie douce : 15 min après la sonnerie, une seule fois, si pas confirmé "J'ai vu"
 Object.keys(pendingRerings).forEach(id=>{
   const p=pendingRerings[id];
   if(Date.now()-p.at<15*60*1000)return;
@@ -3982,7 +4453,7 @@ async function init(){
     }
   }catch(e){}
   const session=loadSession();
-  if(session){currentUser=session;if(currentUser.isAdmin){showAdminScreen();}else{tagOneSignalUser(currentUser.prenom);await loadUserData();recordAppVersion(currentUser.id);logConnexion();enterApp();maybeShowAvisPopup();loadAVPPlanning();}}else{showScreen('login-screen');}
+  if(session){currentUser=session;if(currentUser.isAdmin){showAdminScreen();}else{tagOneSignalUser(currentUser.prenom);await loadUserData();recordAppVersion(currentUser.id);logConnexion();enterApp();maybeShowAvisPopup();loadAVPPlanning();if(estNatifAlarme())planifierNotifsSysteme();}}else{showScreen('login-screen');}
   setInterval(checkReminders,30000);
   setInterval(render,60000);
   setInterval(()=>{const n=new Date();if(n.getHours()===0&&n.getMinutes()===0)firedToday.clear();},60000);
