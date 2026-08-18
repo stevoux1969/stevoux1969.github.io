@@ -649,8 +649,10 @@
 .wiz-popup{background:white;border-radius:24px 24px 0 0;padding:20px;width:100%;max-width:480px;max-height:75vh;overflow-y:auto;}
 .wiz-popup-titre{font-size:1.2rem;font-weight:800;color:#1a2340;text-align:center;margin-bottom:14px;}
 .wiz-popup-liste{display:flex;flex-direction:column;gap:10px;}
-.wiz-popup-item{background:#eef1f8;border:2px solid transparent;border-radius:14px;padding:14px 16px;font-family:inherit;font-size:1.05rem;font-weight:700;color:#1a2340;cursor:pointer;text-align:left;display:flex;align-items:center;gap:12px;}
+.wiz-popup-item{width:100%;background:#eef1f8;border:2px solid transparent;border-radius:14px;padding:14px 16px;font-family:inherit;font-size:1.05rem;font-weight:700;color:#1a2340;cursor:pointer;text-align:left;display:flex;align-items:center;gap:12px;}
 .wiz-popup-item .e{font-size:1.5rem;display:flex;align-items:center;}
+.wiz-popup-item .t{display:flex;flex-direction:column;gap:2px;}
+.wiz-popup-item .t small{font-size:0.76rem;font-weight:600;color:#8992b8;}
 .wiz-popup-fermer{width:100%;margin-top:14px;padding:14px;border:none;border-radius:14px;background:#eef1f8;color:#48547a;font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;}
 .wiz-popup-valider{width:100%;margin-top:12px;padding:14px;border:none;border-radius:14px;background:#22a559;color:white;font-family:inherit;font-size:1.05rem;font-weight:800;cursor:pointer;}
 .wiz-input{width:100%;border:2px solid #dde2f0;border-radius:12px;padding:14px;font-family:inherit;font-size:1.05rem;box-sizing:border-box;}
@@ -661,6 +663,9 @@
 .wiz-cal-jour{aspect-ratio:1;border:none;border-radius:10px;background:#eef1f8;font-family:inherit;font-size:0.95rem;font-weight:700;color:#1a2340;cursor:pointer;}
 .wiz-cal-jour:disabled{opacity:0.3;cursor:default;}
 .wiz-cal-jour.entete{background:none;color:#48547a;font-size:0.75rem;cursor:default;}
+.wiz-cal-jour.charge{position:relative;background:#dde4fb;color:#2c3e91;}
+.wiz-cal-jour.charge::after{content:'';position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:#2c3e91;}
+.wiz-cal-jour.aujourdhui{outline:2px solid #22a559;outline-offset:-2px;}
 .btn-ecouter-recap{width:100%;padding:14px;border:2px solid #dde2f0;border-radius:14px;background:white;color:#2c3e91;font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;margin-bottom:14px;}
 /* ===== Bulles de tutoriel ===== */
 #tuto-zone{display:none;position:fixed;left:12px;right:12px;bottom:16px;z-index:80;pointer-events:none;}
@@ -835,11 +840,28 @@
 <div id="mes-rdv-screen" class="screen">
   <div class="edit-header">
     <button class="back-btn" id="mes-rdv-back">‹ Retour</button>
-    <h1 style="flex:1">📅 Mon agenda</h1>
+    <h1 style="flex:1" id="mes-rdv-titre">📅 Mon agenda</h1>
     <button type="button" class="btn-aide-tuto" onclick="montrerTuto('agenda',true)" aria-label="Aide">?</button>
   </div>
   <div class="list-wrap">
     <div id="mes-rdv-list"></div>
+  </div>
+</div>
+
+<div id="mois-screen" class="screen">
+  <div class="edit-header">
+    <button class="back-btn" id="mois-back">‹ Retour</button>
+    <h1 style="flex:1">🗓️ Mon mois</h1>
+    <button type="button" class="btn-aide-tuto" onclick="montrerTuto('mois',true)" aria-label="Aide">?</button>
+  </div>
+  <div class="list-wrap" style="padding:16px;">
+    <div class="wiz-cal-entete">
+      <button type="button" class="wiz-cal-nav" onclick="moisCalNav(-1)">‹</button>
+      <div class="wiz-cal-mois" id="mois-cal-titre"></div>
+      <button type="button" class="wiz-cal-nav" onclick="moisCalNav(1)">›</button>
+    </div>
+    <div class="wiz-cal-grille" id="mois-cal-grille"></div>
+    <p style="text-align:center;color:#8992a8;font-size:0.85rem;margin-top:16px;">🔵 Jour avec un rappel — appuyez sur un jour pour le voir sur l'accueil</p>
   </div>
 </div>
 
@@ -988,6 +1010,25 @@
     </div>
     <div class="wiz-cal-grille" id="wiz-cal-grille"></div>
     <button type="button" class="wiz-popup-fermer" onclick="wizFermer('wiz-voile-cal')">Fermer</button>
+  </div>
+</div>
+
+<!-- Menu "Que voulez-vous voir ?" ouvert depuis "Voir tout mon agenda" -->
+<div class="wiz-voile" id="voile-agenda-menu">
+  <div class="wiz-popup">
+    <div class="wiz-popup-titre">Que voulez-vous voir ?</div>
+    <div class="wiz-popup-liste">
+      <button type="button" class="wiz-popup-item" onclick="wizFermer('voile-agenda-menu');showMesRendezVous('jour')">
+        <span class="e">☀️</span><span class="t"><b>Ma journée</b><small>Ce qui reste aujourd'hui</small></span>
+      </button>
+      <button type="button" class="wiz-popup-item" onclick="wizFermer('voile-agenda-menu');showMesRendezVous('semaine')">
+        <span class="e">📅</span><span class="t"><b>Ma semaine</b><small>Jusqu'à dimanche</small></span>
+      </button>
+      <button type="button" class="wiz-popup-item" onclick="wizFermer('voile-agenda-menu');showMoisScreen()">
+        <span class="e">🗓️</span><span class="t"><b>Mon mois</b><small>Voir les jours chargés</small></span>
+      </button>
+    </div>
+    <button type="button" class="wiz-popup-fermer" onclick="wizFermer('voile-agenda-menu')">Fermer</button>
   </div>
 </div>
 
@@ -1666,7 +1707,7 @@ function openUserMenu(){document.getElementById('um-name').textContent=currentUs
 document.getElementById('um-alarmes').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');window.location.href='reglages.html';});
 document.getElementById('user-menu').addEventListener('click',e=>{if(e.target===document.getElementById('user-menu'))document.getElementById('user-menu').classList.remove('active');});
 document.getElementById('um-planning').addEventListener('click',async()=>{document.getElementById('user-menu').classList.remove('active');state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';await loadAVPPlanning();renderPlanning();});
-document.getElementById('mes-rdv-btn').addEventListener('click',()=>showMesRendezVous());
+document.getElementById('mes-rdv-btn').addEventListener('click',()=>wizOuvrir('voile-agenda-menu'));
 function _ouvrirEcranAvis(){
   // Réinitialise l'écran avant de l'ouvrir
   avisNoteSelectionnee=0;
@@ -3086,11 +3127,25 @@ function annulerRdvAgenda(id){
   }
 }
 
-function showMesRendezVous(){
+// Portée du dernier "Voir tout mon agenda" choisi (jour / semaine / tout), pour que les
+// rafraîchissements (après annulation d'un rdv) gardent le même filtre sans le repréciser.
+let mesRdvScope='tout';
+// Date-clé du dimanche de la semaine en cours (aujourd'hui inclus si on est déjà dimanche).
+function _finSemaineKey(){
+  const d=new Date();const dow=d.getDay();
+  d.setDate(d.getDate()+(dow===0?0:7-dow));
+  return dateKey(d);
+}
+function showMesRendezVous(scope){
+  if(scope)mesRdvScope=scope;else scope=mesRdvScope;
   showScreen('mes-rdv-screen');
+  const titreEl=document.getElementById('mes-rdv-titre');
+  if(titreEl)titreEl.textContent=scope==='jour'?'☀️ Ma journée':(scope==='semaine'?'📅 Ma semaine':'📅 Mon agenda');
   const list=document.getElementById('mes-rdv-list');
   const todayKey=dateKey(new Date());
-  // On garde tout ce qui est à venir (date >= aujourd'hui). Les rappels quotidiens sont inclus avec la date du jour.
+  const finSemaine=_finSemaineKey();
+  // On garde tout ce qui est à venir (date >= aujourd'hui), puis on filtre selon la portée choisie.
+  // Les rappels quotidiens sont inclus avec la date du jour.
   const now=Date.now();
   const items=(state.reminders||[]).map(r=>{
     let d=r.eventDate||r.date;
@@ -3098,11 +3153,16 @@ function showMesRendezVous(){
     const t=r.eventTime||r.time||'00:00';
     const passe=d===todayKey&&new Date(d+'T'+t+':00').getTime()<now;
     return {...r,_d:d,_t:t,_passe:passe};
-  }).filter(r=>r._d&&r._d>=todayKey)
-    .sort((a,b)=>a._d!==b._d?a._d.localeCompare(b._d):a._t.localeCompare(b._t));
+  }).filter(r=>{
+    if(!r._d||r._d<todayKey)return false;
+    if(scope==='jour')return r._d===todayKey;
+    if(scope==='semaine')return r._d<=finSemaine;
+    return true;
+  }).sort((a,b)=>a._d!==b._d?a._d.localeCompare(b._d):a._t.localeCompare(b._t));
 
   if(items.length===0){
-    list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem">🌿</div><div class="empty-text" style="margin-top:12px">Vous n'avez aucun rendez-vous à venir.</div></div>`;
+    const videTxt=scope==='jour'?"Vous n'avez aucun rendez-vous aujourd'hui.":(scope==='semaine'?"Vous n'avez aucun rendez-vous cette semaine.":"Vous n'avez aucun rendez-vous à venir.");
+    list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem">🌿</div><div class="empty-text" style="margin-top:12px">${videTxt}</div></div>`;
     return;
   }
 
@@ -3955,7 +4015,8 @@ const TUTOS={
   wiz3:{txt:"Réglez l'heure, puis appuyez sur le bouton vert."},
   wiz4:{txt:"Choisissez quand être prévenu, puis appuyez sur Continuer."},
   wiz8:{txt:"Vérifiez. Vous pouvez ajouter un détail, une adresse ou un temps de trajet si besoin, puis appuyez sur le bouton vert pour enregistrer."},
-  agenda:{txt:"Votre prochain rendez-vous est en haut. Appuyez sur Annuler pour annuler un rendez-vous."}
+  agenda:{txt:"Votre prochain rendez-vous est en haut. Appuyez sur Annuler pour annuler un rendez-vous."},
+  mois:{txt:"Les jours avec un point ont un rappel. Appuyez sur un jour pour le voir sur l'accueil."}
 };
 let tutoCleActive=null;
 function montrerTuto(cle,force){
@@ -4112,6 +4173,43 @@ function wizCalRender(){
     goToStep(3);
   }));
 }
+// ===== "Mon mois" : calendrier de consultation (accessible depuis "Voir tout mon agenda") =====
+let moisCalMois=null;
+function showMoisScreen(){
+  const t=new Date();
+  moisCalMois=new Date(t.getFullYear(),t.getMonth(),1);
+  showScreen('mois-screen');
+  moisCalRender();
+}
+function moisCalNav(d){moisCalMois=new Date(moisCalMois.getFullYear(),moisCalMois.getMonth()+d,1);moisCalRender();}
+function moisCalRender(){
+  const M=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  document.getElementById('mois-cal-titre').textContent=M[moisCalMois.getMonth()]+' '+moisCalMois.getFullYear();
+  const todayKey=dateKey(new Date());
+  let html=['L','M','M','J','V','S','D'].map(j=>`<div class="wiz-cal-jour entete">${j}</div>`).join('');
+  const premier=(moisCalMois.getDay()+6)%7; // lundi en premier
+  const nb=new Date(moisCalMois.getFullYear(),moisCalMois.getMonth()+1,0).getDate();
+  for(let i=0;i<premier;i++)html+='<div></div>';
+  for(let j=1;j<=nb;j++){
+    const k=dateKey(new Date(moisCalMois.getFullYear(),moisCalMois.getMonth(),j));
+    const classes=['wiz-cal-jour'];
+    // Seuls les rendez-vous ponctuels marquent un jour "chargé" : les rappels quotidiens
+    // s'appliquent à tous les jours et ne seraient pas un signal utile ici.
+    if((state.reminders||[]).some(r=>r.recurrence==='once'&&(r.eventDate||r.date)===k))classes.push('charge');
+    if(k===todayKey)classes.push('aujourdhui');
+    html+=`<button type="button" class="${classes.join(' ')}" ${k<todayKey?'disabled':''} data-k="${k}">${j}</button>`;
+  }
+  const g=document.getElementById('mois-cal-grille');
+  g.innerHTML=html;
+  g.querySelectorAll('.wiz-cal-jour[data-k]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.dataset.k;
+    const diffJours=Math.round((new Date(k+'T00:00:00').getTime()-new Date(todayKey+'T00:00:00').getTime())/86400000);
+    state.dayOffset=diffJours;
+    render();
+    showScreen('main-screen');
+  }));
+}
+document.getElementById('mois-back').addEventListener('click',()=>showScreen('main-screen'));
 function wizOuvrir(id){document.getElementById(id).classList.add('actif');}
 function wizFermer(id){document.getElementById(id).classList.remove('actif');}
 document.querySelectorAll('.wiz-voile').forEach(v=>v.addEventListener('click',e=>{if(e.target===v)wizFermer(v.id);}));
