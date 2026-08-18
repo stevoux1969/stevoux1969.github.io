@@ -768,9 +768,9 @@
     <h2>🏠 Ton écran d'accueil</h2>
     <div class="aide-etape"><div class="aide-num">1</div><p>Chaque carte est une chose à faire aujourd'hui, avec l'heure prévue.</p></div>
     <div class="aide-etape"><div class="aide-num">2</div><p>Appuie sur 🔊 pour écouter le rappel à voix haute.</p></div>
-    <div class="aide-etape"><div class="aide-num">3</div><p>Quand c'est fait, appuie sur <b>« C'est fait »</b>. Si tu t'es trompé, tu as quelques secondes pour appuyer sur <b>Annuler</b>.</p></div>
-    <div class="aide-etape"><div class="aide-num">4</div><p>Une carte marron <b>« Toujours à faire »</b> est un rappel que tu n'as pas encore validé.</p></div>
-    <div class="aide-etape"><div class="aide-num">5</div><p>Le bouton <b>« + Nouveau rappel »</b> en bas à droite permet d'ajouter quelque chose.</p></div>
+    <div class="aide-etape"><div class="aide-num">3</div><p>Une fois l'heure passée, le rappel disparaît tout seul de l'accueil. Pas besoin de le valider.</p></div>
+    <div class="aide-etape"><div class="aide-num">4</div><p>Appuie sur une carte pour la modifier. Si elle a une adresse ou une note, <b>« + Plus d'infos »</b> les affiche.</p></div>
+    <div class="aide-etape"><div class="aide-num">5</div><p>Le bouton <b>« + Nouveau rappel personnel »</b> en bas permet d'ajouter quelque chose.</p></div>
     <button type="button" class="aide-lire-btn" id="aide-lire-btn">🔊 Écouter les explications</button>
     <button type="button" class="aide-fermer-btn" id="aide-fermer-btn">Fermer</button>
   </div>
@@ -3374,7 +3374,7 @@ function _sonnerieUniqueMs(r,ti,jourAffiche){
   return new Date(d+'T'+t+':00').getTime();
 }
 // Construit l'étiquette de date + la carte : bloc Départ compact, sonnerie unique
-// affichée à côté de l'heure, bouton Maps, « C'est fait », 🔊 Écouter.
+// affichée à côté de l'heure, bouton Maps, « + Plus d'infos », 🔊 Écouter.
 function _carteRappel(r,key,jourAffiche){
   const isAtelier=r.source==='atelier';
   const isDaily=r.recurrence==='daily';
@@ -4339,7 +4339,7 @@ try{
 
 let firedToday=new Set();
 function checkReminders(){if(!currentUser)return;const now=new Date(),ct=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,tk=dateKey(new Date());state.reminders.forEach(r=>{if(!reminderAppliesToDay(r,tk))return;const fk=`${tk}_${r.id}_${r.time}`;if(r.time===ct&&!firedToday.has(fk)&&!(r.done&&r.done[tk])){firedToday.add(fk);fireAlert(r);}});
-// Re-sonnerie douce : 15 min après la sonnerie, une seule fois, si pas confirmé "C'est fait"
+// Re-sonnerie douce : 15 min après la sonnerie, une seule fois, si pas confirmé "J'ai vu"
 Object.keys(pendingRerings).forEach(id=>{
   const p=pendingRerings[id];
   if(Date.now()-p.at<15*60*1000)return;
