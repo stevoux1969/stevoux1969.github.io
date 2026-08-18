@@ -605,8 +605,14 @@
 .wizard-btn{flex:1;border:none;border-radius:14px;padding:18px;font-size:1.1rem;font-weight:800;cursor:pointer;font-family:inherit;min-height:56px;}
 .wizard-btn-prev{background:#e3e8f4;color:#2c3e91;flex:0 0 38%;}
 .wizard-btn-next{background:#2c3e91;color:#fff;}
-.wizard-recap{margin-bottom:20px;}
-.wizard-recap .c-card{margin-bottom:0;opacity:1;transform:none;}
+.wizard-recap{border:2px solid #2c3e91;border-radius:18px;padding:16px 18px;margin-bottom:20px;background:#fff;}
+.wr-heure{font-size:2rem;font-weight:800;color:#2c3e91;line-height:1.1;}
+.wr-titre-row{display:flex;align-items:center;gap:10px;margin-top:8px;}
+.wr-emoji{width:42px;height:42px;border-radius:12px;background:#eef1fb;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;}
+.wr-emoji img{width:30px;height:30px;}
+.wr-titre{font-size:1.02rem;font-weight:700;color:#222;}
+.wr-sep{height:1px;background:#eef1fb;margin:14px 0;}
+.wr-date{font-size:0.88rem;color:#5b6785;text-align:center;}
 .wizard-fold{background:#f5f7fc;border-radius:12px;margin-bottom:12px;padding:14px 16px;}
 .wizard-fold summary{font-size:1rem;font-weight:700;color:#2c3e91;cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;}
 .wizard-fold summary::-webkit-details-marker{display:none;}
@@ -721,6 +727,7 @@
 <div id="main-screen" class="screen">
   <header class="header">
     <button id="btn-aide-accueil" class="btn-arrow" aria-label="Aide" style="font-size:1.5rem;">?</button>
+    <button id="prev-day" class="btn-arrow" aria-label="Jour précédent" style="visibility:hidden">‹</button>
     <div class="header-title">
       <h1 id="day-title">Aujourd'hui</h1>
       <p id="day-date" class="date"></p>
@@ -845,6 +852,10 @@
     </div>
     <div class="wizard-topline"><button type="button" id="wizard-prev" class="btn-retour-haut" style="visibility:hidden">‹ Retour</button></div>
 
+    <!-- Vignette récap persistante : apparaît dès que l'heure est connue (étape 3),
+         reste visible et à jour sur les étapes suivantes au lieu de n'apparaître qu'au récap final. -->
+    <div id="wizard-recap" class="wizard-recap" style="display:none"></div>
+
     <!-- ÉTAPE 1 : Quel est votre rappel ? (thèmes → choix précis) -->
     <div class="wizard-step active" data-step="1">
       <h3 class="wizard-q">Quel est votre rappel ?</h3>
@@ -905,7 +916,6 @@
     <!-- ÉTAPE 8 : Récap « C'est bien ça ? » + vignettes optionnelles (détail / adresse / trajet) -->
     <div class="wizard-step" data-step="8">
       <h3 class="wizard-q">C'est bien ça ?</h3>
-      <div id="wizard-recap" class="wizard-recap"></div>
 
       <div class="options-row" id="wizard-options-row">
         <div class="opt-btn" id="opt-btn-detail" data-opt="detail" onclick="wizToggleOption('detail')">
@@ -3422,7 +3432,7 @@ function _jouerEntreeCartes(){
     setTimeout(()=>c.classList.add('apparue'),delai);
   });
 }
-function render(){_arreterLectureCarte();const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key));if(personal.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;_ajusterPaddingListe();return;}
+function render(){_arreterLectureCarte();const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';document.getElementById('prev-day').style.visibility=state.dayOffset>0?'visible':'hidden';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key));if(personal.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;_ajusterPaddingListe();return;}
 const now=Date.now();
 // Un rappel personnel dont l'heure est passée disparaît simplement de l'accueil (pas de retard, pas de validation).
 // Un atelier reste visible jusqu'à 15 min après son heure de début, puis disparaît aussi.
@@ -3694,6 +3704,7 @@ _tiroirMenuEl.addEventListener('touchmove',e=>{
 },{passive:true});
 _tiroirMenuEl.addEventListener('touchend',()=>{_tiroirFermeDepartX=null;});
 
+document.getElementById('prev-day').addEventListener('click',()=>{if(state.dayOffset>0){state.dayOffset--;render();}});
 document.getElementById('next-day').addEventListener('click',()=>{state.dayOffset++;render();});
 document.getElementById('back-to-today').addEventListener('click',()=>{state.dayOffset=0;render();});
 document.getElementById('open-planning-steve').addEventListener('click',async()=>{state.currentAnim='Steve';state.avpEvents=[];document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';await loadAVPPlanning();renderPlanning();});
@@ -3842,7 +3853,9 @@ function goToStep(n){
   document.getElementById('wizard-step-label').textContent='Étape '+(idx+1)+' sur '+seq.length;
   document.getElementById('wizard-progress-fill').style.width=Math.round((idx+1)/seq.length*100)+'%';
   document.getElementById('wizard-prev').style.visibility=(n===1)?'hidden':'visible';
-  if(n===8){renderWizardRecap();wizRenderOptionsRow();}
+  document.getElementById('wizard-recap').style.display=(n>=3)?'block':'none';
+  if(n>=3)renderWizardRecap();
+  if(n===8)wizRenderOptionsRow();
   const body=document.querySelector('#edit-screen .edit-body');if(body)body.scrollTop=0;
   if(typeof montrerTuto==='function')setTimeout(()=>montrerTuto('wiz'+n),300);
 }
@@ -3909,33 +3922,24 @@ function wizDraftReminder(){
   if(eventDate&&eventTime)sonn=_calcSonnerieRappel(eventDate,eventTime,getSonnerieChoix(),travelMin);
   return{recurrence:'once',eventDate,eventTime,date:sonn.date,time:sonn.time,title,icon,note,address,travelMin};
 }
-// Réutilise le même gabarit visuel que les cartes de l'accueil (.c-card/.c-top)
-// pour que l'aperçu du récap soit identique au résultat final.
+// Format compact : heure en gros en haut, icône + titre en dessous, séparateur fin,
+// date en petit tout en bas (pas de ligne sonnerie ici, elle est portée par les vignettes).
 function renderWizardRecap(){
   const r=wizDraftReminder();
   const isDaily=r.recurrence==='daily';
-  const ti=_trajetInfo(r);
   const eventDate=r.eventDate||r.date;
   const eventTime=r.eventTime||r.time;
   const heureBrute=isDaily?r.time:eventTime;
   const heure=heureBrute?heureBrute.replace(':','h'):'--h--';
-  const labelTxt=isDaily?'TOUS LES JOURS':(eventDate?formatShortDate(eventDate).toUpperCase():'(jour à choisir)');
-  let sonnerieInline='';
-  if(!(ti&&ti.departMs)){
-    const sonnMs=_sonnerieUniqueMs(r,ti,getCurrentDate());
-    if(sonnMs!==null){
-      const hm=pad2(new Date(sonnMs).getHours())+'h'+pad2(new Date(sonnMs).getMinutes());
-      sonnerieInline=' <span class="c-sonnerie-inline">🔔 sonnerie '+hm+'</span>';
-    }
-  }
+  const dateTxt=isDaily?'Tous les jours':(eventDate?formatRelativeDate(eventDate):'(jour à choisir)');
   document.getElementById('wizard-recap').innerHTML=
-    '<div class="label-carte">'+esc(labelTxt)+'</div>'
-    +'<div class="c-card" style="cursor:default">'
-      +'<div class="c-top">'
-        +'<div class="c-emoji">'+iconHTML(r.icon)+'</div>'
-        +'<div class="c-titre"><div class="c-heure">'+heure+sonnerieInline+'</div><h3>'+esc(r.title)+'</h3></div>'
-      +'</div>'
-    +'</div>';
+    '<div class="wr-heure">'+heure+'</div>'
+    +'<div class="wr-titre-row">'
+      +'<div class="wr-emoji">'+iconHTML(r.icon)+'</div>'
+      +'<div class="wr-titre">'+esc(r.title)+'</div>'
+    +'</div>'
+    +'<div class="wr-sep"></div>'
+    +'<div class="wr-date">📅 '+esc(dateTxt)+'</div>';
 }
 // ===== Bulles de tutoriel : une par écran/étape, mémorisées par bénéficiaire (tutosVus) =====
 // Fermeture par appui n'importe où sur l'écran (ou sur "J'ai compris") ; le 🔊 relit sans fermer.
