@@ -906,14 +906,24 @@
     <div style="background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 10px rgba(26,35,64,0.07);">
       <div style="font-size:1rem;font-weight:800;color:#2c3e91;margin-bottom:4px;">📱 L'application</div>
       <div style="font-size:0.8rem;color:#8992b8;margin-bottom:10px;line-height:1.5;">Qu'est-ce que tu aimerais qu'il y ait ? Qu'est-ce que tu comprends bien, ou moins bien ?</div>
-      <textarea id="avis-texte-app" placeholder="Ton avis sur l'application... (facultatif)" style="width:100%;box-sizing:border-box;border:1.5px solid #d1d9f0;border-radius:12px;padding:12px;font-size:0.95rem;font-family:inherit;resize:none;height:90px;margin-bottom:22px;"></textarea>
-
-      <div style="font-size:1rem;font-weight:800;color:#2c3e91;margin-bottom:4px;">🏠 AVP La Clé</div>
-      <div style="font-size:0.8rem;color:#8992b8;margin-bottom:10px;line-height:1.5;">Ton avis sur l'association, les ateliers, l'accueil</div>
-      <textarea id="avis-texte-avp" placeholder="Ton avis sur AVP... (facultatif)" style="width:100%;box-sizing:border-box;border:1.5px solid #d1d9f0;border-radius:12px;padding:12px;font-size:0.95rem;font-family:inherit;resize:none;height:90px;margin-bottom:22px;"></textarea>
+      <textarea id="avis-texte-app" placeholder="Ton avis sur l'application... (facultatif)" style="width:100%;box-sizing:border-box;border:1.5px solid #d1d9f0;border-radius:12px;padding:12px;font-size:0.95rem;font-family:inherit;resize:none;height:90px;margin-bottom:14px;"></textarea>
 
       <div style="font-size:0.95rem;font-weight:700;color:#48547a;margin-bottom:10px;">Comment tu trouves l'application ?</div>
-      <div style="display:flex;justify-content:center;gap:8px;margin-bottom:22px;">
+      <div id="avis-emoji-app" style="display:flex;justify-content:center;gap:8px;margin-bottom:22px;">
+        <button type="button" class="avis-emoji-opt" data-note="4"><span class="aeo-em">😍</span><span class="aeo-lab">Très bien</span></button>
+        <button type="button" class="avis-emoji-opt" data-note="3"><span class="aeo-em">🙂</span><span class="aeo-lab">Bien</span></button>
+        <button type="button" class="avis-emoji-opt" data-note="2"><span class="aeo-em">😐</span><span class="aeo-lab">Moyen</span></button>
+        <button type="button" class="avis-emoji-opt" data-note="1"><span class="aeo-em">😟</span><span class="aeo-lab">Faible</span></button>
+      </div>
+
+      <div style="height:1px;background:#eef1fb;margin:4px 0 22px;"></div>
+
+      <div style="font-size:1rem;font-weight:800;color:#0a6e31;margin-bottom:4px;">🏠 AVP La Clé</div>
+      <div style="font-size:0.8rem;color:#8992b8;margin-bottom:10px;line-height:1.5;">Ton avis sur l'association, les ateliers, l'accueil</div>
+      <textarea id="avis-texte-avp" placeholder="Ton avis sur AVP... (facultatif)" style="width:100%;box-sizing:border-box;border:1.5px solid #d1d9f0;border-radius:12px;padding:12px;font-size:0.95rem;font-family:inherit;resize:none;height:90px;margin-bottom:14px;"></textarea>
+
+      <div style="font-size:0.95rem;font-weight:700;color:#48547a;margin-bottom:10px;">Comment tu trouves AVP ?</div>
+      <div id="avis-emoji-avp" style="display:flex;justify-content:center;gap:8px;margin-bottom:22px;">
         <button type="button" class="avis-emoji-opt" data-note="4"><span class="aeo-em">😍</span><span class="aeo-lab">Très bien</span></button>
         <button type="button" class="avis-emoji-opt" data-note="3"><span class="aeo-em">🙂</span><span class="aeo-lab">Bien</span></button>
         <button type="button" class="avis-emoji-opt" data-note="2"><span class="aeo-em">😐</span><span class="aeo-lab">Moyen</span></button>
@@ -1834,7 +1844,8 @@ document.getElementById('um-planning').addEventListener('click',async()=>{docume
 document.getElementById('mes-rdv-btn').addEventListener('click',()=>wizOuvrir('voile-agenda-menu'));
 function _ouvrirEcranAvis(){
   // Réinitialise l'écran avant de l'ouvrir
-  avisNoteSelectionnee=0;
+  avisNoteApp=0;
+  avisNoteAvp=0;
   avisAnonyme=false;
   const ta=document.getElementById('avis-texte-app');if(ta)ta.value='';
   const tv=document.getElementById('avis-texte-avp');if(tv)tv.value='';
@@ -3379,13 +3390,21 @@ function showMesRendezVous(scope){
 }
 
 // ========== AVIS BÉNÉFICIAIRES ==========
-let avisNoteSelectionnee=0;
+let avisNoteApp=0;
+let avisNoteAvp=0;
 let avisAnonyme=false;
-// Sélection d'un émoji (note 1 à 4) — note sur l'application uniquement
-document.querySelectorAll('.avis-emoji-opt').forEach(btn=>{
+// Sélection d'un émoji (note 1 à 4) — un sélecteur indépendant par section
+document.querySelectorAll('#avis-emoji-app .avis-emoji-opt').forEach(btn=>{
   btn.addEventListener('click',()=>{
-    avisNoteSelectionnee=parseInt(btn.dataset.note);
-    document.querySelectorAll('.avis-emoji-opt').forEach(b=>b.classList.remove('selected'));
+    avisNoteApp=parseInt(btn.dataset.note);
+    document.querySelectorAll('#avis-emoji-app .avis-emoji-opt').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+  });
+});
+document.querySelectorAll('#avis-emoji-avp .avis-emoji-opt').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    avisNoteAvp=parseInt(btn.dataset.note);
+    document.querySelectorAll('#avis-emoji-avp .avis-emoji-opt').forEach(b=>b.classList.remove('selected'));
     btn.classList.add('selected');
   });
 });
@@ -3401,24 +3420,24 @@ document.getElementById('avis-radio-anonyme').addEventListener('click',()=>{
   document.getElementById('avis-radio-prenom').classList.remove('selected');
 });
 
-// Envoi de l'avis dans Firebase : jusqu'à 2 documents (app / avp), même prénom pour les deux, note sur le doc "app" uniquement
+// Envoi de l'avis dans Firebase : jusqu'à 2 documents (app / avp), même prénom pour les deux, chacun avec sa propre note
 const avisEnvoyerBtn=document.getElementById('avis-envoyer');
 if(avisEnvoyerBtn)avisEnvoyerBtn.addEventListener('click',async()=>{
   const texteApp=document.getElementById('avis-texte-app').value.trim();
   const texteAvp=document.getElementById('avis-texte-avp').value.trim();
-  if(!avisNoteSelectionnee && !texteApp && !texteAvp){
+  if(!avisNoteApp && !avisNoteAvp && !texteApp && !texteAvp){
     showConfirm({icon:'🙂',title:'Votre avis',text:'Choisissez un visage ou écrivez un mot avant d\'envoyer.',okText:'OK',hideCancel:true});
     return;
   }
   const prenom=avisAnonyme?'':((currentUser&&currentUser.prenom)||'');
   try{
     const idsPostes=[];
-    if(texteApp||avisNoteSelectionnee){
-      const ref=await db.collection('avis').add({note:avisNoteSelectionnee||null,texte:texteApp||'',prenom,sujet:'app',createdAt:Date.now()});
+    if(texteApp||avisNoteApp){
+      const ref=await db.collection('avis').add({note:avisNoteApp||null,texte:texteApp||'',prenom,sujet:'app',createdAt:Date.now()});
       idsPostes.push(ref.id);
     }
-    if(texteAvp){
-      const ref=await db.collection('avis').add({note:null,texte:texteAvp,prenom,sujet:'avp',createdAt:Date.now()});
+    if(texteAvp||avisNoteAvp){
+      const ref=await db.collection('avis').add({note:avisNoteAvp||null,texte:texteAvp||'',prenom,sujet:'avp',createdAt:Date.now()});
       idsPostes.push(ref.id);
     }
     // Note : avis donné -> popup mensuel silencieux 30 jours
@@ -3439,23 +3458,25 @@ async function _renderAvisEcran(opts){
   try{
     const snap=await db.collection('avis').get();
     const avis=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-    // Résumé par note — uniquement les avis "application" (c'est la question posée)
-    const cnt={4:0,3:0,2:0,1:0};
-    avis.forEach(a=>{if((a.sujet||'app')==='app'&&a.note&&cnt[a.note]!==undefined)cnt[a.note]++;});
     const LAB={4:'Très bien',3:'Bien',2:'Moyen',1:'Faible'};
-    const bandeauHTML=(opts.justPostedIds&&opts.justPostedIds.length)
-      ?'<div style="background:#e8f7ee;border-radius:14px;padding:14px;text-align:center;margin-bottom:16px;"><div style="font-size:1.6rem;">✅</div><p style="color:#2b7a45;font-weight:700;font-size:0.9rem;margin:4px 0 0;">Merci, ton avis a été envoyé !</p></div>'
-      :'';
-    resume.innerHTML=bandeauHTML
-      +'<div style="text-align:center;font-size:0.82rem;font-weight:700;color:#48547a;margin-bottom:10px;">Ce que pensent les bénéficiaires de l\'application</div>'
+    const EM={4:'😍',3:'🙂',2:'😐',1:'😟'};
+    // Un compteur par sujet, chacun sur ses propres avis uniquement
+    const cntPour=sujet=>{
+      const cnt={4:0,3:0,2:0,1:0};
+      avis.forEach(a=>{if((a.sujet||'app')===sujet&&a.note&&cnt[a.note]!==undefined)cnt[a.note]++;});
+      return cnt;
+    };
+    const barreStats=(titre,cnt)=>'<div style="text-align:center;font-size:0.82rem;font-weight:700;color:#48547a;margin-bottom:10px;">'+titre+'</div>'
       +`<div style="background:#1a2870;color:#fff;border-radius:16px;padding:16px 8px;display:flex;justify-content:space-around;text-align:center;margin-bottom:14px;">
       <div><div style="font-size:1.6rem;">😍</div><b style="font-size:1.3rem;">${cnt[4]}</b><div style="color:#c3caf0;font-size:0.62rem;font-weight:600;margin-top:2px;">${LAB[4]}</div></div>
       <div><div style="font-size:1.6rem;">🙂</div><b style="font-size:1.3rem;">${cnt[3]}</b><div style="color:#c3caf0;font-size:0.62rem;font-weight:600;margin-top:2px;">${LAB[3]}</div></div>
       <div><div style="font-size:1.6rem;">😐</div><b style="font-size:1.3rem;">${cnt[2]}</b><div style="color:#c3caf0;font-size:0.62rem;font-weight:600;margin-top:2px;">${LAB[2]}</div></div>
       <div><div style="font-size:1.6rem;">😟</div><b style="font-size:1.3rem;">${cnt[1]}</b><div style="color:#c3caf0;font-size:0.62rem;font-weight:600;margin-top:2px;">${LAB[1]}</div></div>
     </div>`;
+    resume.innerHTML=(opts.justPostedIds&&opts.justPostedIds.length)
+      ?'<div style="background:#e8f7ee;border-radius:14px;padding:14px;text-align:center;margin-bottom:16px;"><div style="font-size:1.6rem;">✅</div><p style="color:#2b7a45;font-weight:700;font-size:0.9rem;margin:4px 0 0;">Merci, ton avis a été envoyé !</p></div>'
+      :'';
     if(avis.length===0){list.innerHTML='<div class="empty"><div class="empty-icon" style="font-size:2.25rem">💬</div><div class="empty-text" style="margin-top:12px">Aucun avis pour le moment.</div></div>';return;}
-    const EM={4:'😍',3:'🙂',2:'😐',1:'😟'};
     const avisApp=avis.filter(a=>(a.sujet||'app')==='app');
     const avisAvp=avis.filter(a=>a.sujet==='avp');
     const carte=a=>{
@@ -3465,7 +3486,7 @@ async function _renderAvisEcran(opts){
       const moi=opts.justPostedIds&&opts.justPostedIds.includes(a.id);
       const supprHTML=opts.isAdmin?`<button class="avis-suppr" data-id="${a.id}" style="background:none;border:none;font-size:1.125rem;cursor:pointer;color:#c0c6d8;">🗑️</button>`:'';
       return `<div style="background:${moi?'#f4fbf6':'#fff'};border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(26,35,64,0.06);border:1.5px solid ${moi?'#22a559':'transparent'};display:flex;gap:12px;align-items:flex-start;">
-        <div style="font-size:1.75rem;">${a.note?EM[a.note]:'💬'}</div>
+        ${a.note?`<div style="font-size:1.75rem;">${EM[a.note]}</div>`:''}
         <div style="flex:1;">
           ${a.texte?`<div style="color:#1a2340;font-size:0.95rem;line-height:1.5;">« ${esc(a.texte)} »</div>`:'<div style="color:#5b6785;font-style:italic;font-size:0.9rem;">(pas de commentaire)</div>'}
           <div style="font-size:0.8rem;color:#48547a;margin-top:4px;display:flex;align-items:center;gap:6px;">— ${qui} · ${dateLabel}${moi?'<span style="background:#22a559;color:#fff;font-size:0.62rem;font-weight:800;padding:2px 8px;border-radius:8px;">C\'est toi</span>':''}</div>
@@ -3474,8 +3495,10 @@ async function _renderAvisEcran(opts){
       </div>`;
     };
     list.innerHTML=
-      '<div style="font-size:0.9rem;font-weight:800;color:#2c3e91;margin:6px 0 8px;">📱 Sur l\'application ('+avisApp.length+')</div>'
+      barreStats('Ce que pensent les bénéficiaires de l\'application',cntPour('app'))
+      +'<div style="font-size:0.9rem;font-weight:800;color:#2c3e91;margin:6px 0 8px;">📱 Sur l\'application ('+avisApp.length+')</div>'
       +(avisApp.length?avisApp.map(carte).join(''):'<div style="color:#5b6785;font-style:italic;font-size:0.85rem;margin-bottom:10px;">Aucun avis.</div>')
+      +barreStats('Ce que pensent les bénéficiaires d\'AVP',cntPour('avp'))
       +'<div style="font-size:0.9rem;font-weight:800;color:#0a6e31;margin:14px 0 8px;">🏠 Sur l\'AVP ('+avisAvp.length+')</div>'
       +(avisAvp.length?avisAvp.map(carte).join(''):'<div style="color:#5b6785;font-style:italic;font-size:0.85rem;">Aucun avis.</div>');
     if(opts.isAdmin){
