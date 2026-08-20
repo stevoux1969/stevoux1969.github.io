@@ -642,6 +642,25 @@
 .opt-inline textarea{resize:none;min-height:70px;}
 .opt-inline .trajet-grid{margin-bottom:8px;}
 .opt-inline .valider{background:#22a559;color:#fff;text-align:center;border-radius:10px;padding:10px;font-weight:700;font-size:0.85rem;border:none;width:100%;cursor:pointer;font-family:inherit;}
+.opt-inline .valider.disabled{background:#d5dcea;color:#8992b8;pointer-events:none;}
+.opt-inline#opt-inline-trajet.ouvert{max-height:560px;}
+.opt-btn.verrouille{opacity:0.4;pointer-events:none;}
+.verrou-note{text-align:center;font-size:0.76rem;color:#8992b8;margin:-2px 0 12px;}
+.mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+.mode-btn{border:2px solid #d5dcea;border-radius:12px;padding:12px 6px;text-align:center;color:#2c3e91;font-weight:700;font-size:0.82rem;cursor:pointer;font-family:inherit;line-height:1.5;}
+.mode-btn.active{border-color:#2c3e91;background:#eef1fb;}
+.adresse-rappel{font-size:0.76rem;color:#5b6785;text-align:center;margin-bottom:10px;}
+.calc-box{border:2px dashed #c3cae4;border-radius:12px;padding:18px 12px;text-align:center;color:#8992b8;font-size:0.85rem;font-weight:600;}
+.spin{width:22px;height:22px;border:3px solid #d5dcea;border-top-color:#2c3e91;border-radius:50%;margin:0 auto 8px;animation:trajetspin .8s linear infinite;}
+@keyframes trajetspin{to{transform:rotate(360deg);}}
+.resultat-box{border:2px solid #2c3e91;background:#eef1fb;border-radius:12px;padding:14px;}
+.resultat-box .estim{font-size:1.05rem;font-weight:800;color:#2c3e91;text-align:center;}
+.resultat-box .souscat{font-size:0.75rem;color:#48547a;margin-top:6px;line-height:1.4;text-align:center;}
+.lien-modifier{display:block;text-align:center;color:#2c3e91;font-weight:700;font-size:0.82rem;margin-top:10px;text-decoration:underline;cursor:pointer;}
+.garder-btn{width:100%;border:2px solid #22a559;border-radius:10px;padding:10px;text-align:center;font-weight:700;font-size:0.85rem;color:#22a559;background:#fff;margin-top:12px;cursor:pointer;font-family:inherit;box-sizing:border-box;}
+.garder-btn.active{background:#22a559;color:#fff;}
+.separateur-choix{text-align:center;font-size:0.75rem;color:#8992b8;margin:10px 0;}
+.fallback-msg{background:#fff4e8;border:1.5px solid #f0c88a;border-radius:10px;padding:10px 12px;font-size:0.8rem;color:#8a5a00;line-height:1.5;margin-bottom:10px;}
 /* ===== Nouveau parcours : thèmes, quand, popups, calendrier ===== */
 .wizard-topline{display:flex;justify-content:flex-end;margin:-6px 0 10px;min-height:40px;}
 .btn-retour-haut{border:none;background:white;color:#2c3e91;font-family:inherit;font-size:0.95rem;font-weight:700;padding:9px 16px;border-radius:12px;cursor:pointer;box-shadow:0 2px 6px rgba(26,35,64,0.08);}
@@ -964,6 +983,7 @@
           <div class="icone-opt">🚗</div><div>Temps de<br>trajet</div>
         </div>
       </div>
+      <div class="verrou-note" id="trajet-verrou-note" style="display:none">🔒 Ajoute d'abord une adresse pour calculer le trajet</div>
 
       <div class="opt-inline" id="opt-inline-detail">
         <textarea id="f-note" class="textarea" placeholder="Ex : Avec de l'eau" maxlength="120"></textarea>
@@ -974,7 +994,22 @@
         <button type="button" class="valider" onclick="wizValiderOption('adresse')">✓ Valider</button>
       </div>
       <div class="opt-inline" id="opt-inline-trajet">
-        <div id="trajet-choix" class="trajet-grid">
+        <div class="adresse-rappel" id="trajet-adresse-rappel"></div>
+        <div id="trajet-mode-grid" class="mode-grid">
+          <div class="mode-btn" data-mode="foot" onclick="wizChoisirModeTransport('foot',this)">🚶<br>À pied</div>
+          <div class="mode-btn" data-mode="bus" onclick="wizChoisirModeTransport('bus',this)">🚌<br>Bus</div>
+          <div class="mode-btn" data-mode="car" onclick="wizChoisirModeTransport('car',this)">🚗<br>Voiture</div>
+        </div>
+        <div id="trajet-calc" class="calc-box" style="display:none"><div class="spin"></div>On calcule le temps de trajet…</div>
+        <div id="trajet-resultat" class="resultat-box" style="display:none">
+          <div class="estim" id="trajet-estim-txt"></div>
+          <div class="souscat" id="trajet-souscat-txt"></div>
+          <div class="garder-btn" id="trajet-garder-btn" style="display:none" onclick="wizGarderEstimation()">✓ Garder cette estimation</div>
+        </div>
+        <a class="lien-modifier" id="trajet-lien-modifier" style="display:none" onclick="wizOuvrirModifierTemps()">✎ Modifier le temps</a>
+        <div id="trajet-fallback-msg" class="fallback-msg" style="display:none"></div>
+        <div id="trajet-separateur" class="separateur-choix" style="display:none">— ou choisis toi-même —</div>
+        <div id="trajet-choix" class="trajet-grid" style="display:none">
           <button type="button" class="trajet-btn" data-min="10">10 min</button>
           <button type="button" class="trajet-btn" data-min="20">20 min</button>
           <button type="button" class="trajet-btn" data-min="30">30 min</button>
@@ -982,7 +1017,7 @@
           <button type="button" class="trajet-btn" data-min="60">1 h</button>
           <button type="button" class="trajet-btn" data-min="90">1 h 30</button>
         </div>
-        <button type="button" class="valider" onclick="wizValiderOption('trajet')">✓ Valider</button>
+        <button type="button" class="valider disabled" id="trajet-valider-btn" style="display:none" onclick="wizValiderOption('trajet')">✓ Valider</button>
       </div>
 
       <button type="button" id="wizard-ecouter" class="btn-ecouter-recap">🔊 Écouter</button>
@@ -1538,6 +1573,148 @@ function _atMs(y,mo,d,hhmm){const p=(hhmm||'00:00').split(':');return new Date(y
 // Règle : ACTION (daily) → heure en alarme ; RDV (once/atelier) → anticipations en alarme, heure de l'événement en notification.
 // --- Adresse, temps de trajet et bouton Google Maps (reprise de Sonneo) ---
 let wizTravel=0;   // temps de trajet choisi dans l'assistant (minutes ; 0 = pas besoin)
+let wizTravelMode=null; // 'foot' | 'bus' | 'car' | null (valeur manuelle historique sans mode)
+const ORS_API_KEY='eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjY0YTBiZDg1YTlkNTQ2ZjA5MzMxOGYwMjQwYjQ3NDNkIiwiaCI6Im11cm11cjY0In0=';
+const ORS_BASE='https://api.openrouteservice.org';
+let _wizGeocodeCache={adresse:'',coords:null};
+function _fmtMinTrajet(m){if(m<60)return m+' min';const h=Math.floor(m/60),r=m%60;return h+'h'+(r?(' '+r):'');}
+function wizObtenirPosition(){
+  return new Promise((resolve,reject)=>{
+    const Geo=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation;
+    if(!Geo)return reject(new Error('geoloc-indisponible'));
+    const t=setTimeout(()=>reject(new Error('geoloc-timeout')),8000);
+    Geo.getCurrentPosition({enableHighAccuracy:false,timeout:8000}).then(pos=>{
+      clearTimeout(t);resolve({lat:pos.coords.latitude,lon:pos.coords.longitude});
+    }).catch(e=>{clearTimeout(t);reject(e);});
+  });
+}
+async function wizGeocoderAdresse(adresse){
+  if(_wizGeocodeCache.adresse===adresse&&_wizGeocodeCache.coords)return _wizGeocodeCache.coords;
+  const ctrl=new AbortController();
+  const t=setTimeout(()=>ctrl.abort(),8000);
+  try{
+    const url=ORS_BASE+'/geocode/search?api_key='+ORS_API_KEY+'&text='+encodeURIComponent(adresse)+'&size=1&boundary.country=FR';
+    const r=await fetch(url,{signal:ctrl.signal});
+    if(!r.ok)throw new Error('geocode-http');
+    const j=await r.json();
+    const f=j&&j.features&&j.features[0];
+    if(!f)throw new Error('adresse-introuvable');
+    const coords={lon:f.geometry.coordinates[0],lat:f.geometry.coordinates[1]};
+    _wizGeocodeCache={adresse,coords};
+    return coords;
+  }finally{clearTimeout(t);}
+}
+async function wizAppelDirections(origin,dest,profile){
+  const ctrl=new AbortController();
+  const t=setTimeout(()=>ctrl.abort(),8000);
+  try{
+    const url=ORS_BASE+'/v2/directions/'+profile;
+    const r=await fetch(url,{method:'POST',signal:ctrl.signal,headers:{'Authorization':ORS_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({coordinates:[[origin.lon,origin.lat],[dest.lon,dest.lat]]})});
+    if(!r.ok)throw new Error('directions-http');
+    const j=await r.json();
+    const sec=j&&j.routes&&j.routes[0]&&j.routes[0].summary&&j.routes[0].summary.duration;
+    if(sec==null)throw new Error('directions-vide');
+    return Math.max(1,Math.round(sec/60));
+  }finally{clearTimeout(t);}
+}
+async function wizCalculerTrajet(mode){
+  wizTravelMode=mode;
+  document.getElementById('trajet-resultat').style.display='none';
+  document.getElementById('trajet-fallback-msg').style.display='none';
+  document.getElementById('trajet-lien-modifier').style.display='none';
+  document.getElementById('trajet-separateur').style.display='none';
+  document.getElementById('trajet-choix').style.display='none';
+  document.getElementById('trajet-garder-btn').style.display='none';
+  document.getElementById('trajet-valider-btn').style.display='none';
+  document.getElementById('trajet-calc').style.display='';
+  const adresse=wizOptValeur('adresse');
+  try{
+    const [origin,dest]=await Promise.all([wizObtenirPosition(),wizGeocoderAdresse(adresse)]);
+    const profile=mode==='car'?'driving-car':'foot-walking';
+    const minutes=await wizAppelDirections(origin,dest,profile);
+    wizAfficherResultatAuto(mode,minutes);
+  }catch(e){
+    wizAfficherFallback();
+  }
+}
+function wizChoisirModeTransport(mode,el){
+  document.querySelectorAll('#trajet-mode-grid .mode-btn').forEach(x=>x.classList.toggle('active',x===el));
+  wizCalculerTrajet(mode);
+}
+function wizAfficherResultatAuto(mode,minutes){
+  wizTravel=minutes;
+  wizTravelMode=mode;
+  document.getElementById('trajet-calc').style.display='none';
+  const txt=_fmtMinTrajet(minutes);
+  const estimEl=document.getElementById('trajet-estim-txt');
+  const sousEl=document.getElementById('trajet-souscat-txt');
+  if(mode==='bus'){
+    estimEl.textContent='🚌 ≈ '+txt+' à pied (estimation)';
+    sousEl.textContent="Pas de données bus disponibles : temps de marche estimé jusqu'à destination";
+  }else{
+    estimEl.textContent='≈ '+txt+' '+(mode==='car'?'en voiture':'à pied')+' (estimation)';
+    sousEl.textContent='Estimation à partir de ta position actuelle';
+  }
+  document.getElementById('trajet-resultat').style.display='';
+  document.getElementById('trajet-lien-modifier').style.display='';
+  wizRenderOptionsRow();
+}
+function wizAfficherFallback(){
+  document.getElementById('trajet-calc').style.display='none';
+  document.getElementById('trajet-resultat').style.display='none';
+  document.getElementById('trajet-lien-modifier').style.display='none';
+  document.getElementById('trajet-fallback-msg').textContent="📍 On n'a pas pu calculer le temps de trajet (position ou réseau indisponible). Indique-le toi-même :";
+  document.getElementById('trajet-fallback-msg').style.display='';
+  document.getElementById('trajet-separateur').style.display='none';
+  const grid=document.getElementById('trajet-choix');
+  grid.style.display='';
+  grid.querySelectorAll('.trajet-btn').forEach(b=>b.classList.remove('active'));
+  const vbtn=document.getElementById('trajet-valider-btn');
+  vbtn.style.display='';
+  vbtn.classList.add('disabled');
+}
+function wizOuvrirModifierTemps(){
+  document.getElementById('trajet-garder-btn').style.display='';
+  document.getElementById('trajet-garder-btn').classList.remove('active');
+  document.getElementById('trajet-separateur').style.display='';
+  const grid=document.getElementById('trajet-choix');
+  grid.style.display='';
+  grid.querySelectorAll('.trajet-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('trajet-lien-modifier').style.display='none';
+  const vbtn=document.getElementById('trajet-valider-btn');
+  vbtn.style.display='';
+  vbtn.classList.add('disabled');
+}
+function wizGarderEstimation(){
+  document.getElementById('trajet-garder-btn').classList.add('active');
+  document.getElementById('trajet-choix').querySelectorAll('.trajet-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('trajet-valider-btn').classList.remove('disabled');
+}
+function wizOuvrirTrajetPanel(){
+  const adr=wizOptValeur('adresse');
+  document.getElementById('trajet-adresse-rappel').textContent=adr;
+  document.querySelectorAll('#trajet-mode-grid .mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===wizTravelMode));
+  document.getElementById('trajet-calc').style.display='none';
+  document.getElementById('trajet-resultat').style.display='none';
+  document.getElementById('trajet-fallback-msg').style.display='none';
+  document.getElementById('trajet-lien-modifier').style.display='none';
+  document.getElementById('trajet-separateur').style.display='none';
+  document.getElementById('trajet-garder-btn').style.display='none';
+  document.getElementById('trajet-garder-btn').classList.remove('active');
+  const grid=document.getElementById('trajet-choix');
+  grid.style.display='none';
+  const vbtn=document.getElementById('trajet-valider-btn');
+  vbtn.style.display='none';
+  vbtn.classList.add('disabled');
+  if(wizTravel>0&&wizTravelMode){
+    wizAfficherResultatAuto(wizTravelMode,wizTravel);
+  }else if(wizTravel>0){
+    grid.style.display='';
+    grid.querySelectorAll('.trajet-btn').forEach(b=>b.classList.toggle('active',(parseInt(b.dataset.min,10)||0)===wizTravel));
+    vbtn.style.display='';
+    vbtn.classList.remove('disabled');
+  }
+}
 
 // Adresse + trajet + heure de départ d'un rappel (perso OU atelier), ou null.
 // Départ = heure de l'événement − temps de trajet − 10 min de préparation.
@@ -1589,7 +1766,11 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('.trajet-btn');if(!b)return;
   const cont=b.parentElement;
   cont.querySelectorAll('.trajet-btn').forEach(x=>x.classList.toggle('active',x===b));
-  if(cont.id==='trajet-choix')wizTravel=parseInt(b.dataset.min,10)||0;
+  if(cont.id==='trajet-choix'){
+    wizTravel=parseInt(b.dataset.min,10)||0;
+    const gb=document.getElementById('trajet-garder-btn');if(gb)gb.classList.remove('active');
+    const vbtn=document.getElementById('trajet-valider-btn');if(vbtn)vbtn.classList.remove('disabled');
+  }
 });
 
 // Charge les descriptions d'ateliers (adresse + trajet) pour l'écran d'accueil,
@@ -3914,7 +4095,7 @@ if(_hintListeAccueil){
 }
 setTimeout(_checkScrollHint,300);
 
-function openEdit(id){state.editing=id;const r=id?state.reminders.find(x=>x.id===id):null;document.getElementById('edit-title').textContent=r?'Modifier le rappel':'Nouveau rappel';const vs=document.getElementById('voice-status');if(vs){vs.className='voice-status';vs.innerHTML='';}document.getElementById('voice-btn').querySelector('.voice-label').textContent='Dicter au lieu de taper';setTPVal('f-time',r?r.time:'08:00');document.getElementById('f-title').value=r?r.title:'';document.getElementById('f-note').value=r?r.note:'';document.getElementById('delete-btn').style.display=r?'block':'none';const rec=r?(r.recurrence||'daily'):'daily';setRecurrence(rec);document.getElementById('f-date').value=r&&r.date?r.date:dateKey(getCurrentDate());document.getElementById('f-event-date').value=r&&r.eventDate?r.eventDate:(r&&r.date?r.date:dateKey(getCurrentDate()));setTPVal('f-event-time',r&&r.eventTime?r.eventTime:'14:00');let choix=r&&r.sonnerieChoix?r.sonnerieChoix:'2h';if(choix==='avant2h'||choix==='les2')choix='2h';document.querySelectorAll('.sonnerie-choix-btn').forEach(b=>b.classList.toggle('active',b.dataset.choix===choix));const fa=document.getElementById('f-address');if(fa)fa.value=r&&r.address?r.address:'';wizTravel=r&&r.travelMin?r.travelMin:0;document.querySelectorAll('#trajet-choix .trajet-btn').forEach(b=>b.classList.toggle('active',(parseInt(b.dataset.min,10)||0)===wizTravel));renderIcons(r?r.icon:null);document.getElementById('save-btn').textContent=r?'✓ Enregistrer les modifications':"✓ C'est bon, enregistrer";document.querySelectorAll('#edit-screen .opt-inline').forEach(el=>el.classList.remove('ouvert'));showScreen('edit-screen');goToStep(r?8:1);}
+function openEdit(id){state.editing=id;const r=id?state.reminders.find(x=>x.id===id):null;document.getElementById('edit-title').textContent=r?'Modifier le rappel':'Nouveau rappel';const vs=document.getElementById('voice-status');if(vs){vs.className='voice-status';vs.innerHTML='';}document.getElementById('voice-btn').querySelector('.voice-label').textContent='Dicter au lieu de taper';setTPVal('f-time',r?r.time:'08:00');document.getElementById('f-title').value=r?r.title:'';document.getElementById('f-note').value=r?r.note:'';document.getElementById('delete-btn').style.display=r?'block':'none';const rec=r?(r.recurrence||'daily'):'daily';setRecurrence(rec);document.getElementById('f-date').value=r&&r.date?r.date:dateKey(getCurrentDate());document.getElementById('f-event-date').value=r&&r.eventDate?r.eventDate:(r&&r.date?r.date:dateKey(getCurrentDate()));setTPVal('f-event-time',r&&r.eventTime?r.eventTime:'14:00');let choix=r&&r.sonnerieChoix?r.sonnerieChoix:'2h';if(choix==='avant2h'||choix==='les2')choix='2h';document.querySelectorAll('.sonnerie-choix-btn').forEach(b=>b.classList.toggle('active',b.dataset.choix===choix));const fa=document.getElementById('f-address');if(fa)fa.value=r&&r.address?r.address:'';wizTravel=r&&r.travelMin?r.travelMin:0;wizTravelMode=r&&r.travelMode?r.travelMode:null;_wizGeocodeCache={adresse:'',coords:null};renderIcons(r?r.icon:null);document.getElementById('save-btn').textContent=r?'✓ Enregistrer les modifications':"✓ C'est bon, enregistrer";document.querySelectorAll('#edit-screen .opt-inline').forEach(el=>el.classList.remove('ouvert'));showScreen('edit-screen');goToStep(r?8:1);}
 
 function renderIcons(selected){wizIcon=selected||'🗓️';renderThemeGrid();}
 let wizIcon='🗓️'; // icône choisie dans le parcours (remplace la sélection DOM de l'ancienne grille)
@@ -3956,13 +4137,21 @@ const WIZ_OPTS={
 function wizOptValeur(opt){
   if(opt==='detail'){const el=document.getElementById('f-note');return el?el.value.trim():'';}
   if(opt==='adresse'){const el=document.getElementById('f-address');return el?el.value.trim():'';}
-  if(opt==='trajet'){const b=document.querySelector('#trajet-choix .trajet-btn.active');return b?b.textContent.trim():'';}
+  if(opt==='trajet'){
+    if(!wizTravel)return '';
+    const ic=wizTravelMode==='car'?'🚗':(wizTravelMode==='bus'?'🚌':(wizTravelMode==='foot'?'🚶':'🚗'));
+    return ic+' '+_fmtMinTrajet(wizTravel);
+  }
   return '';
 }
 function wizRenderOptionsRow(){
   const showAdresseTrajet=getSelectedRecurrence()!=='daily';
   document.getElementById('opt-btn-adresse').style.display=showAdresseTrajet?'':'none';
   document.getElementById('opt-btn-trajet').style.display=showAdresseTrajet?'':'none';
+  const trajetVerrouille=showAdresseTrajet&&!wizOptValeur('adresse');
+  document.getElementById('opt-btn-trajet').classList.toggle('verrouille',trajetVerrouille);
+  const vn=document.getElementById('trajet-verrou-note');
+  if(vn)vn.style.display=(showAdresseTrajet&&trajetVerrouille)?'':'none';
   ['detail','adresse','trajet'].forEach(opt=>{
     if(opt!=='detail'&&!showAdresseTrajet){document.getElementById('opt-inline-'+opt).classList.remove('ouvert');return;}
     const btn=document.getElementById('opt-btn-'+opt);
@@ -3979,6 +4168,7 @@ function wizRenderOptionsRow(){
   });
 }
 function wizToggleOption(opt){
+  if(opt==='trajet'&&document.getElementById('opt-btn-trajet').classList.contains('verrouille'))return;
   ['detail','adresse','trajet'].forEach(o=>{if(o!==opt)document.getElementById('opt-inline-'+o).classList.remove('ouvert');});
   const inline=document.getElementById('opt-inline-'+opt);
   const ouverture=!inline.classList.contains('ouvert');
@@ -3986,6 +4176,7 @@ function wizToggleOption(opt){
   if(ouverture){
     const champ=document.getElementById(opt==='detail'?'f-note':(opt==='adresse'?'f-address':''));
     if(champ)setTimeout(()=>champ.focus(),150);
+    if(opt==='trajet')wizOuvrirTrajetPanel();
   }
 }
 function wizValiderOption(opt){
@@ -4268,7 +4459,7 @@ function _calcSonnerieRappel(rdvDate,rdvTime,choix,travelMin){
 document.getElementById('add-btn').addEventListener('click',()=>openEdit(null));
 document.getElementById('back-btn').addEventListener('click',()=>{if(state.editingAdminMode&&adminEditingUid){const uid=adminEditingUid;state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showAdminUserDetail(uid);return;}showScreen('main-screen');});
 
-document.getElementById('save-btn').addEventListener('click',async()=>{const title=document.getElementById('f-title').value.trim();if(!title){showConfirm({icon:'⚠️',title:'Titre manquant',text:"Appuyez sur une image ou écrivez ce qu'il faut faire.",okText:'OK',hideCancel:true});return;}const rec=getSelectedRecurrence();const data={time:getTPVal('f-time'),title,icon:getSelectedIcon(),note:document.getElementById('f-note').value.trim(),recurrence:rec};if(rec==='once'){const rdvDate=document.getElementById('f-event-date').value||dateKey(getCurrentDate());const rdvTime=getTPVal('f-event-time');const choix=getSonnerieChoix();data.eventDate=rdvDate;data.eventTime=rdvTime;data.sonnerieChoix=choix;const _adr=(document.getElementById('f-address')?document.getElementById('f-address').value.trim():'');data.address=_adr;data.mapQuery=_adr?encodeURIComponent(_adr):'';data.travelMin=wizTravel||0;const _sonn=_calcSonnerieRappel(rdvDate,rdvTime,choix,data.travelMin);data.date=_sonn.date;data.time=_sonn.time;if(!data.date){showConfirm({icon:'⚠️',title:'Date manquante',text:'Choisissez la date du rendez-vous.',okText:'OK',hideCancel:true});return;}if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}});}
+document.getElementById('save-btn').addEventListener('click',async()=>{const title=document.getElementById('f-title').value.trim();if(!title){showConfirm({icon:'⚠️',title:'Titre manquant',text:"Appuyez sur une image ou écrivez ce qu'il faut faire.",okText:'OK',hideCancel:true});return;}const rec=getSelectedRecurrence();const data={time:getTPVal('f-time'),title,icon:getSelectedIcon(),note:document.getElementById('f-note').value.trim(),recurrence:rec};if(rec==='once'){const rdvDate=document.getElementById('f-event-date').value||dateKey(getCurrentDate());const rdvTime=getTPVal('f-event-time');const choix=getSonnerieChoix();data.eventDate=rdvDate;data.eventTime=rdvTime;data.sonnerieChoix=choix;const _adr=(document.getElementById('f-address')?document.getElementById('f-address').value.trim():'');data.address=_adr;data.mapQuery=_adr?encodeURIComponent(_adr):'';data.travelMin=wizTravel||0;data.travelMode=wizTravelMode||'';const _sonn=_calcSonnerieRappel(rdvDate,rdvTime,choix,data.travelMin);data.date=_sonn.date;data.time=_sonn.time;if(!data.date){showConfirm({icon:'⚠️',title:'Date manquante',text:'Choisissez la date du rendez-vous.',okText:'OK',hideCancel:true});return;}if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}});}
 }else{data.date=null;data.eventDate=null;data.eventTime=null;if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}}); }}await saveUserData();if(state.editingAdminMode&&adminEditingUid){const targetUid=adminEditingUid;const prenom=state.editingAdminPrenom;if(rec==='once'&&data.date&&prenom){queueNotification('🔔 '+data.title,data.note?('📍 '+data.note+'\n⏰ '+data.date+' à '+data.time.replace(':','h')):('⏰ '+data.date+' à '+data.time.replace(':','h')+' · Appuyez pour ouvrir l\'app'),data.date,data.time,{key:'prenom',value:prenom.toLowerCase()});}state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showConfirm({icon:'✅',title:'Rappel ajouté !',text:`Le rappel a été ajouté pour ${prenom}.`,okText:'OK',hideCancel:true,onOk:()=>showAdminUserDetail(targetUid)});return;}render();showScreen('main-screen');if(rec==='once'&&data.date){const userPrenom=currentUser?currentUser.prenom.toLowerCase():null;if(userPrenom&&!estNatifAlarme()){queueNotification('🔔 '+data.title,data.note?('📍 '+data.note+'\n⏰ Aujourd\'hui à '+data.time.replace(':','h')):('⏰ Aujourd\'hui à '+data.time.replace(':','h')+' · Appuyez pour ouvrir l\'app'),data.date,data.time,{key:'prenom',value:userPrenom});}const rdvHeure=data.eventTime?data.eventTime.replace(':','h'):data.time.replace(':','h');showConfirm({icon:'✅',title:'Rappel enregistré !',text:`Votre rendez-vous du ${formatRelativeDate(data.eventDate||data.date)} à ${rdvHeure} est bien enregistré.`,okText:'Super !',hideCancel:true});}});
 
 document.getElementById('delete-btn').addEventListener('click',()=>{showConfirm({icon:'🗑️',title:'Supprimer ce rappel ?',text:'Cette action ne peut pas être annulée.',okText:'Supprimer',danger:true,onOk:async()=>{const del=state.reminders.find(x=>x.id===state.editing);state.reminders=state.reminders.filter(x=>x.id!==state.editing);if(del&&del.source==='atelier'&&del.date&&del.time){const key=del.date+'_'+del.time+'_'+(del.title||'').slice(0,20).replace(/\s/g,'_');delete state.inscriptions[key];try{await db.collection('users').doc(currentUser.id).update({['inscriptions.'+key]:firebase.firestore.FieldValue.delete()});}catch(e){}}await saveUserData();render();showScreen('main-screen');}});});
