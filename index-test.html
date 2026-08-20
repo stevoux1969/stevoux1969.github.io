@@ -595,6 +595,15 @@
     .btn-voir-agenda { width:calc(100% - 32px); margin:0 16px 8px; background:#2c3e91; color:white; border:none; border-radius:16px; padding:16px; font-size:1.05rem; font-weight:700; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 10px 20px rgba(44,62,145,0.4); }
     .tiroir-separateur { height:1px; background:#eef1fb; margin:8px 20px; }
     .tiroir-item .tiroir-check { margin-left:auto; color:#2c3e91; font-weight:800; display:none; }
+    .avis-emoji-opt { flex:1; max-width:80px; border:1.5px solid #d6dcf0; background:#fff; border-radius:12px; padding:10px 4px; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; font-family:inherit; }
+    .avis-emoji-opt .aeo-em { font-size:1.6rem; line-height:1; }
+    .avis-emoji-opt .aeo-lab { font-size:0.62rem; font-weight:700; color:#555; }
+    .avis-emoji-opt.selected { border-color:#2c3e91; border-width:2px; background:#eef1fb; }
+    .avis-emoji-opt.selected .aeo-lab { color:#2c3e91; }
+    .avis-radio-opt { display:flex; align-items:center; gap:10px; border:1.5px solid #d6dcf0; border-radius:12px; padding:12px 14px; margin-bottom:8px; cursor:pointer; font-size:0.95rem; color:#333; font-weight:600; }
+    .avis-radio-opt.selected { border-color:#2c3e91; background:#eef1fb; }
+    .avis-radio-opt .aro-rond { width:20px; height:20px; border-radius:50%; border:2px solid #b8c0e0; flex-shrink:0; }
+    .avis-radio-opt.selected .aro-rond { border-color:#2c3e91; background:#2c3e91; }
     .tiroir-item.theme-actif .tiroir-check { display:inline; }
     .tiroir-item.theme-actif { background:#f1f3f8; }
 
@@ -868,6 +877,8 @@
     <div class="tiroir-separateur"></div>
     <div class="tiroir-item" id="tiroir-item-clair"><span class="tiroir-ic">☀️</span><span>Clair</span><span class="tiroir-check">✓</span></div>
     <div class="tiroir-item" id="tiroir-item-sombre"><span class="tiroir-ic">🌙</span><span>Sombre</span><span class="tiroir-check">✓</span></div>
+    <div class="tiroir-separateur"></div>
+    <div class="tiroir-item" id="tiroir-item-avis"><span class="tiroir-ic">💬</span><span>Donner mon avis</span></div>
   </div>
   <button type="button" id="add-btn" class="btn-nouveau-rappel">
     <div class="bn-plus">+</div>
@@ -893,24 +904,27 @@
   </div>
   <div class="list-wrap">
     <div style="background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 10px rgba(26,35,64,0.07);">
-      <div style="font-size:0.95rem;font-weight:700;color:#2c3e91;margin-bottom:8px;">Mon avis porte sur :</div>
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <button type="button" class="avis-sujet on" data-sujet="app" style="flex:1;border:2px solid #2c3e91;background:#2c3e91;color:#fff;border-radius:14px;padding:12px 6px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:inherit;line-height:1.3;">📱 L'application</button>
-        <button type="button" class="avis-sujet" data-sujet="avp" style="flex:1;border:2px solid #cdd5ee;background:#f7f8fd;color:#2c3e91;border-radius:14px;padding:12px 6px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:inherit;line-height:1.3;">🏠 L'AVP<br><small style="font-weight:500;">ateliers, accueil…</small></button>
+      <div style="font-size:1rem;font-weight:800;color:#2c3e91;margin-bottom:4px;">📱 L'application</div>
+      <div style="font-size:0.8rem;color:#8992b8;margin-bottom:10px;line-height:1.5;">Qu'est-ce que tu aimerais qu'il y ait ? Qu'est-ce que tu comprends bien, ou moins bien ?</div>
+      <textarea id="avis-texte-app" placeholder="Ton avis sur l'application... (facultatif)" style="width:100%;box-sizing:border-box;border:1.5px solid #d1d9f0;border-radius:12px;padding:12px;font-size:0.95rem;font-family:inherit;resize:none;height:90px;margin-bottom:22px;"></textarea>
+
+      <div style="font-size:1rem;font-weight:800;color:#2c3e91;margin-bottom:4px;">🏠 AVP La Clé</div>
+      <div style="font-size:0.8rem;color:#8992b8;margin-bottom:10px;line-height:1.5;">Ton avis sur l'association, les ateliers, l'accueil</div>
+      <textarea id="avis-texte-avp" placeholder="Ton avis sur AVP... (facultatif)" style="width:100%;box-sizing:border-box;border:1.5px solid #d1d9f0;border-radius:12px;padding:12px;font-size:0.95rem;font-family:inherit;resize:none;height:90px;margin-bottom:22px;"></textarea>
+
+      <div style="font-size:0.95rem;font-weight:700;color:#48547a;margin-bottom:10px;">Comment tu trouves l'application ?</div>
+      <div style="display:flex;justify-content:center;gap:8px;margin-bottom:22px;">
+        <button type="button" class="avis-emoji-opt" data-note="4"><span class="aeo-em">😍</span><span class="aeo-lab">Très bien</span></button>
+        <button type="button" class="avis-emoji-opt" data-note="3"><span class="aeo-em">🙂</span><span class="aeo-lab">Bien</span></button>
+        <button type="button" class="avis-emoji-opt" data-note="2"><span class="aeo-em">😐</span><span class="aeo-lab">Moyen</span></button>
+        <button type="button" class="avis-emoji-opt" data-note="1"><span class="aeo-em">😟</span><span class="aeo-lab">Faible</span></button>
       </div>
-      <div style="font-size:1.05rem;font-weight:700;color:#1a2340;margin-bottom:14px;text-align:center;">Vous aimez ?</div>
-      <div style="display:flex;justify-content:center;gap:10px;margin-bottom:18px;">
-        <button type="button" class="avis-emoji" data-note="4" style="font-size:2rem;background:#f1f3f8;border:2px solid transparent;border-radius:14px;width:62px;height:62px;cursor:pointer;">😍</button>
-        <button type="button" class="avis-emoji" data-note="3" style="font-size:2rem;background:#f1f3f8;border:2px solid transparent;border-radius:14px;width:62px;height:62px;cursor:pointer;">🙂</button>
-        <button type="button" class="avis-emoji" data-note="2" style="font-size:2rem;background:#f1f3f8;border:2px solid transparent;border-radius:14px;width:62px;height:62px;cursor:pointer;">😐</button>
-        <button type="button" class="avis-emoji" data-note="1" style="font-size:2rem;background:#f1f3f8;border:2px solid transparent;border-radius:14px;width:62px;height:62px;cursor:pointer;">😟</button>
-      </div>
-      <div style="font-size:0.95rem;font-weight:700;color:#48547a;margin-bottom:6px;">Une idée ? Un souci ?</div>
-      <textarea id="avis-texte" placeholder="Écrivez ici si vous voulez… (facultatif)" style="width:100%;box-sizing:border-box;border:1.5px solid #d1d9f0;border-radius:12px;padding:12px;font-size:0.95rem;font-family:inherit;resize:none;height:90px;margin-bottom:14px;"></textarea>
-      <div style="font-size:0.95rem;font-weight:700;color:#48547a;margin-bottom:4px;">Votre prénom</div>
-      <div style="font-size:0.78rem;color:#5b6785;margin-bottom:8px;">Facultatif — laissez vide pour rester anonyme.</div>
-      <input id="avis-nom" placeholder="Votre prénom (si vous voulez une réponse)" style="width:100%;box-sizing:border-box;border:1.5px solid #d1d9f0;border-radius:12px;padding:12px;font-size:0.95rem;font-family:inherit;margin-bottom:16px;">
-      <button type="button" id="avis-envoyer" style="width:100%;background:#22a559;color:#fff;border:none;border-radius:14px;padding:15px;font-size:1.05rem;font-weight:700;cursor:pointer;font-family:inherit;">Envoyer mon avis</button>
+
+      <div style="font-size:0.95rem;font-weight:700;color:#48547a;margin-bottom:10px;">Comment veux-tu apparaître ?</div>
+      <div id="avis-radio-prenom" class="avis-radio-opt selected"><span class="aro-rond"></span><span id="avis-radio-prenom-txt">Afficher mon prénom</span></div>
+      <div id="avis-radio-anonyme" class="avis-radio-opt"><span class="aro-rond"></span>Rester anonyme</div>
+
+      <button type="button" id="avis-envoyer" style="width:100%;background:#22a559;color:#fff;border:none;border-radius:14px;padding:15px;font-size:1.05rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:22px;">✓ Envoyer mon avis</button>
     </div>
   </div>
 </div>
@@ -1821,16 +1835,22 @@ document.getElementById('mes-rdv-btn').addEventListener('click',()=>wizOuvrir('v
 function _ouvrirEcranAvis(){
   // Réinitialise l'écran avant de l'ouvrir
   avisNoteSelectionnee=0;
-  const t=document.getElementById('avis-texte');if(t)t.value='';
-  const n=document.getElementById('avis-nom');if(n)n.value='';
-  document.querySelectorAll('.avis-emoji').forEach(b=>{b.style.borderColor='transparent';b.style.background='#f1f3f8';b.style.transform='none';});
+  avisAnonyme=false;
+  const ta=document.getElementById('avis-texte-app');if(ta)ta.value='';
+  const tv=document.getElementById('avis-texte-avp');if(tv)tv.value='';
+  document.querySelectorAll('.avis-emoji-opt').forEach(b=>b.classList.remove('selected'));
+  const rp=document.getElementById('avis-radio-prenom'),ra=document.getElementById('avis-radio-anonyme');
+  if(rp)rp.classList.add('selected');
+  if(ra)ra.classList.remove('selected');
+  const rpTxt=document.getElementById('avis-radio-prenom-txt');
+  if(rpTxt)rpTxt.textContent='Afficher mon prénom'+(currentUser&&currentUser.prenom?' ('+currentUser.prenom+')':'');
   showScreen('avis-benef-screen');
 }
 document.getElementById('avis-popup-oui').addEventListener('click',()=>{document.getElementById('avis-popup-overlay').classList.remove('visible');_ouvrirEcranAvis();});
 document.getElementById('avis-popup-non').addEventListener('click',()=>{document.getElementById('avis-popup-overlay').classList.remove('visible');});
 document.getElementById('avis-benef-back').addEventListener('click',()=>showScreen('main-screen'));
 document.getElementById('admin-avis-btn').addEventListener('click',()=>showAdminAvis());
-document.getElementById('avis-back').addEventListener('click',()=>showScreen('admin-screen'));
+document.getElementById('avis-back').addEventListener('click',()=>showScreen(avisEcranRetour));
 document.getElementById('mes-rdv-back').addEventListener('click',()=>showScreen('main-screen'));
 document.getElementById('um-tutorial').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');startTutorial();});
 document.getElementById('um-logout').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');showConfirm({icon:'🚪',title:'Se déconnecter ?',text:'Vous devrez vous reconnecter la prochaine fois.',okText:'Déconnecter',danger:true,onOk:()=>{clearSession();currentUser=null;state.reminders=[];state.inscriptions={};pinValue='';updatePinDots();showScreen('login-screen');}});});
@@ -3360,61 +3380,58 @@ function showMesRendezVous(scope){
 
 // ========== AVIS BÉNÉFICIAIRES ==========
 let avisNoteSelectionnee=0;
-// Sélection d'un émoji (note 1 à 4)
-document.querySelectorAll('.avis-emoji').forEach(btn=>{
+let avisAnonyme=false;
+// Sélection d'un émoji (note 1 à 4) — note sur l'application uniquement
+document.querySelectorAll('.avis-emoji-opt').forEach(btn=>{
   btn.addEventListener('click',()=>{
     avisNoteSelectionnee=parseInt(btn.dataset.note);
-    document.querySelectorAll('.avis-emoji').forEach(b=>{b.style.borderColor='transparent';b.style.background='#f1f3f8';b.style.transform='none';});
-    btn.style.borderColor='#2c3e91';btn.style.background='#e8ecfb';btn.style.transform='scale(1.08)';
+    document.querySelectorAll('.avis-emoji-opt').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
   });
 });
-// Choix du sujet de l'avis (app / avp)
-let avisSujet='app';
-document.querySelectorAll('.avis-sujet').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    avisSujet=btn.dataset.sujet;
-    document.querySelectorAll('.avis-sujet').forEach(b=>{
-      const on=b.dataset.sujet===avisSujet;
-      b.style.borderColor=on?'#2c3e91':'#cdd5ee';
-      b.style.background=on?'#2c3e91':'#f7f8fd';
-      b.style.color=on?'#fff':'#2c3e91';
-    });
-  });
+// Choix prénom affiché / anonyme
+document.getElementById('avis-radio-prenom').addEventListener('click',()=>{
+  avisAnonyme=false;
+  document.getElementById('avis-radio-prenom').classList.add('selected');
+  document.getElementById('avis-radio-anonyme').classList.remove('selected');
+});
+document.getElementById('avis-radio-anonyme').addEventListener('click',()=>{
+  avisAnonyme=true;
+  document.getElementById('avis-radio-anonyme').classList.add('selected');
+  document.getElementById('avis-radio-prenom').classList.remove('selected');
 });
 
-// Envoi de l'avis dans Firebase
+// Envoi de l'avis dans Firebase : jusqu'à 2 documents (app / avp), même prénom pour les deux, note sur le doc "app" uniquement
 const avisEnvoyerBtn=document.getElementById('avis-envoyer');
 if(avisEnvoyerBtn)avisEnvoyerBtn.addEventListener('click',async()=>{
-  const texte=document.getElementById('avis-texte').value.trim();
-  const nom=document.getElementById('avis-nom').value.trim();
-  if(!avisNoteSelectionnee && !texte){
+  const texteApp=document.getElementById('avis-texte-app').value.trim();
+  const texteAvp=document.getElementById('avis-texte-avp').value.trim();
+  if(!avisNoteSelectionnee && !texteApp && !texteAvp){
     showConfirm({icon:'🙂',title:'Votre avis',text:'Choisissez un visage ou écrivez un mot avant d\'envoyer.',okText:'OK',hideCancel:true});
     return;
   }
+  const prenom=avisAnonyme?'':((currentUser&&currentUser.prenom)||'');
   try{
-    await db.collection('avis').add({
-      note:avisNoteSelectionnee||null,
-      texte:texte||'',
-      prenom:nom||'',           // vide = anonyme
-      sujet:avisSujet||'app',   // 'app' ou 'avp'
-      createdAt:Date.now()
-    });
+    const idsPostes=[];
+    if(texteApp||avisNoteSelectionnee){
+      const ref=await db.collection('avis').add({note:avisNoteSelectionnee||null,texte:texteApp||'',prenom,sujet:'app',createdAt:Date.now()});
+      idsPostes.push(ref.id);
+    }
+    if(texteAvp){
+      const ref=await db.collection('avis').add({note:null,texte:texteAvp,prenom,sujet:'avp',createdAt:Date.now()});
+      idsPostes.push(ref.id);
+    }
     // Note : avis donné -> popup mensuel silencieux 30 jours
     try{localStorage.setItem('avp_avis_done',String(Date.now()));}catch(e){}
-    // Réinitialise l'encart
-    avisNoteSelectionnee=0;
-    document.getElementById('avis-texte').value='';
-    document.getElementById('avis-nom').value='';
-    document.querySelectorAll('.avis-emoji').forEach(b=>{b.style.borderColor='transparent';b.style.background='#f1f3f8';b.style.transform='none';});
-    showConfirm({icon:'💚',title:'Merci !',text:'Votre avis a bien été envoyé.',okText:'OK',hideCancel:true,onOk:()=>showScreen('main-screen')});
+    showAvisListe(idsPostes);
   }catch(e){
     showConfirm({icon:'😕',title:'Oups',text:'L\'avis n\'a pas pu être envoyé. Réessayez plus tard.',okText:'OK',hideCancel:true});
   }
 });
 
-// Écran admin : liste des avis + résumé
-async function showAdminAvis(){
-  showScreen('avis-screen');
+// Écran liste des avis + résumé — partagé entre l'admin (avec suppression) et les bénéficiaires (lecture seule)
+let avisEcranRetour='main-screen';
+async function _renderAvisEcran(opts){
   const resume=document.getElementById('avis-resume');
   const list=document.getElementById('avis-list');
   list.innerHTML='<div style="text-align:center;padding:30px;color:#48547a">Chargement…</div>';
@@ -3422,14 +3439,20 @@ async function showAdminAvis(){
   try{
     const snap=await db.collection('avis').get();
     const avis=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-    // Résumé par note
+    // Résumé par note — uniquement les avis "application" (c'est la question posée)
     const cnt={4:0,3:0,2:0,1:0};
-    avis.forEach(a=>{if(a.note&&cnt[a.note]!==undefined)cnt[a.note]++;});
-    resume.innerHTML=`<div style="background:#1a2870;color:#fff;border-radius:16px;padding:16px;display:flex;justify-content:space-around;text-align:center;margin-bottom:14px;">
-      <div><div style="font-size:1.6rem;">😍</div><b style="font-size:1.3rem;">${cnt[4]}</b></div>
-      <div><div style="font-size:1.6rem;">🙂</div><b style="font-size:1.3rem;">${cnt[3]}</b></div>
-      <div><div style="font-size:1.6rem;">😐</div><b style="font-size:1.3rem;">${cnt[2]}</b></div>
-      <div><div style="font-size:1.6rem;">😟</div><b style="font-size:1.3rem;">${cnt[1]}</b></div>
+    avis.forEach(a=>{if((a.sujet||'app')==='app'&&a.note&&cnt[a.note]!==undefined)cnt[a.note]++;});
+    const LAB={4:'Très bien',3:'Bien',2:'Moyen',1:'Faible'};
+    const bandeauHTML=(opts.justPostedIds&&opts.justPostedIds.length)
+      ?'<div style="background:#e8f7ee;border-radius:14px;padding:14px;text-align:center;margin-bottom:16px;"><div style="font-size:1.6rem;">✅</div><p style="color:#2b7a45;font-weight:700;font-size:0.9rem;margin:4px 0 0;">Merci, ton avis a été envoyé !</p></div>'
+      :'';
+    resume.innerHTML=bandeauHTML
+      +'<div style="text-align:center;font-size:0.82rem;font-weight:700;color:#48547a;margin-bottom:10px;">Ce que pensent les bénéficiaires de l\'application</div>'
+      +`<div style="background:#1a2870;color:#fff;border-radius:16px;padding:16px 8px;display:flex;justify-content:space-around;text-align:center;margin-bottom:14px;">
+      <div><div style="font-size:1.6rem;">😍</div><b style="font-size:1.3rem;">${cnt[4]}</b><div style="color:#c3caf0;font-size:0.62rem;font-weight:600;margin-top:2px;">${LAB[4]}</div></div>
+      <div><div style="font-size:1.6rem;">🙂</div><b style="font-size:1.3rem;">${cnt[3]}</b><div style="color:#c3caf0;font-size:0.62rem;font-weight:600;margin-top:2px;">${LAB[3]}</div></div>
+      <div><div style="font-size:1.6rem;">😐</div><b style="font-size:1.3rem;">${cnt[2]}</b><div style="color:#c3caf0;font-size:0.62rem;font-weight:600;margin-top:2px;">${LAB[2]}</div></div>
+      <div><div style="font-size:1.6rem;">😟</div><b style="font-size:1.3rem;">${cnt[1]}</b><div style="color:#c3caf0;font-size:0.62rem;font-weight:600;margin-top:2px;">${LAB[1]}</div></div>
     </div>`;
     if(avis.length===0){list.innerHTML='<div class="empty"><div class="empty-icon" style="font-size:2.25rem">💬</div><div class="empty-text" style="margin-top:12px">Aucun avis pour le moment.</div></div>';return;}
     const EM={4:'😍',3:'🙂',2:'😐',1:'😟'};
@@ -3439,13 +3462,15 @@ async function showAdminAvis(){
       const d=a.createdAt?new Date(a.createdAt):null;
       const dateLabel=d?d.toLocaleDateString('fr-FR',{day:'numeric',month:'long'}):'';
       const qui=a.prenom?esc(a.prenom):'Anonyme';
-      return `<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(26,35,64,0.06);display:flex;gap:12px;align-items:flex-start;">
+      const moi=opts.justPostedIds&&opts.justPostedIds.includes(a.id);
+      const supprHTML=opts.isAdmin?`<button class="avis-suppr" data-id="${a.id}" style="background:none;border:none;font-size:1.125rem;cursor:pointer;color:#c0c6d8;">🗑️</button>`:'';
+      return `<div style="background:${moi?'#f4fbf6':'#fff'};border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(26,35,64,0.06);border:1.5px solid ${moi?'#22a559':'transparent'};display:flex;gap:12px;align-items:flex-start;">
         <div style="font-size:1.75rem;">${a.note?EM[a.note]:'💬'}</div>
         <div style="flex:1;">
           ${a.texte?`<div style="color:#1a2340;font-size:0.95rem;line-height:1.5;">« ${esc(a.texte)} »</div>`:'<div style="color:#5b6785;font-style:italic;font-size:0.9rem;">(pas de commentaire)</div>'}
-          <div style="font-size:0.8rem;color:#48547a;margin-top:4px;">— ${qui} · ${dateLabel}</div>
+          <div style="font-size:0.8rem;color:#48547a;margin-top:4px;display:flex;align-items:center;gap:6px;">— ${qui} · ${dateLabel}${moi?'<span style="background:#22a559;color:#fff;font-size:0.62rem;font-weight:800;padding:2px 8px;border-radius:8px;">C\'est toi</span>':''}</div>
         </div>
-        <button class="avis-suppr" data-id="${a.id}" style="background:none;border:none;font-size:1.125rem;cursor:pointer;color:#c0c6d8;">🗑️</button>
+        ${supprHTML}
       </div>`;
     };
     list.innerHTML=
@@ -3453,18 +3478,21 @@ async function showAdminAvis(){
       +(avisApp.length?avisApp.map(carte).join(''):'<div style="color:#5b6785;font-style:italic;font-size:0.85rem;margin-bottom:10px;">Aucun avis.</div>')
       +'<div style="font-size:0.9rem;font-weight:800;color:#0a6e31;margin:14px 0 8px;">🏠 Sur l\'AVP ('+avisAvp.length+')</div>'
       +(avisAvp.length?avisAvp.map(carte).join(''):'<div style="color:#5b6785;font-style:italic;font-size:0.85rem;">Aucun avis.</div>');
-    // Suppression (admin)
-    list.querySelectorAll('.avis-suppr').forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        const id=btn.dataset.id;
-        showConfirm({icon:'🗑️',title:'Supprimer cet avis ?',text:'Cette action est définitive.',okText:'Supprimer',danger:true,onOk:async()=>{
-          try{await db.collection('avis').doc(id).delete();}catch(e){}
-          showAdminAvis();
-        }});
+    if(opts.isAdmin){
+      list.querySelectorAll('.avis-suppr').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const id=btn.dataset.id;
+          showConfirm({icon:'🗑️',title:'Supprimer cet avis ?',text:'Cette action est définitive.',okText:'Supprimer',danger:true,onOk:async()=>{
+            try{await db.collection('avis').doc(id).delete();}catch(e){}
+            _renderAvisEcran(opts);
+          }});
+        });
       });
-    });
+    }
   }catch(e){list.innerHTML='<div style="text-align:center;padding:30px;color:#d63447">Erreur de chargement des avis.</div>';}
 }
+function showAdminAvis(){avisEcranRetour='admin-screen';showScreen('avis-screen');_renderAvisEcran({isAdmin:true});}
+function showAvisListe(justPostedIds){avisEcranRetour='main-screen';showScreen('avis-screen');_renderAvisEcran({isAdmin:false,justPostedIds:justPostedIds||[]});}
 
 // Réserve sous la liste assez de place pour que la dernière carte ne soit
 // jamais cachée derrière le bouton "Nouveau rappel" ou la flèche de défilement.
@@ -3852,6 +3880,7 @@ document.getElementById('tiroir-item-reglages').addEventListener('click',()=>{wi
 document.getElementById('tiroir-item-clair').addEventListener('click',()=>setTheme('clair'));
 document.getElementById('tiroir-item-sombre').addEventListener('click',()=>setTheme('sombre'));
 majTiroirTheme();
+document.getElementById('tiroir-item-avis').addEventListener('click',()=>{_fermerTiroirMenu();_ouvrirEcranAvis();});
 function _ouvrirTiroirMenu(){document.getElementById('voile-tiroir').classList.add('visible');document.getElementById('tiroir-menu').classList.add('visible');}
 function _fermerTiroirMenu(){document.getElementById('voile-tiroir').classList.remove('visible');document.getElementById('tiroir-menu').classList.remove('visible');}
 document.getElementById('voile-tiroir').addEventListener('click',_fermerTiroirMenu);
