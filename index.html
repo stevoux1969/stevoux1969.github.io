@@ -4713,7 +4713,6 @@ document.body.addEventListener('click',()=>{const c=getAudioContext();if(c&&c.st
 // Version actuelle de l'APK — à incrémenter à chaque rebuild
 const APP_VERSION='1.0.5';
 const VERSION_URL='https://stevoux1969.github.io/version.txt';
-const APK_URL='https://stevoux1969.github.io/majourneeavp.apk';
 
 async function checkUpdate(){
   try{
@@ -4753,8 +4752,8 @@ function showUpdatePopup(remoteVersion){
       <h2 style="margin:0 0 12px;color:#2c3e91;font-size:1.375rem;">Mise à jour disponible</h2>
       <p style="margin:0 0 6px;color:#444;font-size:0.9375rem;line-height:1.4;">Une nouvelle version de l'application est disponible.</p>
       <p style="margin:0 0 20px;color:#888;font-size:0.8125rem;">Version ${remoteVersion} (vous avez ${APP_VERSION})</p>
-      <a href="${APK_URL}" download style="display:block;background:#22a559;color:white;padding:14px;border-radius:12px;font-weight:700;text-decoration:none;font-size:1rem;margin-bottom:10px;">⬇️ Télécharger la mise à jour</a>
-      <button id="update-later" style="background:none;border:none;color:#888;font-size:0.875rem;padding:8px;cursor:pointer;">Plus tard</button>
+      <p style="margin:0 0 20px;color:#444;font-size:0.875rem;line-height:1.4;">Elle sera proposée automatiquement au prochain démarrage de l'application.</p>
+      <button id="update-later" style="width:100%;background:#22a559;color:white;border:none;padding:14px;border-radius:12px;font-weight:700;font-size:1rem;cursor:pointer;font-family:inherit;">D'accord</button>
     </div>
   `;
   // Mémoriser dès l'affichage pour éviter la boucle
