@@ -312,6 +312,13 @@
     .c-details-ligne:first-child { border-top:none; }
     .c-details-modifier { color:#2c3e91; font-weight:700; cursor:pointer; }
     .c-badge { display:inline-block; margin-top:10px; font-size:.72rem; font-weight:600; color:#0a6e31; background:#dcfce7; padding:5px 10px; border-radius:8px; }
+    /* Rappel perso passé : carte compacte, sans jugement (juste Vu/Passé) */
+    .c-card-passe { display:flex; align-items:center; gap:10px; background:#fff; border-left:3px solid #c7cdd9; border-radius:12px; padding:8px 12px; margin-bottom:10px; opacity:.7; }
+    .c-card-passe-icone { font-size:1.2rem; filter:grayscale(1); opacity:.75; flex-shrink:0; }
+    .c-card-passe-texte { flex:1; min-width:0; }
+    .c-card-passe-titre { font-size:.8125rem; color:#8992a8; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .c-card-passe-heure { font-size:.75rem; color:#a8afc0; margin-top:1px; }
+    .c-card-passe-badge { font-size:.6875rem; font-weight:700; color:#5b6785; background:#f1f3f8; border-radius:10px; padding:3px 8px; flex-shrink:0; }
     /* Écran « tout est fait » */
     .tout-fait { display:none; text-align:center; padding:40px 24px; }
     .tout-fait.visible { display:block; animation:toutFaitFade .6s ease; }
@@ -644,6 +651,10 @@
     body[data-theme="sombre"] .c-details-ligne { color:#cbd3f0; border-top-color:#2a3350; }
     body[data-theme="sombre"] .c-details-modifier { color:#8fa4ff; }
     body[data-theme="sombre"] .c-badge { background:#173821; color:#5fd996; }
+    body[data-theme="sombre"] .c-card-passe { background:#1a2138; border-left-color:#3a4570; }
+    body[data-theme="sombre"] .c-card-passe-titre { color:#8892a8; }
+    body[data-theme="sombre"] .c-card-passe-heure { color:#6b7599; }
+    body[data-theme="sombre"] .c-card-passe-badge { background:#232b4d; color:#a9b3e0; }
     /* Bouton flottant + bandeau bas */
     body[data-theme="sombre"] .btn-nouveau-rappel { animation-name: respirerBoutonSombre; }
     body[data-theme="sombre"] .tout-fait .rond-vert { background:#173821; }
@@ -1665,6 +1676,17 @@ function _notifId(dateStr,r){const base=dateStr+'|'+(r.id||'')+'|'+(r.time||'');
 // (anciennes APK non mises à jour). Voir planifierNotifsSysteme / requestBenefNotifPermission.
 function estNatifAlarme(){return !!(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Alarme);}
 function _alarmePlugin(){return estNatifAlarme()?window.Capacitor.Plugins.Alarme:null;}
+// Ids des alarmes vues (bouton natif « C'est fait »). Repli silencieux sur un ancien APK
+// sans cette fonction : tout reste affiché comme « Passé » (jamais « Vu » à tort).
+async function _rafraichirVus(){
+  state._vus=new Set();
+  try{
+    const A=_alarmePlugin();
+    if(!A)return;
+    const r=await A.recupererVus();
+    ((r&&r.ids)||[]).forEach(id=>state._vus.add(String(id)));
+  }catch(e){}
+}
 // ---- Repère de version d'APK (admin) ----
 async function detectAppVersion(){
   try{const App=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App;if(App&&App.getInfo){const info=await App.getInfo();if(info&&info.version)return info.version;}}catch(e){}
@@ -1681,6 +1703,17 @@ function versionPill(v){
 // Hash stable → entier 31 bits positif non nul. Même clé ⇒ même id (annulation/repro fiable).
 function _hashAlarme(s){let h=5381;for(let i=0;i<s.length;i++){h=((h<<5)+h+s.charCodeAt(i))|0;}return (h&0x7fffffff)||1;}
 function _atMs(y,mo,d,hhmm){const p=(hhmm||'00:00').split(':');return new Date(y,mo,d,parseInt(p[0])||0,parseInt(p[1])||0,0).getTime();}
+// Id de l'alarme qui a réellement sonné pour ce rappel, pour vérifier s'il a été marqué « vu ».
+// Doit produire exactement la même clé que _occurrencesNatives() pour l'entrée de mode 'alarme' —
+// à garder synchronisé si cette dernière change.
+function _idVuRappel(r,jourAffiche){
+  if(r.recurrence==='daily'){
+    if(!r.time)return null;
+    return _hashAlarme(dateKey(jourAffiche)+'|'+r.id+'|'+r.time+'|act');
+  }
+  const ti=_trajetInfo(r);
+  return _hashAlarme(ti&&ti.departMs?(r.id+'|depart'):(r.id+'|sonn'));
+}
 // Toutes les occurrences natives des 14 prochains jours, avec leur mode ('alarme' | 'notification').
 // Règle : ACTION (daily) → heure en alarme ; RDV (once/atelier) → anticipations en alarme, heure de l'événement en notification.
 // --- Adresse, temps de trajet et bouton Google Maps (reprise de Sonneo) ---
@@ -2014,6 +2047,7 @@ function enterApp(){
   userBtn.innerHTML=`<div class="user-avatar" style="width:36px;height:36px;font-size:1rem">${initials}</div><span class="header-user-name">${esc(currentUser.prenom)}</span>`;
   userBtn.onclick=()=>openUserMenu();
   showScreen('main-screen');render();chargerAtelierDescs();loadAVPPlanning();checkReminders();checkMessagesAdmin();
+  _rafraichirVus().then(()=>render());
   if(shouldShowTutorial()){setTimeout(()=>startTutorial(),800);}
   else{setTimeout(()=>montrerTuto('accueil'),900);}
 }
@@ -3911,19 +3945,37 @@ function _jouerEntreeCartes(){
 }
 function render(){_arreterLectureCarte();const d=getCurrentDate();const key=dateKey(d);document.getElementById('day-title').textContent=dayLabel();document.getElementById('day-date').textContent=formatDate(d);document.getElementById('today-bar').style.display=state.dayOffset===0?'none':'block';document.getElementById('prev-day').style.visibility=state.dayOffset>0?'visible':'hidden';const list=document.getElementById('reminders-list');const personal=state.reminders.filter(r=>reminderAppliesToDay(r,key));if(personal.length===0){const prenom=currentUser?currentUser.prenom:'';const isToday2=state.dayOffset===0;const msg=isToday2?`Bonjour ${prenom} 👋`:'🌿';const subMsg=isToday2?'Aucun rappel aujourd\'hui.<br>Appuyez sur le bouton vert pour en ajouter un.':'Aucun rappel ce jour-là.<br>Appuyez sur le bouton vert pour en ajouter un.';list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem;font-weight:800;color:#2c3e91">${msg}</div><div class="empty-text" style="margin-top:12px">${subMsg}</div></div>`;_ajusterPaddingListe();return;}
 const now=Date.now();
-// Un rappel personnel dont l'heure est passée disparaît simplement de l'accueil (pas de retard, pas de validation).
-// Un atelier reste visible jusqu'à 15 min après son heure de début, puis disparaît aussi.
+// Un rappel personnel dont l'heure est passée reste affiché, en carte compacte (pas de jugement,
+// juste Vu/Passé). Un atelier reste visible jusqu'à 15 min après son heure de début, puis disparaît.
 const visibles=personal.filter(r=>{
-  if(r.source==='atelier'){
-    if(!r.date||!r.time)return true;
-    return new Date(r.date+'T'+r.time+':00').getTime()+15*60000>=now;
-  }
-  const ti=_trajetInfo(r);
-  const sonnMs=_sonnerieUniqueMs(r,ti,d);
-  return sonnMs===null||sonnMs>=now;
+  if(r.source!=='atelier')return true;
+  if(!r.date||!r.time)return true;
+  return new Date(r.date+'T'+r.time+':00').getTime()+15*60000>=now;
 }).sort((a,b)=>a.time.localeCompare(b.time));
 if(visibles.length===0){list.innerHTML=_ecranToutFait();_ajusterPaddingListe();return;}
-list.innerHTML=visibles.map(r=>_carteRappel(r,key,d)).join('');_ajusterPaddingListe();_majComptesARebours();_jouerEntreeCartes();if(typeof _checkScrollHint==='function')setTimeout(_checkScrollHint,50);}
+list.innerHTML=visibles.map(r=>{
+  if(r.source!=='atelier'){
+    const ti=_trajetInfo(r);
+    const sonnMs=_sonnerieUniqueMs(r,ti,d);
+    if(sonnMs!==null&&sonnMs<now){
+      const idAlarme=_idVuRappel(r,d);
+      const estVu=idAlarme!==null&&state._vus&&state._vus.has(String(idAlarme));
+      return _carteRappelPasse(r,estVu);
+    }
+  }
+  return _carteRappel(r,key,d);
+}).join('');_ajusterPaddingListe();_majComptesARebours();_jouerEntreeCartes();if(typeof _checkScrollHint==='function')setTimeout(_checkScrollHint,50);}
+
+// Carte compacte pour un rappel perso dont l'heure est passée : réduite, grisée, juste Vu/Passé.
+function _carteRappelPasse(r,estVu){
+  const heure=(r.recurrence==='daily'?r.time:(r.eventTime||r.time)).replace(':','h');
+  const badge=estVu?'✓ Vu':'Passé';
+  return `<div class="c-card-passe" data-id="${r.id}">`
+    +`<div class="c-card-passe-icone">${iconHTML(r.icon)}</div>`
+    +`<div class="c-card-passe-texte"><div class="c-card-passe-titre">${esc(r.title)}</div><div class="c-card-passe-heure">${heure}</div></div>`
+    +`<div class="c-card-passe-badge">${badge}</div>`
+    +`</div>`;
+}
 
 async function loadAVPPlanning(force){
   // Cache du planning par animateur (Steve/Greg), valable 5 minutes
@@ -4780,7 +4832,7 @@ Object.keys(pendingRerings).forEach(id=>{
 document.body.addEventListener('click',()=>{const c=getAudioContext();if(c&&c.state==='suspended')c.resume().catch(()=>{});},{once:true});
 
 // Version actuelle de l'APK — à incrémenter à chaque rebuild
-const APP_VERSION='1.0.6';
+const APP_VERSION='1.0.7';
 const VERSION_URL='https://stevoux1969.github.io/version.txt';
 
 async function checkUpdate(){
