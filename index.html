@@ -4207,8 +4207,18 @@ async function showAdminAvisAteliers(){
   const content=document.getElementById('avis-ateliers-content');
   content.innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement…</div>';
   try{
-    const snap=await db.collection('avis_ateliers').get();
-    const avis=snap.docs.map(d=>({id:d.id,...d.data()}));
+    // Greg ne voit que les avis de ses propres ateliers (même filtre que le Bilan trimestriel :
+    // l'atelier n'a pas de champ animateur stocké, l'appartenance se déduit en comparant sa clé
+    // date_heure_titre à l'index construit depuis le planning CSV de l'animateur). Steve voit tout.
+    const isGreg=currentUser&&currentUser.isGreg;
+    const [snap,mesEvents]=await Promise.all([
+      db.collection('avis_ateliers').get(),
+      isGreg?buildAnimAtelierIndex('greg'):Promise.resolve(null)
+    ]);
+    let avis=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(isGreg){
+      avis=avis.filter(a=>mesEvents.has((a.atelierId||'').replace(/^atelier_/,'')));
+    }
     if(avis.length===0){
       content.innerHTML='<div class="empty"><div class="empty-icon" style="font-size:2.25rem">💬</div><div class="empty-text" style="margin-top:12px">Aucun avis pour le moment.</div></div>';
       return;
