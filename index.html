@@ -2736,32 +2736,43 @@ function setStatsFilter(val){statsFilter=val;loadAndRenderStats();}
 // Volontairement séparé des Statistiques : rien sur les désinscriptions ou les
 // difficultés d'un bénéficiaire ici, ça reste privé dans les Statistiques.
 let bilanFilter=null;
-let bilanQuarters=[];
+let bilanPeriodes=[]; // trimestres + années, mélangés (voir currentBilanRange())
 
-function trimestreDeDate(d){return {annee:d.getFullYear(), t:Math.floor(d.getMonth()/3)+1};}
-function trimestreBornes(annee,t){const debut=new Date(annee,(t-1)*3,1);const fin=new Date(annee,(t-1)*3+3,0);return{debut:dateKey(debut),fin:dateKey(fin)};}
-function moisDuTrimestre(annee,t){
+// ----- Construction des périodes disponibles (trimestre OU année, même forme) -----
+function moisDeAnnee(annee){
   const mNames=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
   const res=[];
-  for(let i=0;i<3;i++){const m=(t-1)*3+i;res.push({ym:annee+'-'+pad2(m+1),label:mNames[m]});}
+  for(let m=0;m<12;m++)res.push({ym:annee+'-'+pad2(m+1),label:mNames[m]});
   return res;
 }
+function trimestreDeDate(d){return {annee:d.getFullYear(), t:Math.floor(d.getMonth()/3)+1};}
+function trimestreBornes(annee,t){const debut=new Date(annee,(t-1)*3,1);const fin=new Date(annee,(t-1)*3+3,0);return{debut:dateKey(debut),fin:dateKey(fin)};}
+function moisDuTrimestre(annee,t){return moisDeAnnee(annee).slice((t-1)*3,(t-1)*3+3);}
 function trimestreLabel(annee,t){const noms=['Janv.–Mars','Avr.–Juin','Juil.–Sept.','Oct.–Déc.'];return 'T'+t+' '+annee+' ('+noms[t-1]+')';}
 function listeTrimestresGlissants(n){
   const liste=[];
   let {annee,t}=trimestreDeDate(new Date());
   for(let i=0;i<n;i++){
     const b=trimestreBornes(annee,t);
-    liste.push({key:annee+'-T'+t,label:trimestreLabel(annee,t),debut:b.debut,fin:b.fin,moisKeys:moisDuTrimestre(annee,t)});
+    liste.push({key:annee+'-T'+t,label:trimestreLabel(annee,t),debut:b.debut,fin:b.fin,moisKeys:moisDuTrimestre(annee,t),type:'trimestre'});
     t--;if(t<1){t=4;annee--;}
   }
   return liste;
 }
+function anneeBilan(annee){
+  return {key:String(annee),label:'Année '+annee,debut:annee+'-01-01',fin:annee+'-12-31',moisKeys:moisDeAnnee(annee),type:'annee'};
+}
+// Période actuellement sélectionnée dans le Bilan (trimestre ou année) : point d'entrée
+// unique utilisé par tout le calcul, pour ne jamais dupliquer la logique entre les deux.
+function currentBilanRange(){
+  return bilanPeriodes.find(x=>x.key===bilanFilter)||bilanPeriodes[0];
+}
 
 async function showAdminBilan(){
   showScreen('admin-bilan-screen');
-  bilanQuarters=listeTrimestresGlissants(6);
-  if(!bilanFilter||!bilanQuarters.find(x=>x.key===bilanFilter))bilanFilter=bilanQuarters[0].key;
+  const anneeActuelle=new Date().getFullYear();
+  bilanPeriodes=[...listeTrimestresGlissants(6),anneeBilan(anneeActuelle),anneeBilan(anneeActuelle-1)];
+  if(!bilanFilter||!bilanPeriodes.find(x=>x.key===bilanFilter))bilanFilter=bilanPeriodes[0].key;
   await loadAndRenderBilan();
 }
 function setBilanFilter(val){bilanFilter=val;loadAndRenderBilan();}
@@ -2770,18 +2781,23 @@ async function loadAndRenderBilan(){
   const content=document.getElementById('bilan-content');
   content.innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement…</div>';
   try{
-    const q=bilanQuarters.find(x=>x.key===bilanFilter)||bilanQuarters[0];
+    const q=currentBilanRange();
     const anim=(currentUser&&currentUser.isGreg)?'greg':'steve';
     const autreAnim=anim==='greg'?'steve':'greg';
     const autreNom=anim==='greg'?'Steve':'Greg';
-    const [usersSnap,presSnap,mesEvents,autreEvents]=await Promise.all([
+    const periodeMotSur=q.type==='annee'?"sur l'année":'sur le trimestre';
+    const periodeMotDe=q.type==='annee'?"de l'année":'du trimestre';
+    const [usersSnap,presSnap,mesEvents,autreEvents,nouveauSnap]=await Promise.all([
       db.collection('users').get(),
       db.collection('presences').get(),
       buildAnimAtelierIndex(anim),
-      buildAnimAtelierIndex(autreAnim)
+      buildAnimAtelierIndex(autreAnim),
+      db.collection('activites_nouveau').get()
     ]);
     const presencesMap={};
     presSnap.docs.forEach(d=>{presencesMap[d.id]={...d.data()};});
+    const nouveauMap={};
+    nouveauSnap.docs.forEach(d=>{nouveauMap[d.id]=!!d.data().nouveau;});
     const users=usersSnap.docs.filter(d=>{const u=d.data();return u.prenom&&u.code!=='196969'&&u.code!==196969&&u.code!=='555888'&&u.code!==555888;}).map(d=>({uid:d.id,...d.data()}));
     const today=new Date().toISOString().slice(0,10);
     const cleAtelier=r=>r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');
@@ -2812,7 +2828,7 @@ async function loadAndRenderBilan(){
     if(moisAvecDonnees.length>=2){
       const premier=moisAvecDonnees[0],dernier=moisAvecDonnees[moisAvecDonnees.length-1];
       if(dernier.taux>premier.taux){
-        phraseEvolution=`<p style="margin:8px 0 0;color:#16a34a;font-weight:700;font-size:0.85rem;">📈 Le taux de participation progresse de ${premier.taux}% à ${dernier.taux}% sur le trimestre.</p>`;
+        phraseEvolution=`<p style="margin:8px 0 0;color:#16a34a;font-weight:700;font-size:0.85rem;">📈 Le taux de participation progresse de ${premier.taux}% à ${dernier.taux}% ${periodeMotSur}.</p>`;
       }
     }
 
@@ -2824,17 +2840,22 @@ async function loadAndRenderBilan(){
       domaineMap[dom].activites.add(i.titre);
       if(i.present)domaineMap[dom].participations++;
     });
-    const domaineList=Object.entries(domaineMap).map(([nom,d])=>({nom,activites:d.activites.size,participations:d.participations})).sort((a,b)=>b.participations-a.participations);
+    const domaineList=Object.entries(domaineMap).map(([nom,d])=>({nom,activites:d.activites.size,noms:Array.from(d.activites).sort((a,b)=>a.localeCompare(b,'fr')),participations:d.participations})).sort((a,b)=>b.participations-a.participations);
     const maxParticipations=Math.max(1,...domaineList.map(d=>d.participations),0);
 
-    // 3) Top 5 activités par taux de présence
+    // 3) Toutes les activités, triées par nombre de participations (pas par taux : un
+    // taux de 100% sur une seule séance n'est pas représentatif)
     const atelierMap={};
     inscriptions.forEach(i=>{
-      if(!atelierMap[i.titre])atelierMap[i.titre]={p:0,tot:0};
+      if(!atelierMap[i.titre])atelierMap[i.titre]={p:0,tot:0,seances:new Set()};
       atelierMap[i.titre].tot++;
+      atelierMap[i.titre].seances.add(i.date+'_'+i.time);
       if(i.present)atelierMap[i.titre].p++;
     });
-    const top5=Object.entries(atelierMap).map(([nom,s])=>({nom,p:s.p,tot:s.tot,taux:s.tot?Math.round(s.p/s.tot*100):0})).sort((a,b)=>b.taux-a.taux||b.tot-a.tot).slice(0,5);
+    const activiteList=Object.entries(atelierMap).map(([nom,s])=>{
+      const cleanId=cleanDocId(nom);
+      return {nom,p:s.p,tot:s.tot,seances:s.seances.size,taux:s.tot?Math.round(s.p/s.tot*100):0,cleanId,nouveau:!!nouveauMap[cleanId]};
+    }).sort((a,b)=>b.p-a.p||b.seances-a.seances);
 
     // 4) Vision d'ensemble
     const beneficiairesAccompagnes=new Set(inscriptions.map(i=>i.prenom)).size;
@@ -2845,8 +2866,9 @@ async function loadAndRenderBilan(){
     const seancesCoAnimees=new Set(inscriptions.filter(i=>i.coAnime).map(i=>i.date+'_'+i.time+'_'+i.titre)).size;
 
     // ===== Rendu =====
-    const quarterOptions=bilanQuarters.map(x=>`<option value="${x.key}"${x.key===q.key?' selected':''}>${x.label}</option>`).join('');
-    let html=`<div class="stats-filter-bar bilan-no-print"><select style="flex:1;font-size:0.75rem;padding:7px 8px;border-radius:8px;border:1.5px solid #2d6a4f;background:white;color:#1a2340;font-weight:600;" onchange="setBilanFilter(this.value)">${quarterOptions}</select></div>`;
+    const trimestreOptions=bilanPeriodes.filter(x=>x.type==='trimestre').map(x=>`<option value="${x.key}"${x.key===q.key?' selected':''}>${x.label}</option>`).join('');
+    const anneeOptions=bilanPeriodes.filter(x=>x.type==='annee').map(x=>`<option value="${x.key}"${x.key===q.key?' selected':''}>${x.label}</option>`).join('');
+    let html=`<div class="stats-filter-bar bilan-no-print"><select style="flex:1;font-size:0.75rem;padding:7px 8px;border-radius:8px;border:1.5px solid #2d6a4f;background:white;color:#1a2340;font-weight:600;" onchange="setBilanFilter(this.value)"><optgroup label="Trimestres">${trimestreOptions}</optgroup><optgroup label="Années">${anneeOptions}</optgroup></select></div>`;
 
     html+=`<div class="stats-section">— Participation des bénéficiaires —</div>
     <div style="border:0.5px solid var(--color-border-tertiary);border-radius:10px;overflow:hidden;margin-bottom:6px;">
@@ -2860,16 +2882,18 @@ async function loadAndRenderBilan(){
     if(domaineList.length===0){
       html+=`<div style="padding:18px;text-align:center;color:#5b6785;font-style:italic;font-size:0.8125rem;">Aucune activité sur cette période</div>`;
     }else{
-      html+=domaineList.map(d=>`<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:0.8125rem;margin-bottom:3px;"><span style="font-weight:700;color:#1a2340;">${esc(d.nom)}</span><span style="color:#48547a;">${d.activites} activité${d.activites>1?'s':''} · ${d.participations} participation${d.participations>1?'s':''}</span></div><div style="height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;"><div style="width:${Math.round(d.participations/maxParticipations*100)}%;height:100%;background:#2d6a4f;border-radius:3px;"></div></div></div>`).join('');
+      html+=domaineList.map(d=>`<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:0.8125rem;margin-bottom:3px;"><span style="font-weight:700;color:#1a2340;">${esc(d.nom)}</span><span style="color:#48547a;">${d.activites} activité${d.activites>1?'s':''} · ${d.participations} participation${d.participations>1?'s':''}</span></div><div style="height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;"><div style="width:${Math.round(d.participations/maxParticipations*100)}%;height:100%;background:#2d6a4f;border-radius:3px;"></div></div>${d.noms.length?`<div style="font-size:0.68rem;color:#8992b8;margin-top:3px;">${esc(d.noms.join(', '))}</div>`:''}</div>`).join('');
     }
 
     html+=`<div style="border-top:1.5px solid #e5e7eb;margin:16px 0 12px;"></div><div class="stats-section">— Des activités qui mobilisent —</div>`;
-    if(top5.length===0){
+    if(activiteList.length===0){
       html+=`<div style="padding:18px;text-align:center;color:#5b6785;font-style:italic;font-size:0.8125rem;">Aucune activité sur cette période</div>`;
     }else{
-      html+=`<div style="border:0.5px solid var(--color-border-tertiary);border-radius:10px;overflow:hidden;margin-bottom:14px;">`+top5.map((a,idx)=>{
-        const border=idx<top5.length-1?'border-bottom:0.5px solid var(--color-border-tertiary);':'';
-        return `<div style="padding:10px 12px;${border}"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div style="font-size:0.8125rem;font-weight:700;color:#1a2340;">${esc(a.nom)}</div><div style="font-size:0.6875rem;color:#48547a;margin-top:1px;">${a.p} présent${a.p>1?'s':''} / ${a.tot} inscrit${a.tot>1?'s':''}</div></div><span style="font-size:0.9375rem;font-weight:800;color:#2d6a4f;">${a.taux}%</span></div></div>`;
+      html+=`<div style="border:0.5px solid var(--color-border-tertiary);border-radius:10px;overflow:hidden;margin-bottom:14px;">`+activiteList.map((a,idx)=>{
+        const border=idx<activiteList.length-1?'border-bottom:0.5px solid var(--color-border-tertiary);':'';
+        const domId=a.cleanId.replace(/\s+/g,'_');
+        const jsId=a.cleanId.replace(/'/g,"\\'");
+        return `<div style="padding:10px 12px;${border}" id="bilan-act-${esc(domId)}"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;"><div style="flex:1;min-width:0;"><div style="font-size:0.8125rem;font-weight:700;color:#1a2340;display:flex;align-items:center;gap:6px;"><span class="bilan-act-badge" style="display:${a.nouveau?'inline':'none'};">🆕</span><span>${esc(a.nom)}</span></div><div style="font-size:0.6875rem;color:#48547a;margin-top:1px;">${a.seances} séance${a.seances>1?'s':''} · ${a.p} participation${a.p>1?'s':''}</div><div style="font-size:0.625rem;color:#8992b8;margin-top:1px;">${a.taux}% de présence</div></div><label class="bilan-no-print" style="display:flex;align-items:center;gap:4px;font-size:0.6875rem;color:#8992b8;cursor:pointer;flex-shrink:0;white-space:nowrap;"><input type="checkbox" ${a.nouveau?'checked':''} onchange="toggleActiviteNouveau('${jsId}','${esc(domId)}',this.checked)"> Nouveau</label></div></div>`;
       }).join('')+`</div>`;
     }
 
@@ -2883,7 +2907,7 @@ async function loadAndRenderBilan(){
 
     const domainesActifs=domaineList.length;
     const syntheseItems=[
-      `Une participation régulière des bénéficiaires tout au long du trimestre${moisAvecDonnees.length?` (taux moyen de ${participationMoyenne}%)`:''}.`,
+      `Une participation régulière des bénéficiaires tout au long ${periodeMotDe}${moisAvecDonnees.length?` (taux moyen de ${participationMoyenne}%)`:''}.`,
       `Une offre diversifiée : ${domainesActifs} domaine${domainesActifs>1?'s':''} d'activités proposé${domainesActifs>1?'s':''}${domaineList.length?` (${esc(domaineList.map(d=>d.nom).join(', '))})`:''}.`,
       `Une dynamique collective${seancesCoAnimees?`, avec ${seancesCoAnimees} séance${seancesCoAnimees>1?'s':''} co-animée${seancesCoAnimees>1?'s':''} avec ${esc(autreNom)}`:''}.`,
       `Une autonomie réelle dans les inscriptions : les bénéficiaires s'inscrivent eux-mêmes aux activités, ces chiffres reflètent donc une démarche volontaire et non une simple déclaration.`
@@ -2892,7 +2916,7 @@ async function loadAndRenderBilan(){
 
     html+=`<div style="border-top:1.5px solid #e5e7eb;margin:16px 0 12px;"></div><div class="stats-section">— Note de contexte —</div>
     <div id="bilan-note-print" style="display:none;white-space:pre-wrap;background:#f9fafb;border-radius:12px;padding:14px 16px;margin-bottom:10px;font-size:0.85rem;color:#1a2340;line-height:1.5;"></div>
-    <textarea id="bilan-note" class="bilan-no-print" placeholder="Contexte du trimestre (météo, évènement particulier...) — texte libre, jamais généré automatiquement" style="width:100%;box-sizing:border-box;border:1.5px solid #d1d9f0;border-radius:12px;padding:12px;font-size:0.875rem;font-family:inherit;resize:none;height:90px;margin-bottom:10px;"></textarea>
+    <textarea id="bilan-note" class="bilan-no-print" placeholder="Contexte de la période (météo, évènement particulier...) — texte libre, jamais généré automatiquement" style="width:100%;box-sizing:border-box;border:1.5px solid #d1d9f0;border-radius:12px;padding:12px;font-size:0.875rem;font-family:inherit;resize:none;height:90px;margin-bottom:10px;"></textarea>
     <button id="bilan-note-save" class="bilan-no-print" style="width:100%;background:#2d6a4f;color:#fff;border:none;border-radius:12px;padding:12px;font-weight:700;font-size:0.875rem;cursor:pointer;font-family:inherit;margin-bottom:20px;">💾 Enregistrer la note</button>`;
 
     content.innerHTML=html;
@@ -2910,7 +2934,23 @@ async function afficherNoteBilan(quarterKey){
     if(snap.exists)texte=snap.data().texte||'';
   }catch(e){}
   const ta=document.getElementById('bilan-note');if(ta)ta.value=texte;
-  const pr=document.getElementById('bilan-note-print');if(pr)pr.textContent=texte||'(aucune note pour ce trimestre)';
+  const pr=document.getElementById('bilan-note-print');if(pr)pr.textContent=texte||'(aucune note pour cette période)';
+}
+
+// Badge "Nouveau" sur une activité : partagé Steve/Greg (pas de champ animateur dans la
+// clé), persiste tant que la case n'est pas décochée, quel que soit le trimestre affiché.
+async function toggleActiviteNouveau(cleanId,domId,checked){
+  const row=document.getElementById('bilan-act-'+domId);
+  const badge=row?row.querySelector('.bilan-act-badge'):null;
+  if(badge)badge.style.display=checked?'inline':'none';
+  try{
+    await db.collection('activites_nouveau').doc(cleanId).set({nouveau:checked,updatedAt:Date.now()});
+  }catch(e){
+    if(badge)badge.style.display=checked?'none':'inline';
+    const cb=row?row.querySelector('input[type=checkbox]'):null;
+    if(cb)cb.checked=!checked;
+    alert("La mise à jour du badge n'a pas pu être enregistrée.");
+  }
 }
 
 async function saveBilanNote(quarterKey){
@@ -2920,8 +2960,8 @@ async function saveBilanNote(quarterKey){
   const btn=document.getElementById('bilan-note-save');
   const old=btn.textContent;btn.textContent='⏳';btn.disabled=true;
   try{
-    await db.collection('bilans_notes').doc(docId).set({texte,updatedAt:Date.now(),anim,trimestre:quarterKey});
-    const pr=document.getElementById('bilan-note-print');if(pr)pr.textContent=texte||'(aucune note pour ce trimestre)';
+    await db.collection('bilans_notes').doc(docId).set({texte,updatedAt:Date.now(),anim,periode:quarterKey});
+    const pr=document.getElementById('bilan-note-print');if(pr)pr.textContent=texte||'(aucune note pour cette période)';
     btn.textContent='✓ Enregistré';
   }catch(e){btn.textContent='Erreur';}
   setTimeout(()=>{btn.textContent=old;btn.disabled=false;},1500);
@@ -2975,7 +3015,7 @@ document.getElementById('bilan-export-btn').addEventListener('click',async()=>{
       yPx+=sliceH;
       pageNum++;
     }
-    const q=bilanQuarters.find(x=>x.key===bilanFilter);
+    const q=currentBilanRange();
     const label=q?q.label.replace(/[^\w.]+/g,'_'):'bilan';
     pdf.save(`AVP_Bilan_${label}.pdf`);
   }catch(e){
