@@ -1196,6 +1196,9 @@
       <button type="button" class="wiz-popup-item" onclick="wizFermer('voile-agenda-menu');showMoisScreen()">
         <span class="e">🗓️</span><span class="t"><b>Mon mois</b><small>Voir les jours chargés</small></span>
       </button>
+      <button type="button" id="wiz-avis-atelier-btn" class="wiz-popup-item" style="display:none" onclick="wizFermer('voile-agenda-menu');showMesRendezVous('avis')">
+        <span class="e">💬</span><span class="t"><b>Mes avis à donner</b><small>Ateliers passés</small></span>
+      </button>
     </div>
     <button type="button" class="wiz-popup-fermer" onclick="wizFermer('voile-agenda-menu')">Fermer</button>
   </div>
@@ -2092,7 +2095,7 @@ function openUserMenu(){document.getElementById('um-name').textContent=currentUs
 document.getElementById('um-alarmes').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');window.location.href='reglages.html';});
 document.getElementById('user-menu').addEventListener('click',e=>{if(e.target===document.getElementById('user-menu'))document.getElementById('user-menu').classList.remove('active');});
 document.getElementById('um-planning').addEventListener('click',async()=>{document.getElementById('user-menu').classList.remove('active');state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';await loadAVPPlanning();renderPlanning();});
-document.getElementById('mes-rdv-btn').addEventListener('click',()=>wizOuvrir('voile-agenda-menu'));
+document.getElementById('mes-rdv-btn').addEventListener('click',async()=>{await _majVisibiliteAvisAtelierBtn();wizOuvrir('voile-agenda-menu');});
 function _ouvrirEcranAvis(){
   // Réinitialise l'écran avant de l'ouvrir
   avisNoteApp=0;
@@ -3898,13 +3901,77 @@ function _finSemaineKey(){
   d.setDate(d.getDate()+(dow===0?0:7-dow));
   return dateKey(d);
 }
+// Carte "atelier passé" avec bouton d'avis — partagée entre la vue "Mon agenda" (tout)
+// et la vue dédiée "Mes avis à donner".
+function _carteAtelierPasseAvis(r,avisEnvoye){
+  const dateLabel=formatShortDate(r.date)+' · '+(r.time||'').replace(':','h');
+  const btnHTML=avisEnvoye
+    ?`<div style="width:100%;background:#e8f7ee;color:#0a6e31;border:2px solid #0a6e31;border-radius:10px;padding:10px;font-weight:700;font-size:0.875rem;text-align:center;">✓ Avis envoyé — merci !</div>`
+    :`<button type="button" class="rdv-avis-btn" data-atelier-id="${esc(r.id)}" style="width:100%;background:#f0e9fc;color:#6d28d9;border:2px solid #6d28d9;border-radius:10px;padding:10px;font-weight:700;font-size:0.875rem;cursor:pointer;font-family:inherit;">💬 Votre avis sur cette activité</button>`;
+  return `<div style="background:white;border:2px solid #e5e9f2;border-radius:14px;padding:14px 16px;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <span style="font-size:1.375rem;">${iconHTML(r.icon)}</span>
+      <span style="font-weight:700;font-size:0.9375rem;color:#1a2340;flex:1;">${esc(r.title||'')}</span>
+      <span style="background:#e5e9f2;color:#48547a;font-size:0.6875rem;font-weight:700;padding:2px 8px;border-radius:10px;">PASSÉ</span>
+    </div>
+    <div style="font-size:0.8125rem;color:#48547a;margin-bottom:10px;">${esc(dateLabel)}</div>
+    ${btnHTML}
+  </div>`;
+}
+
+// Affiche le 4e choix du popup "Que voulez-vous voir ?" seulement s'il reste au moins
+// un atelier passé sans avis — pas la peine de proposer un tiroir vide.
+async function _majVisibiliteAvisAtelierBtn(){
+  const btn=document.getElementById('wiz-avis-atelier-btn');
+  if(!btn)return;
+  const todayKey=dateKey(new Date());
+  const ateliersPasses=(state.reminders||[]).filter(r=>r.source==='atelier'&&r.date&&r.date<todayKey);
+  if(ateliersPasses.length===0){btn.style.display='none';return;}
+  let avisIds=new Set();
+  try{
+    const snap=await db.collection('avis_ateliers').where('userId','==',currentUser.id).get();
+    snap.docs.forEach(d=>avisIds.add(d.data().atelierId));
+  }catch(e){}
+  const enAttente=ateliersPasses.some(r=>!avisIds.has(r.id));
+  btn.style.display=enAttente?'flex':'none';
+}
+
+// Vue dédiée "Mes avis à donner" : tous les ateliers passés, sans les rendez-vous à venir
+// mélangés — un accès direct et sans ambiguïté au flux d'avis.
+async function _renderAvisAteliersListe(){
+  const list=document.getElementById('mes-rdv-list');
+  const todayKey=dateKey(new Date());
+  const ateliersPasses=(state.reminders||[]).filter(r=>r.source==='atelier'&&r.date&&r.date<todayKey)
+    .sort((a,b)=>b.date!==a.date?b.date.localeCompare(a.date):(b.time||'').localeCompare(a.time||''));
+  if(ateliersPasses.length===0){
+    list.innerHTML=`<div class="empty"><div class="empty-icon" style="font-size:2.25rem">💬</div><div class="empty-text" style="margin-top:12px">Aucun atelier passé pour le moment.</div></div>`;
+    return;
+  }
+  let avisEnvoyesIds=new Set();
+  try{
+    const avisSnap=await db.collection('avis_ateliers').where('userId','==',currentUser.id).get();
+    avisSnap.docs.forEach(d=>avisEnvoyesIds.add(d.data().atelierId));
+  }catch(e){}
+  list.innerHTML=ateliersPasses.map(r=>_carteAtelierPasseAvis(r,avisEnvoyesIds.has(r.id))).join('');
+  list.querySelectorAll('.rdv-avis-btn').forEach(b=>{
+    b.addEventListener('click',()=>ouvrirAvisAtelier(b.dataset.atelierId));
+  });
+}
+
 async function showMesRendezVous(scope){
   if(scope)mesRdvScope=scope;else scope=mesRdvScope;
   showScreen('mes-rdv-screen');
   const titreEl=document.getElementById('mes-rdv-titre');
-  if(titreEl)titreEl.textContent=scope==='jour'?'☀️ Ma journée':(scope==='semaine'?'📅 Ma semaine':'📅 Mon agenda');
+  if(titreEl)titreEl.textContent=scope==='jour'?'☀️ Ma journée':(scope==='semaine'?'📅 Ma semaine':(scope==='avis'?'💬 Mes avis à donner':'📅 Mon agenda'));
   const list=document.getElementById('mes-rdv-list');
   const todayKey=dateKey(new Date());
+
+  if(scope==='avis'){
+    await _renderAvisAteliersListe();
+    if(typeof montrerTuto==='function')setTimeout(()=>montrerTuto('agenda'),300);
+    return;
+  }
+
   const finSemaine=_finSemaineKey();
   // On garde tout ce qui est à venir (date >= aujourd'hui), puis on filtre selon la portée choisie.
   // Les rappels quotidiens sont inclus avec la date du jour.
@@ -4011,22 +4078,7 @@ async function showMesRendezVous(scope){
       avisSnap.docs.forEach(d=>avisEnvoyesIds.add(d.data().atelierId));
     }catch(e){}
     html+=`<div style="font-size:0.8rem;font-weight:800;color:#6d28d9;text-transform:uppercase;letter-spacing:.5px;margin:22px 0 8px;">Ateliers passés</div>`;
-    html+=ateliersPasses.map(r=>{
-      const dateLabel=formatShortDate(r.date)+' · '+(r.time||'').replace(':','h');
-      const avisEnvoye=avisEnvoyesIds.has(r.id);
-      const btnHTML=avisEnvoye
-        ?`<div style="width:100%;background:#e8f7ee;color:#0a6e31;border:2px solid #0a6e31;border-radius:10px;padding:10px;font-weight:700;font-size:0.875rem;text-align:center;">✓ Avis envoyé — merci !</div>`
-        :`<button type="button" class="rdv-avis-btn" data-atelier-id="${esc(r.id)}" style="width:100%;background:#f0e9fc;color:#6d28d9;border:2px solid #6d28d9;border-radius:10px;padding:10px;font-weight:700;font-size:0.875rem;cursor:pointer;font-family:inherit;">💬 Votre avis sur cette activité</button>`;
-      return `<div style="background:white;border:2px solid #e5e9f2;border-radius:14px;padding:14px 16px;margin-bottom:12px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-          <span style="font-size:1.375rem;">${iconHTML(r.icon)}</span>
-          <span style="font-weight:700;font-size:0.9375rem;color:#1a2340;flex:1;">${esc(r.title||'')}</span>
-          <span style="background:#e5e9f2;color:#48547a;font-size:0.6875rem;font-weight:700;padding:2px 8px;border-radius:10px;">PASSÉ</span>
-        </div>
-        <div style="font-size:0.8125rem;color:#48547a;margin-bottom:10px;">${esc(dateLabel)}</div>
-        ${btnHTML}
-      </div>`;
-    }).join('');
+    html+=ateliersPasses.map(r=>_carteAtelierPasseAvis(r,avisEnvoyesIds.has(r.id))).join('');
   }
 
   list.innerHTML=html;
