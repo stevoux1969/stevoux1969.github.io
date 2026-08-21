@@ -1544,7 +1544,7 @@ async function handleLogin() {
     if(!prenom){showError('Entrez votre prénom.');return;}
     try{const snap=await db.collection('users').get();const existing=snap.docs.find(d=>d.data().prenom.toLowerCase()===prenom.toLowerCase());if(existing){showError('Ce prénom existe déjà. Connectez-vous.');return;}const userId=uid();await db.collection('users').doc(userId).set({prenom,code,createdAt:Date.now(),reminders:[],inscriptions:{},tutosVus:{}});currentUser={id:userId,prenom,isAdmin:false};saveSession();recordAppVersion(userId);tagOneSignalUser(prenom);state.reminders=[];state.inscriptions={};state.tutosVus={};enterApp();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
   }else{
-    try{const snap=await db.collection('users').get();let found=null;snap.docs.forEach(d=>{if(d.data().code===code)found={id:d.id,...d.data()};});if(!found){showError('Code incorrect.');pinValue='';updatePinDots();return;}currentUser={id:found.id,prenom:found.prenom,isAdmin:false};saveSession();tagOneSignalUser(found.prenom);tagOneSignalAvpUser();await loadUserData();recordAppVersion(found.id);logConnexion();enterApp();maybeShowAvisPopup();if(estNatifAlarme())planifierNotifsSysteme();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
+    try{const snap=await db.collection('users').get();let found=null;snap.docs.forEach(d=>{if(d.data().code===code)found={id:d.id,...d.data()};});if(!found){showError('Code incorrect.');pinValue='';updatePinDots();return;}currentUser={id:found.id,prenom:found.prenom,isAdmin:false};saveSession();tagOneSignalUser(found.prenom);tagOneSignalAvpUser();await loadUserData();recordAppVersion(found.id);logConnexion();enterApp();maybeShowAvisPopup();maybeShowGuidePermissionsPopup();if(estNatifAlarme())planifierNotifsSysteme();}catch(e){showError('Erreur réseau. Vérifiez internet.');}
   }
 }
 
@@ -1581,6 +1581,24 @@ function maybeShowAvisPopup(){
     setTimeout(()=>{
       document.getElementById('avis-popup-overlay').classList.add('visible');
     },1500); // léger délai pour laisser l'accueil s'afficher
+  }catch(e){}
+}
+
+// Popup "Configurer les alarmes ?" affiché une seule fois, à la toute première connexion
+// native (APK) — jamais sur le web, jamais pour l'admin. Le OK envoie directement vers le
+// parcours guidé (reglages.html?guide=1). Ne se redéclenche plus après ce premier passage,
+// "Plus tard" compris, mais le bouton "Configuration guidée" reste accessible depuis Réglages
+// à tout moment. Délai décalé par rapport à maybeShowAvisPopup() pour ne pas superposer les
+// deux popups au même instant.
+function maybeShowGuidePermissionsPopup(){
+  try{
+    if(!currentUser||currentUser.isAdmin)return;
+    if(!estNatifAlarme())return;
+    if(localStorage.getItem('avp_guide_perms_popup_vu'))return;
+    localStorage.setItem('avp_guide_perms_popup_vu','1');
+    setTimeout(()=>{
+      showConfirm({icon:'🔔',title:'Configurer les alarmes maintenant ?',text:"Pour que les rappels sonnent même téléphone verrouillé, on vérifie 2 réglages avec vous. Ça prend une minute.",okText:'Configurer',cancelText:'Plus tard',onOk:()=>{window.location.href='reglages.html?guide=1';}});
+    },4000);
   }catch(e){}
 }
 
@@ -5514,7 +5532,7 @@ async function init(){
     }
   }catch(e){}
   const session=loadSession();
-  if(session){currentUser=session;if(currentUser.isAdmin){showAdminScreen();}else{tagOneSignalUser(currentUser.prenom);await loadUserData();recordAppVersion(currentUser.id);logConnexion();enterApp();maybeShowAvisPopup();loadAVPPlanning();if(estNatifAlarme())planifierNotifsSysteme();}}else{showScreen('login-screen');}
+  if(session){currentUser=session;if(currentUser.isAdmin){showAdminScreen();}else{tagOneSignalUser(currentUser.prenom);await loadUserData();recordAppVersion(currentUser.id);logConnexion();enterApp();maybeShowAvisPopup();maybeShowGuidePermissionsPopup();loadAVPPlanning();if(estNatifAlarme())planifierNotifsSysteme();}}else{showScreen('login-screen');}
   setInterval(checkReminders,30000);
   setInterval(render,60000);
   setInterval(()=>{const n=new Date();if(n.getHours()===0&&n.getMinutes()===0)firedToday.clear();},60000);

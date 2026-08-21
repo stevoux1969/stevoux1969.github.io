@@ -41,6 +41,38 @@
   .mono { font-family:ui-monospace, Menlo, Consolas, monospace; font-size:0.82rem; color:#3a4670;
           white-space:pre-wrap; word-break:break-word; background:#f6f8fc; border-radius:10px; padding:10px; margin-top:8px; }
   .gap > * + * { margin-top:12px; }
+
+  /* Configuration guidée (guidePermissions) : batterie + démarrage automatique constructeur */
+  .guide-overlay { position:fixed; inset:0; background:#eef1f6; z-index:80; display:none; flex-direction:column; }
+  .guide-overlay.on { display:flex; }
+  .guide-hdr { background:#fff; padding:14px 16px; padding-top:calc(14px + env(safe-area-inset-top)); border-bottom:1px solid #dde3ee; position:relative; text-align:center; font-weight:700; color:#1a2340; }
+  .guide-hdr .g-close { position:absolute; right:14px; top:calc(10px + env(safe-area-inset-top)); background:#eef1fb; color:#2c3e91; border:none; width:32px; height:32px; border-radius:50%; font-size:1rem; font-weight:700; cursor:pointer; font-family:inherit; }
+  .guide-body { flex:1; overflow-y:auto; padding:22px 20px calc(30px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; max-width:520px; margin:0 auto; width:100%; box-sizing:border-box; }
+  .g-steps { display:flex; gap:6px; margin-bottom:8px; }
+  .g-steps i { flex:1; height:6px; background:#d5dcea; border-radius:3px; }
+  .g-steps i.on { background:#2c3e91; }
+  .g-steps i.done { background:#22a559; }
+  .g-stepnum { font-size:0.85rem; color:#5b6785; margin-bottom:20px; }
+  .g-icobox { width:76px; height:76px; border-radius:20px; background:#eef1f6; display:flex; align-items:center; justify-content:center; font-size:2.4rem; margin:6px auto 18px; }
+  .g-q { font-size:1.375rem; font-weight:800; text-align:center; line-height:1.3; margin-bottom:8px; }
+  .g-qsub { font-size:0.95rem; color:#5b6785; text-align:center; margin-bottom:22px; line-height:1.5; }
+  .g-spacer { flex:1; }
+  .g-statusline { display:flex; align-items:center; gap:8px; font-size:0.95rem; font-weight:700; padding:12px 14px; border-radius:12px; margin-bottom:12px; justify-content:center; }
+  .g-statusline.ok { background:#eafaf1; color:#177a44; }
+  .g-statusline.wait { background:#fff8e6; color:#8a5a00; }
+  .g-oembadge { display:flex; align-items:center; gap:6px; background:#eef1f6; color:#2c3e91; border-radius:20px; padding:8px 16px; font-size:0.9rem; font-weight:700; margin:0 auto 16px; width:fit-content; }
+  .g-checklist { border:2px solid #2c3e91; border-radius:14px; padding:14px 16px; margin-bottom:18px; }
+  .g-cline { display:flex; gap:10px; align-items:flex-start; padding:10px 0; font-size:1rem; line-height:1.45; }
+  .g-cline + .g-cline { border-top:1px solid #e6eaf3; }
+  .g-cline .g-n { flex-shrink:0; width:24px; height:24px; border-radius:50%; background:#eef1f6; color:#2c3e91; font-size:0.85rem; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+  .g-recap { border:2px solid #2c3e91; border-radius:16px; padding:14px 16px; margin-bottom:auto; }
+  .g-rline { display:flex; align-items:center; gap:10px; padding:11px 0; font-size:0.98rem; }
+  .g-rline + .g-rline { border-top:1px solid #e6eaf3; }
+  .g-rline .g-e { font-size:1.3rem; width:26px; text-align:center; flex-shrink:0; }
+  .g-rline .g-lbl { flex:1; }
+  .g-rline .g-st { font-size:0.78rem; font-weight:800; padding:3px 10px; border-radius:8px; }
+  .g-st.ok { background:#eafaf1; color:#177a44; }
+  .g-st.manual { background:#fff8e6; color:#8a5a00; }
 </style>
 </head>
 <body>
@@ -68,21 +100,14 @@
     </div>
   </div>
 
-  <!-- Autostart MIUI / HyperOS -->
+  <!-- Configuration guidée : batterie + démarrage automatique (adapté au constructeur) -->
   <div class="carte">
-    <h2>⚠️ Réglage Xiaomi à faire à la main</h2>
-    <div class="info">
-      Sur les téléphones Xiaomi / Redmi, une option cachée empêche les alarmes de
-      sonner quand l'app est fermée. Elle ne peut pas être activée automatiquement.
-    </div>
-    <ol class="etapes">
-      <li>Appuie sur <b>« Ouvrir la fiche de l'app »</b> ci-dessous.</li>
-      <li>Ouvre <b>« Démarrage automatique »</b> (ou « Autostart ») → <b>active-le</b>.</li>
-      <li>Ouvre <b>« Batterie »</b> (ou « Économiseur ») → choisis <b>« Sans restriction »</b>.</li>
-    </ol>
-    <div style="margin-top:12px">
-      <button class="btn btn-bleu" style="width:100%" onclick="action('ouvrirReglagesApp')">Ouvrir la fiche de l'app</button>
-    </div>
+    <h2>🧭 Configuration guidée</h2>
+    <p style="margin:0 0 14px;font-size:1rem;color:#3a4670">
+      On vous accompagne écran par écran : batterie, puis démarrage automatique si ce
+      téléphone en a besoin, avec une vérification à la fin.
+    </p>
+    <button class="btn btn-bleu btn-large" style="width:100%" onclick="lancerGuide()">🧭&nbsp; Lancer la configuration guidée</button>
   </div>
 
   <!-- Test -->
@@ -107,6 +132,15 @@
 </div>
 
 <div id="toast" class="toast"></div>
+
+<!-- Configuration guidée (guidePermissions) : batterie + démarrage automatique constructeur -->
+<div class="guide-overlay" id="guide-overlay">
+  <div class="guide-hdr">
+    Configuration guidée
+    <button type="button" class="g-close" id="guide-close" aria-label="Fermer">✕</button>
+  </div>
+  <div class="guide-body" id="guide-body"></div>
+</div>
 
 <script>
 "use strict";
@@ -250,7 +284,185 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden && Alarme) rafraichir();
 });
 
+// ===== Configuration guidée : batterie (universelle) + démarrage automatique constructeur =====
+// Détection via @capacitor/device (Device.getInfo().manufacturer). L'étape autostart est
+// tentée uniquement pour les constructeurs connus ci-dessous (Xiaomi/HyperOS = seul cas testé,
+// sur Redmi Note 14 ; les autres sont "best effort", jamais vérifiés sur un vrai appareil,
+// comme documenté par les libs open-source dont ces intents sont tirés). Samsung ou un
+// constructeur non reconnu : l'étape est sautée, l'API batterie standard suffit. Dans tous les
+// cas, l'étape de vérification textuelle reste affichée : l'intent qui s'ouvre ne garantit
+// jamais que le bon choix a été fait dessus.
+const Device = (CAP && CAP.Plugins && CAP.Plugins.Device) ? CAP.Plugins.Device : null;
+
+const OEM_AUTOSTART = {
+  xiaomi:  { badge: "🀄 Xiaomi / Redmi / POCO détecté", nom: "Xiaomi",
+             etapes: ["Réglages > Applications > Ma Journée AVP > Démarrage automatique → active-le",
+                      "Puis Batterie (ou Économiseur) → « Sans restriction »"] },
+  oppo:    { badge: "🟢 Oppo détecté", nom: "Oppo",
+             etapes: ["Réglages > Gestion de la batterie > Ma Journée AVP → autorise l'arrière-plan",
+                      "Puis Démarrage automatique → active-le"] },
+  vivo:    { badge: "🔵 Vivo détecté", nom: "Vivo",
+             etapes: ["Réglages > Batterie > Gestion en arrière-plan > Ma Journée AVP → Autoriser"] },
+  huawei:  { badge: "🔴 Huawei / Honor détecté", nom: "Huawei",
+             etapes: ["Réglages > Batterie > Lancement des applications > Ma Journée AVP → Gérer manuellement → tout activer"] },
+  oneplus: { badge: "⚫ OnePlus détecté", nom: "OnePlus",
+             etapes: ["Réglages > Batterie > Optimisation de la batterie > Ma Journée AVP → Ne pas optimiser"] },
+  asus:    { badge: "⚙️ Asus détecté", nom: "Asus",
+             etapes: ["Mobile Manager > AutoStart > Ma Journée AVP → active-le"] }
+};
+const ETAPES_DEFAUT = ["Réglages > Batterie > Ma Journée AVP > Sans restriction"];
+
+function detecterConstructeur(brut) {
+  const m = (brut || "").toLowerCase();
+  if (m.indexOf("xiaomi") !== -1 || m.indexOf("redmi") !== -1 || m.indexOf("poco") !== -1) return "xiaomi";
+  if (m.indexOf("oppo") !== -1) return "oppo";
+  if (m.indexOf("vivo") !== -1) return "vivo";
+  if (m.indexOf("huawei") !== -1 || m.indexOf("honor") !== -1) return "huawei";
+  if (m.indexOf("oneplus") !== -1) return "oneplus";
+  if (m.indexOf("asus") !== -1) return "asus";
+  return null; // Samsung ou non reconnu : pas d'entrée connue, étape autostart sautée
+}
+
+let guideOem = null;             // constructeur détecté (clé de OEM_AUTOSTART) ou null
+let guideAttenteBatterie = false; // vrai pendant l'aller-retour vers l'écran système batterie
+
+async function initGuideOem() {
+  if (!Device) { guideOem = null; return; }
+  try {
+    const info = await Device.getInfo();
+    guideOem = detecterConstructeur(info && info.manufacturer);
+  } catch (e) { guideOem = null; }
+}
+
+function lancerGuide() {
+  if (!afficherEnvironnement()) return;
+  document.getElementById("guide-overlay").classList.add("on");
+  guideEtape("intro");
+}
+
+function fermerGuide() {
+  document.getElementById("guide-overlay").classList.remove("on");
+  try { localStorage.setItem("avp_guide_perms_done", String(Date.now())); } catch (e) {}
+  rafraichir();
+}
+document.getElementById("guide-close").addEventListener("click", fermerGuide);
+
+async function guideMajStatutBatterie() {
+  const el = document.getElementById("g-batt-status");
+  if (!el || !Alarme) return;
+  try {
+    const e = await Alarme.etatPermissions();
+    el.innerHTML = e.batterie
+      ? '<div class="g-statusline ok">✓ Déjà autorisé</div>'
+      : '<div class="g-statusline wait">⏳ Pas encore autorisé</div>';
+  } catch (e) {}
+}
+
+async function guideEtape(nom) {
+  const body = document.getElementById("guide-body");
+
+  if (nom === "intro") {
+    body.innerHTML =
+      '<div class="g-icobox">🔔</div>' +
+      '<div class="g-q">Configurons les alarmes</div>' +
+      '<div class="g-qsub">Pour que Ma Journée AVP sonne même téléphone verrouillé, deux réglages sont à autoriser. Ça prend une minute.</div>' +
+      '<div class="g-spacer"></div>' +
+      '<button type="button" class="btn btn-bleu btn-large" style="width:100%" id="g-next">Commencer →</button>';
+    document.getElementById("g-next").onclick = () => guideEtape("batterie");
+    return;
+  }
+
+  if (nom === "batterie") {
+    body.innerHTML =
+      '<div class="g-steps"><i class="on"></i><i></i><i></i></div>' +
+      '<div class="g-stepnum">Étape 1 sur ' + (guideOem ? 3 : 2) + '</div>' +
+      '<div class="g-icobox">🔋</div>' +
+      '<div class="g-q">Batterie sans restriction</div>' +
+      '<div class="g-qsub">Empêche Android de couper l’app quand elle est en arrière-plan.</div>' +
+      '<div class="g-spacer"></div>' +
+      '<div id="g-batt-status"></div>' +
+      '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Autoriser</button>' +
+      '<button type="button" class="btn btn-gris" style="width:100%;margin-top:10px" id="g-skip-step">Continuer sans autoriser</button>';
+    guideMajStatutBatterie();
+    document.getElementById("g-next").onclick = async () => {
+      guideAttenteBatterie = true;
+      await action("demanderIgnorerBatterie");
+    };
+    document.getElementById("g-skip-step").onclick = () => guideEtape("autostart");
+    return;
+  }
+
+  if (nom === "autostart") {
+    if (!guideOem || !Device) { guideEtape("verif"); return; }
+    const info = OEM_AUTOSTART[guideOem];
+    body.innerHTML =
+      '<div class="g-steps"><i class="done"></i><i class="on"></i><i></i></div>' +
+      '<div class="g-stepnum">Étape 2 sur 3</div>' +
+      '<div class="g-oembadge">' + info.badge + '</div>' +
+      '<div class="g-icobox">🚀</div>' +
+      '<div class="g-q">Démarrage automatique</div>' +
+      '<div class="g-qsub">Sur ce téléphone, une option cachée coupe l’app en arrière-plan si elle n’est pas activée ici.</div>' +
+      '<div class="g-spacer"></div>' +
+      '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Ouvrir le réglage ' + info.nom + '</button>' +
+      '<button type="button" class="btn btn-gris" style="width:100%;margin-top:10px" id="g-skip-step">Continuer</button>';
+    document.getElementById("g-next").onclick = async () => {
+      if (Alarme) { try { await Alarme.ouvrirAutostart({ constructeur: guideOem }); } catch (e) {} }
+      guideEtape("verif");
+    };
+    document.getElementById("g-skip-step").onclick = () => guideEtape("verif");
+    return;
+  }
+
+  if (nom === "verif") {
+    const info = guideOem ? OEM_AUTOSTART[guideOem] : null;
+    const etapes = info ? info.etapes : ETAPES_DEFAUT;
+    body.innerHTML =
+      '<div class="g-steps"><i class="done"></i><i class="done"></i><i class="on"></i></div>' +
+      '<div class="g-stepnum">Étape ' + (guideOem ? "3 sur 3" : "2 sur 2") + ' — à vérifier ensemble</div>' +
+      '<div class="g-q" style="font-size:1.15rem">🔎 Vérifie ce réglage</div>' +
+      '<div class="g-qsub">Les écrans systèmes se sont peut-être ouverts sur le mauvais choix. Un adulte confirme visuellement avant de continuer.</div>' +
+      '<div class="g-checklist">' +
+        etapes.map((t, i) => '<div class="g-cline"><span class="g-n">' + (i + 1) + '</span>' + t + '</div>').join("") +
+      '</div>' +
+      '<div class="g-spacer"></div>' +
+      '<button type="button" class="btn btn-vert btn-large" style="width:100%" id="g-next">✓ C’est vérifié</button>';
+    document.getElementById("g-next").onclick = () => guideEtape("recap");
+    return;
+  }
+
+  if (nom === "recap") {
+    let batOk = false;
+    if (Alarme) { try { const e = await Alarme.etatPermissions(); batOk = !!e.batterie; } catch (e) {} }
+    const lignes = ['<div class="g-rline"><span class="g-e">🔋</span><span class="g-lbl">Batterie sans restriction</span><span class="g-st ' +
+      (batOk ? "ok" : "manual") + '">' + (batOk ? "✓ Vérifié" : "À revoir") + '</span></div>'];
+    if (guideOem) {
+      lignes.push('<div class="g-rline"><span class="g-e">🚀</span><span class="g-lbl">Démarrage auto (' + OEM_AUTOSTART[guideOem].nom +
+        ')</span><span class="g-st manual">Confirmé à l’œil</span></div>');
+    }
+    body.innerHTML =
+      '<div class="g-icobox">✅</div>' +
+      '<div class="g-q">C’est configuré !</div>' +
+      '<div class="g-recap">' + lignes.join("") + '</div>' +
+      '<div class="g-spacer"></div>' +
+      '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Terminer</button>';
+    document.getElementById("g-next").onclick = fermerGuide;
+    return;
+  }
+}
+
+// Retour d'un écran système pendant l'étape batterie : revérifie et avance automatiquement.
+document.addEventListener("visibilitychange", async () => {
+  if (document.hidden || !guideAttenteBatterie) return;
+  guideAttenteBatterie = false;
+  await guideMajStatutBatterie();
+  setTimeout(() => guideEtape("autostart"), 900);
+});
+
 rafraichir();
+initGuideOem().then(() => {
+  const params = new URLSearchParams(location.search);
+  if (params.get("guide") === "1") lancerGuide();
+});
 </script>
 </body>
 </html>
