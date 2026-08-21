@@ -1228,6 +1228,7 @@
     <button class="btn-admin-action" id="admin-msg-tous-btn" style="background:#fff7ed;color:#c2410c;border-color:#fed7aa;">📢 Message à tous</button>
     <button class="btn-admin-action" id="admin-msg-atelier-btn" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0;">🔔 Parler aux inscrits</button>
     <button class="btn-admin-action" id="admin-avis-btn" style="background:#eff6ff;color:#1e40af;border-color:#bfdbfe;">💬 Avis des bénéficiaires</button>
+    <button class="btn-admin-action" id="admin-msg-envoyes-btn" style="background:#f5f3ff;color:#6d28d9;border-color:#c4b5fd;">📜 Messages envoyés</button>
   </div>
 
   <div class="admin-section-titre">📊 Suivi</div>
@@ -1558,13 +1559,12 @@ async function checkMessagesAdmin(){
   try{
     const snap=await db.collection('messages_admin').get();
     const messages=[];
-    const limiteAncien=Date.now()-MESSAGES_VALIDITE_JOURS*24*60*60*1000;
     snap.docs.forEach(doc=>{
       const d=doc.data();
       const dejaLu=d.lu&&d.lu[currentUser.id];
       if(dejaLu)return;
-      // Message expiré : un nouvel installé ne revoit pas les vieux messages
-      if(d.createdAt&&d.createdAt<limiteAncien)return;
+      // Message expiré (7 jours ou date de fin choisie) : un nouvel installé ne le voit pas
+      if(estMessageExpire(d))return;
       // Vérifier si le message est pour ce bénéficiaire
       if(d.mode==='tous'){messages.push({id:doc.id,...d});}
       else if(d.mode==='atelier'&&d.atelierKey&&state.inscriptions&&state.inscriptions[d.atelierKey]){messages.push({id:doc.id,...d});}
@@ -2179,6 +2179,7 @@ document.getElementById('admin-user-list').addEventListener('click',e=>{const ca
 document.getElementById('admin-ateliers-btn').addEventListener('click',()=>showAdminAteliers(new Date().toISOString().slice(0,7)));
 document.getElementById('admin-msg-tous-btn').addEventListener('click',()=>showAdminMessageModal('tous'));
 document.getElementById('admin-msg-atelier-btn').addEventListener('click',()=>showAdminMessageModal('atelier'));
+document.getElementById('admin-msg-envoyes-btn').addEventListener('click',()=>showAdminMessagesEnvoyes());
 document.getElementById('admin-stats-btn').addEventListener('click',()=>showAdminStats());
 document.getElementById('admin-reparer-btn').addEventListener('click',()=>reparerInscriptionsApercu());
 document.getElementById('admin-diag-notif-btn').addEventListener('click',()=>diagnosticNotif());
@@ -2746,33 +2747,92 @@ async function showAdminParlerScreen(signataire){
   }catch(e){content.innerHTML='<div class="planning-empty">Erreur de chargement.</div>';}
 }
 
+// Écran "Messages envoyés" — réutilise le même écran générique (style Connexions / Parler aux inscrits)
+async function showAdminMessagesEnvoyes(){
+  showScreen('admin-parler-screen');
+  document.querySelector('#admin-parler-screen h1').textContent='📜 Messages envoyés';
+  const content=document.getElementById('parler-content');
+  content.innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement…</div>';
+  try{
+    const [snapMsg,snapUsers,inscritsParAtelier]=await Promise.all([
+      db.collection('messages_admin').get(),
+      db.collection('users').get(),
+      loadAllInscriptions()
+    ]);
+    const totalBenef=snapUsers.size;
+    const messages=snapMsg.docs.map(doc=>({id:doc.id,...doc.data()}))
+      .sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    if(messages.length===0){content.innerHTML='<div class="planning-empty">Aucun message envoyé.</div>';return;}
+    let html='';
+    messages.forEach(m=>{
+      const actif=!estMessageExpire(m);
+      const badge=actif
+        ?'<span style="background:#e6f6ec;color:#0a6e31;border-radius:12px;padding:3px 10px;font-size:0.75rem;font-weight:700;">Actif</span>'
+        :'<span style="background:#f1f3f8;color:#5b6785;border-radius:12px;padding:3px 10px;font-size:0.75rem;font-weight:700;">Expiré</span>';
+      let cible='Tous les bénéficiaires';
+      let total=totalBenef;
+      if(m.mode==='atelier'&&m.atelierKey){
+        const parts=m.atelierKey.split('_');
+        const d=parts[0],h=parts[1];
+        cible='Atelier du '+(d?formatShortDate(d):'?')+(h?(' à '+h.replace(':','h')):'');
+        total=(inscritsParAtelier[m.atelierKey]||[]).length;
+      }
+      const vus=Object.values(m.lu||{}).filter(Boolean).length;
+      const dEnv=m.createdAt?new Date(m.createdAt):null;
+      const dateEnvoi=dEnv?(dEnv.toLocaleDateString('fr-FR',{day:'numeric',month:'long'})+' à '+String(dEnv.getHours()).padStart(2,'0')+'h'+String(dEnv.getMinutes()).padStart(2,'0')):'?';
+      html+=`<div class="admin-msg-envoye-item" style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          ${badge}
+          <span style="font-size:0.75rem;color:#5b6785;">${dateEnvoi}</span>
+        </div>
+        <div style="font-size:0.9375rem;color:#1a2340;white-space:pre-wrap;margin-bottom:8px;">${esc(m.texte)}</div>
+        <div style="font-size:0.8125rem;color:#48547a;margin-bottom:${actif?'10px':'0'};">${cible} · Vu par ${vus}/${total}</div>
+        ${actif?('<button class="btn-msg-retirer" data-id="'+m.id+'" style="width:100%;padding:10px;border:none;border-radius:10px;background:#fdf0f2;color:#d63447;font-weight:700;font-size:0.875rem;cursor:pointer;">🗑️ Retirer</button>'):''}
+      </div>`;
+    });
+    content.innerHTML=html;
+    content.querySelectorAll('.btn-msg-retirer').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const id=btn.dataset.id;
+        showConfirm({icon:'🗑️',title:'Retirer ce message ?',text:'Il ne sera plus affiché aux bénéficiaires qui ne l\'ont pas encore vu.',okText:'Retirer',danger:true,onOk:async()=>{
+          try{await db.collection('messages_admin').doc(id).delete();showAdminMessagesEnvoyes();}
+          catch(e){showConfirm({icon:'❌',title:'Erreur',text:'Impossible de retirer le message.',okText:'OK',hideCancel:true});}
+        }});
+      });
+    });
+  }catch(e){content.innerHTML='<div class="planning-empty">Erreur de chargement.</div>';}
+}
+
 function showMessageTextModal(signataire,mode,atelierKey){
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
   const box=document.createElement('div');
   box.style.cssText='background:white;border-radius:20px;padding:24px;width:100%;max-width:360px;';
-  box.innerHTML=`<div style="font-size:2rem;text-align:center">📢</div><h3 style="text-align:center;margin:12px 0;font-size:1.25rem">Message de ${signataire}</h3><textarea id="admin-msg-text" placeholder="Votre message..." style="width:100%;height:100px;padding:12px;font-size:1rem;border-radius:10px;border:2px solid #e5e9f2;margin-bottom:16px;resize:none;font-family:inherit"></textarea><div style="display:flex;gap:12px"><button id="msg-cancel" style="flex:1;padding:14px;border:2px solid #e5e9f2;border-radius:12px;font-size:1rem;background:white;cursor:pointer">Annuler</button><button id="msg-ok" style="flex:1;padding:14px;border:none;border-radius:12px;font-size:1rem;background:#2c3e91;color:white;font-weight:700;cursor:pointer">Envoyer</button></div>`;
+  box.innerHTML=`<div style="font-size:2rem;text-align:center">📢</div><h3 style="text-align:center;margin:12px 0;font-size:1.25rem">Message de ${signataire}</h3><textarea id="admin-msg-text" placeholder="Votre message..." style="width:100%;height:100px;padding:12px;font-size:1rem;border-radius:10px;border:2px solid #e5e9f2;margin-bottom:16px;resize:none;font-family:inherit"></textarea><label style="display:block;font-size:0.8125rem;color:#48547a;font-weight:600;margin-bottom:6px;">Date de fin (optionnel)</label><input type="date" id="admin-msg-enddate" style="width:100%;padding:12px;font-size:1rem;border-radius:10px;border:2px solid #e5e9f2;margin-bottom:16px;font-family:inherit;box-sizing:border-box;"><div style="display:flex;gap:12px"><button id="msg-cancel" style="flex:1;padding:14px;border:2px solid #e5e9f2;border-radius:12px;font-size:1rem;background:white;cursor:pointer">Annuler</button><button id="msg-ok" style="flex:1;padding:14px;border:none;border-radius:12px;font-size:1rem;background:#2c3e91;color:white;font-weight:700;cursor:pointer">Envoyer</button></div>`;
   overlay.appendChild(box);
   document.body.appendChild(overlay);
   document.getElementById('msg-cancel').onclick=()=>document.body.removeChild(overlay);
   document.getElementById('msg-ok').onclick=async()=>{
     const texte=document.getElementById('admin-msg-text').value.trim();
     if(!texte){alert('Écrivez un message avant d\'envoyer.');return;}
+    const dateFin=document.getElementById('admin-msg-enddate').value;
     document.body.removeChild(overlay);
     const msgComplet=texte+'\n— '+signataire;
-    await envoyerMessageAdmin(mode,msgComplet,atelierKey,signataire);
+    await envoyerMessageAdmin(mode,msgComplet,atelierKey,signataire,dateFin);
   };
 }
 
-async function envoyerMessageAdmin(mode,message,atelierKey,signataire){
+async function envoyerMessageAdmin(mode,message,atelierKey,signataire,dateFin){
   try{
     // Stocker dans Firebase pour affichage dans l'app
+    const expireAt=dateFin?new Date(dateFin+'T23:59:59').getTime():null;
     await db.collection('messages_admin').add({
       texte:message,
       auteur:signataire,
       mode:mode,
       atelierKey:atelierKey||null,
       createdAt:Date.now(),
+      expireAt:expireAt,
       lu:{}
     });
     // Notif push immédiate via queueNotification
@@ -2932,6 +2992,15 @@ const DELAI_DESINSCRIPTION_JOURS = 2;
 // Durée de validité (en jours) des messages "à tous". Au-delà, un nouvel
 // installé ne les voit plus. Modifiable ici uniquement.
 const MESSAGES_VALIDITE_JOURS = 7;
+
+// Un message est expiré s'il dépasse 7 jours OU sa date de fin optionnelle (expireAt),
+// la première des deux limites atteintes s'applique.
+function estMessageExpire(msg){
+  const limiteAncien=Date.now()-MESSAGES_VALIDITE_JOURS*24*60*60*1000;
+  if(msg.createdAt&&msg.createdAt<limiteAncien)return true;
+  if(msg.expireAt&&Date.now()>msg.expireAt)return true;
+  return false;
+}
 
 // Nettoie une clé pour en faire un ID de document Firestore valide.
 // Firestore interdit les "/" (séparateur de sous-collection) et quelques autres
