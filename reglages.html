@@ -73,6 +73,7 @@
   .g-rline .g-st { font-size:0.78rem; font-weight:800; padding:3px 10px; border-radius:8px; }
   .g-st.ok { background:#eafaf1; color:#177a44; }
   .g-st.manual { background:#fff8e6; color:#8a5a00; }
+  .g-rfix { font-size:0.75rem; font-weight:700; color:#2c3e91; text-decoration:underline; margin-top:2px; display:block; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -104,8 +105,8 @@
   <div class="carte">
     <h2>🧭 Configuration guidée</h2>
     <p style="margin:0 0 14px;font-size:1rem;color:#3a4670">
-      On vous accompagne écran par écran : batterie, puis démarrage automatique si ce
-      téléphone en a besoin, avec une vérification à la fin.
+      On vous accompagne écran par écran : batterie, démarrage automatique si ce
+      téléphone en a besoin, position et réglages d'affichage, avec une vérification à la fin.
     </p>
     <button class="btn btn-bleu btn-large" style="width:100%" onclick="lancerGuide()">🧭&nbsp; Lancer la configuration guidée</button>
   </div>
@@ -284,7 +285,8 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden && Alarme) rafraichir();
 });
 
-// ===== Configuration guidée : batterie (universelle) + démarrage automatique constructeur =====
+// ===== Configuration guidée : batterie, démarrage automatique constructeur, position, =====
+// ===== raccourcis/fenêtres contextuelles, vérification, récap (avec notifications) =====
 // Détection via @capacitor/device (Device.getInfo().manufacturer). L'étape autostart est
 // tentée uniquement pour les constructeurs connus ci-dessous (Xiaomi/HyperOS = seul cas testé,
 // sur Redmi Note 14 ; les autres sont "best effort", jamais vérifiés sur un vrai appareil,
@@ -293,6 +295,7 @@ document.addEventListener("visibilitychange", () => {
 // cas, l'étape de vérification textuelle reste affichée : l'intent qui s'ouvre ne garantit
 // jamais que le bon choix a été fait dessus.
 const Device = (CAP && CAP.Plugins && CAP.Plugins.Device) ? CAP.Plugins.Device : null;
+const Geoloc = (CAP && CAP.Plugins && CAP.Plugins.Geolocation) ? CAP.Plugins.Geolocation : null;
 
 const OEM_AUTOSTART = {
   xiaomi:  { badge: "🀄 Xiaomi / Redmi / POCO détecté", nom: "Xiaomi",
@@ -311,6 +314,16 @@ const OEM_AUTOSTART = {
              etapes: ["Mobile Manager > AutoStart > Ma Journée AVP → active-le"] }
 };
 const ETAPES_DEFAUT = ["Réglages > Batterie > Ma Journée AVP > Sans restriction"];
+const ETAPES_RACCOURCIS = [
+  "« Raccourcis de l'écran d'accueil » → activé",
+  "« Affichage de fenêtres contextuelles en arrière-plan » → activé"
+];
+
+function gDots(total, active) {
+  let h = "";
+  for (let i = 0; i < total; i++) h += '<i class="' + (i < active ? "done" : (i === active ? "on" : "")) + '"></i>';
+  return h;
+}
 
 function detecterConstructeur(brut) {
   const m = (brut || "").toLowerCase();
@@ -325,6 +338,7 @@ function detecterConstructeur(brut) {
 
 let guideOem = null;             // constructeur détecté (clé de OEM_AUTOSTART) ou null
 let guideAttenteBatterie = false; // vrai pendant l'aller-retour vers l'écran système batterie
+let guideAttenteNotif = false;    // vrai pendant l'aller-retour vers les réglages notifications (récap)
 
 async function initGuideOem() {
   if (!Device) { guideOem = null; return; }
@@ -358,6 +372,18 @@ async function guideMajStatutBatterie() {
   } catch (e) {}
 }
 
+async function guideMajStatutPosition() {
+  const el = document.getElementById("g-pos-status");
+  if (!el || !Geoloc) return;
+  try {
+    const p = await Geoloc.checkPermissions();
+    const ok = p && p.location === "granted";
+    el.innerHTML = ok
+      ? '<div class="g-statusline ok">✓ Déjà autorisée</div>'
+      : '<div class="g-statusline wait">⏳ Pas encore autorisée</div>';
+  } catch (e) {}
+}
+
 async function guideEtape(nom) {
   const body = document.getElementById("guide-body");
 
@@ -365,7 +391,7 @@ async function guideEtape(nom) {
     body.innerHTML =
       '<div class="g-icobox">🔔</div>' +
       '<div class="g-q">Configurons les alarmes</div>' +
-      '<div class="g-qsub">Pour que Ma Journée AVP sonne même téléphone verrouillé, deux réglages sont à autoriser. Ça prend une minute.</div>' +
+      '<div class="g-qsub">Pour que Ma Journée AVP sonne même téléphone verrouillé et t’aide sur le trajet, quelques réglages sont à autoriser. Ça prend deux minutes.</div>' +
       '<div class="g-spacer"></div>' +
       '<button type="button" class="btn btn-bleu btn-large" style="width:100%" id="g-next">Commencer →</button>';
     document.getElementById("g-next").onclick = () => guideEtape("batterie");
@@ -374,8 +400,8 @@ async function guideEtape(nom) {
 
   if (nom === "batterie") {
     body.innerHTML =
-      '<div class="g-steps"><i class="on"></i><i></i><i></i></div>' +
-      '<div class="g-stepnum">Étape 1 sur ' + (guideOem ? 3 : 2) + '</div>' +
+      '<div class="g-steps">' + gDots(guideOem ? 5 : 4, 0) + '</div>' +
+      '<div class="g-stepnum">Étape 1 sur ' + (guideOem ? 5 : 4) + '</div>' +
       '<div class="g-icobox">🔋</div>' +
       '<div class="g-q">Batterie sans restriction</div>' +
       '<div class="g-qsub">Empêche Android de couper l’app quand elle est en arrière-plan.</div>' +
@@ -393,11 +419,11 @@ async function guideEtape(nom) {
   }
 
   if (nom === "autostart") {
-    if (!guideOem || !Device) { guideEtape("verif"); return; }
+    if (!guideOem || !Device) { guideEtape("position"); return; }
     const info = OEM_AUTOSTART[guideOem];
     body.innerHTML =
-      '<div class="g-steps"><i class="done"></i><i class="on"></i><i></i></div>' +
-      '<div class="g-stepnum">Étape 2 sur 3</div>' +
+      '<div class="g-steps">' + gDots(5, 1) + '</div>' +
+      '<div class="g-stepnum">Étape 2 sur 5</div>' +
       '<div class="g-oembadge">' + info.badge + '</div>' +
       '<div class="g-icobox">🚀</div>' +
       '<div class="g-q">Démarrage automatique</div>' +
@@ -407,6 +433,47 @@ async function guideEtape(nom) {
       '<button type="button" class="btn btn-gris" style="width:100%;margin-top:10px" id="g-skip-step">Continuer</button>';
     document.getElementById("g-next").onclick = async () => {
       if (Alarme) { try { await Alarme.ouvrirAutostart({ constructeur: guideOem }); } catch (e) {} }
+      guideEtape("position");
+    };
+    document.getElementById("g-skip-step").onclick = () => guideEtape("position");
+    return;
+  }
+
+  if (nom === "position") {
+    const total = guideOem ? 5 : 4, active = guideOem ? 2 : 1;
+    body.innerHTML =
+      '<div class="g-steps">' + gDots(total, active) + '</div>' +
+      '<div class="g-stepnum">Étape ' + (active + 1) + ' sur ' + total + '</div>' +
+      '<div class="g-icobox">📍</div>' +
+      '<div class="g-q">Position</div>' +
+      '<div class="g-qsub">Utilisée pour estimer automatiquement le temps de trajet, comme ailleurs dans l’application.</div>' +
+      '<div class="g-spacer"></div>' +
+      '<div id="g-pos-status"></div>' +
+      '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Autoriser</button>' +
+      '<button type="button" class="btn btn-gris" style="width:100%;margin-top:10px" id="g-skip-step">Continuer sans autoriser</button>';
+    guideMajStatutPosition();
+    document.getElementById("g-next").onclick = async () => {
+      if (Geoloc) { try { await Geoloc.requestPermissions(); } catch (e) {} }
+      await guideMajStatutPosition();
+      setTimeout(() => guideEtape("raccourcis"), 900);
+    };
+    document.getElementById("g-skip-step").onclick = () => guideEtape("raccourcis");
+    return;
+  }
+
+  if (nom === "raccourcis") {
+    const total = guideOem ? 5 : 4, active = guideOem ? 3 : 2;
+    body.innerHTML =
+      '<div class="g-steps">' + gDots(total, active) + '</div>' +
+      '<div class="g-stepnum">Étape ' + (active + 1) + ' sur ' + total + '</div>' +
+      '<div class="g-icobox">🧩</div>' +
+      '<div class="g-q">Raccourcis &amp; fenêtres superposées</div>' +
+      '<div class="g-qsub">Android ne propose pas de bouton automatique pour ces deux réglages : on ouvre les autorisations de l’app, à activer à la main.</div>' +
+      '<div class="g-spacer"></div>' +
+      '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Ouvrir les autorisations de l’app</button>' +
+      '<button type="button" class="btn btn-gris" style="width:100%;margin-top:10px" id="g-skip-step">Continuer</button>';
+    document.getElementById("g-next").onclick = async () => {
+      if (Alarme) { try { await Alarme.ouvrirReglagesApp(); } catch (e) {} }
       guideEtape("verif");
     };
     document.getElementById("g-skip-step").onclick = () => guideEtape("verif");
@@ -415,11 +482,12 @@ async function guideEtape(nom) {
 
   if (nom === "verif") {
     const info = guideOem ? OEM_AUTOSTART[guideOem] : null;
-    const etapes = info ? info.etapes : ETAPES_DEFAUT;
+    const etapes = (info ? info.etapes : ETAPES_DEFAUT).concat(ETAPES_RACCOURCIS);
+    const total = guideOem ? 5 : 4, active = guideOem ? 4 : 3;
     body.innerHTML =
-      '<div class="g-steps"><i class="done"></i><i class="done"></i><i class="on"></i></div>' +
-      '<div class="g-stepnum">Étape ' + (guideOem ? "3 sur 3" : "2 sur 2") + ' — à vérifier ensemble</div>' +
-      '<div class="g-q" style="font-size:1.15rem">🔎 Vérifie ce réglage</div>' +
+      '<div class="g-steps">' + gDots(total, active) + '</div>' +
+      '<div class="g-stepnum">Étape ' + (active + 1) + ' sur ' + total + ' — à vérifier ensemble</div>' +
+      '<div class="g-q" style="font-size:1.15rem">🔎 Vérifie ces réglages</div>' +
       '<div class="g-qsub">Les écrans systèmes se sont peut-être ouverts sur le mauvais choix. Un adulte confirme visuellement avant de continuer.</div>' +
       '<div class="g-checklist">' +
         etapes.map((t, i) => '<div class="g-cline"><span class="g-n">' + (i + 1) + '</span>' + t + '</div>').join("") +
@@ -431,14 +499,30 @@ async function guideEtape(nom) {
   }
 
   if (nom === "recap") {
-    let batOk = false;
-    if (Alarme) { try { const e = await Alarme.etatPermissions(); batOk = !!e.batterie; } catch (e) {} }
+    let batOk = false, notifOk = false;
+    if (Alarme) {
+      try {
+        const e = await Alarme.etatPermissions();
+        batOk = !!e.batterie;
+        notifOk = !!e.notifications;
+      } catch (e) {}
+    }
+    let posOk = false;
+    if (Geoloc) { try { const p = await Geoloc.checkPermissions(); posOk = p && p.location === "granted"; } catch (e) {} }
+
     const lignes = ['<div class="g-rline"><span class="g-e">🔋</span><span class="g-lbl">Batterie sans restriction</span><span class="g-st ' +
       (batOk ? "ok" : "manual") + '">' + (batOk ? "✓ Vérifié" : "À revoir") + '</span></div>'];
     if (guideOem) {
       lignes.push('<div class="g-rline"><span class="g-e">🚀</span><span class="g-lbl">Démarrage auto (' + OEM_AUTOSTART[guideOem].nom +
         ')</span><span class="g-st manual">Confirmé à l’œil</span></div>');
     }
+    lignes.push('<div class="g-rline"><span class="g-e">📍</span><span class="g-lbl">Position</span><span class="g-st ' +
+      (posOk ? "ok" : "manual") + '">' + (posOk ? "✓ Vérifiée" : "À revoir") + '</span></div>');
+    lignes.push('<div class="g-rline"><span class="g-e">🧩</span><span class="g-lbl">Raccourcis / fenêtres</span><span class="g-st manual">Confirmé à l’œil</span></div>');
+    lignes.push('<div class="g-rline"><span class="g-e">🔔</span><span class="g-lbl">Notifications' +
+      (notifOk ? "" : '<span class="g-rfix" id="g-notif-fix">Réautoriser →</span>') +
+      '</span><span class="g-st ' + (notifOk ? "ok" : "manual") + '">' + (notifOk ? "✓ Vérifiées" : "À revoir") + '</span></div>');
+
     body.innerHTML =
       '<div class="g-icobox">✅</div>' +
       '<div class="g-q">C’est configuré !</div>' +
@@ -446,16 +530,35 @@ async function guideEtape(nom) {
       '<div class="g-spacer"></div>' +
       '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Terminer</button>';
     document.getElementById("g-next").onclick = fermerGuide;
+
+    const fix = document.getElementById("g-notif-fix");
+    if (fix) fix.onclick = async () => {
+      if (!Alarme) return;
+      try { await Alarme.demanderNotifications(); } catch (e) {}
+      let ok = false;
+      try { const e2 = await Alarme.etatPermissions(); ok = !!e2.notifications; } catch (e) {}
+      if (!ok) {
+        guideAttenteNotif = true;
+        try { await Alarme.ouvrirReglagesApp(); } catch (e) {}
+      }
+      guideEtape("recap");
+    };
     return;
   }
 }
 
 // Retour d'un écran système pendant l'étape batterie : revérifie et avance automatiquement.
+// Retour des réglages notifications (récap) : revérifie sans avancer, on est déjà sur l'écran final.
 document.addEventListener("visibilitychange", async () => {
-  if (document.hidden || !guideAttenteBatterie) return;
-  guideAttenteBatterie = false;
-  await guideMajStatutBatterie();
-  setTimeout(() => guideEtape("autostart"), 900);
+  if (document.hidden) return;
+  if (guideAttenteBatterie) {
+    guideAttenteBatterie = false;
+    await guideMajStatutBatterie();
+    setTimeout(() => guideEtape("autostart"), 900);
+  } else if (guideAttenteNotif) {
+    guideAttenteNotif = false;
+    guideEtape("recap");
+  }
 });
 
 rafraichir();
