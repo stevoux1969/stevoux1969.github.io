@@ -5575,6 +5575,10 @@ function showUpdatePopup(remoteVersion){
 }
 
 async function init(){
+  // Durée d'affichage minimale du splash animé (~2s), pour que l'animation
+  // se termine toujours en entier même quand le chargement réel est plus rapide.
+  const _tSplash=performance.now();
+  const _splashWait=()=>new Promise(r=>setTimeout(r,Math.max(0,2000-(performance.now()-_tSplash))));
   // Démarrer à l'heure actuelle + 1h arrondie aux 5 min
   var _now = new Date();
   var _h = _now.getHours(), _m = Math.ceil(_now.getMinutes() / 5) * 5;
@@ -5596,7 +5600,7 @@ async function init(){
     }
   }catch(e){}
   const session=loadSession();
-  if(session){currentUser=session;if(currentUser.isAdmin){showAdminScreen();}else{tagOneSignalUser(currentUser.prenom);await loadUserData();recordAppVersion(currentUser.id);logConnexion();enterApp();maybeShowAvisPopup();maybeShowGuidePermissionsPopup();loadAVPPlanning();if(estNatifAlarme())planifierNotifsSysteme();}}else{showScreen('login-screen');}
+  if(session){currentUser=session;if(currentUser.isAdmin){await _splashWait();showAdminScreen();}else{tagOneSignalUser(currentUser.prenom);await loadUserData();recordAppVersion(currentUser.id);logConnexion();await _splashWait();enterApp();maybeShowAvisPopup();maybeShowGuidePermissionsPopup();loadAVPPlanning();if(estNatifAlarme())planifierNotifsSysteme();}}else{await _splashWait();showScreen('login-screen');}
   setInterval(checkReminders,30000);
   setInterval(render,60000);
   setInterval(()=>{const n=new Date();if(n.getHours()===0&&n.getMinutes()===0)firedToday.clear();},60000);
