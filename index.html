@@ -930,7 +930,8 @@
 <div id="avis-benef-screen" class="screen">
   <div class="edit-header">
     <button class="back-btn" id="avis-benef-back">‹ Retour</button>
-    <h1>💬 Mon avis</h1>
+    <h1 style="flex:1">💬 Mon avis</h1>
+    <button type="button" class="btn-aide-tuto" onclick="montrerTuto('avisBenef',true)" aria-label="Aide">?</button>
   </div>
   <div class="list-wrap">
     <div style="background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 10px rgba(26,35,64,0.07);">
@@ -972,7 +973,8 @@
 <div id="avis-screen" class="screen">
   <div class="edit-header">
     <button class="back-btn" id="avis-back">‹ Retour</button>
-    <h1>💬 Avis des bénéficiaires</h1>
+    <h1 style="flex:1">💬 Avis des bénéficiaires</h1>
+    <button type="button" class="btn-aide-tuto" onclick="montrerTuto('avis',true)" aria-label="Aide">?</button>
   </div>
   <div class="list-wrap">
     <div id="avis-resume"></div>
@@ -1220,6 +1222,7 @@
   <div class="edit-header">
     <button class="back-btn" id="planning-back-btn">‹ Retour</button>
     <h2 id="planning-month-title" style="flex:1;">Planning du mois</h2>
+    <button type="button" class="btn-aide-tuto" onclick="montrerTuto('planning',true)" aria-label="Aide">?</button>
     <button id="planning-refresh-btn" title="Rafraîchir" style="background:#eef1fb;border:none;color:#2c3e91;width:42px;height:42px;border-radius:50%;font-size:1.25rem;cursor:pointer;font-family:inherit;flex-shrink:0;">🔄</button>
   </div>
   <div class="planning-header-anim" id="planning-anim-label">Planning de Steve</div>
@@ -2128,6 +2131,7 @@ function _ouvrirEcranAvis(){
   const rpTxt=document.getElementById('avis-radio-prenom-txt');
   if(rpTxt)rpTxt.textContent='Afficher mon prénom'+(currentUser&&currentUser.prenom?' ('+currentUser.prenom+')':'');
   showScreen('avis-benef-screen');
+  if(typeof montrerTuto==='function')setTimeout(()=>montrerTuto('avisBenef'),300);
 }
 document.getElementById('avis-popup-oui').addEventListener('click',()=>{document.getElementById('avis-popup-overlay').classList.remove('visible');_ouvrirEcranAvis();});
 document.getElementById('avis-popup-non').addEventListener('click',()=>{document.getElementById('avis-popup-overlay').classList.remove('visible');});
@@ -4424,7 +4428,7 @@ async function _renderAvisEcran(opts){
   }catch(e){list.innerHTML='<div style="text-align:center;padding:30px;color:#d63447">Erreur de chargement des avis.</div>';}
 }
 function showAdminAvis(){avisEcranRetour='admin-screen';showScreen('avis-screen');_renderAvisEcran({isAdmin:true});}
-function showAvisListe(justPostedIds){avisEcranRetour='main-screen';showScreen('avis-screen');_renderAvisEcran({isAdmin:false,justPostedIds:justPostedIds||[]});}
+function showAvisListe(justPostedIds){avisEcranRetour='main-screen';showScreen('avis-screen');_renderAvisEcran({isAdmin:false,justPostedIds:justPostedIds||[]});if(typeof montrerTuto==='function')setTimeout(()=>montrerTuto('avis'),300);}
 
 // Réserve sous la liste assez de place pour que la dernière carte ne soit
 // jamais cachée derrière le bouton "Nouveau rappel" ou la flèche de défilement.
@@ -4763,7 +4767,7 @@ function parseAVPPlanning(csv,moisCible){
   return result;
 }
 
-function renderPlanning(){const content=document.getElementById('planning-content');const events=state.avpEvents;if(events.length===0){content.innerHTML='<div class="planning-empty">📋 Aucune activité trouvée dans le planning.</div>';return;}const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];const today=dateKey(new Date());const refDate=(events.find(e=>e.date>=today)||events[0]).date;const[y,m]=refDate.split('-').map(Number);document.getElementById('planning-month-title').textContent=`Planning ${monthNames[m-1]} ${y}`;const descsPromise=db.collection('atelier_descriptions').get().then(snap=>{state.atelierDescs={};snap.docs.forEach(d=>{state.atelierDescs[d.id]={...d.data()};});}).catch(()=>{state.atelierDescs=state.atelierDescs||{};});
+function renderPlanning(){if(typeof montrerTuto==='function')setTimeout(()=>montrerTuto('planning'),300);const content=document.getElementById('planning-content');const events=state.avpEvents;if(events.length===0){content.innerHTML='<div class="planning-empty">📋 Aucune activité trouvée dans le planning.</div>';return;}const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];const today=dateKey(new Date());const refDate=(events.find(e=>e.date>=today)||events[0]).date;const[y,m]=refDate.split('-').map(Number);document.getElementById('planning-month-title').textContent=`Planning ${monthNames[m-1]} ${y}`;const descsPromise=db.collection('atelier_descriptions').get().then(snap=>{state.atelierDescs={};snap.docs.forEach(d=>{state.atelierDescs[d.id]={...d.data()};});}).catch(()=>{state.atelierDescs=state.atelierDescs||{};});
 Promise.all([loadAllInscriptions(),descsPromise]).then(res=>{state.allInscriptions=res[0];renderPlanningInner(content,events);scrollToToday(content);});}
 
 function scrollToToday(content){const tryScroll=(attempt)=>{const today=dateKey(new Date());let target=content.querySelector(`[data-date="${today}"]`);if(!target){const allHeaders=content.querySelectorAll('[data-date]');for(const h of allHeaders){if(h.dataset.date>=today){target=h;break;}}if(!target&&allHeaders.length>0){target=allHeaders[allHeaders.length-1];}}if(target){target.scrollIntoView({behavior:'smooth',block:'start'});}else if(attempt<5){setTimeout(()=>tryScroll(attempt+1),200);}};setTimeout(()=>tryScroll(1),300);}
@@ -5119,7 +5123,10 @@ const TUTOS={
   wiz4:{txt:"Choisissez quand être prévenu, puis appuyez sur Continuer."},
   wiz8:{txt:"Vérifiez. Vous pouvez ajouter un détail, une adresse ou un temps de trajet si besoin, puis appuyez sur le bouton vert pour enregistrer."},
   agenda:{txt:"Votre prochain rendez-vous est en haut. Appuyez sur Annuler pour annuler un rendez-vous."},
-  mois:{txt:"Les jours avec un point ont un rappel. Appuyez sur un jour pour le voir sur l'accueil."}
+  mois:{txt:"Les jours avec un point ont un rappel. Appuyez sur un jour pour le voir sur l'accueil."},
+  planning:{txt:"Voici le planning du mois. Appuyez sur M'inscrire pour vous inscrire à un atelier ou une sortie."},
+  avisBenef:{txt:"Donnez votre avis sur l'application ou sur AVP. C'est facultatif, et vous pouvez rester anonyme."},
+  avis:{txt:"Voici les avis déjà donnés par les bénéficiaires."}
 };
 let tutoCleActive=null;
 function montrerTuto(cle,force){
