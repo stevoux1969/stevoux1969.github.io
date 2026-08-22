@@ -5575,10 +5575,11 @@ function showUpdatePopup(remoteVersion){
 }
 
 async function init(){
-  // Durée d'affichage minimale du splash animé (~2s), pour que l'animation
-  // se termine toujours en entier même quand le chargement réel est plus rapide.
+  // Durée d'affichage minimale du splash animé (~3s), pour que l'animation
+  // se termine toujours en entier et laisse le temps de lire le slogan,
+  // même quand le chargement réel est plus rapide.
   const _tSplash=performance.now();
-  const _splashWait=()=>new Promise(r=>setTimeout(r,Math.max(0,2000-(performance.now()-_tSplash))));
+  const _splashWait=()=>new Promise(r=>setTimeout(r,Math.max(0,3000-(performance.now()-_tSplash))));
   // Démarrer à l'heure actuelle + 1h arrondie aux 5 min
   var _now = new Date();
   var _h = _now.getHours(), _m = Math.ceil(_now.getMinutes() / 5) * 5;
