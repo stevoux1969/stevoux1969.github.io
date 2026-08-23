@@ -999,7 +999,8 @@
     <!-- ÉTAPE 1 : Quel est votre rappel ? (thèmes → choix précis) -->
     <div class="wizard-step active" data-step="1">
       <h3 class="wizard-q">Quel est votre rappel ?</h3>
-      <div class="voice-input">
+      <!-- Dictée vocale désactivée temporairement (reco vocale peu fiable) : masquée, code conservé pour réactivation ultérieure -->
+      <div class="voice-input" style="display:none">
         <button type="button" id="voice-btn" class="voice-btn">
           <span class="voice-icon">🎤</span>
           <span class="voice-label">Dicter au lieu de taper</span>
