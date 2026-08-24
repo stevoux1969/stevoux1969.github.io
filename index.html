@@ -1187,7 +1187,7 @@
           <div class="mode-btn" data-mode="car" onclick="wizChoisirModeTransport('car',this)">🚗<br>Voiture</div>
         </div>
         <div id="trajet-calc" class="calc-box" style="display:none"><div class="spin"></div>On calcule le temps de trajet…</div>
-        <a class="bus-lien-btn" id="trajet-bus-lien" style="display:none" target="_blank" rel="noopener">🚌 Voir l'itinéraire bus</a>
+        <a class="bus-lien-btn" id="trajet-bus-lien" style="display:none" target="_blank" rel="noopener">🚌 Voir l'itinéraire bus (Google Maps)</a>
         <div id="trajet-resultat" class="resultat-box" style="display:none">
           <div class="estim" id="trajet-estim-txt"></div>
           <div class="souscat" id="trajet-souscat-txt"></div>
@@ -1911,36 +1911,21 @@ function wizChoisirModeTransport(mode,el){
   document.querySelectorAll('#trajet-mode-grid .mode-btn').forEach(x=>x.classList.toggle('active',x===el));
   wizCalculerTrajet(mode);
 }
-// Construit le lien vers le calculateur d'itinéraire bus (plan.atoumod.fr), pré-rempli
-// avec la position géolocalisée et l'adresse du rendez-vous quand c'est possible.
+// Construit le lien Google Maps (itinéraire en transports en commun) vers l'adresse du
+// rendez-vous, avec la position géolocalisée comme départ quand elle est disponible.
 // Pas de temps de trajet bus fiable disponible : on laisse le bénéficiaire indiquer
 // lui-même une durée (boutons trajet-choix) après avoir consulté le vrai itinéraire.
 async function wizPreparerBus(adresse){
   wizTravelMode='bus';
   document.getElementById('trajet-calc').style.display='none';
   const lien=document.getElementById('trajet-bus-lien');
-  lien.onclick=null;
-  let url='https://plan.atoumod.fr/fr/';
-  let ok=false;
+  let origin='';
   try{
-    const [origin,dest]=await Promise.all([wizObtenirPosition(),wizGeocoderAdresse(adresse)]);
-    const params=new URLSearchParams({
-      fi:'ADDRESS|'+origin.lat+','+origin.lon,
-      fv:'Ma position',fpt:'address',flat:origin.lat,flon:origin.lon,
-      ti:'ADDRESS|'+dest.lat+','+dest.lon,
-      tv:adresse||'Arrivée',tpt:'address',tlat:dest.lat,tlon:dest.lon
-    });
-    url='https://plan.atoumod.fr/fr/trip-planner/results?'+params.toString();
-    ok=true;
+    const pos=await wizObtenirPosition();
+    origin='&origin='+pos.lat+','+pos.lon;
   }catch(e){}
-  lien.href=url;
+  lien.href='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(adresse)+'&travelmode=transit'+origin;
   lien.style.display='';
-  const msg=document.getElementById('trajet-fallback-msg');
-  if(!ok&&adresse){
-    lien.onclick=()=>{try{navigator.clipboard.writeText(adresse);}catch(e){}};
-    msg.textContent="📋 En cliquant sur le bouton, l'adresse « "+adresse+" » est copiée : colle-la dans le champ « Arrivée » du calculateur.";
-    msg.style.display='';
-  }
   document.getElementById('trajet-separateur').style.display='';
   const grid=document.getElementById('trajet-choix');
   grid.style.display='';
