@@ -781,6 +781,7 @@
 .calc-box{border:2px dashed #c3cae4;border-radius:12px;padding:18px 12px;text-align:center;color:#8992b8;font-size:0.85rem;font-weight:600;}
 .spin{width:22px;height:22px;border:3px solid #d5dcea;border-top-color:#2c3e91;border-radius:50%;margin:0 auto 8px;animation:trajetspin .8s linear infinite;}
 @keyframes trajetspin{to{transform:rotate(360deg);}}
+.bus-lien-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:#2c3e91;color:#fff;text-decoration:none;font-weight:700;font-size:0.95rem;border-radius:12px;padding:14px;text-align:center;box-sizing:border-box;}
 .resultat-box{border:2px solid #2c3e91;background:#eef1fb;border-radius:12px;padding:14px;}
 .resultat-box .estim{font-size:1.05rem;font-weight:800;color:#2c3e91;text-align:center;}
 .resultat-box .souscat{font-size:0.75rem;color:#48547a;margin-top:6px;line-height:1.4;text-align:center;}
@@ -1186,6 +1187,7 @@
           <div class="mode-btn" data-mode="car" onclick="wizChoisirModeTransport('car',this)">🚗<br>Voiture</div>
         </div>
         <div id="trajet-calc" class="calc-box" style="display:none"><div class="spin"></div>On calcule le temps de trajet…</div>
+        <a class="bus-lien-btn" id="trajet-bus-lien" style="display:none" target="_blank" rel="noopener">🚌 Voir l'itinéraire bus</a>
         <div id="trajet-resultat" class="resultat-box" style="display:none">
           <div class="estim" id="trajet-estim-txt"></div>
           <div class="souscat" id="trajet-souscat-txt"></div>
@@ -1889,8 +1891,13 @@ async function wizCalculerTrajet(mode){
   document.getElementById('trajet-choix').style.display='none';
   document.getElementById('trajet-garder-btn').style.display='none';
   document.getElementById('trajet-valider-btn').style.display='none';
+  document.getElementById('trajet-bus-lien').style.display='none';
   document.getElementById('trajet-calc').style.display='';
   const adresse=wizOptValeur('adresse');
+  if(mode==='bus'){
+    await wizPreparerBus(adresse);
+    return;
+  }
   try{
     const [origin,dest]=await Promise.all([wizObtenirPosition(),wizGeocoderAdresse(adresse)]);
     const profile=mode==='car'?'driving-car':'foot-walking';
@@ -1904,6 +1911,44 @@ function wizChoisirModeTransport(mode,el){
   document.querySelectorAll('#trajet-mode-grid .mode-btn').forEach(x=>x.classList.toggle('active',x===el));
   wizCalculerTrajet(mode);
 }
+// Construit le lien vers le calculateur d'itinéraire bus (plan.atoumod.fr), pré-rempli
+// avec la position géolocalisée et l'adresse du rendez-vous quand c'est possible.
+// Pas de temps de trajet bus fiable disponible : on laisse le bénéficiaire indiquer
+// lui-même une durée (boutons trajet-choix) après avoir consulté le vrai itinéraire.
+async function wizPreparerBus(adresse){
+  wizTravelMode='bus';
+  document.getElementById('trajet-calc').style.display='none';
+  const lien=document.getElementById('trajet-bus-lien');
+  lien.onclick=null;
+  let url='https://plan.atoumod.fr/fr/';
+  let ok=false;
+  try{
+    const [origin,dest]=await Promise.all([wizObtenirPosition(),wizGeocoderAdresse(adresse)]);
+    const params=new URLSearchParams({
+      fi:'ADDRESS|'+origin.lat+','+origin.lon,
+      fv:'Ma position',fpt:'address',flat:origin.lat,flon:origin.lon,
+      ti:'ADDRESS|'+dest.lat+','+dest.lon,
+      tv:adresse||'Arrivée',tpt:'address',tlat:dest.lat,tlon:dest.lon
+    });
+    url='https://plan.atoumod.fr/fr/trip-planner/results?'+params.toString();
+    ok=true;
+  }catch(e){}
+  lien.href=url;
+  lien.style.display='';
+  const msg=document.getElementById('trajet-fallback-msg');
+  if(!ok&&adresse){
+    lien.onclick=()=>{try{navigator.clipboard.writeText(adresse);}catch(e){}};
+    msg.textContent="📋 En cliquant sur le bouton, l'adresse « "+adresse+" » est copiée : colle-la dans le champ « Arrivée » du calculateur.";
+    msg.style.display='';
+  }
+  document.getElementById('trajet-separateur').style.display='';
+  const grid=document.getElementById('trajet-choix');
+  grid.style.display='';
+  grid.querySelectorAll('.trajet-btn').forEach(b=>b.classList.toggle('active',(parseInt(b.dataset.min,10)||0)===wizTravel));
+  const vbtn=document.getElementById('trajet-valider-btn');
+  vbtn.style.display='';
+  vbtn.classList.toggle('disabled',!wizTravel);
+}
 function wizAfficherResultatAuto(mode,minutes){
   wizTravel=minutes;
   wizTravelMode=mode;
@@ -1911,13 +1956,8 @@ function wizAfficherResultatAuto(mode,minutes){
   const txt=_fmtMinTrajet(minutes);
   const estimEl=document.getElementById('trajet-estim-txt');
   const sousEl=document.getElementById('trajet-souscat-txt');
-  if(mode==='bus'){
-    estimEl.textContent='🚌 ≈ '+txt+' à pied (estimation)';
-    sousEl.textContent="Pas de données bus disponibles : temps de marche estimé jusqu'à destination";
-  }else{
-    estimEl.textContent='≈ '+txt+' '+(mode==='car'?'en voiture':'à pied')+' (estimation)';
-    sousEl.textContent='Estimation à partir de ta position actuelle';
-  }
+  estimEl.textContent='≈ '+txt+' '+(mode==='car'?'en voiture':'à pied')+' (estimation)';
+  sousEl.textContent='Estimation à partir de ta position actuelle';
   document.getElementById('trajet-resultat').style.display='';
   document.getElementById('trajet-lien-modifier').style.display='';
   wizRenderOptionsRow();
@@ -1964,12 +2004,15 @@ function wizOuvrirTrajetPanel(){
   document.getElementById('trajet-separateur').style.display='none';
   document.getElementById('trajet-garder-btn').style.display='none';
   document.getElementById('trajet-garder-btn').classList.remove('active');
+  document.getElementById('trajet-bus-lien').style.display='none';
   const grid=document.getElementById('trajet-choix');
   grid.style.display='none';
   const vbtn=document.getElementById('trajet-valider-btn');
   vbtn.style.display='none';
   vbtn.classList.add('disabled');
-  if(wizTravel>0&&wizTravelMode){
+  if(wizTravelMode==='bus'){
+    wizPreparerBus(adr);
+  }else if(wizTravel>0&&wizTravelMode){
     wizAfficherResultatAuto(wizTravelMode,wizTravel);
   }else if(wizTravel>0){
     grid.style.display='';
