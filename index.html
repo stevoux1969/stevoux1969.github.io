@@ -1842,36 +1842,50 @@ let wizTravelMode=null; // 'foot' | 'bus' | 'car' | null (valeur manuelle histor
 const ORS_API_KEY='eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjY0YTBiZDg1YTlkNTQ2ZjA5MzMxOGYwMjQwYjQ3NDNkIiwiaCI6Im11cm11cjY0In0=';
 const ORS_BASE='https://api.openrouteservice.org';
 let _wizGeocodeCache={adresse:'',coords:null};
+let _wizGeocodePending=null; // {adresse,promise} - évite de relancer un géocodage déjà en cours (clics rapides entre modes)
+let _wizPosCache=null; // {promise,ts} - position géolocalisée partagée le temps du panneau trajet (~1 min)
 function _fmtMinTrajet(m){if(m<60)return m+' min';const h=Math.floor(m/60),r=m%60;return h+'h'+(r?(' '+r):'');}
 function wizObtenirPosition(){
-  return new Promise((resolve,reject)=>{
+  if(_wizPosCache&&(Date.now()-_wizPosCache.ts)<60000)return _wizPosCache.promise;
+  const promise=new Promise((resolve,reject)=>{
     const Geo=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation;
     if(!Geo)return reject(new Error('geoloc-indisponible'));
-    const t=setTimeout(()=>reject(new Error('geoloc-timeout')),8000);
-    Geo.getCurrentPosition({enableHighAccuracy:false,timeout:8000}).then(pos=>{
+    const t=setTimeout(()=>reject(new Error('geoloc-timeout')),15000);
+    Geo.getCurrentPosition({enableHighAccuracy:false,timeout:15000}).then(pos=>{
       clearTimeout(t);resolve({lat:pos.coords.latitude,lon:pos.coords.longitude});
     }).catch(e=>{clearTimeout(t);reject(e);});
   });
+  _wizPosCache={promise,ts:Date.now()};
+  promise.catch(()=>{if(_wizPosCache&&_wizPosCache.promise===promise)_wizPosCache=null;});
+  return promise;
 }
 async function wizGeocoderAdresse(adresse){
   if(_wizGeocodeCache.adresse===adresse&&_wizGeocodeCache.coords)return _wizGeocodeCache.coords;
+  if(_wizGeocodePending&&_wizGeocodePending.adresse===adresse)return _wizGeocodePending.promise;
   const ctrl=new AbortController();
-  const t=setTimeout(()=>ctrl.abort(),8000);
-  try{
-    const url=ORS_BASE+'/geocode/search?api_key='+ORS_API_KEY+'&text='+encodeURIComponent(adresse)+'&size=1&boundary.country=FR';
-    const r=await fetch(url,{signal:ctrl.signal});
-    if(!r.ok)throw new Error('geocode-http');
-    const j=await r.json();
-    const f=j&&j.features&&j.features[0];
-    if(!f)throw new Error('adresse-introuvable');
-    const coords={lon:f.geometry.coordinates[0],lat:f.geometry.coordinates[1]};
-    _wizGeocodeCache={adresse,coords};
-    return coords;
-  }finally{clearTimeout(t);}
+  const t=setTimeout(()=>ctrl.abort(),12000);
+  const promise=(async()=>{
+    try{
+      const url=ORS_BASE+'/geocode/search?api_key='+ORS_API_KEY+'&text='+encodeURIComponent(adresse)+'&size=1&boundary.country=FR';
+      const r=await fetch(url,{signal:ctrl.signal});
+      if(!r.ok)throw new Error('geocode-http');
+      const j=await r.json();
+      const f=j&&j.features&&j.features[0];
+      if(!f)throw new Error('adresse-introuvable');
+      const coords={lon:f.geometry.coordinates[0],lat:f.geometry.coordinates[1]};
+      _wizGeocodeCache={adresse,coords};
+      return coords;
+    }finally{
+      clearTimeout(t);
+      if(_wizGeocodePending&&_wizGeocodePending.promise===promise)_wizGeocodePending=null;
+    }
+  })();
+  _wizGeocodePending={adresse,promise};
+  return promise;
 }
 async function wizAppelDirections(origin,dest,profile){
   const ctrl=new AbortController();
-  const t=setTimeout(()=>ctrl.abort(),8000);
+  const t=setTimeout(()=>ctrl.abort(),12000);
   try{
     const url=ORS_BASE+'/v2/directions/'+profile;
     const r=await fetch(url,{method:'POST',signal:ctrl.signal,headers:{'Authorization':ORS_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({coordinates:[[origin.lon,origin.lat],[dest.lon,dest.lat]]})});
@@ -1882,7 +1896,12 @@ async function wizAppelDirections(origin,dest,profile){
     return Math.max(1,Math.round(sec/60));
   }finally{clearTimeout(t);}
 }
+// Jeton anti-course : si le bénéficiaire clique vite sur plusieurs modes (à pied/bus/voiture),
+// seul le résultat du DERNIER clic doit s'afficher — un calcul plus lent lancé par un clic
+// précédent ne doit jamais écraser l'affichage d'un clic plus récent.
+let _wizCalcGen=0;
 async function wizCalculerTrajet(mode){
+  const gen=++_wizCalcGen;
   wizTravelMode=mode;
   document.getElementById('trajet-resultat').style.display='none';
   document.getElementById('trajet-fallback-msg').style.display='none';
@@ -1895,16 +1914,18 @@ async function wizCalculerTrajet(mode){
   document.getElementById('trajet-calc').style.display='';
   const adresse=wizOptValeur('adresse');
   if(mode==='bus'){
-    await wizPreparerBus(adresse);
+    await wizPreparerBus(adresse,gen);
     return;
   }
   try{
     const [origin,dest]=await Promise.all([wizObtenirPosition(),wizGeocoderAdresse(adresse)]);
+    if(gen!==_wizCalcGen)return;
     const profile=mode==='car'?'driving-car':'foot-walking';
     const minutes=await wizAppelDirections(origin,dest,profile);
+    if(gen!==_wizCalcGen)return;
     wizAfficherResultatAuto(mode,minutes);
   }catch(e){
-    wizAfficherFallback();
+    if(gen===_wizCalcGen)wizAfficherFallback();
   }
 }
 function wizChoisirModeTransport(mode,el){
@@ -1915,15 +1936,18 @@ function wizChoisirModeTransport(mode,el){
 // rendez-vous, avec la position géolocalisée comme départ quand elle est disponible.
 // Pas de temps de trajet bus fiable disponible : on laisse le bénéficiaire indiquer
 // lui-même une durée (boutons trajet-choix) après avoir consulté le vrai itinéraire.
-async function wizPreparerBus(adresse){
+async function wizPreparerBus(adresse,gen){
+  if(gen===undefined)gen=++_wizCalcGen;
   wizTravelMode='bus';
   document.getElementById('trajet-calc').style.display='none';
   const lien=document.getElementById('trajet-bus-lien');
   let origin='';
   try{
     const pos=await wizObtenirPosition();
+    if(gen!==_wizCalcGen)return;
     origin='&origin='+pos.lat+','+pos.lon;
   }catch(e){}
+  if(gen!==_wizCalcGen)return;
   lien.href='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(adresse)+'&travelmode=transit'+origin;
   lien.style.display='';
   document.getElementById('trajet-separateur').style.display='';
