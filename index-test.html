@@ -3999,6 +3999,10 @@ function _gererBoutonRetourAndroid(){
   if(aide&&aide.classList.contains('visible')){_fermerAideAccueil();return false;}
   const ecranAccueil=(currentUser&&currentUser.isAdmin)?'admin-screen':'main-screen';
   const actif=document.querySelector('.screen.active');
+  if(actif&&actif.id==='edit-screen'){
+    const wizPrev=document.getElementById('wizard-prev');
+    if(wizPrev&&wizPrev.style.visibility!=='hidden'){wizGoPrev();return false;}
+  }
   if(actif&&actif.id!==ecranAccueil&&actif.id!=='login-screen'&&actif.id!=='tutorial-screen'){
     if(ecranAccueil==='main-screen'){showScreen('main-screen');render();}
     else if(typeof showAdminScreen==='function')showAdminScreen();
