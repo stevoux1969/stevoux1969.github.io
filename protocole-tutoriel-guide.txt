@@ -1,0 +1,33 @@
+CONTEXTE
+
+Voici une maquette HTML (maquette-doigt-precis.html, jointe à côté de ce fichier) qui montre un tutoriel guidé interactif pour la création d'un rappel, avec un doigt animé qui pointe précisément vers chaque bouton réel à toucher, une barre de texte fixe en bas qui explique chaque étape (lue à voix haute), et une progression pas à pas où l'utilisateur doit vraiment appuyer au bon endroit pour avancer.
+
+OBJECTIF
+
+Reproduire ce même principe (doigt qui pointe + barre de texte parlée + progression) mais branché sur les vrais écrans de l'application, pas sur des écrans simulés comme dans la maquette. Ce sera un vrai rappel réellement créé (pas une simulation) — une fois le tutoriel terminé, ce rappel test doit être supprimé automatiquement (décision déjà validée avec Steve).
+
+PARCOURS À REPRODUIRE (voir la maquette pour le détail visuel/texte exact)
+
+1. Juste après l'animation du splash, au tout premier lancement de l'app : écran "Bienvenue ! Je peux te montrer comment créer un rappel" avec deux boutons "Oui, on y va" / "Plus tard".
+   - Si "Plus tard" : reproposer une seule fois à la connexion suivante, puis ne plus jamais imposer automatiquement.
+   - Stocker cet état dans Firestore (comme tutosVus), par exemple tutoCreationVu + tutoCreationPropositions (compteur 0/1/2).
+
+2. Écran d'accueil réel : le doigt pointe vers le vrai bouton "Nouveau rappel", avec le texte "Ici, tu retrouveras tous tes rappels. Pour en créer un nouveau, appuie sur Nouveau rappel, en bas."
+
+3. Une fois cliqué, entrer dans le vrai assistant de création de rappel (le vrai wizard existant), en guidant chaque vraie étape avec le doigt :
+   - Champ titre du rappel → suggérer d'appuyer sur un exemple concret existant dans l'interface réelle
+   - Étape "quand" → pointer vers une option réelle
+   - Étape heure → pointer d'abord sur les vraies flèches d'heure, laisser l'utilisateur vraiment changer la valeur, puis pointer sur les flèches de minutes une fois l'heure changée, laisser vraiment changer aussi, puis proposer de continuer seulement une fois que les deux ont été essayées
+   - Étape récap/validation → pointer vers le vrai bouton final
+
+4. Une fois le rappel réellement créé : résumé vocal du type "Bravo, ton rappel est créé : [titre], [jour], à [heure]." (même principe que la lecture vocale déjà existante ailleurs dans l'app), afficher la vraie carte du rappel créé, puis le supprimer automatiquement en arrière-plan.
+
+5. Le bouton "?" doit rester accessible en permanence pour relancer ce tutoriel à tout moment, même longtemps après.
+
+POINTS TECHNIQUES IMPORTANTS
+
+- Il faudra identifier les vrais sélecteurs (id/class) de chaque bouton réel concerné dans index.html — la maquette utilise des id fictifs (chip-menage, tri-up, btn-cest-bon, etc.), à adapter aux vrais éléments.
+- Le positionnement du doigt (👆) se calcule dynamiquement via getBoundingClientRect() du vrai bouton ciblé — voir la fonction positionnerGuide() dans la maquette. Le calibrage exact (tipOffsetX / tipOffsetY) devra être ajusté après un premier test sur le Redmi Note 14, le rendu emoji Android étant différent du navigateur.
+- La barre de texte en bas doit rester fixe (ne jamais recouvrir le contenu), avec bouton 🔊 pour réécouter.
+- Textes à reprendre tels quels dans la maquette (déjà retravaillés).
+- Cette fonctionnalité est purement JS/HTML (pas de code natif Android à toucher), donc pas de rebuild APK nécessaire pour la tester — juste index.html directement (l'exception de workflow en cours le permet tant que les bénéficiaires sont sur 1.0.3).

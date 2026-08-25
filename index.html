@@ -826,8 +826,9 @@
 .btn-ecouter-recap{width:100%;padding:14px;border:2px solid #dde2f0;border-radius:14px;background:white;color:#2c3e91;font-family:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;margin-bottom:14px;}
 /* ===== Bulles de tutoriel ===== */
 #tuto-zone{display:none;position:fixed;left:12px;right:12px;bottom:16px;z-index:80;pointer-events:none;}
-#tuto-doigt{text-align:center;font-size:2.4rem;animation:tutoBounce 1.2s infinite;margin-bottom:-6px;}
-@keyframes tutoBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+#tuto-mascotte{text-align:center;margin-bottom:-10px;}
+.mascotte-img{width:88px;height:88px;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(26,35,64,0.3));animation:mascotteFloat 2.6s ease-in-out infinite;}
+@keyframes mascotteFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 .tuto-bulle{background:#fffbe6;border:3px solid #e8c84a;border-radius:22px;padding:18px 16px;box-shadow:0 8px 24px rgba(26,35,64,0.25);pointer-events:auto;}
 .tuto-texte{font-size:1.15rem;font-weight:800;color:#1a2340;text-align:center;line-height:1.4;}
 .tuto-btns{display:flex;gap:10px;margin-top:14px;}
@@ -835,6 +836,26 @@
 .tuto-ok{flex:1;padding:15px;border:none;border-radius:14px;background:#2c3e91;color:white;font-family:inherit;font-size:1.1rem;font-weight:800;cursor:pointer;}
 .btn-aide-tuto{width:40px;height:40px;border-radius:50%;border:none;background:#eef1fb;color:#2c3e91;font-size:1.15rem;font-weight:800;cursor:pointer;flex-shrink:0;font-family:inherit;}
 .wizard-fold-hint{font-weight:500;color:#5b6785;font-size:0.85rem;margin-left:6px;}
+/* ===== Tutoriel guidé interactif (doigt qui pointe les vrais boutons) ===== */
+.guide-doigt{position:fixed;font-size:2.6rem;z-index:96;pointer-events:none;transition:top 0.4s cubic-bezier(.34,1.2,.64,1),left 0.4s cubic-bezier(.34,1.2,.64,1);animation:guideTapoter 0.9s ease-in-out infinite;filter:drop-shadow(0 4px 6px rgba(0,0,0,0.3));--tip-offset-x:0.5;--tip-offset-y:0.12;}
+.guide-doigt.petit{font-size:1.8rem;}
+@keyframes guideTapoter{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+.guide-cible-active{position:relative;z-index:94;box-shadow:0 0 0 4px #f5a623;animation:guidePulse 1.1s ease-in-out infinite;}
+@keyframes guidePulse{0%,100%{box-shadow:0 0 0 4px rgba(245,166,35,0.9);}50%{box-shadow:0 0 0 8px rgba(245,166,35,0.35);}}
+.guide-barre{position:fixed;left:0;right:0;bottom:0;z-index:95;background:#1a2340;color:white;padding:14px 54px 14px 18px;font-size:1rem;font-weight:700;line-height:1.5;display:flex;align-items:center;min-height:60px;box-shadow:0 -6px 18px rgba(0,0,0,0.2);}
+.guide-son{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,0.18);color:white;display:flex;align-items:center;justify-content:center;font-size:1.05rem;cursor:pointer;}
+.guide-prompt-voile{position:fixed;inset:0;z-index:97;background:#f3f5fa;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 26px;text-align:center;}
+.guide-prompt-icon{font-size:3.2rem;margin-bottom:16px;}
+.guide-prompt-titre{font-size:1.35rem;font-weight:800;color:#1a2340;margin-bottom:12px;}
+.guide-prompt-texte{font-size:1.05rem;color:#48547a;line-height:1.6;margin-bottom:30px;max-width:360px;}
+.guide-prompt-btn{display:block;width:100%;max-width:360px;padding:16px;border-radius:14px;font-weight:800;font-size:1.05rem;border:none;cursor:pointer;margin-bottom:12px;font-family:inherit;}
+.guide-prompt-btn.oui{background:#2c3e91;color:white;}
+.guide-prompt-btn.plus-tard{background:#eef1fb;color:#48547a;}
+.guide-bravo{position:fixed;inset:0;z-index:97;background:#f3f5fa;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 26px;text-align:center;}
+.guide-bravo-emoji{font-size:3.5rem;margin-bottom:14px;}
+.guide-bravo-titre{font-size:1.35rem;font-weight:800;color:#1a2340;margin-bottom:10px;}
+.guide-bravo-texte{font-size:1rem;color:#48547a;line-height:1.6;margin-bottom:22px;max-width:360px;}
+.guide-bravo-carte{width:100%;max-width:360px;}
 </style>
 </head>
 <body>
@@ -1082,7 +1103,7 @@
   <div class="edit-header">
     <button class="back-btn" id="back-btn">‹ Retour</button>
     <h2 id="edit-title" style="flex:1">Nouveau rappel</h2>
-    <button type="button" class="btn-aide-tuto" onclick="montrerTuto('wiz'+wizardStep,true)" aria-label="Aide">?</button>
+    <button type="button" class="btn-aide-tuto" onclick="guideDemarrerContextuel()" aria-label="Aide">?</button>
   </div>
   <div class="edit-body">
     <!-- Barre de progression -->
@@ -1268,7 +1289,7 @@
 
 <!-- ===== Bulle de tutoriel (une seule, réutilisée partout) ===== -->
 <div id="tuto-zone">
-  <div id="tuto-doigt">👆</div>
+  <div id="tuto-mascotte"><img class="mascotte-img" id="mascotte-img-tuto" src="mascotte/content.png" alt="" aria-hidden="true"></div>
   <div class="tuto-bulle">
     <div class="tuto-texte" id="tuto-texte"></div>
     <div class="tuto-btns">
@@ -1276,6 +1297,26 @@
       <button type="button" class="tuto-ok" id="tuto-ok">✓ J'ai compris</button>
     </div>
   </div>
+</div>
+
+<!-- ===== Tutoriel guidé interactif (doigt qui pointe les vrais boutons) ===== -->
+<div id="guide-doigt" class="guide-doigt" style="display:none">👆</div>
+<div id="guide-barre" class="guide-barre" style="display:none">
+  <span id="guide-texte"></span>
+  <button type="button" id="guide-son" class="guide-son">🔊</button>
+</div>
+<div id="guide-prompt" class="guide-prompt-voile" style="display:none">
+  <div class="guide-prompt-icon">👋</div>
+  <div class="guide-prompt-titre">Bienvenue !</div>
+  <div class="guide-prompt-texte">Je peux te montrer, étape par étape, comment créer un rappel. Ça prend deux minutes. On essaie ensemble ?</div>
+  <button type="button" class="guide-prompt-btn oui" id="guide-prompt-oui">Oui, on y va</button>
+  <button type="button" class="guide-prompt-btn plus-tard" id="guide-prompt-plus-tard">Plus tard</button>
+</div>
+<div id="guide-bravo" class="guide-bravo" style="display:none">
+  <div class="guide-bravo-emoji">🎉</div>
+  <div class="guide-bravo-titre">Bravo, c'est fait !</div>
+  <div class="guide-bravo-texte">Voici ton rappel, il est bien enregistré :</div>
+  <div class="guide-bravo-carte" id="guide-bravo-carte"></div>
 </div>
 
 <div id="planning-screen" class="screen">
@@ -1665,7 +1706,7 @@ function maybeShowGuidePermissionsPopup(){
   }catch(e){}
 }
 
-async function loadUserData(){if(!currentUser||currentUser.isAdmin)return;try{const snap=await db.collection('users').doc(currentUser.id).get();if(snap.exists){state.reminders=snap.data().reminders||[];state.inscriptions=snap.data().inscriptions||{};state.tutosVus=snap.data().tutosVus||{};}
+async function loadUserData(){if(!currentUser||currentUser.isAdmin)return;try{const snap=await db.collection('users').doc(currentUser.id).get();if(snap.exists){state.reminders=snap.data().reminders||[];state.inscriptions=snap.data().inscriptions||{};state.tutosVus=snap.data().tutosVus||{};state.tutoCreationVu=snap.data().tutoCreationVu||false;state.tutoCreationPropositions=snap.data().tutoCreationPropositions||0;}
   // Auto-réparation douce (étape 1 unification) : chaque rappel atelier doit avoir sa clé
   // dans le map inscriptions. Sens union uniquement : on AJOUTE, on ne supprime jamais.
   try{
@@ -2237,8 +2278,7 @@ function enterApp(){
   userBtn.onclick=()=>openUserMenu();
   showScreen('main-screen');render();chargerAtelierDescs();loadAVPPlanning();checkReminders();checkMessagesAdmin();
   _rafraichirVus().then(()=>render());
-  if(shouldShowTutorial()){setTimeout(()=>startTutorial(),800);}
-  else{setTimeout(()=>montrerTuto('accueil'),900);}
+  setTimeout(()=>guideProposerAuLancement(),800);
 }
 
 function openUserMenu(){document.getElementById('um-name').textContent=currentUser.prenom;document.getElementById('um-role').textContent='Mon compte AVP';var ba=document.getElementById('um-alarmes');if(ba)ba.style.display=estNatifAlarme()?'':'none';document.getElementById('user-menu').classList.add('active');}
@@ -2270,7 +2310,7 @@ document.getElementById('avis-back').addEventListener('click',()=>showScreen(avi
 document.getElementById('mes-rdv-back').addEventListener('click',()=>showScreen('main-screen'));
 document.getElementById('admin-avis-ateliers-btn').addEventListener('click',()=>showAdminAvisAteliers());
 document.getElementById('avis-ateliers-back').addEventListener('click',()=>showScreen('admin-screen'));
-document.getElementById('um-tutorial').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');startTutorial();});
+document.getElementById('um-tutorial').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');setTimeout(()=>guideReprendreOuDemarrer(),300);});
 document.getElementById('um-logout').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');showConfirm({icon:'🚪',title:'Se déconnecter ?',text:'Vous devrez vous reconnecter la prochaine fois.',okText:'Déconnecter',danger:true,onOk:()=>{clearSession();currentUser=null;state.reminders=[];state.inscriptions={};pinValue='';updatePinDots();showScreen('login-screen');}});});
 
 const TUTORIAL_PAGES=[
@@ -5077,8 +5117,8 @@ document.getElementById('reminders-list').addEventListener('click',e=>{
 
 // ===== Panneau d'aide de l'accueil (§6) =====
 document.getElementById('btn-aide-accueil').addEventListener('click',()=>{
-  document.getElementById('aide-overlay-accueil').classList.add('visible');
-  document.getElementById('aide-panel-accueil').classList.add('visible');
+  if(guideActif)return;
+  guideDemarrerContextuel();
 });
 function _fermerAideAccueil(){
   document.getElementById('aide-overlay-accueil').classList.remove('visible');
@@ -5298,31 +5338,71 @@ function renderWizardRecap(){
 // ===== Bulles de tutoriel : une par écran/étape, mémorisées par bénéficiaire (tutosVus) =====
 // Fermeture par appui n'importe où sur l'écran (ou sur "J'ai compris") ; le 🔊 relit sans fermer.
 const TUTOS={
-  accueil:{txt:"Voici vos rappels du jour. Le bouton vert en bas sert à en ajouter un."},
-  wiz1:{txt:"Appuyez sur ce que vous voulez vous rappeler."},
-  wiz2:{txt:"Appuyez sur le jour du rappel."},
-  wiz3:{txt:"Réglez l'heure, puis appuyez sur le bouton vert."},
-  wiz4:{txt:"Choisissez quand être prévenu, puis appuyez sur Continuer."},
-  wiz8:{txt:"Vérifiez. Vous pouvez ajouter un détail, une adresse ou un temps de trajet si besoin, puis appuyez sur le bouton vert pour enregistrer."},
-  agenda:{txt:"Votre prochain rendez-vous est en haut. Appuyez sur Annuler pour annuler un rendez-vous."},
-  mois:{txt:"Les jours avec un point ont un rappel. Appuyez sur un jour pour le voir sur l'accueil."},
-  planning:{txt:"Voici le planning du mois. Appuyez sur M'inscrire pour vous inscrire à un atelier ou une sortie."},
-  avisBenef:{txt:"Donnez votre avis sur l'application ou sur AVP. C'est facultatif, et vous pouvez rester anonyme."},
-  avis:{txt:"Voici les avis déjà donnés par les bénéficiaires."}
+  accueil:{txt:"Voici vos rappels du jour. Le bouton vert en bas sert à en ajouter un.",expr:'content'},
+  wiz1:{txt:"Appuyez sur ce que vous voulez vous rappeler.",expr:'content'},
+  wiz2:{txt:"Appuyez sur le jour du rappel.",expr:'neutre'},
+  wiz3:{txt:"Réglez l'heure, puis appuyez sur le bouton vert.",expr:'neutre'},
+  wiz4:{txt:"Choisissez quand être prévenu, puis appuyez sur Continuer.",expr:'neutre'},
+  wiz8:{txt:"Vérifiez. Vous pouvez ajouter un détail, une adresse ou un temps de trajet si besoin, puis appuyez sur le bouton vert pour enregistrer.",expr:'content'},
+  agenda:{txt:"Votre prochain rendez-vous est en haut. Appuyez sur Annuler pour annuler un rendez-vous.",expr:'neutre'},
+  mois:{txt:"Les jours avec un point ont un rappel. Appuyez sur un jour pour le voir sur l'accueil.",expr:'neutre'},
+  planning:{txt:"Voici le planning du mois. Appuyez sur M'inscrire pour vous inscrire à un atelier ou une sortie.",expr:'content'},
+  avisBenef:{txt:"Donnez votre avis sur l'application ou sur AVP. C'est facultatif, et vous pouvez rester anonyme.",expr:'content'},
+  avis:{txt:"Voici les avis déjà donnés par les bénéficiaires.",expr:'neutre'}
 };
+// ===== Mascotte guide : expression par défaut, effet de bouche pendant speak(), clignement au repos =====
+const MASCOTTE_EXPRS=['content','neutre','rire','surpris','reflechit','clin_oeil','triste','fache'];
+let mascotteEnScene=false,mascotteExprActuelle='content',mascotteSpeakTimer=null,mascotteSpeakSafety=null,mascotteBlinkTimeout=null;
+function mascotteSetExpr(nom){
+  if(!MASCOTTE_EXPRS.includes(nom))nom='content';
+  mascotteExprActuelle=nom;
+  document.querySelectorAll('.mascotte-img').forEach(img=>{img.src='mascotte/'+nom+'.png';});
+}
+function mascotteParleDebut(){
+  mascotteParleFin();
+  const mood=mascotteExprActuelle;
+  const alt=(mood==='triste'||mood==='fache')?[mood,'neutre']:['neutre','content'];
+  let i=0;
+  mascotteSpeakTimer=setInterval(()=>{i=1-i;document.querySelectorAll('.mascotte-img').forEach(img=>{img.src='mascotte/'+alt[i]+'.png';});},480+Math.round(Math.random()*120));
+  mascotteSpeakSafety=setTimeout(mascotteParleFin,15000);
+}
+function mascotteParleFin(){
+  if(mascotteSpeakTimer){clearInterval(mascotteSpeakTimer);mascotteSpeakTimer=null;}
+  if(mascotteSpeakSafety){clearTimeout(mascotteSpeakSafety);mascotteSpeakSafety=null;}
+  if(mascotteEnScene)mascotteSetExpr(mascotteExprActuelle);
+}
+function mascotteClignementBoucle(){
+  mascotteBlinkTimeout=setTimeout(()=>{
+    if(!mascotteSpeakTimer){
+      const avant=mascotteExprActuelle;
+      document.querySelectorAll('.mascotte-img').forEach(img=>{img.src='mascotte/clin_oeil.png';});
+      setTimeout(()=>{if(!mascotteSpeakTimer)mascotteSetExpr(avant);},220);
+    }
+    mascotteClignementBoucle();
+  },4000+Math.round(Math.random()*2000));
+}
+function mascotteIdleStart(){mascotteIdleStop();mascotteClignementBoucle();}
+function mascotteIdleStop(){if(mascotteBlinkTimeout){clearTimeout(mascotteBlinkTimeout);mascotteBlinkTimeout=null;}}
 let tutoCleActive=null;
 function montrerTuto(cle,force){
+  if(guideActif)return; // le tutoriel guidé interactif a la priorité, pas de bulle jaune par-dessus
   if(!currentUser||currentUser.isAdmin)return;
   if(!TUTOS[cle])return;
   if(!force&&state.tutosVus&&state.tutosVus[cle])return;
   tutoCleActive=cle;
   document.getElementById('tuto-texte').textContent=TUTOS[cle].txt;
+  mascotteEnScene=true;
+  mascotteSetExpr(TUTOS[cle].expr||'content');
+  mascotteIdleStart();
   document.getElementById('tuto-zone').style.display='block';
 }
 function fermerTuto(){
   if(!tutoCleActive)return;
   const cle=tutoCleActive;tutoCleActive=null;
   document.getElementById('tuto-zone').style.display='none';
+  mascotteIdleStop();
+  mascotteParleFin();
+  mascotteEnScene=false;
   if(!state.tutosVus)state.tutosVus={};
   if(!state.tutosVus[cle]){
     state.tutosVus[cle]=true;
@@ -5337,6 +5417,364 @@ document.addEventListener('click',e=>{
   fermerTuto();
 },true);
 document.getElementById('tuto-audio').addEventListener('click',()=>{if(tutoCleActive)speak(TUTOS[tutoCleActive].txt);});
+
+// ===== Tutoriel guidé interactif : le doigt pointe les vrais boutons, l'utilisateur doit vraiment appuyer =====
+// Contrat d'une étape de GUIDE_ETAPES :
+//   texte    : string, affiché dans la barre et lu à voix haute
+//   cible    : ()=>Element|null, réévaluée à chaque tentative (la cible peut ne pas encore exister, ex: dans un popup)
+//   petit    : bool optionnel, doigt réduit pour les petites cibles (flèches du time picker)
+//   attacher : (el, avancer)=>cleanupFn optionnel. Par défaut : un simple clic sur el fait avancer.
+//              Fournir cette fonction pour une détection custom (ex: MutationObserver) ou pour ne pas
+//              avancer automatiquement (l'étape finale du wizard avance via guideTerminer(), pas ici).
+let guideActif=false,guideIndex=0,guideRappelCreeId=null,guideCibleActuelle=null,guideCleanupEtape=null;
+const GUIDE_ETAPES=[
+  {texte:"Ici, tu retrouveras tous tes rappels. Pour en créer un nouveau, appuie sur « Nouveau rappel », en bas.",
+   cible:()=>document.getElementById('add-btn')},
+  {texte:"On va créer ton premier rappel ensemble. Appuie sur « 🏠 Maison ».",
+   cible:()=>document.querySelector('.theme-tuile[data-theme="2"]')},
+  {texte:"Maintenant, appuie sur « 🧹 Ménage ».",
+   cible:()=>document.querySelector('.wiz-popup-item[data-c="2_1"]')},
+  {texte:"Très bien ! Maintenant, choisis quand. On va essayer « Aujourd'hui ».",
+   cible:()=>document.querySelector('.quand-btn[onclick*="aujourdhui"]')},
+  {texte:"Maintenant, choisis l'heure. Appuie sur les petites flèches pour la faire monter ou descendre.",
+   petit:true,
+   avant:()=>setTPVal('f-event-time',guideHeureParDefautSure()),
+   cible:()=>document.querySelector('#f-event-time .tp-btn[data-part="h"][data-dir="up"]'),
+   attacher:(el,avancer)=>{
+     const host=document.getElementById('f-event-time');
+     if(!host)return function(){};
+     const depart=host.dataset.value;
+     let heureChangee=false,minuteChangee=false;
+     const obs=new MutationObserver(()=>{
+       const[h0,m0]=depart.split(':');
+       const[h1,m1]=host.dataset.value.split(':');
+       if(!heureChangee&&h1!==h0){
+         heureChangee=true;
+         const t="Bien joué ! Tu peux aussi régler les minutes, de la même façon.";
+         document.getElementById('guide-texte').textContent=t;
+         speak(guideTexteVoix(t));
+         guideCiblerElement(host.querySelector('.tp-btn[data-part="m"][data-dir="up"]'),true);
+       }
+       if(!minuteChangee&&m1!==m0)minuteChangee=true;
+       if(heureChangee&&minuteChangee){obs.disconnect();avancer();}
+     });
+     obs.observe(host,{attributes:true,attributeFilter:['data-value']});
+     return ()=>obs.disconnect();
+   }},
+  {texte:"Parfait ! Quand tout te convient, appuie sur « C'est bon ».",
+   cible:()=>document.getElementById('wizard-heure-ok')},
+  {texte:"On te préviendra 2 heures avant, c'est déjà choisi pour toi. Appuie ici pour continuer.",
+   cible:()=>document.querySelector('.sonnerie-choix-btn.active')},
+  {texte:"Appuie sur « Continuer ».",
+   cible:()=>document.querySelector('[data-step="4"] .btn-save')},
+  {texte:"Tu peux ajouter un détail, par exemple penser à prendre ta carte vitale, ou la liste des courses.",
+   cible:()=>document.getElementById('opt-btn-detail'),
+   attacher:guideAttacherExplication(6500)},
+  {texte:"Tu peux ajouter l'adresse du rendez-vous, par exemple 22 place Henri Gadeau de Kerville. Ça te permettra de voir où c'est sur une carte.",
+   cible:()=>document.getElementById('opt-btn-adresse'),
+   attacher:guideAttacherExplication(8000)},
+  {texte:"Une fois une adresse ajoutée, ce bouton calcule combien de temps il faut pour y aller à pied, en bus ou en voiture, pour savoir à quelle heure partir.",
+   cible:()=>document.getElementById('opt-btn-trajet'),
+   attacher:guideAttacherDemoTrajet},
+  {texte:"Ton rappel est prêt. Vérifie, puis appuie sur le bouton vert pour l'enregistrer.",
+   cible:()=>document.getElementById('save-btn'),
+   attacher:()=>function(){}}
+];
+// Étapes "explication" du récap (détail/adresse/trajet) : le doigt montre et la voix explique,
+// mais on avance tout seul après un délai — pas besoin d'appuyer. Un appui sur la vignette
+// avance quand même tout de suite (l'utilisateur a compris plus vite).
+function guideAttacherExplication(delaiMs){
+  return (el,avancer)=>{
+    let fait=false;
+    const finir=()=>{if(fait)return;fait=true;avancer();};
+    const t=setTimeout(finir,delaiMs);
+    el.addEventListener('click',finir);
+    return ()=>{clearTimeout(t);el.removeEventListener('click',finir);};
+  };
+}
+// Démonstration du calcul de trajet, pilotée entièrement par le guide : rien à toucher pour le
+// bénéficiaire. Remplit une fausse adresse d'exemple, "appuie" sur Temps de trajet, choisit
+// à pied, et laisse le vrai calcul s'afficher avant de continuer normalement.
+function guideAttacherDemoTrajet(el,avancer){
+  let annule=false;
+  const attendre=(ms)=>new Promise(r=>setTimeout(r,ms));
+  (async()=>{
+    const champAdresse=document.getElementById('f-address');
+    if(champAdresse)champAdresse.value='22 place Henri Gadeau de Kerville, Rouen';
+    wizRenderOptionsRow();
+    await attendre(1800);
+    if(annule||!guideActif)return;
+    guideCiblerElement(document.getElementById('opt-btn-trajet'));
+    await attendre(1500);
+    if(annule||!guideActif)return;
+    wizToggleOption('trajet');
+    await attendre(1500);
+    if(annule||!guideActif)return;
+    const btnPied=document.querySelector('#trajet-mode-grid .mode-btn[data-mode="foot"]');
+    if(btnPied){
+      guideCiblerElement(btnPied,true);
+      await attendre(1200);
+      if(annule||!guideActif)return;
+      wizChoisirModeTransport('foot',btnPied);
+    }
+    await attendre(6500);
+    if(annule||!guideActif)return;
+    avancer();
+  })();
+  return ()=>{annule=true;};
+}
+// La synthèse vocale Android lit le nom des émojis (🧹 → « balai », 🏠 → « construction ») s'ils
+// restent dans le texte envoyé à speak() : on les retire pour la voix, en gardant l'affichage intact.
+function guideTexteVoix(t){return t.replace(/[\p{Extended_Pictographic}️]/gu,'').replace(/\s+/g,' ').trim();}
+// L'écran de modification part toujours de 14h00 par défaut (openEdit), sans rapport avec l'heure
+// réelle. Avec les +1h/+5min du guide et une sonnerie "2h avant", le rappel de démo pourrait tomber
+// dans le passé selon l'heure du jour où le tuto est suivi — on part donc d'une heure sûre (now+3h).
+function guideHeureParDefautSure(){
+  const d=new Date();
+  let h=(d.getHours()+3)%24,m=Math.ceil(d.getMinutes()/5)*5;
+  if(m>=60){m=0;h=(h+1)%24;}
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+}
+function guideDemarrer(){
+  if(tutoCleActive)fermerTuto();
+  document.getElementById('guide-prompt').style.display='none';
+  guideActif=true;
+  guideAfficherEtape(0);
+}
+// Progression sauvegardée pour reprendre exactement à l'étape quittée (relance manuelle depuis le
+// menu), pas depuis le début. Effacée seulement quand le parcours va vraiment jusqu'au bout (guideTerminer).
+function guideEtapeSauvegardee(){
+  if(!currentUser)return 0;
+  const v=parseInt(localStorage.getItem('avp_guide_etape_'+currentUser.id)||'0',10);
+  return isNaN(v)?0:v;
+}
+function guideSauvegarderEtape(i){
+  if(!currentUser)return;
+  try{localStorage.setItem('avp_guide_etape_'+currentUser.id,String(i));}catch(e){}
+}
+function guideEffacerProgression(){
+  if(!currentUser)return;
+  try{localStorage.removeItem('avp_guide_etape_'+currentUser.id);}catch(e){}
+}
+// Reconstitue l'état réel du wizard (thème/quand/écran) correspondant aux étapes déjà passées,
+// en rappelant les vraies fonctions de l'app (pas de simulation de clics).
+function guideReconstituerEtat(index){
+  if(index<=0)return;
+  openEdit(null);
+  if(index===1)return;
+  if(index===2){wizOuvrirTheme(2);return;}
+  wizChoisir(THEMES[2].choix[1]);
+  if(index===3)return;
+  wizQuand('aujourdhui');
+  if(index<=5)return;
+  goToStep(4);
+  if(index<=7)return;
+  goToStep(8);
+}
+// Appelée par les "?" de l'accueil et du wizard : démarre le guide directement à l'étape qui
+// correspond à l'écran/étape réel où se trouve la personne (pas toujours depuis l'accueil).
+// Contrairement à guideReprendreOuDemarrer(), on ne reconstitue rien : la personne est déjà
+// réellement sur cet écran, avec ses propres données en cours — on ne les écrase pas.
+const GUIDE_MAP_WIZARDSTEP={1:1,2:3,3:4,4:6,8:8};
+function guideDemarrerContextuel(){
+  if(tutoCleActive)fermerTuto();
+  document.getElementById('guide-prompt').style.display='none';
+  guideActif=true;
+  if(document.getElementById('edit-screen').classList.contains('active')){
+    const i=GUIDE_MAP_WIZARDSTEP[wizardStep];
+    guideAfficherEtape(i!==undefined?i:0);
+  }else{
+    showScreen('main-screen');
+    guideAfficherEtape(0);
+  }
+}
+function guideReprendreOuDemarrer(){
+  if(tutoCleActive)fermerTuto();
+  document.getElementById('guide-prompt').style.display='none';
+  const depart=guideEtapeSauvegardee();
+  showScreen('main-screen');
+  guideActif=true;
+  if(depart>0&&depart<GUIDE_ETAPES.length){
+    guideReconstituerEtat(depart);
+    guideAfficherEtape(depart);
+  }else{
+    guideAfficherEtape(0);
+  }
+}
+function guideAfficherEtape(i){
+  if(guideCleanupEtape){try{guideCleanupEtape();}catch(e){}guideCleanupEtape=null;}
+  document.querySelectorAll('.guide-cible-active').forEach(x=>x.classList.remove('guide-cible-active'));
+  if(i>=GUIDE_ETAPES.length){guideActif=false;return;}
+  guideIndex=i;
+  guideSauvegarderEtape(i);
+  const etape=GUIDE_ETAPES[i];
+  if(etape.avant)etape.avant();
+  document.getElementById('guide-texte').textContent=etape.texte;
+  document.getElementById('guide-barre').style.display='flex';
+  speak(guideTexteVoix(etape.texte));
+  guideAttendreCible(etape,0);
+}
+function guideAttendreCible(etape,tentative){
+  if(!guideActif||guideIndex!==GUIDE_ETAPES.indexOf(etape))return;
+  const el=typeof etape.cible==='function'?etape.cible():document.querySelector(etape.cible);
+  if(!el){
+    if(tentative>40)return; // cible jamais apparue (~2s) : on abandonne silencieusement plutôt que de bloquer
+    setTimeout(()=>guideAttendreCible(etape,tentative+1),50);
+    return;
+  }
+  guideCiblerElement(el,etape.petit);
+  if(etape.attacher){
+    guideCleanupEtape=etape.attacher(el,guideEtapeSuivante)||null;
+  }else{
+    const onClick=()=>guideEtapeSuivante();
+    el.addEventListener('click',onClick,{once:true});
+    guideCleanupEtape=()=>el.removeEventListener('click',onClick);
+  }
+}
+let guideElementSouleve=null;
+// La barre est fixe en bas (jamais déplacée, cf. protocole) : si elle recouvrirait la cible
+// (ex: le bouton flottant « Nouveau rappel », lui aussi ancré en bas), on soulève la cible
+// au-dessus de la barre plutôt que de la laisser cachée derrière.
+function guideAjusterPourBarre(el){
+  if(guideElementSouleve&&guideElementSouleve!==el){guideElementSouleve.style.marginBottom='';guideElementSouleve=null;}
+  const barre=document.getElementById('guide-barre');
+  if(barre.style.display==='none')return;
+  const rBarre=barre.getBoundingClientRect();
+  const rEl=el.getBoundingClientRect();
+  if(rEl.bottom>rBarre.top){
+    el.style.marginBottom=(rBarre.height+10)+'px';
+    guideElementSouleve=el;
+  }
+}
+function guideCiblerElement(el,petit){
+  document.querySelectorAll('.guide-cible-active').forEach(x=>x.classList.remove('guide-cible-active'));
+  el.classList.add('guide-cible-active');
+  guideCibleActuelle=el;
+  document.getElementById('guide-doigt').classList.toggle('petit',!!petit);
+  guideAjusterPourBarre(el);
+  // Ne recadrer que si la cible n'est pas déjà entièrement visible, pour ne pas décaler
+  // inutilement un bouton déjà à l'écran (ex: « Nouveau rappel » sur l'accueil).
+  const r=el.getBoundingClientRect();
+  const dejaVisible=r.top>=0&&r.left>=0&&r.bottom<=window.innerHeight&&r.right<=window.innerWidth;
+  if(!dejaVisible)el.scrollIntoView({block:'center',behavior:'auto'});
+  requestAnimationFrame(()=>requestAnimationFrame(()=>guidePositionnerDoigt(el)));
+}
+function guidePositionnerDoigt(el){
+  if(!guideActif||!el||!el.isConnected)return;
+  const doigt=document.getElementById('guide-doigt');
+  doigt.style.display='block';
+  const rC=el.getBoundingClientRect();
+  const rB=document.body.getBoundingClientRect();
+  const style=getComputedStyle(doigt);
+  const tipX=parseFloat(style.getPropertyValue('--tip-offset-x'))||0.5;
+  const tipY=parseFloat(style.getPropertyValue('--tip-offset-y'))||0.12;
+  doigt.style.left=((rC.left-rB.left)+rC.width/2-(doigt.offsetWidth*tipX))+'px';
+  doigt.style.top=((rC.top-rB.top)+rC.height/2-(doigt.offsetHeight*tipY))+'px';
+}
+function guideRepositionner(){if(guideActif&&guideCibleActuelle)guidePositionnerDoigt(guideCibleActuelle);}
+window.addEventListener('resize',guideRepositionner);
+window.addEventListener('orientationchange',guideRepositionner);
+function guideEtapeSuivante(){
+  if(guideCleanupEtape){try{guideCleanupEtape();}catch(e){}guideCleanupEtape=null;}
+  document.querySelectorAll('.guide-cible-active').forEach(x=>x.classList.remove('guide-cible-active'));
+  guideAfficherEtape(guideIndex+1);
+}
+function guideAnnuler(garderActif){
+  if(guideCleanupEtape){try{guideCleanupEtape();}catch(e){}guideCleanupEtape=null;}
+  document.querySelectorAll('.guide-cible-active').forEach(x=>x.classList.remove('guide-cible-active'));
+  document.getElementById('guide-doigt').style.display='none';
+  document.getElementById('guide-barre').style.display='none';
+  if(guideElementSouleve){guideElementSouleve.style.marginBottom='';guideElementSouleve=null;}
+  if(!garderActif)guideActif=false;
+  guideCibleActuelle=null;
+}
+document.getElementById('guide-son').addEventListener('click',()=>{const e=GUIDE_ETAPES[guideIndex];if(e)speak(guideTexteVoix(e.texte));});
+// Appelée par le handler #save-btn quand le rappel de démo vient d'être réellement créé : affiche la
+// vraie carte + résumé vocal, puis supprime le rappel en arrière-plan après un délai de lecture.
+function guideTerminer(infos){
+  guideAnnuler(true);
+  const r=infos.id?state.reminders.find(x=>x.id===infos.id):null;
+  const carteWrap=document.getElementById('guide-bravo-carte');
+  carteWrap.innerHTML=r?_carteRappel(r,r.id,r.eventDate||r.date):'';
+  document.getElementById('guide-bravo').style.display='flex';
+  // _carteRappel() rend une carte avec opacity:0 par défaut (animation d'entrée normalement pilotée par
+  // _jouerEntreeCartes() sur #reminders-list) : hors de cette liste, il faut déclencher l'apparition ici.
+  const carteEl=carteWrap.querySelector('.c-card');
+  if(carteEl)setTimeout(()=>carteEl.classList.add('apparue'),80);
+  speak(guideTexteVoix(`Bravo, ton rappel est créé : ${infos.titre}, ${formatRelativeDate(infos.jour)}, à ${infos.heure}.`));
+  guideRappelCreeId=infos.id;
+  setTimeout(()=>guideApprendreSuppression(infos.id),5000);
+}
+// Au lieu de supprimer le rappel de démo en silence, on enseigne le vrai geste pour modifier/supprimer
+// un rappel — la suppression réelle du rappel de démo se fait via ce geste, plus de nettoyage caché.
+function guideApprendreSuppression(id){
+  document.getElementById('guide-bravo').style.display='none';
+  document.getElementById('guide-bravo-carte').innerHTML=''; // sinon sa carte (même data-id) reste dans le DOM
+  showScreen('main-screen');
+  render();
+  const texte="Pour modifier ou supprimer un rappel, appuie dessus.";
+  document.getElementById('guide-texte').textContent=texte;
+  document.getElementById('guide-barre').style.display='flex';
+  speak(guideTexteVoix(texte));
+  guideAttendreCarteRappel(id,0);
+}
+function guideAttendreCarteRappel(id,tentative){
+  if(!guideActif)return;
+  const el=document.querySelector('#reminders-list .c-card[data-id="'+id+'"]');
+  if(!el){
+    if(tentative>60)return; // carte jamais apparue (~3s) : on abandonne silencieusement plutôt que de bloquer
+    setTimeout(()=>guideAttendreCarteRappel(id,tentative+1),50);
+    return;
+  }
+  guideCiblerElement(el);
+  // Écoute déléguée sur le conteneur stable (pas sur la carte elle-même) : #reminders-list se
+  // re-rend périodiquement (setInterval render, toutes les 60s), ce qui remplacerait une carte
+  // ciblée directement et rendrait un écouteur posé dessus orphelin.
+  const liste=document.getElementById('reminders-list');
+  const onClick=(e)=>{
+    if(!e.target.closest('.c-card[data-id="'+id+'"]'))return;
+    liste.removeEventListener('click',onClick,true);
+    guideAttendreEcranModifier(id,0);
+  };
+  liste.addEventListener('click',onClick,true);
+  guideCleanupEtape=()=>liste.removeEventListener('click',onClick,true);
+}
+function guideAttendreEcranModifier(id,tentative){
+  if(!guideActif)return;
+  if(!document.getElementById('edit-screen').classList.contains('active')||state.editing!==id){
+    if(tentative>60)return;
+    setTimeout(()=>guideAttendreEcranModifier(id,tentative+1),50);
+    return;
+  }
+  const texte="Puisque c'était juste pour s'entraîner, on va le supprimer. Appuie ici.";
+  document.getElementById('guide-texte').textContent=texte;
+  speak(guideTexteVoix(texte));
+  guideCiblerElement(document.getElementById('delete-btn'));
+  // Pas d'attacher ici : la vraie suppression (via la confirmation) est détectée dans le handler
+  // #delete-btn existant, qui appelle guideTerminerApresSuppression() une fois le rappel vraiment supprimé.
+}
+function guideTerminerApresSuppression(){
+  guideAnnuler();
+  guideEffacerProgression();
+  if(!state.tutoCreationVu){
+    state.tutoCreationVu=true;
+    if(currentUser&&!currentUser.isAdmin){try{db.collection('users').doc(currentUser.id).update({tutoCreationVu:true});}catch(e){}}
+  }
+  guideRappelCreeId=null;
+}
+// Proposée automatiquement au premier lancement (une fois, puis reproposée une seule fois si "Plus tard"),
+// jamais imposée après ça. Relance manuelle (menu utilisateur) : appeler guideDemarrer() directement.
+function guideProposerAuLancement(){
+  if(!currentUser||currentUser.isAdmin)return;
+  if(state.tutoCreationVu){montrerTuto('accueil');return;}
+  if((state.tutoCreationPropositions||0)>=2){montrerTuto('accueil');return;}
+  document.getElementById('guide-prompt').style.display='flex';
+  const n=(state.tutoCreationPropositions||0)+1;
+  state.tutoCreationPropositions=n;
+  try{db.collection('users').doc(currentUser.id).update({tutoCreationPropositions:n});}catch(e){}
+}
+document.getElementById('guide-prompt-oui').addEventListener('click',()=>{document.getElementById('guide-prompt').style.display='none';guideReprendreOuDemarrer();});
+document.getElementById('guide-prompt-plus-tard').addEventListener('click',()=>{document.getElementById('guide-prompt').style.display='none';});
 
 // ===== Nouveau parcours : thèmes → choix précis → quand → heure → récap (avance tout seul) =====
 const THEMES=[
@@ -5537,10 +5975,10 @@ function _calcSonnerieRappel(rdvDate,rdvTime,choix,travelMin){
 document.getElementById('add-btn').addEventListener('click',()=>openEdit(null));
 document.getElementById('back-btn').addEventListener('click',()=>{if(state.editingAdminMode&&adminEditingUid){const uid=adminEditingUid;state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showAdminUserDetail(uid);return;}showScreen('main-screen');});
 
-document.getElementById('save-btn').addEventListener('click',async()=>{const title=document.getElementById('f-title').value.trim();if(!title){showConfirm({icon:'⚠️',title:'Titre manquant',text:"Appuyez sur une image ou écrivez ce qu'il faut faire.",okText:'OK',hideCancel:true});return;}const rec=getSelectedRecurrence();const data={time:getTPVal('f-time'),title,icon:getSelectedIcon(),note:document.getElementById('f-note').value.trim(),recurrence:rec};if(rec==='once'){const rdvDate=document.getElementById('f-event-date').value||dateKey(getCurrentDate());const rdvTime=getTPVal('f-event-time');const choix=getSonnerieChoix();data.eventDate=rdvDate;data.eventTime=rdvTime;data.sonnerieChoix=choix;const _adr=(document.getElementById('f-address')?document.getElementById('f-address').value.trim():'');data.address=_adr;data.mapQuery=_adr?encodeURIComponent(_adr):'';data.travelMin=wizTravel||0;data.travelMode=wizTravelMode||'';const _sonn=_calcSonnerieRappel(rdvDate,rdvTime,choix,data.travelMin);data.date=_sonn.date;data.time=_sonn.time;if(!data.date){showConfirm({icon:'⚠️',title:'Date manquante',text:'Choisissez la date du rendez-vous.',okText:'OK',hideCancel:true});return;}if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}});}
-}else{data.date=null;data.eventDate=null;data.eventTime=null;if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}}); }}await saveUserData();if(state.editingAdminMode&&adminEditingUid){const targetUid=adminEditingUid;const prenom=state.editingAdminPrenom;if(rec==='once'&&data.date&&prenom){queueNotification('🔔 '+data.title,data.note?('📍 '+data.note+'\n⏰ '+data.date+' à '+data.time.replace(':','h')):('⏰ '+data.date+' à '+data.time.replace(':','h')+' · Appuyez pour ouvrir l\'app'),data.date,data.time,{key:'prenom',value:prenom.toLowerCase()});}state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showConfirm({icon:'✅',title:'Rappel ajouté !',text:`Le rappel a été ajouté pour ${prenom}.`,okText:'OK',hideCancel:true,onOk:()=>showAdminUserDetail(targetUid)});return;}render();showScreen('main-screen');if(rec==='once'&&data.date){const userPrenom=currentUser?currentUser.prenom.toLowerCase():null;if(userPrenom&&!estNatifAlarme()){queueNotification('🔔 '+data.title,data.note?('📍 '+data.note+'\n⏰ Aujourd\'hui à '+data.time.replace(':','h')):('⏰ Aujourd\'hui à '+data.time.replace(':','h')+' · Appuyez pour ouvrir l\'app'),data.date,data.time,{key:'prenom',value:userPrenom});}const rdvHeure=data.eventTime?data.eventTime.replace(':','h'):data.time.replace(':','h');showConfirm({icon:'✅',title:'Rappel enregistré !',text:`Votre rendez-vous du ${formatRelativeDate(data.eventDate||data.date)} à ${rdvHeure} est bien enregistré.`,okText:'Super !',hideCancel:true});}});
+document.getElementById('save-btn').addEventListener('click',async()=>{const title=document.getElementById('f-title').value.trim();if(!title){showConfirm({icon:'⚠️',title:'Titre manquant',text:"Appuyez sur une image ou écrivez ce qu'il faut faire.",okText:'OK',hideCancel:true});return;}const rec=getSelectedRecurrence();const data={time:getTPVal('f-time'),title,icon:getSelectedIcon(),note:document.getElementById('f-note').value.trim(),recurrence:rec};if(rec==='once'){const rdvDate=document.getElementById('f-event-date').value||dateKey(getCurrentDate());const rdvTime=getTPVal('f-event-time');const choix=getSonnerieChoix();data.eventDate=rdvDate;data.eventTime=rdvTime;data.sonnerieChoix=choix;const _adr=(document.getElementById('f-address')?document.getElementById('f-address').value.trim():'');data.address=_adr;data.mapQuery=_adr?encodeURIComponent(_adr):'';data.travelMin=wizTravel||0;data.travelMode=wizTravelMode||'';const _sonn=_calcSonnerieRappel(rdvDate,rdvTime,choix,data.travelMin);data.date=_sonn.date;data.time=_sonn.time;if(!data.date){showConfirm({icon:'⚠️',title:'Date manquante',text:'Choisissez la date du rendez-vous.',okText:'OK',hideCancel:true});return;}if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}});if(guideActif)guideRappelCreeId=state.reminders[state.reminders.length-1].id;}
+}else{data.date=null;data.eventDate=null;data.eventTime=null;if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}}); }}await saveUserData();if(state.editingAdminMode&&adminEditingUid){const targetUid=adminEditingUid;const prenom=state.editingAdminPrenom;if(rec==='once'&&data.date&&prenom){queueNotification('🔔 '+data.title,data.note?('📍 '+data.note+'\n⏰ '+data.date+' à '+data.time.replace(':','h')):('⏰ '+data.date+' à '+data.time.replace(':','h')+' · Appuyez pour ouvrir l\'app'),data.date,data.time,{key:'prenom',value:prenom.toLowerCase()});}state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showConfirm({icon:'✅',title:'Rappel ajouté !',text:`Le rappel a été ajouté pour ${prenom}.`,okText:'OK',hideCancel:true,onOk:()=>showAdminUserDetail(targetUid)});return;}render();showScreen('main-screen');if(rec==='once'&&data.date){const userPrenom=currentUser?currentUser.prenom.toLowerCase():null;if(userPrenom&&!estNatifAlarme()){queueNotification('🔔 '+data.title,data.note?('📍 '+data.note+'\n⏰ Aujourd\'hui à '+data.time.replace(':','h')):('⏰ Aujourd\'hui à '+data.time.replace(':','h')+' · Appuyez pour ouvrir l\'app'),data.date,data.time,{key:'prenom',value:userPrenom});}const rdvHeure=data.eventTime?data.eventTime.replace(':','h'):data.time.replace(':','h');if(guideActif){guideTerminer({id:guideRappelCreeId,titre:data.title,jour:data.eventDate||data.date,heure:rdvHeure});}else{showConfirm({icon:'✅',title:'Rappel enregistré !',text:`Votre rendez-vous du ${formatRelativeDate(data.eventDate||data.date)} à ${rdvHeure} est bien enregistré.`,okText:'Super !',hideCancel:true});}}});
 
-document.getElementById('delete-btn').addEventListener('click',()=>{showConfirm({icon:'🗑️',title:'Supprimer ce rappel ?',text:'Cette action ne peut pas être annulée.',okText:'Supprimer',danger:true,onOk:async()=>{const del=state.reminders.find(x=>x.id===state.editing);state.reminders=state.reminders.filter(x=>x.id!==state.editing);if(del&&del.source==='atelier'&&del.date&&del.time){const key=del.date+'_'+del.time+'_'+(del.title||'').slice(0,20).replace(/\s/g,'_');delete state.inscriptions[key];try{await db.collection('users').doc(currentUser.id).update({['inscriptions.'+key]:firebase.firestore.FieldValue.delete()});}catch(e){}}await saveUserData();render();showScreen('main-screen');}});});
+document.getElementById('delete-btn').addEventListener('click',()=>{showConfirm({icon:'🗑️',title:'Supprimer ce rappel ?',text:'Cette action ne peut pas être annulée.',okText:'Supprimer',danger:true,onOk:async()=>{const del=state.reminders.find(x=>x.id===state.editing);state.reminders=state.reminders.filter(x=>x.id!==state.editing);if(del&&del.source==='atelier'&&del.date&&del.time){const key=del.date+'_'+del.time+'_'+(del.title||'').slice(0,20).replace(/\s/g,'_');delete state.inscriptions[key];try{await db.collection('users').doc(currentUser.id).update({['inscriptions.'+key]:firebase.firestore.FieldValue.delete()});}catch(e){}}await saveUserData();render();showScreen('main-screen');if(guideActif&&del&&del.id===guideRappelCreeId)guideTerminerApresSuppression();}});});
 
 function createTimePicker(hostId,val,step){const orig=document.getElementById(hostId);if(!orig)return;const host=orig.cloneNode(false);orig.parentNode.replaceChild(host,orig);host.dataset.step=step||5;host.dataset.value=val||'08:00';host.innerHTML=`<div class="tp-col"><button type="button" class="tp-btn" data-dir="up" data-part="h">▲</button><div class="tp-val" data-part="h">00</div><button type="button" class="tp-btn" data-dir="down" data-part="h">▼</button><div class="tp-label">heures</div></div><div class="tp-sep">:</div><div class="tp-col"><button type="button" class="tp-btn" data-dir="up" data-part="m">▲</button><div class="tp-val" data-part="m">00</div><button type="button" class="tp-btn" data-dir="down" data-part="m">▼</button><div class="tp-label">minutes</div></div>`;renderTP(host);host.addEventListener('touchend',e=>{e.preventDefault();const btn=e.target.closest('.tp-btn');if(!btn)return;changeTP(host,btn.dataset.part,btn.dataset.dir==='up'?1:-1);if('vibrate' in navigator)try{navigator.vibrate(15)}catch(e){} });host.addEventListener('click',e=>{const btn=e.target.closest('.tp-btn');if(!btn)return;if(e.detail===0)return;changeTP(host,btn.dataset.part,btn.dataset.dir==='up'?1:-1);});}
 function renderTP(h){const[hr,mn]=h.dataset.value.split(':').map(Number);h.querySelector('.tp-val[data-part="h"]').textContent=String(hr).padStart(2,'0');h.querySelector('.tp-val[data-part="m"]').textContent=String(mn).padStart(2,'0');}
@@ -5552,6 +5990,7 @@ function showConfirm({icon,title,text,okText,cancelText,danger,hideCancel,onOk,o
 
 function speak(text){
   if(!text)return;
+  if(mascotteEnScene)mascotteParleDebut();
   try{
     // APK Capacitor : utiliser le plugin TextToSpeech
     if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech){
@@ -5562,7 +6001,7 @@ function speak(text){
         pitch:1.0,
         volume:1.0,
         category:'ambient'
-      }).catch(e=>console.error('[TTS] Erreur:',e));
+      }).catch(e=>console.error('[TTS] Erreur:',e)).finally(()=>{if(mascotteEnScene)mascotteParleFin();});
       return;
     }
     // Web : utiliser speechSynthesis natif
@@ -5570,9 +6009,10 @@ function speak(text){
       window.speechSynthesis.cancel();
       const u=new SpeechSynthesisUtterance(text);
       u.lang='fr-FR';u.rate=0.95;u.volume=1;
+      if(mascotteEnScene)u.onend=u.onerror=()=>mascotteParleFin();
       window.speechSynthesis.speak(u);
     }
-  }catch(e){console.error('[Speak] Erreur:',e);}
+  }catch(e){console.error('[Speak] Erreur:',e);if(mascotteEnScene)mascotteParleFin();}
 }
 
 // Lecture vocale en privilégiant une voix masculine française (si dispo sur l'appareil)

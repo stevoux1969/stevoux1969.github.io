@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maquette — doigt précis + bulle en bas</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f3f5fa;padding:20px;display:flex;flex-direction:column;align-items:center;gap:16px;}
+  .phone{width:340px;background:white;border-radius:28px;box-shadow:0 10px 30px rgba(26,35,64,0.15);overflow:hidden;position:relative;min-height:620px;display:flex;flex-direction:column;}
+
+  .topbar{background:#2c3e91;color:white;padding:16px 20px;font-weight:700;font-size:1.0625rem;display:flex;align-items:center;justify-content:space-between;}
+  .aide-btn{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9375rem;cursor:pointer;}
+
+  .progress{display:flex;gap:5px;padding:12px 20px 0;}
+  .dot{flex:1;height:5px;border-radius:3px;background:#e3e7f5;}
+  .dot.done{background:#22a559;}
+  .dot.active{background:#f5a623;}
+
+  .content{padding:22px 20px 20px;position:relative;flex:1;}
+
+  h2{font-size:1.0625rem;color:#1a2340;margin-bottom:18px;}
+
+  input.champ{width:100%;padding:14px;border-radius:12px;border:2px solid #e3e7f5;font-size:0.9375rem;margin-bottom:16px;font-family:inherit;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{padding:10px 16px;border-radius:20px;background:#eef1fb;color:#2c3e91;font-weight:600;font-size:0.875rem;border:2px solid transparent;cursor:pointer;}
+
+  .opt{display:block;width:100%;text-align:left;padding:16px;border-radius:14px;background:#f7f8fc;border:2px solid #e3e7f5;margin-bottom:10px;font-size:0.9375rem;font-weight:600;color:#1a2340;cursor:pointer;}
+
+  .heure-bloc{display:flex;align-items:center;justify-content:center;gap:24px;margin-top:56px;}
+  .heure-col{display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .heure-col.cible-heure{gap:28px;}
+  .triangle{width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;cursor:pointer;padding:10px;}
+  .triangle.up{border-bottom:16px solid #2c3e91;}
+  .triangle.down{border-top:16px solid #2c3e91;}
+  .heure-val{font-size:2rem;font-weight:800;color:#1a2340;min-width:60px;text-align:center;}
+
+  .btn-valider-heure{
+    display:block;margin:26px auto 0;padding:13px 26px;border-radius:14px;
+    background:#f0f1f7;color:#8a92b2;font-weight:700;font-size:0.9375rem;border:none;
+    opacity:0;pointer-events:none;transition:opacity 0.3s, background 0.3s, color 0.3s;
+  }
+  .btn-valider-heure.pret{background:#2c3e91;color:white;opacity:1;pointer-events:auto;cursor:pointer;}
+
+  /* Main réduite quand la cible est petite (flèches de l'heure) pour moins la recouvrir */
+  .main-guide.petit{font-size:1.7rem;}
+
+  .recap{background:#f7f8fc;border-radius:14px;padding:18px;font-size:0.9375rem;color:#1a2340;line-height:1.7;margin-bottom:20px;}
+  .btn-final{display:block;width:100%;padding:16px;border-radius:14px;background:#22a559;color:white;font-weight:700;font-size:1rem;border:none;cursor:pointer;}
+
+  .cible-active{position:relative;z-index:2;box-shadow:0 0 0 4px #f5a623;animation:pulseCible 1.1s ease-in-out infinite;}
+  @keyframes pulseCible{0%,100%{box-shadow:0 0 0 4px rgba(245,166,35,0.9);}50%{box-shadow:0 0 0 8px rgba(245,166,35,0.35);}}
+
+  /* Barre de texte FIXE en bas — ne bouge jamais, ne recouvre jamais le contenu */
+  .barre-guide{background:#1a2340;color:white;padding:14px 44px 14px 18px;font-size:0.9375rem;font-weight:600;line-height:1.5;position:relative;flex-shrink:0;min-height:56px;display:flex;align-items:center;}
+  .btn-son{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9375rem;}
+
+  /* Marqueur précis = le vrai point cliquable (invisible, sert de repère de calibration) */
+  .point-precis{position:absolute;width:6px;height:6px;border-radius:50%;background:transparent;z-index:5;pointer-events:none;}
+
+  /* Doigt : ajustable via variables CSS pour calibrer sur vrai téléphone */
+  .main-guide{
+    position:absolute;
+    font-size:2.4rem;
+    z-index:4;
+    transition:top 0.4s cubic-bezier(.34,1.2,.64,1), left 0.4s cubic-bezier(.34,1.2,.64,1);
+    animation:tapoter 0.9s ease-in-out infinite;
+    pointer-events:none;
+    filter:drop-shadow(0 4px 6px rgba(0,0,0,0.25));
+    /* Décalage entre le coin du glyphe emoji et la vraie pointe du doigt.
+       À AFFINER sur le téléphone réel (le rendu emoji change selon Android). */
+    --tip-offset-x: 0.62;  /* position horizontale de la pointe dans le glyphe (0=gauche,1=droite) */
+    --tip-offset-y: 0.12;  /* position verticale de la pointe dans le glyphe (0=haut,1=bas) */
+  }
+  @keyframes tapoter{0%,100%{transform:translateY(0);}50%{transform:translateY(6px);}}
+
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  .prompt-screen{padding:50px 26px;text-align:center;}
+  .prompt-icon{font-size:3rem;margin-bottom:14px;}
+  .prompt-titre{font-size:1.1875rem;color:#1a2340;font-weight:800;margin-bottom:10px;}
+  .prompt-texte{font-size:0.9375rem;color:#5a6285;line-height:1.6;margin-bottom:28px;}
+  .prompt-btn{display:block;width:100%;padding:15px;border-radius:14px;font-weight:700;font-size:0.9375rem;border:none;cursor:pointer;margin-bottom:10px;}
+  .prompt-btn.oui{background:#2c3e91;color:white;}
+  .prompt-btn.plus-tard{background:#f0f1f7;color:#5a6285;}
+
+  .carte-rappel{
+    display:flex;align-items:center;gap:14px;
+    background:#f7f8fc;border:2px solid #22a559;border-radius:16px;
+    padding:16px;margin:0 4px;
+    opacity:0;transform:scale(0.85) translateY(10px);
+    animation:apparitionCarte 0.5s cubic-bezier(.34,1.4,.64,1) 0.4s forwards;
+  }
+  @keyframes apparitionCarte{to{opacity:1;transform:scale(1) translateY(0);}}
+  .carte-icone{font-size:1.75rem;background:#eef1fb;width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .carte-texte{flex:1;text-align:left;}
+  .carte-titre{font-weight:800;color:#1a2340;font-size:1rem;}
+  .carte-details{color:#5a6285;font-size:0.8125rem;margin-top:2px;}
+  .carte-check{font-size:1.375rem;flex-shrink:0;}
+
+  .footer-hint{text-align:center;color:#8a92b2;font-size:0.8125rem;}
+  .controls{display:flex;gap:10px;}
+  .controls button{padding:8px 14px;border-radius:10px;border:1px solid #d7dbec;background:white;font-size:0.8125rem;cursor:pointer;color:#5a6285;}
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="topbar" id="topbar">
+    <span id="topbar-titre">🏠 Ma Journée</span>
+    <div class="aide-btn" id="aide-btn" title="Revoir le tutoriel">?</div>
+  </div>
+  <div class="progress" id="progress" style="visibility:hidden;">
+    <div class="dot" id="d0"></div>
+    <div class="dot" id="d1"></div>
+    <div class="dot" id="d2"></div>
+    <div class="dot" id="d3"></div>
+  </div>
+
+  <div class="content" id="content">
+
+    <div class="screen active prompt-screen" id="screen-prompt">
+      <div class="prompt-icon">👋</div>
+      <div class="prompt-titre">Bienvenue !</div>
+      <div class="prompt-texte">Je peux te montrer, étape par étape, comment créer un rappel. Ça prend deux minutes. On essaie ensemble ?</div>
+      <button class="prompt-btn oui" id="btn-oui">Oui, on y va</button>
+      <button class="prompt-btn plus-tard" id="btn-plus-tard">Plus tard</button>
+    </div>
+
+    <div class="screen" id="screen-accueil">
+      <h2 style="margin-bottom:14px;">🏠 Ma Journée</h2>
+      <div style="background:#f7f8fc;border-radius:14px;padding:26px 18px;text-align:center;color:#8a92b2;font-size:0.875rem;margin-bottom:18px;">
+        Aucun rappel pour l'instant.<br>Tes rappels apparaîtront ici.
+      </div>
+      <button class="btn-final" id="btn-nouveau-rappel" style="background:#2c3e91;">＋ Nouveau rappel</button>
+    </div>
+
+    <div class="screen" id="screen0">
+      <h2>Quel est votre rappel ?</h2>
+      <input class="champ" placeholder="Ex : Ménage, Rendez-vous..." readonly>
+      <div class="chips">
+        <div class="chip" id="chip-menage">Ménage</div>
+        <div class="chip">Courses</div>
+        <div class="chip">Médicament</div>
+        <div class="chip">Rendez-vous</div>
+      </div>
+    </div>
+
+    <div class="screen" id="screen1">
+      <h2>Quand ?</h2>
+      <div class="opt" id="opt-aujourdhui">Aujourd'hui</div>
+      <div class="opt">Demain</div>
+      <div class="opt">Un autre jour</div>
+      <div class="opt">Tous les jours</div>
+    </div>
+
+    <div class="screen" id="screen2">
+      <h2>À quelle heure ?</h2>
+      <div class="heure-bloc">
+        <div class="heure-col cible-heure" id="col-heure">
+          <div class="triangle up" id="tri-up"></div>
+          <div class="heure-val" id="val-heure">14</div>
+          <div class="triangle down" id="tri-down"></div>
+        </div>
+        <div class="heure-val">:</div>
+        <div class="heure-col cible-heure" id="col-minute">
+          <div class="triangle up" id="tri-min-up"></div>
+          <div class="heure-val" id="val-minute">00</div>
+          <div class="triangle down" id="tri-min-down"></div>
+        </div>
+      </div>
+      <button class="btn-valider-heure" id="btn-valider-heure">C'est la bonne heure</button>
+    </div>
+
+    <div class="screen" id="screen3">
+      <h2>C'est prêt !</h2>
+      <div class="recap">
+        📌 <strong>Ménage</strong><br>
+        📅 Aujourd'hui<br>
+        🕐 <span id="recap-heure">15:00</span>
+      </div>
+      <button class="btn-final" id="btn-cest-bon">C'est bon</button>
+    </div>
+
+    <div class="screen" id="screen4" style="text-align:center;padding-top:40px;">
+      <div style="font-size:3.5rem;">🎉</div>
+      <h2 style="margin-top:16px;">Bravo, c'est fait !</h2>
+      <p style="color:#5a6285;font-size:0.9375rem;line-height:1.6;margin-bottom:18px;">Voici ton rappel, il est bien enregistré :</p>
+
+      <div class="carte-rappel" id="carte-rappel">
+        <div class="carte-icone">🧹</div>
+        <div class="carte-texte">
+          <div class="carte-titre">Ménage</div>
+          <div class="carte-details">📅 Aujourd'hui &nbsp;•&nbsp; 🕐 <span id="carte-heure">15:00</span></div>
+        </div>
+        <div class="carte-check">✅</div>
+      </div>
+
+      <p style="color:#5a6285;font-size:0.875rem;line-height:1.6;margin-top:20px;">Tu sais maintenant comment faire.<br>Tu pourras toujours appuyer sur le <strong>?</strong> en haut si tu veux revoir cette explication.</p>
+    </div>
+
+  </div>
+
+  <div class="main-guide" id="main-guide" style="display:none;">👆</div>
+
+  <div class="barre-guide" id="barre-guide" style="display:none;">
+    <span id="bulle-texte"></span>
+    <div class="btn-son" id="btn-son">🔊</div>
+  </div>
+</div>
+
+<div class="footer-hint">Le doigt touche exactement l'endroit à toucher</div>
+<div class="controls">
+  <button id="btn-reset">🔁 Recommencer la démo</button>
+  <button id="btn-toggle-voix">🔇 Couper la voix (démo)</button>
+</div>
+
+<script>
+const etapes = [
+  { screen: 'screen-accueil', cible: 'btn-nouveau-rappel', topbarTitre: '🏠 Ma Journée',
+    texte: "Ici, tu retrouveras tous tes rappels. Pour en créer un nouveau, appuie sur « Nouveau rappel », en bas." },
+  { screen: 'screen0', dot: 0, cible: 'chip-menage', topbarTitre: '🔔 Nouveau rappel',
+    texte: "On va créer ton premier rappel ensemble. Appuie sur « Ménage »." },
+  { screen: 'screen1', dot: 1, cible: 'opt-aujourdhui', topbarTitre: '🔔 Nouveau rappel',
+    texte: "Très bien ! Maintenant, choisis quand : aujourd'hui, demain, un autre jour, ou tous les jours. On va essayer « Aujourd'hui »." },
+  { screen: 'screen2', dot: 2, cible: 'tri-up', special: 'heure', topbarTitre: '🔔 Nouveau rappel',
+    texte: "Maintenant, choisis l'heure. Appuie sur les petites flèches, en dessous, pour la faire monter ou descendre." },
+  { screen: 'screen3', dot: 3, cible: 'btn-cest-bon', topbarTitre: '🔔 Nouveau rappel',
+    texte: "Ton rappel est prêt. Vérifie que tout est correct, puis appuie sur « C'est bon »." }
+];
+
+let etapeActuelle = 0;
+let voixActivee = true;
+let heureChoisie = 14;
+let minuteChoisie = 0;
+
+function parler(texte){
+  if(!voixActivee) return;
+  if(!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(texte);
+  u.lang = 'fr-FR';
+  u.rate = 0.98;
+  speechSynthesis.speak(u);
+}
+
+function positionnerGuide(cibleId, enDessous){
+  const cible = document.getElementById(cibleId);
+  const phone = document.querySelector('.phone');
+  const main = document.getElementById('main-guide');
+
+  const rectCible = cible.getBoundingClientRect();
+  const rectPhone = phone.getBoundingClientRect();
+
+  main.style.display = 'block';
+  const mainW = main.offsetWidth;
+  const mainH = main.offsetHeight;
+
+  const pointeX = rectCible.left - rectPhone.left + rectCible.width/2;
+
+  const tipOffsetX = 0.5;  // centre horizontal
+  const tipOffsetY = 0.12; // la pointe du doigt est proche du haut du glyphe emoji
+  const mainLeft = pointeX - (mainW * tipOffsetX);
+
+  let mainTop;
+  if(enDessous){
+    // La main vient d'en dessous, pointe vers le haut : on la place sous la cible
+    // pour ne pas la cacher (utile pour les toutes petites flèches).
+    const basCible = rectCible.bottom - rectPhone.top;
+    mainTop = basCible + 6;
+  } else {
+    const pointeY = rectCible.top - rectPhone.top + rectCible.height/2;
+    mainTop = pointeY - (mainH * tipOffsetY);
+  }
+
+  main.style.left = mainLeft + 'px';
+  main.style.top = mainTop + 'px';
+}
+
+function majAffichageHeure(){
+  const txt = String(heureChoisie).padStart(2,'0') + ':' + String(minuteChoisie).padStart(2,'0');
+  document.getElementById('val-heure').textContent = String(heureChoisie).padStart(2,'0');
+  document.getElementById('val-minute').textContent = String(minuteChoisie).padStart(2,'0');
+  document.getElementById('recap-heure').textContent = txt;
+  document.getElementById('carte-heure').textContent = txt;
+}
+
+function demarrerEtapeHeure(etape){
+  let heureChangee = false;
+  let minuteChangee = false;
+  const triUp = document.getElementById('tri-up');
+  const triDown = document.getElementById('tri-down');
+  const triMinUp = document.getElementById('tri-min-up');
+  const triMinDown = document.getElementById('tri-min-down');
+  const btnValider = document.getElementById('btn-valider-heure');
+
+  document.getElementById('main-guide').classList.add('petit');
+  document.getElementById('col-heure').classList.add('cible-active');
+
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      positionnerGuide('tri-up', true);
+    });
+  });
+
+  function avancerGuidage(){
+    document.querySelectorAll('.cible-active').forEach(el => el.classList.remove('cible-active'));
+
+    if(!heureChangee){
+      // reste sur l'heure
+      return;
+    }
+    if(!minuteChangee){
+      document.getElementById('col-minute').classList.add('cible-active');
+      document.getElementById('bulle-texte').textContent = "Bien joué ! Tu peux aussi régler les minutes, de la même façon.";
+      parler("Bien joué ! Tu peux aussi régler les minutes, de la même façon.");
+      requestAnimationFrame(()=>{
+        requestAnimationFrame(()=>{
+          positionnerGuide('tri-min-up', true);
+        });
+      });
+      return;
+    }
+    // heure et minute modifiées : on propose de valider
+    document.getElementById('bulle-texte').textContent = "Parfait, tu peux encore ajuster l'heure ou les minutes si tu veux. Quand tout te convient, appuie sur « C'est la bonne heure ».";
+    parler("Parfait. Quand tout te convient, appuie sur C'est la bonne heure.");
+    btnValider.classList.add('pret');
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        positionnerGuide('btn-valider-heure', true);
+      });
+    });
+  }
+
+  function changerHeure(delta){
+    heureChoisie = (heureChoisie + delta + 24) % 24;
+    majAffichageHeure();
+    if(!heureChangee){ heureChangee = true; avancerGuidage(); }
+  }
+  function changerMinute(delta){
+    minuteChoisie = (minuteChoisie + delta + 60) % 60;
+    majAffichageHeure();
+    if(!heureChangee){ heureChangee = true; }
+    if(!minuteChangee){ minuteChangee = true; }
+    avancerGuidage();
+  }
+
+  triUp.onclick = () => changerHeure(1);
+  triDown.onclick = () => changerHeure(-1);
+  triMinUp.onclick = () => changerMinute(1);
+  triMinDown.onclick = () => changerMinute(-1);
+
+  btnValider.onclick = () => {
+    if(!(heureChangee && minuteChangee)) return;
+    triUp.onclick = null; triDown.onclick = null;
+    triMinUp.onclick = null; triMinDown.onclick = null; btnValider.onclick = null;
+    document.getElementById('main-guide').classList.remove('petit');
+    etapeActuelle++;
+    afficherEtape(etapeActuelle);
+  };
+}
+
+function afficherEtape(index){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.cible-active').forEach(el => el.classList.remove('cible-active'));
+  document.querySelectorAll('.dot').forEach(d => d.classList.remove('active','done'));
+  document.getElementById('btn-valider-heure').classList.remove('pret');
+
+  if(index >= etapes.length){
+    document.getElementById('screen4').classList.add('active');
+    document.getElementById('main-guide').style.display = 'none';
+    document.getElementById('barre-guide').style.display = 'none';
+    document.getElementById('progress').style.visibility = 'visible';
+    document.querySelectorAll('.dot').forEach(d => d.classList.add('done'));
+    document.getElementById('topbar-titre').textContent = '🔔 Nouveau rappel';
+    // Résumé vocal, comme pour la lecture habituelle d'un rappel dans l'appli
+    const jourTxt = "aujourd'hui";
+    const heureTxt = String(heureChoisie).padStart(2,'0') + " heures " + String(minuteChoisie).padStart(2,'0');
+    parler(`Bravo, ton rappel est créé : Ménage, ${jourTxt}, à ${heureTxt}.`);
+    return;
+  }
+
+  const etape = etapes[index];
+  document.getElementById(etape.screen).classList.add('active');
+  document.getElementById('topbar-titre').textContent = etape.topbarTitre || '🔔 Nouveau rappel';
+
+  if(etape.dot !== undefined){
+    document.getElementById('progress').style.visibility = 'visible';
+    for(let i=0;i<etapes.length;i++){
+      const dot = document.getElementById('d'+i);
+      if(!dot) continue;
+      if(i < etape.dot) dot.classList.add('done');
+      else if(i === etape.dot) dot.classList.add('active');
+    }
+  } else {
+    document.getElementById('progress').style.visibility = 'hidden';
+  }
+
+  document.getElementById('barre-guide').style.display = 'flex';
+  document.getElementById('bulle-texte').textContent = etape.texte;
+  parler(etape.texte);
+
+  if(etape.special === 'heure'){
+    demarrerEtapeHeure(etape);
+    return;
+  }
+
+  const cible = document.getElementById(etape.cible);
+  cible.classList.add('cible-active');
+
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      positionnerGuide(etape.cible, false);
+    });
+  });
+
+  cible.onclick = () => {
+    etapeActuelle++;
+    afficherEtape(etapeActuelle);
+  };
+}
+
+document.getElementById('btn-son').addEventListener('click', ()=>{
+  parler(etapes[etapeActuelle] ? etapes[etapeActuelle].texte : '');
+});
+
+document.getElementById('btn-oui').addEventListener('click', ()=>{
+  document.getElementById('screen-prompt').classList.remove('active');
+  etapeActuelle = 0;
+  afficherEtape(0);
+});
+
+document.getElementById('btn-plus-tard').addEventListener('click', ()=>{
+  document.getElementById('screen-prompt').innerHTML =
+    '<div class="prompt-icon">👌</div><div class="prompt-titre">Pas de souci</div>' +
+    '<div class="prompt-texte">On te reproposera ce tutoriel une fois. Ensuite, tu pourras toujours appuyer sur le <strong>?</strong> en haut pour le revoir quand tu veux.</div>';
+});
+
+document.getElementById('aide-btn').addEventListener('click', ()=>{
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('main-guide').style.display = 'none';
+  document.getElementById('barre-guide').style.display = 'none';
+  document.getElementById('screen-prompt').classList.add('active');
+  document.getElementById('screen-prompt').innerHTML =
+    '<div class="prompt-icon">👋</div><div class="prompt-titre">Revoir le tutoriel ?</div>' +
+    '<div class="prompt-texte">Je peux te remontrer, étape par étape, comment créer un rappel.</div>' +
+    '<button class="prompt-btn oui" id="btn-oui2">Oui, on y va</button>' +
+    '<button class="prompt-btn plus-tard" id="btn-annuler2">Annuler</button>';
+  document.getElementById('btn-oui2').addEventListener('click', ()=>{
+    document.getElementById('screen-prompt').classList.remove('active');
+    etapeActuelle = 0;
+    afficherEtape(0);
+  });
+  document.getElementById('btn-annuler2').addEventListener('click', ()=>{
+    document.getElementById('screen-prompt').classList.remove('active');
+    document.getElementById('screen4').classList.add('active');
+  });
+});
+
+document.getElementById('btn-reset').addEventListener('click', ()=>{
+  location.reload();
+});
+document.getElementById('btn-toggle-voix').addEventListener('click', function(){
+  voixActivee = !voixActivee;
+  this.textContent = voixActivee ? '🔇 Couper la voix (démo)' : '🔊 Réactiver la voix (démo)';
+  if(!voixActivee) speechSynthesis.cancel();
+});
+</script>
+</body>
+</html>
