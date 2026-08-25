@@ -2120,6 +2120,7 @@ function _occurrencesNatives(){
           add(tk+'|'+r.id+'|'+r.time+'|act',r,_atMs(day.getFullYear(),day.getMonth(),day.getDate(),r.time),'alarme');
         }
       }else if(r.source==='atelier'){
+        if(r.annule)return;   // atelier annulé : pas d'alarme
         if(!r.date||!r.time)return;
         const evMs=new Date(r.date+'T'+r.time+':00').getTime();
         const veille=new Date(evMs);veille.setDate(veille.getDate()-1);veille.setHours(15,0,0,0);
@@ -3615,12 +3616,14 @@ async function confirmerAnnulation(ek, titre, date, heure) {
       annulePar: currentUser ? currentUser.prenom : 'Admin'
     });
 
-    // Envoyer une notification push à tous les inscrits
+    // Envoyer une notification push à tous les inscrits + marquer leur reminder comme annulé
     const usersSnap = await db.collection('users').get();
     let nbNotifs = 0;
+    const majReminders = [];
     usersSnap.docs.forEach(doc => {
       const u = doc.data();
-      const inscrits = (u.reminders || []).filter(r => r.source === 'atelier' && r.id === 'atelier_' + ek);
+      const reminders = u.reminders || [];
+      const inscrits = reminders.filter(r => r.source === 'atelier' && r.id === 'atelier_' + ek);
       if (inscrits.length > 0 && u.prenom) {
         queueNotification(
           '🚫 Atelier annulé : ' + titre,
@@ -3631,7 +3634,21 @@ async function confirmerAnnulation(ek, titre, date, heure) {
         );
         nbNotifs++;
       }
+      // Marque le(s) reminder(s) correspondant(s) comme annulé (flag, sans suppression) pour
+      // couper l'alarme et afficher "annulé" côté bénéficiaire, sans perdre l'historique.
+      if (inscrits.some(r => !r.annule)) {
+        const newReminders = reminders.map(r => (r.source === 'atelier' && r.id === 'atelier_' + ek) ? { ...r, annule: true, motif: motif } : r);
+        majReminders.push(db.collection('users').doc(doc.id).update({ reminders: newReminders }));
+      }
     });
+    try { await Promise.all(majReminders); } catch(e) {}
+
+    // Annule les notifications "demain"/"2h avant" déjà en attente pour cet atelier (OneSignal)
+    try {
+      const tagKey = 'atelier_' + ek.replace(/[^a-z0-9_]/gi, '_').slice(0, 60);
+      const pendingSnap = await db.collection('notifications').where('targetTagKey', '==', tagKey).where('sent', '==', false).get();
+      await Promise.all(pendingSnap.docs.map(d => d.ref.delete()));
+    } catch(e) {}
 
     showConfirm({
       icon: '🚫',
@@ -3656,6 +3673,26 @@ async function retablirAtelier(ek) {
     danger: false,
     onOk: async () => {
       await db.collection('annulations').doc(cleanDocId(ek)).delete();
+      // Retire le flag annule des reminders concernés (sens inverse de l'annulation)
+      try {
+        const usersSnap = await db.collection('users').get();
+        const majReminders = [];
+        usersSnap.docs.forEach(doc => {
+          const u = doc.data();
+          const reminders = u.reminders || [];
+          if (reminders.some(r => r.source === 'atelier' && r.id === 'atelier_' + ek && r.annule)) {
+            const newReminders = reminders.map(r => {
+              if (r.source === 'atelier' && r.id === 'atelier_' + ek && r.annule) {
+                const { annule, motif, ...rest } = r;
+                return rest;
+              }
+              return r;
+            });
+            majReminders.push(db.collection('users').doc(doc.id).update({ reminders: newReminders }));
+          }
+        });
+        await Promise.all(majReminders);
+      } catch(e) {}
       showConfirm({icon:'✅', title:'Atelier rétabli !', text:'L\'atelier est à nouveau disponible.', okText:'OK', hideCancel:true});
     }
   });
@@ -4147,19 +4184,23 @@ async function showMesRendezVous(scope){
   if(hero){
     const estAujourdhui=hero._d===todayKey;
     const isAtelierH=hero.source==='atelier';
+    const isAnnuleH=isAtelierH&&!!hero.annule;
     const quand=estAujourdhui?"Aujourd'hui":formatShortDate(hero._d);
-    const badgeH=isAtelierH
-      ?'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#e8ecfb;color:#2c3e91;">Atelier AVP</span>'
-      :'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#fdf0dc;color:#a8650a;">Rappel perso</span>';
+    const badgeH=isAnnuleH
+      ?'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#fdecec;color:#d63447;">🚫 Annulé</span>'
+      :(isAtelierH
+        ?'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#e8ecfb;color:#2c3e91;">Atelier AVP</span>'
+        :'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#fdf0dc;color:#a8650a;">Rappel perso</span>');
     const noteH=hero.note?`<div style="font-size:0.95rem;color:#48547a;margin-top:3px;">${esc(hero.note)}</div>`:'';
+    const titreStyleH=isAnnuleH?'text-decoration:line-through;color:#d63447;':'';
     html+=`<div style="font-size:0.8rem;font-weight:800;color:#2c3e91;text-transform:uppercase;letter-spacing:.5px;margin:2px 0 8px;">Mon prochain rendez-vous</div>
     <div style="background:white;border-radius:20px;border:3px solid #2c3e91;box-shadow:0 6px 20px rgba(44,62,145,0.18);padding:18px;margin-bottom:6px;">
       <div style="font-size:1rem;font-weight:700;color:#48547a;">${quand}</div>
-      <div style="font-size:3rem;font-weight:800;color:#2c3e91;line-height:1.05;">${hero._t.replace(':','h')}</div>
+      <div style="font-size:3rem;font-weight:800;line-height:1.05;${titreStyleH||'color:#2c3e91;'}">${hero._t.replace(':','h')}</div>
       <div style="display:flex;align-items:center;gap:14px;margin-top:12px;">
         <div style="font-size:2.6rem;width:70px;height:70px;border-radius:16px;background:#eef1f8;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${iconHTML(hero.icon)}</div>
         <div>
-          <div style="font-size:1.35rem;font-weight:800;color:#1a2340;line-height:1.2;">${esc(hero.title||'')}</div>
+          <div style="font-size:1.35rem;font-weight:800;line-height:1.2;${titreStyleH||'color:#1a2340;'}">${esc(hero.title||'')}</div>
           ${noteH}
           <div style="margin-top:6px;">${badgeH}</div>
         </div>
@@ -4180,22 +4221,24 @@ async function showMesRendezVous(scope){
     const moisLabel=MOIS[dObj.getMonth()]+' '+dObj.getFullYear();
     if(moisLabel!==dernierMois){html+=`<div style="font-size:0.8rem;font-weight:800;color:#2c3e91;text-transform:uppercase;letter-spacing:.5px;margin:18px 0 8px;">${moisLabel}</div>`;dernierMois=moisLabel;}
     const isAtelier=r.source==='atelier';
+    const isAnnule=isAtelier&&!!r.annule;
     // Rappel ou atelier passé aujourd'hui : discret, consultation seulement.
     const passeDiscret=r._passe;
-    const couleur=passeDiscret?'#c7cdd9':(isAtelier?'#2c3e91':'#e0901c');
-    const badge=isAtelier?'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#e8ecfb;color:#2c3e91;">Atelier AVP</span>':'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#fdf0dc;color:#a8650a;">Rappel perso</span>';
+    const couleur=isAnnule?'#d63447':(passeDiscret?'#c7cdd9':(isAtelier?'#2c3e91':'#e0901c'));
+    const badge=isAnnule?'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#fdecec;color:#d63447;">🚫 Annulé</span>':(isAtelier?'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#e8ecfb;color:#2c3e91;">Atelier AVP</span>':'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#fdf0dc;color:#a8650a;">Rappel perso</span>');
     const jour=dObj.getDate();
     const moisCourt=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'][dObj.getMonth()];
-    const titreCouleur=passeDiscret?'#8992a8':'#1a2340';
+    const titreCouleur=isAnnule?'#d63447':(passeDiscret?'#8992a8':'#1a2340');
+    const titreDeco=isAnnule?'text-decoration:line-through;':'';
     const annulerBtnHTML=passeDiscret?'':`<button class="rdv-annuler-btn" data-id="${r.id}" style="border:none;background:#fdecec;color:#c0392b;font-family:inherit;font-size:0.85rem;font-weight:700;padding:10px 14px;border-radius:12px;cursor:pointer;flex-shrink:0;">Annuler</button>`;
     html+=`<div class="rdv-row" style="background:white;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;gap:14px;align-items:center;box-shadow:0 2px 8px rgba(26,35,64,0.06);border-left:5px solid ${couleur};${passeDiscret?'opacity:.7;':''}">
       <div style="text-align:center;min-width:48px;">
-        <div style="font-size:1.3rem;font-weight:800;color:${titreCouleur};line-height:1;">${jour}</div>
+        <div style="font-size:1.3rem;font-weight:800;color:${titreCouleur};line-height:1;${titreDeco}">${jour}</div>
         <div style="font-size:0.7rem;color:#8992a8;text-transform:uppercase;font-weight:700;">${moisCourt}</div>
       </div>
       <div style="flex:1;">
-        <div style="font-size:1rem;font-weight:700;color:${titreCouleur};">${esc(r.title||'')}</div>
-        <div style="font-size:0.85rem;color:#8992a8;margin-top:2px;">à ${(r._t||'').replace(':','h')}</div>
+        <div style="font-size:1rem;font-weight:700;color:${titreCouleur};${titreDeco}">${esc(r.title||'')}</div>
+        <div style="font-size:0.85rem;color:#8992a8;margin-top:2px;${titreDeco}">à ${(r._t||'').replace(':','h')}</div>
         <div style="margin-top:5px;">${badge}</div>
       </div>
       ${annulerBtnHTML}
@@ -4562,6 +4605,7 @@ function _sonnerieUniqueMs(r,ti,jourAffiche){
 // affichée à côté de l'heure, bouton Maps, « + Plus d'infos », 🔊 Écouter.
 function _carteRappel(r,key,jourAffiche){
   const isAtelier=r.source==='atelier';
+  const annule=isAtelier&&!!r.annule;
   const isDaily=r.recurrence==='daily';
   const ti=_trajetInfo(r);
   const eventDate=r.eventDate||r.date;
@@ -4571,7 +4615,7 @@ function _carteRappel(r,key,jourAffiche){
   const labelHTML=`<div class="label-carte">${esc(labelTxt)}</div>`;
 
   let departHTML='';
-  if(ti&&ti.departMs){
+  if(!annule&&ti&&ti.departMs){
     const hd=new Date(ti.departMs);
     const procheClasse=(ti.departMs-Date.now())<=1800000?'proche':'loin';
     departHTML=`<div class="c-depart"><div class="c-depart-gauche"><div class="c-depart-ic">🚗</div><div class="c-depart-val">Départ : ${pad2(hd.getHours())}h${pad2(hd.getMinutes())}</div></div><div class="c-depart-cd ${procheClasse}" data-depart-ms="${ti.departMs}"><div class="c-depart-cd-n">${_txtDepartSec(ti.departMs)}</div><div class="c-depart-cd-t">AVANT DÉPART</div></div></div>`;
@@ -4579,7 +4623,9 @@ function _carteRappel(r,key,jourAffiche){
 
   let rows='';
   let sonnerieInline='';
-  if(isAtelier){
+  if(annule){
+    rows+=`<div class="c-row"><div class="c-row-ic">🚫</div><div class="c-row-tx"><div class="c-row-t1" style="color:#d63447;font-weight:700;">Atelier annulé</div>${r.motif?`<div class="c-row-t2">${esc(r.motif)}</div>`:''}</div></div>`;
+  }else if(isAtelier){
     const ev=new Date(r.date+'T'+r.time+':00');const a2=new Date(ev.getTime()-2*3600000);
     const sonnT1=`Sonnerie la veille à 15h00 et à ${pad2(a2.getHours())}h${pad2(a2.getMinutes())}`;
     rows+=`<div class="c-row"><div class="c-row-ic">🔔</div><div class="c-row-tx"><div class="c-row-t1">${sonnT1}</div><div class="c-row-t2">Deux sonneries avant l'atelier</div></div></div>`;
@@ -4593,11 +4639,11 @@ function _carteRappel(r,key,jourAffiche){
     }
   }
 
-  const mapsHTML=(ti&&ti.mapQuery)?`<a class="c-maps" href="https://www.google.com/maps/search/?api=1&query=${ti.mapQuery}" target="_blank" onclick="event.stopPropagation()"><span class="c-maps-p">🗺️ Y aller</span><span class="c-maps-s">(Google Maps)</span></a>`:'';
+  const mapsHTML=(!annule&&ti&&ti.mapQuery)?`<a class="c-maps" href="https://www.google.com/maps/search/?api=1&query=${ti.mapQuery}" target="_blank" onclick="event.stopPropagation()"><span class="c-maps-p">🗺️ Y aller</span><span class="c-maps-s">(Google Maps)</span></a>`:'';
 
   let actionZoneHTML;
   if(isAtelier){
-    actionZoneHTML=mapsHTML+`<div class="c-badge">✅ Je participe</div>`;
+    actionZoneHTML=annule?`<div class="c-badge" style="background:#fdecec;color:#d63447;">🚫 Annulé</div>`:(mapsHTML+`<div class="c-badge">✅ Je participe</div>`);
   }else{
     const detailsItems=[];
     if(ti&&ti.adresse)detailsItems.push(`<div class="c-details-ligne">📍 ${esc(ti.adresse)}</div>`);
@@ -4610,8 +4656,10 @@ function _carteRappel(r,key,jourAffiche){
     actionZoneHTML=hasLigneActions?`<div class="c-ligne-actions">${mapsHTML}${plusInfosHTML}</div>${detailsHTML}`:'';
   }
 
-  const cardHTML=`<div class="c-card" data-id="${r.id}" data-source="personal">`
-    +`<div class="c-top"><div class="c-emoji">${iconHTML(r.icon)}</div><div class="c-titre"><div class="c-heure">${dbHeure}${sonnerieInline}</div><h3>${esc(r.title)}</h3></div>`
+  const heureStyle=annule?' style="text-decoration:line-through;color:#d63447;"':'';
+  const titreStyle=annule?' style="text-decoration:line-through;color:#d63447;"':'';
+  const cardHTML=`<div class="c-card${annule?' c-card-annule':''}" data-id="${r.id}" data-source="personal">`
+    +`<div class="c-top"><div class="c-emoji">${iconHTML(r.icon)}</div><div class="c-titre"><div class="c-heure"${heureStyle}>${dbHeure}${sonnerieInline}</div><h3${titreStyle}>${esc(r.title)}</h3></div>`
     +`<button type="button" class="c-speak" data-speak="${r.id}">🔊</button></div>`
     +departHTML+(rows?`<div class="c-rows">${rows}</div>`:'')+actionZoneHTML+`</div>`;
 
@@ -4621,10 +4669,12 @@ function _carteRappel(r,key,jourAffiche){
 // Phrase lue par le bouton 🔊 : titre, date, heure, adresse, départ, trajet, sonnerie.
 function _phraseCarte(r){
   const isAtelier=r.source==='atelier';
+  const annule=isAtelier&&!!r.annule;
   const ti=_trajetInfo(r);
   let p=(r.title||'Rappel')+'.';
   if(r.recurrence==='daily'){p+=' Tous les jours, à '+timeToSpeech(r.time)+'.';}
   else{const eD=r.eventDate||r.date,eT=r.eventTime||r.time;p+=' '+(eD?formatRelativeDate(eD):'')+', à '+timeToSpeech(eT)+'.';}
+  if(annule){p+=' Cet atelier est annulé.'+(r.motif?' '+r.motif+'.':'');return p;}
   if(ti&&ti.adresse)p+=' Adresse : '+ti.adresse+'.';
   if(ti&&ti.departMs){const dp=new Date(ti.departMs);p+=' Départ à '+timeToSpeech(pad2(dp.getHours())+':'+pad2(dp.getMinutes()))+', '+ti.travelMin+' minutes de trajet.';}
   if(isAtelier){const ev=new Date(r.date+'T'+r.time+':00');const a2=new Date(ev.getTime()-2*3600000);p+=' Sonnerie la veille à 15 heures, et 2 heures avant, à '+timeToSpeech(pad2(a2.getHours())+':'+pad2(a2.getMinutes()))+'.';}
@@ -4663,7 +4713,7 @@ function _lireCarte(id,btn){
 function _prochainApercu(){
   const d=new Date();d.setDate(d.getDate()+1);d.setHours(0,0,0,0);
   const tk=dateKey(d);
-  const cands=(state.reminders||[]).filter(r=>reminderAppliesToDay(r,tk)).sort((a,b)=>a.time.localeCompare(b.time));
+  const cands=(state.reminders||[]).filter(r=>reminderAppliesToDay(r,tk)&&!(r.source==='atelier'&&r.annule)).sort((a,b)=>a.time.localeCompare(b.time));
   if(!cands.length)return null;
   const r=cands[0];
   const heure=(r.recurrence==='daily'?r.time:(r.eventTime||r.time)).replace(':','h');
@@ -5562,7 +5612,7 @@ try{
 }catch(e){}try{window.speechSynthesis?.cancel();}catch(e){}try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech)window.Capacitor.Plugins.TextToSpeech.stop();}catch(e){}});
 
 let firedToday=new Set();
-function checkReminders(){if(!currentUser)return;const now=new Date(),ct=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,tk=dateKey(new Date());state.reminders.forEach(r=>{if(!reminderAppliesToDay(r,tk))return;const fk=`${tk}_${r.id}_${r.time}`;if(r.time===ct&&!firedToday.has(fk)&&!(r.done&&r.done[tk])){firedToday.add(fk);fireAlert(r);}});
+function checkReminders(){if(!currentUser)return;const now=new Date(),ct=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,tk=dateKey(new Date());state.reminders.forEach(r=>{if(r.source==='atelier'&&r.annule)return;if(!reminderAppliesToDay(r,tk))return;const fk=`${tk}_${r.id}_${r.time}`;if(r.time===ct&&!firedToday.has(fk)&&!(r.done&&r.done[tk])){firedToday.add(fk);fireAlert(r);}});
 // Re-sonnerie douce : 15 min après la sonnerie, une seule fois, si pas confirmé "J'ai vu"
 Object.keys(pendingRerings).forEach(id=>{
   const p=pendingRerings[id];
