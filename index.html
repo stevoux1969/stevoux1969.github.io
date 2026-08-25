@@ -1908,11 +1908,21 @@ function wizObtenirPosition(){
   if(_wizPosCache&&(Date.now()-_wizPosCache.ts)<60000)return _wizPosCache.promise;
   const promise=new Promise((resolve,reject)=>{
     const Geo=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation;
-    if(!Geo)return reject(new Error('geoloc-indisponible'));
-    const t=setTimeout(()=>reject(new Error('geoloc-timeout')),15000);
-    Geo.getCurrentPosition({enableHighAccuracy:false,timeout:15000}).then(pos=>{
-      clearTimeout(t);resolve({lat:pos.coords.latitude,lon:pos.coords.longitude});
-    }).catch(e=>{clearTimeout(t);reject(e);});
+    if(Geo){
+      const t=setTimeout(()=>reject(new Error('geoloc-timeout')),15000);
+      Geo.getCurrentPosition({enableHighAccuracy:false,timeout:15000}).then(pos=>{
+        clearTimeout(t);resolve({lat:pos.coords.latitude,lon:pos.coords.longitude});
+      }).catch(e=>{clearTimeout(t);reject(e);});
+      return;
+    }
+    if(navigator.geolocation){
+      const t=setTimeout(()=>reject(new Error('geoloc-timeout')),15000);
+      navigator.geolocation.getCurrentPosition(pos=>{
+        clearTimeout(t);resolve({lat:pos.coords.latitude,lon:pos.coords.longitude});
+      },e=>{clearTimeout(t);reject(e);},{enableHighAccuracy:false,timeout:15000});
+      return;
+    }
+    reject(new Error('geoloc-indisponible'));
   });
   _wizPosCache={promise,ts:Date.now()};
   promise.catch(()=>{if(_wizPosCache&&_wizPosCache.promise===promise)_wizPosCache=null;});
