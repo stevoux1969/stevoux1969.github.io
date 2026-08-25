@@ -1676,6 +1676,24 @@ async function loadUserData(){if(!currentUser||currentUser.isAdmin)return;try{co
     });
     if(Object.keys(upd).length)await db.collection('users').doc(currentUser.id).update(upd);
   }catch(e){}
+  // Resynchro flag annule<->collection "annulations" : couvre les annulations faites avant
+  // l'existence du flag par-reminder, ou si l'écriture du flag avait échoué. Recalculé à
+  // chaque login, dans les deux sens (annule/rétabli).
+  try{
+    const annulSnap=await db.collection('annulations').get();
+    const annulations={};
+    annulSnap.docs.forEach(doc=>{annulations[doc.id]=doc.data();});
+    let changed=false;
+    const newReminders=(state.reminders||[]).map(r=>{
+      if(r.source!=='atelier'||!r.date||!r.time)return r;
+      const key=r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');
+      const annul=annulations[cleanDocId(key)];
+      if(annul&&!r.annule){changed=true;return{...r,annule:true,motif:annul.motif||''};}
+      if(!annul&&r.annule){changed=true;const{annule,motif,...rest}=r;return rest;}
+      return r;
+    });
+    if(changed){state.reminders=newReminders;await db.collection('users').doc(currentUser.id).update({reminders:newReminders});}
+  }catch(e){}
 }catch(e){}}
 
 async function saveUserData(){
