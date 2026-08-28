@@ -1698,12 +1698,11 @@ function maybeShowAvisPopup(){
   }catch(e){}
 }
 
-// Popup "Configurer les alarmes ?" affiché une seule fois, à la toute première connexion
-// native (APK) — jamais sur le web, jamais pour l'admin. Le OK envoie directement vers le
-// parcours guidé (reglages.html?guide=1). Ne se redéclenche plus après ce premier passage,
-// "Plus tard" compris, mais le bouton "Configuration guidée" reste accessible depuis Réglages
-// à tout moment. Délai décalé par rapport à maybeShowAvisPopup() pour ne pas superposer les
-// deux popups au même instant.
+// Lance directement le parcours guidé (reglages.html?guide=1), une seule fois, à la toute
+// première connexion native (APK) — jamais sur le web, jamais pour l'admin. Ne se redéclenche
+// plus après ce premier passage. Le bouton "Configuration guidée" reste accessible depuis
+// Réglages à tout moment. Délai décalé par rapport à maybeShowAvisPopup() pour ne pas
+// superposer les deux popups au même instant.
 function maybeShowGuidePermissionsPopup(){
   try{
     if(!currentUser||currentUser.isAdmin)return;
@@ -1711,7 +1710,7 @@ function maybeShowGuidePermissionsPopup(){
     if(localStorage.getItem('avp_guide_perms_popup_vu'))return;
     localStorage.setItem('avp_guide_perms_popup_vu','1');
     setTimeout(()=>{
-      showConfirm({icon:'🔔',title:'Configurer les alarmes maintenant ?',text:"Pour que les rappels sonnent même téléphone verrouillé, on vérifie 2 réglages avec vous. Ça prend une minute.",okText:'Configurer',cancelText:'Plus tard',onOk:()=>{window.location.href='reglages.html?guide=1';}});
+      window.location.href='reglages.html?guide=1';
     },4000);
   }catch(e){}
 }
