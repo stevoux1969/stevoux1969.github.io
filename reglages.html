@@ -555,17 +555,17 @@ async function guideEtape(nom) {
     if (guideOem !== "xiaomi") { guideEtape("recap"); return; }
     guideMiuiOuvert = true;
     const total = guideTotalEtapes(), active = 3;
-    const texte = "Ce téléphone regroupe trois réglages sur un même écran : démarrage automatique, raccourci sur l'écran d'accueil, et fenêtres contextuelles. On les active ensemble.";
+    const texte = "Votre téléphone a trois réglages en plus, sur un seul écran. Ils permettent à l'application de démarrer toute seule et d'afficher vos rappels. Appuyez sur le bouton, puis activez les trois.";
     guideParler(texte);
     body.innerHTML =
       '<div class="g-steps">' + gDots(total, active) + '</div>' +
       '<div class="g-stepnum">Étape ' + (active + 1) + ' sur ' + total + '</div>' +
       '<div class="g-oembadge">' + OEM_AUTOSTART.xiaomi.badge + '</div>' +
       '<div class="g-icobox">🧩</div>' +
-      '<div class="g-q">Démarrage auto, raccourci et affichage</div>' +
+      '<div class="g-q">Réglages Xiaomi</div>' +
       '<div class="g-qsub">' + texte + '</div>' +
       '<div class="g-spacer"></div>' +
-      '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Ouvrir le réglage</button>' +
+      '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Ouvrir les réglages</button>' +
       '<button type="button" class="btn btn-gris" style="width:100%;margin-top:10px" id="g-skip-step">Continuer</button>';
     document.getElementById("g-next").onclick = async () => {
       try {
@@ -606,7 +606,7 @@ async function guideEtape(nom) {
         (overlayEtat ? "ok" : "manual") + '">' + (overlayEtat ? "✓ Vérifié" : "À revoir") + '</span></div>');
     }
     if (guideOem === "xiaomi" && guideMiuiOuvert) {
-      lignes.push('<div class="g-rline"><span class="g-e">🧩</span><span class="g-lbl">Démarrage auto, raccourci et affichage (Xiaomi)</span><span class="g-st manual">Confirmé à l’œil</span></div>');
+      lignes.push('<div class="g-rline"><span class="g-e">🀄</span><span class="g-lbl">Réglages Xiaomi</span><span class="g-st manual">Confirmé à l’œil</span></div>');
     }
     lignes.push('<div class="g-rline"><span class="g-e">🔔</span><span class="g-lbl">Notifications' +
       (notifOk ? "" : '<span class="g-rfix" id="g-notif-fix">Réautoriser →</span>') +
