@@ -317,13 +317,16 @@ document.addEventListener("visibilitychange", () => {
 
 // ===== Configuration guidée : batterie, démarrage automatique constructeur, position, =====
 // ===== raccourcis/fenêtres contextuelles, vérification, récap (avec notifications) =====
-// Détection via @capacitor/device (Device.getInfo().manufacturer). L'étape autostart est
-// tentée uniquement pour les constructeurs connus ci-dessous (Xiaomi/HyperOS = seul cas testé,
-// sur Redmi Note 14 ; les autres sont "best effort", jamais vérifiés sur un vrai appareil,
-// comme documenté par les libs open-source dont ces intents sont tirés). Samsung ou un
-// constructeur non reconnu : l'étape est sautée, l'API batterie standard suffit. Dans tous les
-// cas, l'étape de vérification textuelle reste affichée : l'intent qui s'ouvre ne garantit
-// jamais que le bon choix a été fait dessus.
+// Détection via @capacitor/device (Device.getInfo().manufacturer). L'étape autostart (écran
+// AutoStartManagementActivity, liste de toutes les applications) est tentée uniquement pour les
+// constructeurs connus ci-dessous, hors Xiaomi : sur Xiaomi/HyperOS, l'écran ouvert par l'étape
+// MIUI (PermissionsEditorActivity) contient déjà le démarrage automatique en plus du raccourci
+// et des fenêtres contextuelles, donc l'étape autostart générique est sautée pour ce
+// constructeur (seul cas testé, sur Redmi Note 14 ; les autres sont "best effort", jamais
+// vérifiés sur un vrai appareil, comme documenté par les libs open-source dont ces intents sont
+// tirés). Samsung ou un constructeur non reconnu : l'étape est sautée, l'API batterie standard
+// suffit. Dans tous les cas, l'étape de vérification textuelle reste affichée : l'intent qui
+// s'ouvre ne garantit jamais que le bon choix a été fait dessus.
 const Device = (CAP && CAP.Plugins && CAP.Plugins.Device) ? CAP.Plugins.Device : null;
 const Geoloc = (CAP && CAP.Plugins && CAP.Plugins.Geolocation) ? CAP.Plugins.Geolocation : null;
 
@@ -352,9 +355,10 @@ function gDots(total, active) {
 }
 
 // Nombre total d'étapes affichées (hors récap/widget/fin, qui n'ont pas de barre de progression) :
-// batterie + position + fenêtres, plus autostart si constructeur connu, plus MIUI si Xiaomi.
+// batterie + position + fenêtres, plus une étape constructeur si connu (autostart générique pour
+// les autres OEM, ou MIUI pour Xiaomi — jamais les deux à la fois).
 function guideTotalEtapes() {
-  return 3 + (guideOem ? 1 : 0) + (guideOem === "xiaomi" ? 1 : 0);
+  return 3 + (guideOem ? 1 : 0);
 }
 
 function detecterConstructeur(brut) {
@@ -470,7 +474,8 @@ async function guideEtape(nom) {
   }
 
   if (nom === "autostart") {
-    if (!guideOem || !Device) { guideEtape("position"); return; }
+    // Xiaomi n'a pas d'écran autostart générique dédié : le réglage est couvert par l'étape MIUI.
+    if (!guideOem || !Device || guideOem === "xiaomi") { guideEtape("position"); return; }
     const info = OEM_AUTOSTART[guideOem];
     const total = guideTotalEtapes();
     const texte = "Votre téléphone a un réglage supplémentaire. Sans lui, l'application peut s'arrêter toute seule en arrière-plan. On va l'activer.";
@@ -494,7 +499,7 @@ async function guideEtape(nom) {
   }
 
   if (nom === "position") {
-    const total = guideTotalEtapes(), active = guideOem ? 2 : 1;
+    const total = guideTotalEtapes(), active = (guideOem && guideOem !== "xiaomi") ? 2 : 1;
     const texte = "Utilisée pour calculer automatiquement le temps de trajet jusqu'à votre rendez-vous.";
     guideParler(texte);
     body.innerHTML =
@@ -518,7 +523,7 @@ async function guideEtape(nom) {
   }
 
   if (nom === "fenetres") {
-    const total = guideTotalEtapes(), active = guideOem ? 3 : 2;
+    const total = guideTotalEtapes(), active = (guideOem && guideOem !== "xiaomi") ? 3 : 2;
     const suite = () => guideEtape(guideOem === "xiaomi" ? "miui" : "recap");
     const texte = "Cette autorisation permet à vos rappels de s'afficher à l'écran, même quand vous utilisez une autre application.";
     guideParler(texte);
@@ -549,13 +554,15 @@ async function guideEtape(nom) {
   if (nom === "miui") {
     if (guideOem !== "xiaomi") { guideEtape("recap"); return; }
     guideMiuiOuvert = true;
-    const texte = "Ce téléphone a deux réglages en plus, sur un autre écran. On les active ensemble.";
+    const total = guideTotalEtapes(), active = 3;
+    const texte = "Ce téléphone regroupe trois réglages sur un même écran : démarrage automatique, raccourci sur l'écran d'accueil, et fenêtres contextuelles. On les active ensemble.";
     guideParler(texte);
     body.innerHTML =
-      '<div class="g-steps">' + gDots(5, 4) + '</div>' +
-      '<div class="g-stepnum">Étape 5 sur 5</div>' +
+      '<div class="g-steps">' + gDots(total, active) + '</div>' +
+      '<div class="g-stepnum">Étape ' + (active + 1) + ' sur ' + total + '</div>' +
+      '<div class="g-oembadge">' + OEM_AUTOSTART.xiaomi.badge + '</div>' +
       '<div class="g-icobox">🧩</div>' +
-      '<div class="g-q">Raccourci et affichage</div>' +
+      '<div class="g-q">Démarrage auto, raccourci et affichage</div>' +
       '<div class="g-qsub">' + texte + '</div>' +
       '<div class="g-spacer"></div>' +
       '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Ouvrir le réglage</button>' +
@@ -588,7 +595,7 @@ async function guideEtape(nom) {
 
     const lignes = ['<div class="g-rline"><span class="g-e">🔋</span><span class="g-lbl">Batterie sans restriction</span><span class="g-st ' +
       (batOk ? "ok" : "manual") + '">' + (batOk ? "✓ Vérifié" : "À revoir") + '</span></div>'];
-    if (guideOem) {
+    if (guideOem && guideOem !== "xiaomi") {
       lignes.push('<div class="g-rline"><span class="g-e">🚀</span><span class="g-lbl">Démarrage auto (' + OEM_AUTOSTART[guideOem].nom +
         ')</span><span class="g-st manual">Confirmé à l’œil</span></div>');
     }
@@ -599,7 +606,7 @@ async function guideEtape(nom) {
         (overlayEtat ? "ok" : "manual") + '">' + (overlayEtat ? "✓ Vérifié" : "À revoir") + '</span></div>');
     }
     if (guideOem === "xiaomi" && guideMiuiOuvert) {
-      lignes.push('<div class="g-rline"><span class="g-e">🧩</span><span class="g-lbl">Raccourci et affichage (Xiaomi)</span><span class="g-st manual">Confirmé à l’œil</span></div>');
+      lignes.push('<div class="g-rline"><span class="g-e">🧩</span><span class="g-lbl">Démarrage auto, raccourci et affichage (Xiaomi)</span><span class="g-st manual">Confirmé à l’œil</span></div>');
     }
     lignes.push('<div class="g-rline"><span class="g-e">🔔</span><span class="g-lbl">Notifications' +
       (notifOk ? "" : '<span class="g-rfix" id="g-notif-fix">Réautoriser →</span>') +
