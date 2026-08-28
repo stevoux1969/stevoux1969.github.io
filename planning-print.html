@@ -144,10 +144,9 @@ const MOIS_NOMS = {
   octobre: "Octobre 2026", novembre: "Novembre 2026", decembre: "Décembre 2026"
 };
 
-// Recupere un CSV : proxy CORS d'abord, puis tentative directe
+// Recupere un CSV directement, en contournant le cache
 function fetchCSV(url) {
-  const proxy = "https://corsproxy.io/?" + encodeURIComponent(url);
-  return fetch(proxy).then(r => r.text()).catch(() => fetch(url).then(r => r.text()));
+  return fetch(url + '&_=' + Date.now(), { cache: 'no-store' }).then(r => r.text());
 }
 
 function chargerPlanning() {
