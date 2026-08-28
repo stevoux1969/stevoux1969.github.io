@@ -1320,6 +1320,12 @@
   <div class="guide-bravo-texte">Voici ton rappel, il est bien enregistré :</div>
   <div class="guide-bravo-carte" id="guide-bravo-carte"></div>
 </div>
+<div id="guide-fin-tuto" class="guide-bravo" style="display:none">
+  <div class="guide-bravo-emoji">🎉</div>
+  <div class="guide-bravo-titre">Bravo !</div>
+  <div class="guide-bravo-texte">Vous savez maintenant utiliser l'application !</div>
+  <button type="button" class="guide-prompt-btn oui" id="guide-fin-tuto-fermer">Fermer</button>
+</div>
 
 <div id="planning-screen" class="screen">
   <div class="edit-header">
@@ -5440,7 +5446,7 @@ document.getElementById('tuto-audio').addEventListener('click',()=>{if(tutoCleAc
 //   attacher : (el, avancer)=>cleanupFn optionnel. Par défaut : un simple clic sur el fait avancer.
 //              Fournir cette fonction pour une détection custom (ex: MutationObserver) ou pour ne pas
 //              avancer automatiquement (l'étape finale du wizard avance via guideTerminer(), pas ici).
-let guideActif=false,guideIndex=0,guideRappelCreeId=null,guideCibleActuelle=null,guideCleanupEtape=null;
+let guideActif=false,guideIndex=0,guideRappelCreeId=null,guideCibleActuelle=null,guideCleanupEtape=null,guideFinTutoTimer=null;
 const GUIDE_ETAPES=[
   {texte:"Ici, tu retrouveras tous tes rappels. Pour en créer un nouveau, appuie sur « Nouveau rappel », en bas.",
    cible:()=>document.getElementById('add-btn')},
@@ -5770,12 +5776,21 @@ function guideAttendreEcranModifier(id,tentative){
 }
 function guideTerminerApresSuppression(){
   guideAnnuler();
-  guideEffacerProgression();
-  if(!state.tutoCreationVu){
-    state.tutoCreationVu=true;
-    if(currentUser&&!currentUser.isAdmin){try{db.collection('users').doc(currentUser.id).update({tutoCreationVu:true});}catch(e){}}
-  }
-  guideRappelCreeId=null;
+  const texte="Bravo, vous savez maintenant utiliser l'application !";
+  document.getElementById('guide-fin-tuto').style.display='flex';
+  speak(guideTexteVoix(texte));
+  const fermer=()=>{
+    document.getElementById('guide-fin-tuto').style.display='none';
+    guideEffacerProgression();
+    if(!state.tutoCreationVu){
+      state.tutoCreationVu=true;
+      if(currentUser&&!currentUser.isAdmin){try{db.collection('users').doc(currentUser.id).update({tutoCreationVu:true});}catch(e){}}
+    }
+    guideRappelCreeId=null;
+  };
+  document.getElementById('guide-fin-tuto-fermer').onclick=fermer;
+  clearTimeout(guideFinTutoTimer);
+  guideFinTutoTimer=setTimeout(fermer,4000);
 }
 // Proposée automatiquement au premier lancement (une fois, puis reproposée une seule fois si "Plus tard"),
 // jamais imposée après ça. Relance manuelle (menu utilisateur) : appeler guideDemarrer() directement.

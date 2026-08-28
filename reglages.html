@@ -47,6 +47,7 @@
   .guide-overlay.on { display:flex; }
   .guide-hdr { background:#fff; padding:14px 16px; padding-top:calc(14px + env(safe-area-inset-top)); border-bottom:1px solid #dde3ee; position:relative; text-align:center; font-weight:700; color:#1a2340; }
   .guide-hdr .g-close { position:absolute; right:14px; top:calc(10px + env(safe-area-inset-top)); background:#eef1fb; color:#2c3e91; border:none; width:32px; height:32px; border-radius:50%; font-size:1rem; font-weight:700; cursor:pointer; font-family:inherit; }
+  .guide-hdr .g-son { position:absolute; right:54px; top:calc(10px + env(safe-area-inset-top)); background:#eef1fb; color:#2c3e91; border:none; width:32px; height:32px; border-radius:50%; font-size:1rem; font-weight:700; cursor:pointer; font-family:inherit; }
   .guide-body { flex:1; overflow-y:auto; padding:22px 20px calc(30px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; max-width:520px; margin:0 auto; width:100%; box-sizing:border-box; }
   .g-steps { display:flex; gap:6px; margin-bottom:8px; }
   .g-steps i { flex:1; height:6px; background:#d5dcea; border-radius:3px; }
@@ -138,6 +139,7 @@
 <div class="guide-overlay" id="guide-overlay">
   <div class="guide-hdr">
     Configuration guidée
+    <button type="button" class="g-son" id="g-son" aria-label="Son">🔊</button>
     <button type="button" class="g-close" id="guide-close" aria-label="Fermer">✕</button>
   </div>
   <div class="guide-body" id="guide-body"></div>
@@ -150,6 +152,34 @@
 const CAP = window.Capacitor;
 const NATIF = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
 const Alarme = (CAP && CAP.Plugins && CAP.Plugins.Alarme) ? CAP.Plugins.Alarme : null;
+
+// Voix du guide, avec bouton silence persisté (comme le thème sombre de l'app)
+let guideVoixCoupee = (localStorage.getItem("avp_guide_voix_off") === "1");
+
+function guideParler(texte) {
+  if (guideVoixCoupee || !texte) return;
+  try {
+    if (CAP && CAP.Plugins && CAP.Plugins.TextToSpeech) {
+      CAP.Plugins.TextToSpeech.speak({ text: texte, lang: "fr-FR", rate: 1.0, pitch: 1.0, volume: 1.0, category: "ambient" }).catch(() => {});
+    } else if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(texte);
+      u.lang = "fr-FR"; u.rate = 0.95; u.volume = 1;
+      window.speechSynthesis.speak(u);
+    }
+  } catch (e) {}
+}
+function guideArreterVoix() {
+  try { if (CAP && CAP.Plugins && CAP.Plugins.TextToSpeech) CAP.Plugins.TextToSpeech.stop(); } catch (e) {}
+  try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+}
+document.getElementById("g-son").addEventListener("click", () => {
+  guideVoixCoupee = !guideVoixCoupee;
+  localStorage.setItem("avp_guide_voix_off", guideVoixCoupee ? "1" : "0");
+  document.getElementById("g-son").textContent = guideVoixCoupee ? "🔇" : "🔊";
+  if (guideVoixCoupee) guideArreterVoix();
+});
+document.getElementById("g-son").textContent = guideVoixCoupee ? "🔇" : "🔊";
 
 const ID_TEST = 990001; // id réservé au test (hors espace des hash de rappels)
 
@@ -314,15 +344,17 @@ const OEM_AUTOSTART = {
              etapes: ["Mobile Manager > AutoStart > Ma Journée AVP → active-le"] }
 };
 const ETAPES_DEFAUT = ["Réglages > Batterie > Ma Journée AVP > Sans restriction"];
-const ETAPES_RACCOURCIS = [
-  "« Raccourcis de l'écran d'accueil » → activé",
-  "« Affichage de fenêtres contextuelles en arrière-plan » → activé"
-];
 
 function gDots(total, active) {
   let h = "";
   for (let i = 0; i < total; i++) h += '<i class="' + (i < active ? "done" : (i === active ? "on" : "")) + '"></i>';
   return h;
+}
+
+// Nombre total d'étapes affichées (hors récap/widget/fin, qui n'ont pas de barre de progression) :
+// batterie + position + fenêtres, plus autostart si constructeur connu, plus MIUI si Xiaomi.
+function guideTotalEtapes() {
+  return 3 + (guideOem ? 1 : 0) + (guideOem === "xiaomi" ? 1 : 0);
 }
 
 function detecterConstructeur(brut) {
@@ -339,6 +371,7 @@ function detecterConstructeur(brut) {
 let guideOem = null;             // constructeur détecté (clé de OEM_AUTOSTART) ou null
 let guideAttenteBatterie = false; // vrai pendant l'aller-retour vers l'écran système batterie
 let guideAttenteNotif = false;    // vrai pendant l'aller-retour vers les réglages notifications (récap)
+let guideMiuiOuvert = false;      // vrai si l'étape MIUI a pu s'exécuter (pour la ligne du récap)
 
 async function initGuideOem() {
   if (!Device) { guideOem = null; return; }
@@ -356,6 +389,7 @@ function lancerGuide() {
 
 function fermerGuide() {
   document.getElementById("guide-overlay").classList.remove("on");
+  guideArreterVoix();
   try { localStorage.setItem("avp_guide_perms_done", String(Date.now())); } catch (e) {}
   rafraichir();
 }
@@ -367,6 +401,18 @@ async function guideMajStatutBatterie() {
   try {
     const e = await Alarme.etatPermissions();
     el.innerHTML = e.batterie
+      ? '<div class="g-statusline ok">✓ Déjà autorisé</div>'
+      : '<div class="g-statusline wait">⏳ Pas encore autorisé</div>';
+  } catch (e) {}
+}
+
+async function guideMajStatutOverlay() {
+  const el = document.getElementById("g-overlay-status");
+  if (!el || !Alarme) return;
+  try {
+    const e = await Alarme.etatPermissions();
+    if (e.overlay === undefined) { el.innerHTML = ""; return; } // ancien APK : champ absent, pas de statut trompeur
+    el.innerHTML = e.overlay
       ? '<div class="g-statusline ok">✓ Déjà autorisé</div>'
       : '<div class="g-statusline wait">⏳ Pas encore autorisé</div>';
   } catch (e) {}
@@ -388,10 +434,12 @@ async function guideEtape(nom) {
   const body = document.getElementById("guide-body");
 
   if (nom === "intro") {
+    const texte = "Bonjour. Je vais vous accompagner pour régler votre téléphone. Ça prend environ deux minutes. Appuyez sur le bouton bleu pour commencer.";
+    guideParler(texte);
     body.innerHTML =
       '<div class="g-icobox">🔔</div>' +
-      '<div class="g-q">Configurons les alarmes</div>' +
-      '<div class="g-qsub">Pour que Ma Journée AVP sonne même téléphone verrouillé et t’aide sur le trajet, quelques réglages sont à autoriser. Ça prend deux minutes.</div>' +
+      '<div class="g-q">Bonjour</div>' +
+      '<div class="g-qsub">' + texte + '</div>' +
       '<div class="g-spacer"></div>' +
       '<button type="button" class="btn btn-bleu btn-large" style="width:100%" id="g-next">Commencer →</button>';
     document.getElementById("g-next").onclick = () => guideEtape("batterie");
@@ -399,12 +447,15 @@ async function guideEtape(nom) {
   }
 
   if (nom === "batterie") {
+    const total = guideTotalEtapes();
+    const texte = "Android met parfois les applications en pause pour économiser la batterie. On va empêcher ça, pour que vos rappels sonnent bien à l'heure.";
+    guideParler(texte);
     body.innerHTML =
-      '<div class="g-steps">' + gDots(guideOem ? 5 : 4, 0) + '</div>' +
-      '<div class="g-stepnum">Étape 1 sur ' + (guideOem ? 5 : 4) + '</div>' +
+      '<div class="g-steps">' + gDots(total, 0) + '</div>' +
+      '<div class="g-stepnum">Étape 1 sur ' + total + '</div>' +
       '<div class="g-icobox">🔋</div>' +
       '<div class="g-q">Batterie sans restriction</div>' +
-      '<div class="g-qsub">Empêche Android de couper l’app quand elle est en arrière-plan.</div>' +
+      '<div class="g-qsub">' + texte + '</div>' +
       '<div class="g-spacer"></div>' +
       '<div id="g-batt-status"></div>' +
       '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Autoriser</button>' +
@@ -421,13 +472,16 @@ async function guideEtape(nom) {
   if (nom === "autostart") {
     if (!guideOem || !Device) { guideEtape("position"); return; }
     const info = OEM_AUTOSTART[guideOem];
+    const total = guideTotalEtapes();
+    const texte = "Votre téléphone a un réglage supplémentaire. Sans lui, l'application peut s'arrêter toute seule en arrière-plan. On va l'activer.";
+    guideParler(texte);
     body.innerHTML =
-      '<div class="g-steps">' + gDots(5, 1) + '</div>' +
-      '<div class="g-stepnum">Étape 2 sur 5</div>' +
+      '<div class="g-steps">' + gDots(total, 1) + '</div>' +
+      '<div class="g-stepnum">Étape 2 sur ' + total + '</div>' +
       '<div class="g-oembadge">' + info.badge + '</div>' +
       '<div class="g-icobox">🚀</div>' +
       '<div class="g-q">Démarrage automatique</div>' +
-      '<div class="g-qsub">Sur ce téléphone, une option cachée coupe l’app en arrière-plan si elle n’est pas activée ici.</div>' +
+      '<div class="g-qsub">' + texte + '</div>' +
       '<div class="g-spacer"></div>' +
       '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Ouvrir le réglage ' + info.nom + '</button>' +
       '<button type="button" class="btn btn-gris" style="width:100%;margin-top:10px" id="g-skip-step">Continuer</button>';
@@ -440,13 +494,15 @@ async function guideEtape(nom) {
   }
 
   if (nom === "position") {
-    const total = guideOem ? 5 : 4, active = guideOem ? 2 : 1;
+    const total = guideTotalEtapes(), active = guideOem ? 2 : 1;
+    const texte = "Utilisée pour calculer automatiquement le temps de trajet jusqu'à votre rendez-vous.";
+    guideParler(texte);
     body.innerHTML =
       '<div class="g-steps">' + gDots(total, active) + '</div>' +
       '<div class="g-stepnum">Étape ' + (active + 1) + ' sur ' + total + '</div>' +
       '<div class="g-icobox">📍</div>' +
       '<div class="g-q">Position</div>' +
-      '<div class="g-qsub">Utilisée pour estimer automatiquement le temps de trajet, comme ailleurs dans l’application.</div>' +
+      '<div class="g-qsub">' + texte + '</div>' +
       '<div class="g-spacer"></div>' +
       '<div id="g-pos-status"></div>' +
       '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Autoriser</button>' +
@@ -455,56 +511,76 @@ async function guideEtape(nom) {
     document.getElementById("g-next").onclick = async () => {
       if (Geoloc) { try { await Geoloc.requestPermissions(); } catch (e) {} }
       await guideMajStatutPosition();
-      setTimeout(() => guideEtape("raccourcis"), 900);
+      setTimeout(() => guideEtape("fenetres"), 900);
     };
-    document.getElementById("g-skip-step").onclick = () => guideEtape("raccourcis");
+    document.getElementById("g-skip-step").onclick = () => guideEtape("fenetres");
     return;
   }
 
-  if (nom === "raccourcis") {
-    const total = guideOem ? 5 : 4, active = guideOem ? 3 : 2;
+  if (nom === "fenetres") {
+    const total = guideTotalEtapes(), active = guideOem ? 3 : 2;
+    const suite = () => guideEtape(guideOem === "xiaomi" ? "miui" : "recap");
+    const texte = "Cette autorisation permet à vos rappels de s'afficher à l'écran, même quand vous utilisez une autre application.";
+    guideParler(texte);
     body.innerHTML =
       '<div class="g-steps">' + gDots(total, active) + '</div>' +
       '<div class="g-stepnum">Étape ' + (active + 1) + ' sur ' + total + '</div>' +
-      '<div class="g-icobox">🧩</div>' +
-      '<div class="g-q">Raccourcis &amp; fenêtres superposées</div>' +
-      '<div class="g-qsub">Android ne propose pas de bouton automatique pour ces deux réglages : on ouvre les autorisations de l’app, à activer à la main.</div>' +
+      '<div class="g-icobox">🪟</div>' +
+      '<div class="g-q">Fenêtres superposées</div>' +
+      '<div class="g-qsub">' + texte + '</div>' +
       '<div class="g-spacer"></div>' +
-      '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Ouvrir les autorisations de l’app</button>' +
-      '<button type="button" class="btn btn-gris" style="width:100%;margin-top:10px" id="g-skip-step">Continuer</button>';
+      '<div id="g-overlay-status"></div>' +
+      '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Autoriser</button>' +
+      '<button type="button" class="btn btn-gris" style="width:100%;margin-top:10px" id="g-skip-step">Continuer sans autoriser</button>';
+    guideMajStatutOverlay();
     document.getElementById("g-next").onclick = async () => {
-      if (Alarme) { try { await Alarme.ouvrirReglagesApp(); } catch (e) {} }
-      guideEtape("verif");
+      try {
+        await Alarme.demanderOverlay();
+        await guideMajStatutOverlay();
+        setTimeout(suite, 900);
+      } catch (e) {
+        suite(); // ancien APK sans cette fonction : on passe simplement à la suite
+      }
     };
-    document.getElementById("g-skip-step").onclick = () => guideEtape("verif");
+    document.getElementById("g-skip-step").onclick = suite;
     return;
   }
 
-  if (nom === "verif") {
-    const info = guideOem ? OEM_AUTOSTART[guideOem] : null;
-    const etapes = (info ? info.etapes : ETAPES_DEFAUT).concat(ETAPES_RACCOURCIS);
-    const total = guideOem ? 5 : 4, active = guideOem ? 4 : 3;
+  if (nom === "miui") {
+    if (guideOem !== "xiaomi") { guideEtape("recap"); return; }
+    guideMiuiOuvert = true;
+    const texte = "Ce téléphone a deux réglages en plus, sur un autre écran. On les active ensemble.";
+    guideParler(texte);
     body.innerHTML =
-      '<div class="g-steps">' + gDots(total, active) + '</div>' +
-      '<div class="g-stepnum">Étape ' + (active + 1) + ' sur ' + total + ' — à vérifier ensemble</div>' +
-      '<div class="g-q" style="font-size:1.15rem">🔎 Vérifie ces réglages</div>' +
-      '<div class="g-qsub">Les écrans systèmes se sont peut-être ouverts sur le mauvais choix. Un adulte confirme visuellement avant de continuer.</div>' +
-      '<div class="g-checklist">' +
-        etapes.map((t, i) => '<div class="g-cline"><span class="g-n">' + (i + 1) + '</span>' + t + '</div>').join("") +
-      '</div>' +
+      '<div class="g-steps">' + gDots(5, 4) + '</div>' +
+      '<div class="g-stepnum">Étape 5 sur 5</div>' +
+      '<div class="g-icobox">🧩</div>' +
+      '<div class="g-q">Raccourci et affichage</div>' +
+      '<div class="g-qsub">' + texte + '</div>' +
       '<div class="g-spacer"></div>' +
-      '<button type="button" class="btn btn-vert btn-large" style="width:100%" id="g-next">✓ C’est vérifié</button>';
-    document.getElementById("g-next").onclick = () => guideEtape("recap");
+      '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Ouvrir le réglage</button>' +
+      '<button type="button" class="btn btn-gris" style="width:100%;margin-top:10px" id="g-skip-step">Continuer</button>';
+    document.getElementById("g-next").onclick = async () => {
+      try {
+        await Alarme.ouvrirAutresPermissionsMiui();
+        setTimeout(() => guideEtape("recap"), 900);
+      } catch (e) {
+        guideMiuiOuvert = false;
+        guideEtape("recap"); // ancien APK sans cette fonction : on passe simplement à la suite
+      }
+    };
+    document.getElementById("g-skip-step").onclick = () => guideEtape("recap");
     return;
   }
 
   if (nom === "recap") {
-    let batOk = false, notifOk = false;
+    let batOk = false, notifOk = false, overlayEtat = undefined;
     if (Alarme) {
       try {
         const e = await Alarme.etatPermissions();
         batOk = !!e.batterie;
         notifOk = !!e.notifications;
+        overlayEtat = e.overlay; // undefined sur un ancien APK : pas de champ envoyé
       } catch (e) {}
     }
     let posOk = false;
@@ -518,7 +594,13 @@ async function guideEtape(nom) {
     }
     lignes.push('<div class="g-rline"><span class="g-e">📍</span><span class="g-lbl">Position</span><span class="g-st ' +
       (posOk ? "ok" : "manual") + '">' + (posOk ? "✓ Vérifiée" : "À revoir") + '</span></div>');
-    lignes.push('<div class="g-rline"><span class="g-e">🧩</span><span class="g-lbl">Raccourcis / fenêtres</span><span class="g-st manual">Confirmé à l’œil</span></div>');
+    if (overlayEtat !== undefined) {
+      lignes.push('<div class="g-rline"><span class="g-e">🪟</span><span class="g-lbl">Fenêtres superposées</span><span class="g-st ' +
+        (overlayEtat ? "ok" : "manual") + '">' + (overlayEtat ? "✓ Vérifié" : "À revoir") + '</span></div>');
+    }
+    if (guideOem === "xiaomi" && guideMiuiOuvert) {
+      lignes.push('<div class="g-rline"><span class="g-e">🧩</span><span class="g-lbl">Raccourci et affichage (Xiaomi)</span><span class="g-st manual">Confirmé à l’œil</span></div>');
+    }
     lignes.push('<div class="g-rline"><span class="g-e">🔔</span><span class="g-lbl">Notifications' +
       (notifOk ? "" : '<span class="g-rfix" id="g-notif-fix">Réautoriser →</span>') +
       '</span><span class="g-st ' + (notifOk ? "ok" : "manual") + '">' + (notifOk ? "✓ Vérifiées" : "À revoir") + '</span></div>');
@@ -528,8 +610,8 @@ async function guideEtape(nom) {
       '<div class="g-q">C’est configuré !</div>' +
       '<div class="g-recap">' + lignes.join("") + '</div>' +
       '<div class="g-spacer"></div>' +
-      '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Terminer</button>';
-    document.getElementById("g-next").onclick = fermerGuide;
+      '<button type="button" class="btn btn-bleu" style="width:100%" id="g-next">Continuer</button>';
+    document.getElementById("g-next").onclick = () => guideEtape("widget");
 
     const fix = document.getElementById("g-notif-fix");
     if (fix) fix.onclick = async () => {
@@ -543,6 +625,48 @@ async function guideEtape(nom) {
       }
       guideEtape("recap");
     };
+    return;
+  }
+
+  if (nom === "widget") {
+    const texte = "Vous pouvez ajouter un raccourci sur votre écran d'accueil. Il affiche vos prochains rappels directement, sans avoir besoin d'ouvrir l'application.";
+    guideParler(texte);
+    body.innerHTML =
+      '<div class="g-icobox">📌</div>' +
+      '<div class="g-q">Ajouter le raccourci</div>' +
+      '<div class="g-qsub">' + texte + '</div>' +
+      '<div class="g-spacer"></div>' +
+      '<div id="g-widget-zone">' +
+        '<button type="button" class="btn btn-bleu btn-large" style="width:100%" id="g-next">📌&nbsp; Ajouter le raccourci</button>' +
+      '</div>' +
+      '<button type="button" class="btn btn-gris" style="width:100%;margin-top:10px" id="g-skip-step">Non merci, plus tard</button>';
+    document.getElementById("g-next").onclick = async () => {
+      try {
+        const r = await Alarme.epinglerWidget();
+        if (r && r.supporte === false) {
+          document.getElementById("g-widget-zone").innerHTML =
+            '<div class="g-qsub" style="margin-bottom:0">Sur ce téléphone, ajoutez-le à la main : appui long sur l’écran d’accueil → Widgets → Ma Journée AVP.</div>';
+        } else {
+          guideEtape("fin");
+        }
+      } catch (e) {
+        guideEtape("fin"); // ancien APK sans cette fonction : on passe simplement à la suite
+      }
+    };
+    document.getElementById("g-skip-step").onclick = () => guideEtape("fin");
+    return;
+  }
+
+  if (nom === "fin") {
+    const texte = "Bravo. Votre téléphone est configuré pour bien vous prévenir.";
+    guideParler(texte);
+    body.innerHTML =
+      '<div class="g-icobox">🎉</div>' +
+      '<div class="g-q">C’est prêt</div>' +
+      '<div class="g-qsub">' + texte + '</div>' +
+      '<div class="g-spacer"></div>' +
+      '<button type="button" class="btn btn-bleu btn-large" style="width:100%" id="g-next">Terminer</button>';
+    document.getElementById("g-next").onclick = fermerGuide;
     return;
   }
 }
