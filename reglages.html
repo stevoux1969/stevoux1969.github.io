@@ -392,10 +392,9 @@ function lancerGuide() {
 }
 
 function fermerGuide() {
-  document.getElementById("guide-overlay").classList.remove("on");
   guideArreterVoix();
   try { localStorage.setItem("avp_guide_perms_done", String(Date.now())); } catch (e) {}
-  rafraichir();
+  window.location.href = "index.html";
 }
 document.getElementById("guide-close").addEventListener("click", fermerGuide);
 
