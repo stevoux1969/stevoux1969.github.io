@@ -286,14 +286,14 @@ function construirePlanning(csv, animateur, mois) {
     }
 
     // Mercredi 1, Jeudi 2, Vendredi 3 (début de mois décalé)
-    if (cell0 === '' && row.some(c => /^(Mercredi|Jeudi|Vendredi)\s+\d/.test(c))) {
+    if (cell0 === '' && row.some(c => /^(Mardi|Mercredi|Jeudi|Vendredi)\s+\d/.test(c))) {
       if (!semaineCourante) {
         semaineCourante = { jours: [] };
         semaines.push(semaineCourante);
       }
       for (let j = 0; j < row.length; j++) {
         const val = (row[j] || '').trim();
-        const matchJour = val.match(/^(Mercredi|Jeudi|Vendredi)\s+(\d+)$/);
+        const matchJour = val.match(/^(Mardi|Mercredi|Jeudi|Vendredi)\s+(\d+)$/);
         if (matchJour && !semaineCourante.jours.find(d => d.num === parseInt(matchJour[2]))) {
           semaineCourante.jours.push({
             nom: matchJour[1],
