@@ -3942,37 +3942,38 @@ async function showAdminAteliers(selectedMonth){
   showScreen('admin-ateliers-screen');
   const list=document.getElementById('admin-ateliers-list');
   list.innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';
-  try{const[usersSnap,presSnap,annulSnap]=await Promise.all([db.collection('users').get(),db.collection('presences').get(),db.collection('annulations').get()]);
+  try{
+    const anim=(state&&state.currentAnim==='Greg')?'Greg':'Steve';
+    const urls=(anim==='Greg')?GREG_CSV_URLS:AVP_CSV_URLS;
+    const year=new Date().getFullYear();
+    const today=dateKey(new Date());
+    const currentMonth=today.slice(0,7);
+    // Tous les mois pour lesquels un CSV existe, + le mois en cours s'il n'y est pas encore
+    const moisDispo=[...new Set(Object.keys(urls).map(m=>year+'-'+pad2(parseInt(m))))];
+    if(!moisDispo.includes(currentMonth))moisDispo.push(currentMonth);
+    moisDispo.sort();
+    const moisActif=selectedMonth||(moisDispo.includes(currentMonth)?currentMonth:(moisDispo.filter(m=>m<=currentMonth).pop()||moisDispo[moisDispo.length-1]));
+
+    const[monthEvents,usersSnap,presSnap,annulSnap]=await Promise.all([loadAVPMonthEvents(parseInt(moisActif.split('-')[1],10)),db.collection('users').get(),db.collection('presences').get(),db.collection('annulations').get()]);
     const annulations={};
     annulSnap.docs.forEach(doc=>{annulations[doc.id]=doc.data();});const presences={};presSnap.docs.forEach(doc=>{presences[doc.id]=doc.data();});state.presences=presences;const groupes={};
       // SOURCE UNIQUE = state.allInscriptions, exactement comme la vue bénéficiaire (déjà dédoublonné par prénom).
       // Rechargé ici pour être à jour au moment du pointage → admin et bénéficiaire affichent strictement les mêmes inscrits.
       state.allInscriptions = await loadAllInscriptions();
       const allIns = state.allInscriptions || {};
-      // On ne garde que les ateliers du planning de l'animateur connecté (sépare Steve/Greg).
+      // On ne garde que les ateliers du planning de l'animateur connecté (sépare Steve/Greg), pour le mois sélectionné.
       // Les ateliers communs sont aussi dans son CSV, donc la même clé → inscrits partagés des deux côtés.
       const evByKey={};
-      (state.avpEvents||[]).forEach(e=>{const k=e.date+'_'+e.time+'_'+(e.title||'').slice(0,20).replace(/\s/g,'_');if(!evByKey[k])evByKey[k]=e;});
-      Object.keys(evByKey).forEach(key=>{const list=allIns[key]||[];if(!list.length)return;const e=evByKey[key];groupes[key]={date:e.date,time:e.time,title:e.title,icon:e.icon,inscrits:list.slice()};});const items=Object.values(groupes).sort((a,b)=>{if(a.date!==b.date)return(a.date||'').localeCompare(b.date||'');return(a.time||'').localeCompare(b.time||'');});if(items.length===0){list.innerHTML='<div class="planning-empty">Aucune inscription pour le moment.</div>';return;}
-      const today=dateKey(new Date());
-      const currentMonth=today.slice(0,7);
-      const moisDispo=[...new Set(items.map(g=>g.date.slice(0,7)))].sort();
-      // Ajouter le mois en cours s'il n'est pas déjà dedans
-      if(!moisDispo.includes(currentMonth))moisDispo.push(currentMonth);
-      moisDispo.sort();
-      // Chercher d'abord le mois en cours, sinon le plus récent
-      // Sélectionner le mois en cours, ou le plus proche passé
-      const moisEnCours = moisDispo.includes(currentMonth) ? currentMonth : 
-        moisDispo.filter(m => m <= currentMonth).pop() || moisDispo[moisDispo.length-1];
-      const moisActif = selectedMonth || moisEnCours;
+      (monthEvents||[]).forEach(e=>{const k=e.date+'_'+e.time+'_'+(e.title||'').slice(0,20).replace(/\s/g,'_');if(!evByKey[k])evByKey[k]=e;});
+      Object.keys(evByKey).forEach(key=>{const list=allIns[key]||[];if(!list.length)return;const e=evByKey[key];groupes[key]={date:e.date,time:e.time,title:e.title,icon:e.icon,inscrits:list.slice()};});const items=Object.values(groupes).sort((a,b)=>{if(a.date!==b.date)return(a.date||'').localeCompare(b.date||'');return(a.time||'').localeCompare(b.time||'');});
       const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
       function formatMois(ym){const[y,m]=ym.split('-');return monthNames[parseInt(m)-1]+' '+y;}
       const menuHTML='<div style="padding:12px 16px;background:white;border-bottom:1px solid #e5e9f2;position:sticky;top:0;z-index:10;">'
         +'<select id="mois-select" onchange="showAdminAteliers(this.value)" style="width:100%;padding:12px;font-size:1rem;font-weight:700;border:2px solid #2c3e91;border-radius:12px;color:#2c3e91;background:white;font-family:inherit;">'
         +moisDispo.map(m=>'<option value="'+m+'" '+(m===moisActif?'selected':'')+'>'+formatMois(m)+(m<currentMonth?' — PASSÉ':m===currentMonth?' — EN COURS':' — À VENIR')+'</option>').join('')
         +'</select></div>';
-      const itemsFiltres=items.filter(g=>g.date.slice(0,7)===moisActif);
-      list.innerHTML=menuHTML+itemsFiltres.map(g=>{const atelierKey=g.date+'_'+g.time+'_'+(g.title||'').slice(0,20).replace(/\s/g,'_');let nbPresent=0,nbAbsent=0,nbNonPointe=0;g.inscrits.forEach(p=>{const presKey=sanitizePresKey(atelierKey+'__'+p);const pres=presences[presKey];if(pres&&pres.statut==='absent')nbAbsent++;else nbPresent++;});const isPasse=g.date<today;const isToday_=g.date===today;const estAnnule = annulations[cleanDocId(atelierKey)];
+      if(items.length===0){list.innerHTML=menuHTML+'<div class="planning-empty">Aucune inscription pour le moment.</div>';return;}
+      list.innerHTML=menuHTML+items.map(g=>{const atelierKey=g.date+'_'+g.time+'_'+(g.title||'').slice(0,20).replace(/\s/g,'_');let nbPresent=0,nbAbsent=0,nbNonPointe=0;g.inscrits.forEach(p=>{const presKey=sanitizePresKey(atelierKey+'__'+p);const pres=presences[presKey];if(pres&&pres.statut==='absent')nbAbsent++;else nbPresent++;});const isPasse=g.date<today;const isToday_=g.date===today;const estAnnule = annulations[cleanDocId(atelierKey)];
       const badge=estAnnule?'<span style="background:#d63447;color:white;padding:2px 8px;border-radius:10px;font-size:0.6875rem;font-weight:700;">🚫 ANNULÉ</span>':isPasse?'<span class="atelier-badge-passe">PASSÉ</span>':isToday_?'<span class="atelier-badge-aujourdhui">AUJOURD\'HUI</span>':'<span class="atelier-badge-futur">À VENIR</span>';
       const annulMotif = estAnnule ? '<div style="color:#d63447;font-size:0.75rem;font-weight:600;margin-top:4px;">Motif : '+esc(estAnnule.motif||'')+'</div>' : '';return`<div class="atelier-group"><div class="atelier-group-header"><div class="atelier-group-date">${formatShortDate(g.date)} · ${(g.time||'').replace(':','h')}</div><div class="atelier-group-title">${esc(g.title)}</div>${badge}</div><div class="atelier-stats">👥 <strong>${g.inscrits.length}</strong> inscrits · ✅ <strong>${nbPresent}</strong> présents · ❌ <strong>${nbAbsent}</strong> absents</div><div class="atelier-pointage-list">${g.inscrits.map(p=>{const presKey=sanitizePresKey(atelierKey+'__'+p);const pres=presences[presKey];const statut=pres?pres.statut:null;// Par défaut présent si pas encore pointé
 const defaultPresent = !statut; // présent par défaut si non pointé
@@ -4902,6 +4903,29 @@ async function loadAVPPlanning(force){
     if(cache && cache.events){ state.avpEvents=cache.events; state.annulations=cache.annulations||{}; return cache.events; }
     return [];
   }
+}
+
+// Charge (et met en cache par animateur+mois) les événements d'un mois précis, indépendamment de loadAVPPlanning()
+async function loadAVPMonthEvents(monthNum){
+  const anim = (state && state.currentAnim==='Greg') ? 'Greg' : 'Steve';
+  const year = new Date().getFullYear();
+  const ym = year+'-'+pad2(monthNum);
+  if(!state.avpEventsByMonth) state.avpEventsByMonth = {};
+  const cacheKey = anim+'_'+ym;
+  if(state.avpEventsByMonth[cacheKey]) return state.avpEventsByMonth[cacheKey];
+  const url = getAVPCsvUrl(monthNum);
+  if(!url){ state.avpEventsByMonth[cacheKey]=[]; return []; }
+  try{
+    const r = await fetch(url+'&_='+Date.now(),{cache:'no-store'});
+    if(r.ok){
+      const csv = await r.text();
+      const events = parseAVPPlanning(csv, monthNum);
+      state.avpEventsByMonth[cacheKey] = events;
+      return events;
+    }
+  }catch(e){}
+  state.avpEventsByMonth[cacheKey] = [];
+  return [];
 }
 
 function parseAVPPlanning(csv,moisCible){
