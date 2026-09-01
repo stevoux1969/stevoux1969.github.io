@@ -2297,7 +2297,7 @@ function enterApp(){
   const initials=currentUser.prenom.slice(0,1).toUpperCase();
   userBtn.innerHTML=`<div class="user-avatar" style="width:36px;height:36px;font-size:1rem">${initials}</div><span class="header-user-name">${esc(currentUser.prenom)}</span>`;
   userBtn.onclick=()=>openUserMenu();
-  showScreen('main-screen');render();chargerAtelierDescs();loadAVPPlanning();checkReminders();checkMessagesAdmin();
+  showScreen('main-screen');render();chargerAtelierDescs();loadAVPPlanning();checkReminders();checkMessagesAdmin();flushPendingQueue();
   _rafraichirVus().then(()=>render());
   setTimeout(()=>guideProposerAuLancement(),800);
 }
@@ -4020,6 +4020,26 @@ function isInscrit(eventKey){return(state.reminders||[]).some(r=>r.source==='ate
 // Numéros animateurs pour désinscription tardive
 const ANIM_PHONES={Steve:{num:'0646632430',display:'06 46 63 24 30'},Greg:{num:'0766601619',display:'07 66 60 16 19'}};
 
+// ===== File d'attente hors-ligne (inscription/désinscription bénéficiaire) =====
+// Quand l'écriture Firestore échoue (pas de connexion), l'action est mémorisée ici
+// puis rejouée automatiquement (voir flushPendingQueue) dès que possible.
+function getPendingQueue(){try{return JSON.parse(localStorage.getItem('avp_pending_ateliers')||'[]');}catch(e){return[];}}
+function setPendingQueue(q){try{localStorage.setItem('avp_pending_ateliers',JSON.stringify(q));}catch(e){}}
+function addToPendingQueue(item){const q=getPendingQueue().filter(i=>i.atelierKey!==item.atelierKey);q.push(item);setPendingQueue(q);}
+function removeFromPendingQueue(atelierKey){setPendingQueue(getPendingQueue().filter(i=>i.atelierKey!==atelierKey));}
+function isPendingAtelier(atelierKey){return getPendingQueue().some(i=>i.atelierKey===atelierKey);}
+
+// Bloc affiché à la place du bouton d'inscription/désinscription quand une action est en attente
+function pendingBadgeHTML(){
+  return `<div style="width:100%;">
+    <div style="display:inline-flex;align-items:center;gap:6px;background:#e8ecfb;color:#2c3e91;font-size:0.8125rem;font-weight:700;padding:6px 14px;border-radius:20px;margin-bottom:10px;">🕐 En attente</div>
+    <div style="display:flex;align-items:flex-start;gap:10px;background:#eef4ff;border-radius:14px;padding:14px;">
+      <span style="font-size:1.375rem;flex-shrink:0;">🚫📶</span>
+      <span style="font-size:0.875rem;color:#1a2340;line-height:1.5;">Votre demande est en attente.<br>Elle sera enregistrée dès que possible.</span>
+    </div>
+  </div>`;
+}
+
 // Gère la désinscription avec règle 3 jours et commentaire
 async function demanderDesinscription(ev,ek,anim,content,events,onDone){
   const aujourdHui=new Date();aujourdHui.setHours(0,0,0,0);
@@ -4096,29 +4116,63 @@ async function demanderDesinscription(ev,ek,anim,content,events,onDone){
   };
 }
 
-async function toggleInscription(event){const key=event.date+'_'+event.time+'_'+event.title.slice(0,20).replace(/\s/g,'_');if(isInscrit(key)){
+async function toggleInscription(event){const key=event.date+'_'+event.time+'_'+event.title.slice(0,20).replace(/\s/g,'_');const evMini={date:event.date,time:event.time,title:event.title,icon:event.icon||'📋'};if(isInscrit(key)){
   delete state.inscriptions[key];
   state.reminders=state.reminders.filter(r=>r.id!=='atelier_'+key);
   try{tagOneSignalAtelier(key,false);}catch(e){}
-  notifyAnimateur('desinscription',event);
   // Update atomique désinscription
+  let ok=false;
   try{
     const upd={reminders:state.reminders};
     upd['inscriptions.'+key]=firebase.firestore.FieldValue.delete();
     await db.collection('users').doc(currentUser.id).update(upd);
-  }catch(e){try{await db.collection('users').doc(currentUser.id).update({reminders:state.reminders,inscriptions:state.inscriptions});}catch(e2){}}
+    ok=true;
+  }catch(e){try{await db.collection('users').doc(currentUser.id).update({reminders:state.reminders,inscriptions:state.inscriptions});ok=true;}catch(e2){}}
+  if(ok){removeFromPendingQueue(key);notifyAnimateur('desinscription',event);}
+  else{addToPendingQueue({atelierKey:key,action:'desinscription',event:evMini,ts:Date.now()});}
 }else{
   // Pas de vérification de conflit horaire — le bénéficiaire peut s'inscrire à plusieurs ateliers par jour
   // Seule restriction : même atelier commun Steve+Greg = déjà géré par la dédup du CSV
-  state.inscriptions[key]=true;const loc=getAVPLocation(event.title);state.reminders.push({id:'atelier_'+key,title:event.title,icon:event.icon||'📋',time:event.time,date:event.date,recurrence:'once',note:loc?loc.address:'',mapLink:loc?`https://www.google.com/maps/search/?api=1&query=${loc.query}`:null,done:{},source:'atelier'});speak(`Inscrit à ${event.title} !`);try{tagOneSignalAtelier(key,true);}catch(e){} if(!estNatifAlarme())queueAtelierNotifications(event,key);notifyAnimateur('inscription',event);}
+  state.inscriptions[key]=true;const loc=getAVPLocation(event.title);state.reminders.push({id:'atelier_'+key,title:event.title,icon:event.icon||'📋',time:event.time,date:event.date,recurrence:'once',note:loc?loc.address:'',mapLink:loc?`https://www.google.com/maps/search/?api=1&query=${loc.query}`:null,done:{},source:'atelier'});speak(`Inscrit à ${event.title} !`);try{tagOneSignalAtelier(key,true);}catch(e){} if(!estNatifAlarme())queueAtelierNotifications(event,key);
   // Update atomique Firebase
+  let ok=false;
   try{
     const upd={reminders:state.reminders};
     upd['inscriptions.'+key]=state.inscriptions[key]||null;
     await db.collection('users').doc(currentUser.id).update(upd);
-  }catch(e){try{await db.collection('users').doc(currentUser.id).update({reminders:state.reminders,inscriptions:state.inscriptions});}catch(e2){}}
-  render();
+    ok=true;
+  }catch(e){try{await db.collection('users').doc(currentUser.id).update({reminders:state.reminders,inscriptions:state.inscriptions});ok=true;}catch(e2){}}
+  if(ok){removeFromPendingQueue(key);notifyAnimateur('inscription',event);}
+  else{addToPendingQueue({atelierKey:key,action:'inscription',event:evMini,ts:Date.now()});}
 }
+render();
+}
+
+// Rejoue la file d'attente hors-ligne : retente chaque action, notifie l'animateur et
+// retire l'item seulement en cas de succès ; sinon il reste en attente pour la prochaine tentative.
+async function flushPendingQueue(){
+  if(!currentUser||currentUser.isAdmin)return;
+  const queue=getPendingQueue();
+  if(!queue.length)return;
+  let anySuccess=false;
+  for(const item of queue){
+    try{
+      const upd={reminders:state.reminders};
+      upd['inscriptions.'+item.atelierKey]=(item.action==='desinscription')?firebase.firestore.FieldValue.delete():true;
+      await db.collection('users').doc(currentUser.id).update(upd);
+      removeFromPendingQueue(item.atelierKey);
+      notifyAnimateur(item.action,item.event);
+      anySuccess=true;
+    }catch(e){}
+  }
+  if(anySuccess){
+    render();
+    if(document.getElementById('planning-screen')?.classList.contains('active'))renderPlanning();
+    if(document.getElementById('mes-rdv-screen')?.classList.contains('active'))showMesRendezVous();
+  }
+}
+window.addEventListener('online',()=>flushPendingQueue());
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')flushPendingQueue();});
 
 // ========== MES RENDEZ-VOUS (vue regroupée à venir) ==========
 // Annulation d'un rendez-vous depuis l'agenda :
@@ -4273,6 +4327,8 @@ async function showMesRendezVous(scope){
         :'<span style="font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#fdf0dc;color:#a8650a;">Rappel perso</span>');
     const noteH=hero.note?`<div style="font-size:0.95rem;color:#48547a;margin-top:3px;">${esc(hero.note)}</div>`:'';
     const titreStyleH=isAnnuleH?'text-decoration:line-through;color:#d63447;':'';
+    const heroAtelierKey=isAtelierH?hero.id.replace(/^atelier_/,''):null;
+    const heroEnAttente=!!(heroAtelierKey&&isPendingAtelier(heroAtelierKey));
     html+=`<div style="font-size:0.8rem;font-weight:800;color:#2c3e91;text-transform:uppercase;letter-spacing:.5px;margin:2px 0 8px;">Mon prochain rendez-vous</div>
     <div style="background:white;border-radius:20px;border:3px solid #2c3e91;box-shadow:0 6px 20px rgba(44,62,145,0.18);padding:18px;margin-bottom:6px;">
       <div style="font-size:1rem;font-weight:700;color:#48547a;">${quand}</div>
@@ -4288,7 +4344,7 @@ async function showMesRendezVous(scope){
       <div style="display:flex;gap:10px;margin-top:16px;">
         <button id="hero-audio-btn" style="flex:1;padding:16px;font-size:1.05rem;border:none;border-radius:14px;background:#eef1f8;color:#2c3e91;font-family:inherit;font-weight:700;cursor:pointer;">🔊 Écouter</button>
       </div>
-      <button id="hero-annuler-btn" style="width:100%;margin-top:10px;border:none;background:#fdecec;color:#c0392b;font-family:inherit;font-size:0.95rem;font-weight:700;padding:12px;border-radius:12px;cursor:pointer;">🗑️ Annuler ce rendez-vous</button>
+      ${heroEnAttente?`<div style="margin-top:10px;">${pendingBadgeHTML()}</div>`:`<button id="hero-annuler-btn" style="width:100%;margin-top:10px;border:none;background:#fdecec;color:#c0392b;font-family:inherit;font-size:0.95rem;font-weight:700;padding:12px;border-radius:12px;cursor:pointer;">🗑️ Annuler ce rendez-vous</button>`}
     </div>`;
     if(reste.length)html+=`<div style="font-size:0.8rem;font-weight:800;color:#2c3e91;text-transform:uppercase;letter-spacing:.5px;margin:18px 0 0;">Ensuite</div>`;
   }
@@ -4310,7 +4366,9 @@ async function showMesRendezVous(scope){
     const moisCourt=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'][dObj.getMonth()];
     const titreCouleur=isAnnule?'#d63447':(passeDiscret?'#8992a8':'#1a2340');
     const titreDeco=isAnnule?'text-decoration:line-through;':'';
-    const annulerBtnHTML=passeDiscret?'':`<button class="rdv-annuler-btn" data-id="${r.id}" style="border:none;background:#fdecec;color:#c0392b;font-family:inherit;font-size:0.85rem;font-weight:700;padding:10px 14px;border-radius:12px;cursor:pointer;flex-shrink:0;">Annuler</button>`;
+    const rAtelierKey=isAtelier?r.id.replace(/^atelier_/,''):null;
+    const rEnAttente=!!(rAtelierKey&&isPendingAtelier(rAtelierKey));
+    const annulerBtnHTML=(passeDiscret||rEnAttente)?'':`<button class="rdv-annuler-btn" data-id="${r.id}" style="border:none;background:#fdecec;color:#c0392b;font-family:inherit;font-size:0.85rem;font-weight:700;padding:10px 14px;border-radius:12px;cursor:pointer;flex-shrink:0;">Annuler</button>`;
     html+=`<div class="rdv-row" style="background:white;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;gap:14px;align-items:center;box-shadow:0 2px 8px rgba(26,35,64,0.06);border-left:5px solid ${couleur};${passeDiscret?'opacity:.7;':''}">
       <div style="text-align:center;min-width:48px;">
         <div style="font-size:1.3rem;font-weight:800;color:${titreCouleur};line-height:1;${titreDeco}">${jour}</div>
@@ -4320,6 +4378,7 @@ async function showMesRendezVous(scope){
         <div style="font-size:1rem;font-weight:700;color:${titreCouleur};${titreDeco}">${esc(r.title||'')}</div>
         <div style="font-size:0.85rem;color:#8992a8;margin-top:2px;${titreDeco}">à ${(r._t||'').replace(':','h')}</div>
         <div style="margin-top:5px;">${badge}</div>
+        ${rEnAttente?`<div style="margin-top:8px;">${pendingBadgeHTML()}</div>`:''}
       </div>
       ${annulerBtnHTML}
     </div>`;
@@ -5070,7 +5129,8 @@ function renderPlanningInner(content,events){const seen=new Set();const uniqueEv
       const descHTML=desc?`<div class="pcard-desc">📝 ${esc(desc)}</div>`:'';
       const lien=(state.atelierDescs&&state.atelierDescs[cleDesc]&&state.atelierDescs[cleDesc].lien)?state.atelierDescs[cleDesc].lien:'';
       const lienHTML=lien?`<div class="pcard-lien"><a href="${esc(lien)}" target="_blank" rel="noopener" data-nospeech="1">▶️ En savoir plus</a></div>`:'';
-      const placesBtn=complet?'<button class="pcard-btn complet" disabled>❌ Complet</button>':`<button class="pcard-btn ${inscrit?'inscrit':''}" data-ekey="${esc(ek)}" data-edate="${esc(e.date)}" data-etime="${esc(e.time)}" data-etitle="${esc(e.title)}" data-eicon="${esc(e.icon||'📋')}" data-elimite="${limite||''}" data-eanim="${esc(state.currentAnim||'Steve')}">${inscrit?'✓ Vous êtes inscrit<br><span style="font-size:0.8125rem;font-weight:600;opacity:0.85;">Appuyez ici pour vous désinscrire</span>':"M'inscrire"}</button>`;
+      const enAttente=isPendingAtelier(ek);
+      const placesBtn=enAttente?pendingBadgeHTML():(complet?'<button class="pcard-btn complet" disabled>❌ Complet</button>':`<button class="pcard-btn ${inscrit?'inscrit':''}" data-ekey="${esc(ek)}" data-edate="${esc(e.date)}" data-etime="${esc(e.time)}" data-etitle="${esc(e.title)}" data-eicon="${esc(e.icon||'📋')}" data-elimite="${limite||''}" data-eanim="${esc(state.currentAnim||'Steve')}">${inscrit?'✓ Vous êtes inscrit<br><span style="font-size:0.8125rem;font-weight:600;opacity:0.85;">Appuyez ici pour vous désinscrire</span>':"M'inscrire"}</button>`);
       const tagsHTML=inscritsList.length?`<div class="pcard-tags">${inscritsList.map(p=>`<span class="pcard-tag">${esc(p)}</span>`).join('')}</div>`:'<span class="pcard-tag-empty">Aucun inscrit pour le moment</span>';
       html+=`<div class="pcard" data-speech="${esc(speech)}">
         <span class="audio-badge">🔊 audio</span>
