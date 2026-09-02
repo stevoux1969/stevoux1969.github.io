@@ -232,7 +232,6 @@
     .pcard-propose-item:last-child { border-bottom: none; }
     .pcard-propose-item b { color: #1a2340; flex: 1; min-width: 0; }
     .pcard-propose-item .pcard-places { flex-shrink: 0; }
-    .pcard-propose-item .btn-inscrit { padding: 6px 12px; font-size:0.8125rem; }
     .pcard-action { padding: 0 16px 16px; }
     .pcard-btn { width: 100%; background: #22a559; color: white; border: none; border-radius: 14px; padding: 14px; font-size:1rem; font-weight: 700; cursor: pointer; font-family: inherit; }
     .pcard-btn.inscrit { background: #eef6ff; color: #2c3e91; border: 2px solid #2c3e91; }
@@ -5217,7 +5216,8 @@ function renderPlanningInner(content,events){
       });
       const blocAHTML=blocAItems.length?`<div class="pcard-vousavez"><div class="pcard-vousavez-label">👀 Vous avez déjà :</div>${blocAItems.join('')}</div>`:'';
 
-      // Bloc B — "[Autre animateur] propose aussi ce jour-là" : ateliers pas encore choisis, replié par défaut
+      // Bloc B — "Planning de [Autre animateur] ce jour-là" : lecture seule, replié par défaut
+      // (pour s'inscrire, le bénéficiaire va sur le vrai planning de cet animateur)
       let blocBHTML='';
       if(otherRestantsDuJour.length){
         const itemsHTML=otherRestantsDuJour.map(oe=>{
@@ -5225,23 +5225,14 @@ function renderPlanningInner(content,events){
           const oeInscrits=(allInscrits[oek]||[]).length;
           const oeLimite=oe.limite||null;
           let placesHTML='';
-          let btnHTML;
           if(oeLimite!==null){
             const oeLibres=Math.max(0,oeLimite-oeInscrits);
-            if(oeLibres<=0){
-              placesHTML=`<div class="pcard-places" style="background:#d63447">Complet</div>`;
-              btnHTML=`<button type="button" class="btn-inscrit btn-complet" disabled>❌ Complet</button>`;
-            }else{
-              placesHTML=`<div class="pcard-places" style="background:${oeLibres===1?'#e09400':'#22a559'}"><strong>${oeLibres}</strong> place${oeLibres>1?'s':''}</div>`;
-              btnHTML=`<button type="button" class="btn-inscrit" data-odate="${esc(oe.date)}" data-otime="${esc(oe.time)}" data-otitle="${esc(oe.title)}" data-oicon="${esc(oe.icon||'📋')}">S'inscrire</button>`;
-            }
-          }else{
-            btnHTML=`<button type="button" class="btn-inscrit" data-odate="${esc(oe.date)}" data-otime="${esc(oe.time)}" data-otitle="${esc(oe.title)}" data-oicon="${esc(oe.icon||'📋')}">S'inscrire</button>`;
+            placesHTML=oeLibres<=0?`<div class="pcard-places" style="background:#d63447">Complet</div>`:`<div class="pcard-places" style="background:${oeLibres===1?'#e09400':'#22a559'}"><strong>${oeLibres}</strong> place${oeLibres>1?'s':''}</div>`;
           }
-          return `<div class="pcard-propose-item">${iconHTML(oe.icon)} <b>${esc(oe.title)} — ${oe.time.replace(':','h')}</b>${placesHTML}${btnHTML}</div>`;
+          return `<div class="pcard-propose-item">${iconHTML(oe.icon)} <b>${esc(oe.title)} — ${oe.time.replace(':','h')}</b>${placesHTML}</div>`;
         }).join('');
         blocBHTML=`<div class="pcard-propose">
-          <button type="button" class="pcard-propose-toggle" data-nospeech="1">${esc(otherAnimLabel)} propose aussi ce jour-là <span class="pcard-propose-arrow">▾</span></button>
+          <button type="button" class="pcard-propose-toggle" data-nospeech="1">Planning de ${esc(otherAnimLabel)} ce jour-là <span class="pcard-propose-arrow">▾</span></button>
           <div class="pcard-propose-panel">${itemsHTML}</div>
         </div>`;
       }
@@ -5270,25 +5261,13 @@ function renderPlanningInner(content,events){
   // Bouton audio dédié par carte (lecture avec arrêt possible, cf. _lireTexteCarte)
   content.querySelectorAll('.audio-badge').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();_lireTexteCarte(btn.dataset.speakTxt||'',btn);});});
 
-  // Bloc B : dépli/repli du panneau "propose aussi" (flèche qui tourne, comme un <details>)
+  // Bloc B : dépli/repli du panneau "Planning de [autre animateur] ce jour-là" (flèche qui tourne, comme un <details>)
+  // Purement informatif — pas d'inscription possible depuis ce panneau.
   content.querySelectorAll('.pcard-propose-toggle').forEach(btn=>{
     btn.addEventListener('click',e=>{
       e.stopPropagation();
       btn.classList.toggle('ouvert');
       btn.nextElementSibling.classList.toggle('ouvert');
-    });
-  });
-
-  // Bloc B : "S'inscrire" sur un atelier de l'autre animateur — même mécanisme que le bouton principal
-  content.querySelectorAll('.pcard-propose-item .btn-inscrit:not(.btn-complet)').forEach(btn=>{
-    btn.addEventListener('click',async e=>{
-      e.stopPropagation();
-      if(btn.disabled)return;
-      btn.disabled=true;btn.textContent='⏳…';
-      const ev={date:btn.dataset.odate,time:btn.dataset.otime,title:btn.dataset.otitle,icon:btn.dataset.oicon};
-      await toggleInscription(ev);
-      state.allInscriptions=await loadAllInscriptions();
-      renderPlanningInner(content,events);
     });
   });
 
