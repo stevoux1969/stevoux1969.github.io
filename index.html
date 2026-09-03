@@ -2799,21 +2799,25 @@ async function buildAnimAtelierIndex(animForce){
   const urls = (anim==='greg') ? GREG_CSV_URLS : AVP_CSV_URLS;
   const set = new Set();
   const allEvents = []; // conservé en plus du Set, pour l'aperçu croisé du planning (titre/heure/icône/limite)
-  // Parcourt chaque mois disponible dans le mapping de cet animateur
-  for(const mois of Object.keys(urls)){
+  // Télécharge tous les mois EN PARALLÈLE (mesuré : 7 à 11s en séquentiel selon l'animateur,
+  // vs quelques secondes au pire pour un seul fetch) — le temps total devient celui du mois
+  // le plus lent, pas la somme de tous.
+  const moisResults = await Promise.all(Object.keys(urls).map(async mois => {
     const url = urls[mois];
-    if(!url) continue;
+    if(!url) return [];
     try{
       const r = await fetchAvecTimeout(url+'&_='+Date.now(), {cache:'no-store'}, 8000);
-      if(!r.ok) continue; // mois 404 / non publié → ignoré, on continue
+      if(!r.ok) return []; // mois 404 / non publié → ignoré
       const csv = await r.text();
-      const events = parseAVPPlanning(csv, parseInt(mois));
-      events.forEach(e=>{
-        set.add(e.date+'_'+e.time+'_'+(e.title||'').slice(0,20).replace(/\s/g,'_'));
-      });
-      allEvents.push(...events);
-    }catch(e){ /* réseau KO sur ce mois → ignoré */ }
-  }
+      return parseAVPPlanning(csv, parseInt(mois));
+    }catch(e){ return []; /* réseau KO sur ce mois → ignoré */ }
+  }));
+  moisResults.forEach(events=>{
+    events.forEach(e=>{
+      set.add(e.date+'_'+e.time+'_'+(e.title||'').slice(0,20).replace(/\s/g,'_'));
+    });
+    allEvents.push(...events);
+  });
   state.statsAtelierIndex[anim] = {set, events:allEvents, ts:Date.now()};
   return set;
 }
