@@ -1638,6 +1638,15 @@ function getAVPCsvUrl(mois) {
   return AVP_CSV_URLS[month] || null;
 }
 
+// Abandonne proprement un fetch trop lent (mauvaise connexion mobile) au lieu d'attendre
+// indéfiniment : la requête est annulée après timeoutMs et la Promise se rejette (AbortError),
+// récupérée par le try/catch de l'appelant comme n'importe quelle autre erreur réseau.
+function fetchAvecTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs || 8000);
+  return fetch(url, { ...(options || {}), signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 let currentUser = null;
 let state = { reminders: [], dayOffset: 0, editing: null, avpEvents: [], inscriptions: {} };
 let loginMode = 'login';
@@ -2795,7 +2804,7 @@ async function buildAnimAtelierIndex(animForce){
     const url = urls[mois];
     if(!url) continue;
     try{
-      const r = await fetch(url+'&_='+Date.now(), {cache:'no-store'});
+      const r = await fetchAvecTimeout(url+'&_='+Date.now(), {cache:'no-store'}, 8000);
       if(!r.ok) continue; // mois 404 / non publié → ignoré, on continue
       const csv = await r.text();
       const events = parseAVPPlanning(csv, parseInt(mois));
@@ -4969,7 +4978,7 @@ async function loadAVPPlanning(force){
     let allEvents = [];
     const url = getAVPCsvUrl(moisActuel);
     if(url){
-      const r = await fetch(url+'&_='+Date.now(),{cache:'no-store'});
+      const r = await fetchAvecTimeout(url+'&_='+Date.now(),{cache:'no-store'},8000);
       if(r.ok){ const csv=await r.text(); allEvents=parseAVPPlanning(csv,moisActuel); }
     }
 
@@ -4978,7 +4987,7 @@ async function loadAVPPlanning(force){
       const urlSuivant = getAVPCsvUrl(moisSuivant);
       if(urlSuivant){
         try{
-          const r2 = await fetch(urlSuivant+'&_='+Date.now(),{cache:'no-store'});
+          const r2 = await fetchAvecTimeout(urlSuivant+'&_='+Date.now(),{cache:'no-store'},8000);
           if(r2.ok){ const csv2=await r2.text(); const parsed2=parseAVPPlanning(csv2,moisSuivant); allEvents=[...allEvents,...parsed2]; }
         }catch(e){}
       }
@@ -5173,7 +5182,11 @@ function renderPlanning(skipScroll){
   }
 
   const descsPromise=db.collection('atelier_descriptions').get().then(snap=>{const d={};snap.docs.forEach(x=>{d[x.id]={...x.data()};});return d;}).catch(()=>state.atelierDescs||{});
-  Promise.all([loadAllInscriptions(),descsPromise,buildAnimAtelierIndex(otherAnimKey)]).then(res=>{
+  // Rendu principal dès que inscrits + descriptions sont prêts — SANS attendre l'aperçu croisé
+  // (buildAnimAtelierIndex), qui télécharge séquentiellement le CSV de chaque mois de l'autre
+  // animateur et peut prendre plusieurs secondes. Ce bandeau est purement informatif : il se
+  // remplit tout seul un peu plus tard, en arrière-plan, sans jamais bloquer l'affichage principal.
+  Promise.all([loadAllInscriptions(),descsPromise]).then(res=>{
     const[allInscriptions,atelierDescs]=res;
     // Comparaison simple (pas de diff complexe) pour éviter un re-render qui ferait clignoter l'écran
     const nouveauSig=JSON.stringify(allInscriptions).length+'_'+JSON.stringify(atelierDescs).length;
@@ -5188,6 +5201,15 @@ function renderPlanning(skipScroll){
     if(!dejaAffichable||nouveauSig!==ancienSig){
       renderPlanningInner(content,eventsAffiches); // rafraîchissement silencieux : jamais scrollToToday ici
     }
+  });
+
+  // Aperçu croisé (bandeau "Planning de [autre animateur] ce jour-là") : chargé à part, en
+  // arrière-plan. Dès qu'il est prêt, un re-render silencieux l'intègre — jamais avant, jamais
+  // bloquant pour l'affichage principal.
+  buildAnimAtelierIndex(otherAnimKey).then(()=>{
+    if(state.currentAnim!==animAuMomentDuRender)return;
+    if(!document.getElementById('planning-screen')?.classList.contains('active'))return;
+    renderPlanningInner(content,eventsAffiches);
   });
 }
 
