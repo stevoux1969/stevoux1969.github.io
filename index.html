@@ -2321,7 +2321,7 @@ function enterApp(){
 function openUserMenu(){document.getElementById('um-name').textContent=currentUser.prenom;document.getElementById('um-role').textContent='Mon compte AVP';var ba=document.getElementById('um-alarmes');if(ba)ba.style.display=estNatifAlarme()?'':'none';document.getElementById('user-menu').classList.add('active');}
 document.getElementById('um-alarmes').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');window.location.href='reglages.html';});
 document.getElementById('user-menu').addEventListener('click',e=>{if(e.target===document.getElementById('user-menu'))document.getElementById('user-menu').classList.remove('active');});
-document.getElementById('um-planning').addEventListener('click',async()=>{document.getElementById('user-menu').classList.remove('active');state.currentAnim='Steve';document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';await loadAVPPlanning();renderPlanning();});
+document.getElementById('um-planning').addEventListener('click',()=>{document.getElementById('user-menu').classList.remove('active');ouvrirPlanning('Steve');});
 document.getElementById('mes-rdv-btn').addEventListener('click',async()=>{await _majVisibiliteAvisAtelierBtn();wizOuvrir('voile-agenda-menu');});
 function _ouvrirEcranAvis(){
   // Réinitialise l'écran avant de l'ouvrir
@@ -4185,7 +4185,7 @@ async function flushPendingQueue(){
   }
   if(anySuccess){
     render();
-    if(document.getElementById('planning-screen')?.classList.contains('active'))renderPlanning();
+    if(document.getElementById('planning-screen')?.classList.contains('active'))renderPlanning(true);
     if(document.getElementById('mes-rdv-screen')?.classList.contains('active'))showMesRendezVous();
   }
 }
@@ -4929,12 +4929,25 @@ function _carteRappelPasse(r,estVu){
     +`</div>`;
 }
 
+// Cache localStorage du planning (survit à la fermeture de l'app) — même pattern
+// try/catch que saveSession()/getTheme(). Un jeu de clés par animateur.
+function planningCacheLSKey(anim){ return 'avp_planning_events_'+(anim==='Greg'?'Greg':'Steve'); }
+function savePlanningCacheLS(anim,data){ try{ localStorage.setItem(planningCacheLSKey(anim), JSON.stringify(data)); }catch(e){} }
+function loadPlanningCacheLS(anim){ try{ const s=localStorage.getItem(planningCacheLSKey(anim)); if(s) return JSON.parse(s); }catch(e){} return null; }
+// Cache partagé entre les deux animateurs (descriptions d'ateliers + inscrits)
+function saveSharedPlanningCacheLS(data){ try{ localStorage.setItem('avp_planning_shared', JSON.stringify(data)); }catch(e){} }
+function loadSharedPlanningCacheLS(){ try{ const s=localStorage.getItem('avp_planning_shared'); if(s) return JSON.parse(s); }catch(e){} return null; }
+
 async function loadAVPPlanning(force){
-  // Cache du planning par animateur (Steve/Greg), valable 5 minutes
+  // Cache du planning par animateur (Steve/Greg) : mémoire (5 min) + localStorage (persistant)
   const anim = (state && state.currentAnim==='Greg') ? 'Greg' : 'Steve';
   const CACHE_MS = 5*60*1000;
   if(!state.planningCache) state.planningCache = {};
-  const cache = state.planningCache[anim];
+  let cache = state.planningCache[anim];
+  if(!cache){
+    const ls = loadPlanningCacheLS(anim);
+    if(ls && ls.events && ls.events.length) cache = state.planningCache[anim] = ls;
+  }
   if(!force && cache && (Date.now()-cache.ts) < CACHE_MS && cache.events && cache.events.length){
     // Réutiliser le cache : affichage instantané
     state.avpEvents = cache.events;
@@ -4971,14 +4984,22 @@ async function loadAVPPlanning(force){
       }
     }
 
-    state.avpEvents = allEvents;
+    let annulations = {};
     try{
       const snap=await db.collection('annulations').get();
-      state.annulations={};
-      snap.docs.forEach(doc=>{state.annulations[doc.id]=doc.data();});
+      snap.docs.forEach(doc=>{annulations[doc.id]=doc.data();});
     }catch(e){}
-    // Mettre en cache pour cet animateur
-    state.planningCache[anim] = {events:allEvents, annulations:state.annulations, ts:Date.now()};
+
+    // Anti double-chargement (bascule rapide Steve <-> Greg) : si l'anim affiché a changé
+    // pendant l'attente réseau, ne pas écraser l'affichage courant avec des données obsolètes —
+    // mais le cache (mémoire + localStorage) de l'anim d'origine est quand même mis à jour.
+    const animCourant = (state && state.currentAnim==='Greg') ? 'Greg' : 'Steve';
+    if(animCourant === anim){
+      state.avpEvents = allEvents;
+      state.annulations = annulations;
+    }
+    state.planningCache[anim] = {events:allEvents, annulations:annulations, ts:Date.now()};
+    savePlanningCacheLS(anim, state.planningCache[anim]);
     return allEvents;
   }catch(e){
     console.error('AVP planning erreur:',e);
@@ -5113,9 +5134,62 @@ function parseAVPPlanning(csv,moisCible){
   return result;
 }
 
-function renderPlanning(){if(typeof montrerTuto==='function')setTimeout(()=>montrerTuto('planning'),300);const content=document.getElementById('planning-content');const events=state.avpEvents;if(events.length===0){content.innerHTML='<div class="planning-empty">📋 Aucune activité trouvée dans le planning.</div>';return;}const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];const today=dateKey(new Date());const refDate=(events.find(e=>e.date>=today)||events[0]).date;const[y,m]=refDate.split('-').map(Number);document.getElementById('planning-month-title').textContent=`Planning ${monthNames[m-1]} ${y}`;const descsPromise=db.collection('atelier_descriptions').get().then(snap=>{state.atelierDescs={};snap.docs.forEach(d=>{state.atelierDescs[d.id]={...d.data()};});}).catch(()=>{state.atelierDescs=state.atelierDescs||{};});
-const otherAnimKey=state.currentAnim==='Greg'?'steve':'greg'; // pour l'aperçu croisé (ateliers de l'autre animateur)
-Promise.all([loadAllInscriptions(),descsPromise,buildAnimAtelierIndex(otherAnimKey)]).then(res=>{state.allInscriptions=res[0];renderPlanningInner(content,events);scrollToToday(content);});}
+function renderPlanning(skipScroll){
+  if(typeof montrerTuto==='function')setTimeout(()=>montrerTuto('planning'),300);
+  const content=document.getElementById('planning-content');
+  const events=state.avpEvents;
+  if(events.length===0){content.innerHTML='<div class="planning-empty">📋 Aucune activité trouvée dans le planning.</div>';return;}
+  const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const today=dateKey(new Date());
+  const refDate=(events.find(e=>e.date>=today)||events[0]).date;
+  const[y,m]=refDate.split('-').map(Number);
+  document.getElementById('planning-month-title').textContent=`Planning ${monthNames[m-1]} ${y}`;
+  // Copie locale filtrée pour l'affichage bénéficiaire uniquement — jamais réassignée à
+  // state.avpEvents, qui doit continuer à contenir toutes les dates (passées et futures)
+  // pour les écrans admin (pointage, inscriptions groupées, "Inscrits aux ateliers"...).
+  const eventsAffiches=events.filter(e=>e.date>=today);
+  if(eventsAffiches.length===0){content.innerHTML='<div class="planning-empty">📋 Aucun atelier à venir dans le planning.</div>';return;}
+
+  const animAuMomentDuRender=state.currentAnim;
+  const otherAnimKey=animAuMomentDuRender==='Greg'?'steve':'greg'; // pour l'aperçu croisé (ateliers de l'autre animateur)
+
+  // Cache partagé (descriptions + inscrits), en mémoire ou localStorage : affichage
+  // immédiat si dispo, rafraîchissement silencieux ensuite (comme pour les events).
+  let shared=state.planningSharedCache;
+  if(!shared){
+    shared=loadSharedPlanningCacheLS();
+    if(shared) state.planningSharedCache=shared;
+  }
+  if(shared){
+    state.atelierDescs=shared.atelierDescs||{};
+    state.allInscriptions=shared.allInscriptions||{};
+  }
+  const dejaAffichable=!!shared;
+  if(dejaAffichable){
+    renderPlanningInner(content,eventsAffiches);
+    if(!skipScroll)scrollToToday(content);
+  }else{
+    content.innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';
+  }
+
+  const descsPromise=db.collection('atelier_descriptions').get().then(snap=>{const d={};snap.docs.forEach(x=>{d[x.id]={...x.data()};});return d;}).catch(()=>state.atelierDescs||{});
+  Promise.all([loadAllInscriptions(),descsPromise,buildAnimAtelierIndex(otherAnimKey)]).then(res=>{
+    const[allInscriptions,atelierDescs]=res;
+    // Comparaison simple (pas de diff complexe) pour éviter un re-render qui ferait clignoter l'écran
+    const nouveauSig=JSON.stringify(allInscriptions).length+'_'+JSON.stringify(atelierDescs).length;
+    const ancienSig=shared?(JSON.stringify(shared.allInscriptions||{}).length+'_'+JSON.stringify(shared.atelierDescs||{}).length):null;
+    state.allInscriptions=allInscriptions;
+    state.atelierDescs=atelierDescs;
+    state.planningSharedCache={allInscriptions,atelierDescs,ts:Date.now()};
+    saveSharedPlanningCacheLS(state.planningSharedCache);
+    // N'appliquer le rafraîchissement que si on est toujours sur le même écran/anim
+    if(state.currentAnim!==animAuMomentDuRender)return;
+    if(!document.getElementById('planning-screen')?.classList.contains('active'))return;
+    if(!dejaAffichable||nouveauSig!==ancienSig){
+      renderPlanningInner(content,eventsAffiches); // rafraîchissement silencieux : jamais scrollToToday ici
+    }
+  });
+}
 
 function scrollToToday(content){const tryScroll=(attempt)=>{const today=dateKey(new Date());let target=content.querySelector(`[data-date="${today}"]`);if(!target){const allHeaders=content.querySelectorAll('[data-date]');for(const h of allHeaders){if(h.dataset.date>=today){target=h;break;}}if(!target&&allHeaders.length>0){target=allHeaders[allHeaders.length-1];}}if(target){target.scrollIntoView({behavior:'smooth',block:'start'});}else if(attempt<5){setTimeout(()=>tryScroll(attempt+1),200);}};setTimeout(()=>tryScroll(1),300);}
 
@@ -5314,17 +5388,56 @@ _tiroirMenuEl.addEventListener('touchend',()=>{_tiroirFermeDepartX=null;});
 document.getElementById('prev-day').addEventListener('click',()=>{if(state.dayOffset>0){state.dayOffset--;render();}});
 document.getElementById('next-day').addEventListener('click',()=>{state.dayOffset++;render();});
 document.getElementById('back-to-today').addEventListener('click',()=>{state.dayOffset=0;render();});
-document.getElementById('open-planning-steve').addEventListener('click',async()=>{state.currentAnim='Steve';state.avpEvents=[];document.getElementById('planning-anim-label').textContent='👤 Planning de Steve';showScreen('planning-screen');document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';await loadAVPPlanning();renderPlanning();});
-document.getElementById('open-planning-greg').addEventListener('click',async()=>{state.currentAnim='Greg';state.avpEvents=[];document.getElementById('planning-anim-label').textContent='👤 Planning de Greg';showScreen('planning-screen');document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';await loadAVPPlanning();renderPlanning();});
+document.getElementById('open-planning-steve').addEventListener('click',()=>ouvrirPlanning('Steve'));
+document.getElementById('open-planning-greg').addEventListener('click',()=>ouvrirPlanning('Greg'));
 document.getElementById('planning-back-btn').addEventListener('click',()=>showScreen('main-screen'));
 document.getElementById('planning-refresh-btn').addEventListener('click',async()=>{
   const btn=document.getElementById('planning-refresh-btn');
   btn.style.opacity='0.5';btn.disabled=true;
-  document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Rafraîchissement…</div>';
   await loadAVPPlanning(true); // force le rechargement
-  renderPlanning();
+  renderPlanning(true); // rafraîchissement : ne pas resauter au scroll de l'utilisateur
   btn.style.opacity='1';btn.disabled=false;
 });
+
+// Point d'entrée unique des 3 boutons planning (menu "Planning du mois", "Planning Steve",
+// "Planning Greg") : affichage instantané depuis le cache (mémoire ou localStorage) si
+// disponible, puis rafraîchissement silencieux en arrière-plan. Protégé contre la bascule
+// rapide Steve <-> Greg par planningRequestId : seul le dernier clic détermine l'affichage.
+let planningRequestId=0;
+async function ouvrirPlanning(anim){
+  const myId=++planningRequestId;
+  state.currentAnim=anim;
+  document.getElementById('planning-anim-label').textContent=anim==='Greg'?'👤 Planning de Greg':'👤 Planning de Steve';
+  showScreen('planning-screen');
+
+  if(!state.planningCache)state.planningCache={};
+  let cache=state.planningCache[anim];
+  if(!cache){
+    const ls=loadPlanningCacheLS(anim);
+    if(ls&&ls.events&&ls.events.length)cache=state.planningCache[anim]=ls;
+  }
+  let dejaAffiche=false;
+  if(cache&&cache.events&&cache.events.length){
+    state.avpEvents=cache.events;
+    state.annulations=cache.annulations||{};
+    renderPlanning(false);
+    dejaAffiche=true;
+  }else{
+    document.getElementById('planning-content').innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';
+  }
+
+  await loadAVPPlanning();
+  if(myId!==planningRequestId)return; // un clic plus récent (Steve <-> Greg) a pris le dessus
+  if(!dejaAffiche){renderPlanning(false);return;}
+  // Déjà affiché depuis le cache : ne re-rendre que si les données ont vraiment changé
+  // (comparaison simple longueur + JSON tronqué), pour éviter un clignotement inutile.
+  const nouveauxEvents=state.avpEvents||[];
+  const anciensEvents=cache.events||[];
+  const aChange=nouveauxEvents.length!==anciensEvents.length
+    ||JSON.stringify(nouveauxEvents).slice(0,2000)!==JSON.stringify(anciensEvents).slice(0,2000)
+    ||JSON.stringify(state.annulations||{}).length!==JSON.stringify(cache.annulations||{}).length;
+  if(aChange)renderPlanning(true); // rafraîchissement silencieux : pas de scrollToToday
+}
 
 document.getElementById('reminders-list').addEventListener('click',e=>{
   if(e.target.closest('a'))return;
