@@ -572,6 +572,18 @@
     .stats-status-btn { font-size:0.6875rem; padding: 3px 8px; border-radius: 8px; border: 1px solid #d1d5db; background: #f9fafb; color: #374151; cursor: pointer; font-family: inherit; font-weight: 600; }
     .stats-status-btn.hosp { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
     .stats-status-btn.autre { background: #f3e8ff; color: #6b21a8; border-color: #c4b5fd; }
+    /* Mode export PDF (statistiques) : polices/espacements compacts + boutons interactifs
+       masqués, activé uniquement pendant la capture html2canvas, jamais visible à l'écran normal. */
+    .pdf-export-mode .stats-avatar { width:22px!important; height:22px!important; font-size:0.5625rem!important; }
+    .pdf-export-mode .stats-benef-name { font-size:0.6875rem!important; }
+    .pdf-export-mode .stats-section { font-size:0.625rem!important; margin:10px 0 5px!important; }
+    .pdf-export-mode .stats-kpi-value { font-size:1.0625rem!important; }
+    .pdf-export-mode .stats-kpi-label { font-size:0.5625rem!important; }
+    .pdf-export-mode .stats-badge-hosp, .pdf-export-mode .stats-badge-autre { font-size:0.5rem!important; padding:0 4px!important; }
+    .pdf-export-mode .stats-atelier-block { padding:6px 8px 6px 36px!important; }
+    .pdf-export-mode .stats-atelier-line { font-size:0.5625rem!important; padding:1px 0!important; }
+    .pdf-export-mode .stats-status-btn { display:none!important; }
+    .pdf-export-mode i.ti-chevron-up, .pdf-export-mode i.ti-chevron-down { display:none!important; }
     @media print { .stats-header button, .stats-filter-bar, .stats-export-btn, .stats-status-btn, .bilan-no-print { display: none !important; } #bilan-note-print { display: block !important; } body { background: white; } .screen { display: block !important; position: static !important; } #admin-stats-screen, #admin-bilan-screen { display: block !important; } .stats-body { overflow: visible; padding-bottom: 0; } }
     .atelier-pointage-list { display: flex; flex-direction: column; gap: 8px; }
     .atelier-pointage-row { display: flex; align-items: center; gap: 6px; padding: 8px 0; border-top: 1px solid #eef1fb; }
@@ -2704,19 +2716,62 @@ async function editDescription(cle,titre){
 async function deleteDescription(titre){
   showConfirm({icon:'🗑️',title:'Supprimer ?',text:`Supprimer la description de "${titre}" ?`,okText:'Supprimer',danger:true,onOk:async()=>{await db.collection('atelier_descriptions').doc(titre).delete();await showAdminDescriptions();}});
 }
+// Découpe un canvas en pages A4 pour jsPDF SANS jamais couper un bloc protégé
+// (.pdf-block, ligne de tableau <tr>, grille de KPI) au milieu entre deux pages :
+// si la coupure "naturelle" tombe à l'intérieur d'un bloc, on la remonte au-dessus
+// de ce bloc pour le renvoyer entier sur la page suivante.
+function addCanvasSmartPages(pdf,canvas,container,marginMM){
+  const margin=marginMM||10,pageW=210,pageH=297;
+  const imgW=pageW-margin*2;
+  const pagePxH=canvas.width*(pageH-margin*2)/imgW;
+  const scaleRatio=canvas.width/container.scrollWidth;
+  const contRect=container.getBoundingClientRect();
+  const ranges=Array.from(container.querySelectorAll('.pdf-block, tr, .stats-kpi-grid')).map(el=>{
+    const r=el.getBoundingClientRect();
+    return{top:(r.top-contRect.top)*scaleRatio,bottom:(r.bottom-contRect.top)*scaleRatio};
+  }).filter(r=>r.bottom>r.top);
+  let yPx=0,pageNum=0;
+  while(yPx<canvas.height-1){
+    let cut=Math.min(yPx+pagePxH,canvas.height);
+    if(cut<canvas.height){
+      let minTop=Infinity;
+      ranges.forEach(r=>{if(r.top<cut-0.5&&r.bottom>cut+0.5&&r.top>yPx+0.5&&r.top<minTop)minTop=r.top;});
+      if(minTop<Infinity&&minTop>yPx+1)cut=minTop;
+    }
+    const sliceH=Math.max(1,Math.round(cut-yPx));
+    const sliceCanvas=document.createElement('canvas');
+    sliceCanvas.width=canvas.width;
+    sliceCanvas.height=sliceH;
+    const ctx=sliceCanvas.getContext('2d');
+    ctx.fillStyle='#ffffff';
+    ctx.fillRect(0,0,sliceCanvas.width,sliceCanvas.height);
+    ctx.drawImage(canvas,0,yPx,canvas.width,sliceH,0,0,canvas.width,sliceH);
+    const sliceImg=sliceCanvas.toDataURL('image/png');
+    const sliceImgH=sliceH*imgW/canvas.width;
+    if(pageNum>0)pdf.addPage();
+    pdf.addImage(sliceImg,'PNG',margin,margin,imgW,sliceImgH);
+    yPx+=sliceH;
+    pageNum++;
+  }
+}
+
 document.getElementById('stats-export-btn').addEventListener('click',async()=>{
   const btn=document.getElementById('stats-export-btn');
   const oldText=btn.textContent;
   btn.textContent='⏳';btn.disabled=true;
+  const prevExpanded=statsExpandedUid;
   try{
     const screen=document.getElementById('admin-stats-screen');
     const body=screen.querySelector('.stats-body');
     if(!body){alert('Écran stats introuvable');return;}
-    // Mémoriser et ouvrir tous les <details>
-    const allDetails=body.querySelectorAll('details');
-    const previousState=[];
-    allDetails.forEach(d=>{previousState.push(d.open);d.open=true;});
-    // Forcer le rendu complet (sans scroll, hauteur totale)
+    // Re-rendu spécial export : tous les bénéficiaires dépliés (avec leurs ateliers) +
+    // polices compactes, pour que le PDF montre le détail de chacun, pas seulement
+    // celui qui était ouvert à l'écran.
+    statsPdfMode=true;
+    await loadAndRenderStats();
+    body.classList.add('pdf-export-mode');
+    // Ouvrir aussi les <details> (bloc désinscriptions fréquentes)
+    body.querySelectorAll('details').forEach(d=>{d.open=true;});
     const origOverflow=body.style.overflow;
     const origHeight=body.style.height;
     body.style.overflow='visible';
@@ -2731,43 +2786,22 @@ document.getElementById('stats-export-btn').addEventListener('click',async()=>{
       height:body.scrollHeight,
       width:body.scrollWidth
     });
-    // Restaurer
     body.style.overflow=origOverflow;
     body.style.height=origHeight;
-    allDetails.forEach((d,i)=>{d.open=previousState[i];});
-    
+    body.classList.remove('pdf-export-mode');
+
     const{jsPDF}=window.jspdf;
     const pdf=new jsPDF('p','mm','a4');
-    const pageW=210,pageH=297;
-    const margin=10;
-    const imgW=pageW-margin*2;
-    const imgH=canvas.height*imgW/canvas.width;
-    // Découper en pages
-    const pagePxH=canvas.width*(pageH-margin*2)/imgW;
-    let yPx=0;
-    let pageNum=0;
-    while(yPx<canvas.height){
-      const sliceH=Math.min(pagePxH,canvas.height-yPx);
-      const sliceCanvas=document.createElement('canvas');
-      sliceCanvas.width=canvas.width;
-      sliceCanvas.height=sliceH;
-      const ctx=sliceCanvas.getContext('2d');
-      ctx.fillStyle='#ffffff';
-      ctx.fillRect(0,0,sliceCanvas.width,sliceCanvas.height);
-      ctx.drawImage(canvas,0,yPx,canvas.width,sliceH,0,0,canvas.width,sliceH);
-      const sliceImg=sliceCanvas.toDataURL('image/png');
-      const sliceImgH=sliceH*imgW/canvas.width;
-      if(pageNum>0)pdf.addPage();
-      pdf.addImage(sliceImg,'PNG',margin,margin,imgW,sliceImgH);
-      yPx+=sliceH;
-      pageNum++;
-    }
+    addCanvasSmartPages(pdf,canvas,body);
     const mois=document.getElementById('stats-month-filter')?.selectedOptions[0]?.textContent||'stats';
     pdf.save(`AVP_Statistiques_${mois.replace(/\s/g,'_')}.pdf`);
   }catch(e){
     console.error('PDF erreur:',e);
     alert('Erreur génération PDF : '+e.message);
   }finally{
+    statsPdfMode=false;
+    statsExpandedUid=prevExpanded;
+    await loadAndRenderStats();
     btn.textContent=oldText;btn.disabled=false;
   }
 });
@@ -2775,6 +2809,9 @@ document.getElementById('stats-export-btn').addEventListener('click',async()=>{
 let statsFilter='month_'+new Date().toISOString().slice(0,7);
 let statsChart=null;
 let statsExpandedUid=null;
+// Quand true : loadAndRenderStats() affiche TOUS les bénéficiaires dépliés (avec leurs
+// ateliers), quel que soit statsExpandedUid. N'est activé que le temps de l'export PDF.
+let statsPdfMode=false;
 
 async function showAdminStats(){
   showScreen('admin-stats-screen');
@@ -2893,9 +2930,9 @@ async function loadAndRenderStats(){
       const badgeHtml=b.status==='hospitalise'?'<span class="stats-badge-hosp">🏥 Hosp.</span>':b.status==='absence_prolongee'?'<span class="stats-badge-autre">⏸ Absent</span>':'';
       const statusBtnLabel=b.status==='hospitalise'?'🏥 Hospitalisé':b.status==='absence_prolongee'?'⏸ Abs. prolongée':'+ Statut';
       const statusBtnClass=b.status==='hospitalise'?'stats-status-btn hosp':b.status==='absence_prolongee'?'stats-status-btn autre':'stats-status-btn';
-      const isExp=statsExpandedUid===b.uid;
+      const isExp=statsPdfMode?true:statsExpandedUid===b.uid;
       const border=idx<benefList.length-1||isExp?'border-bottom:0.5px solid var(--color-border-tertiary);':'';
-      html+=`<div style="${border}"><div style="display:flex;align-items:center;padding:10px 12px;cursor:pointer;" onclick="toggleBenefDetail('${b.uid}')">
+      html+=`<div class="pdf-block" style="${border}"><div style="display:flex;align-items:center;padding:10px 12px;cursor:pointer;" onclick="toggleBenefDetail('${b.uid}')">
         <div class="stats-avatar">${initiales}</div>
         <div class="stats-benef-info" style="margin-left:10px;">
           <div class="stats-benef-name">${esc(b.name)} ${badgeHtml}</div>
@@ -2909,13 +2946,13 @@ async function loadAndRenderStats(){
       </div>`;
       if(isExp){
         if(b.ateliers.length>0){
-          html+=`<div style="padding:8px 12px 10px 52px;background:#f9fafb;border-top:0.5px solid var(--color-border-tertiary);">`;
+          html+=`<div class="stats-atelier-block" style="padding:8px 12px 10px 52px;background:#f9fafb;border-top:0.5px solid var(--color-border-tertiary);">`;
           b.ateliers.sort((x,y)=>x.date.localeCompare(y.date)).forEach(at=>{
             const icon=at.statut==='absent'?'❌':'✅';
             const excluNote=at.exclu?' <span style="color:#5b6785;font-size:0.625rem;">(excusé)</span>':'';
             const dateparts=at.date?at.date.split('-'):[];
             const dateLabel=dateparts.length===3?`${dateparts[2]}/${dateparts[1]}`:'';
-            html+=`<div style="font-size:0.75rem;color:#374151;padding:3px 0;display:flex;justify-content:space-between;align-items:center;">${icon} ${esc(at.title)}${excluNote}<span style="color:#5b6785;font-size:0.6875rem;flex-shrink:0;margin-left:8px;">${dateLabel}</span></div>`;
+            html+=`<div class="stats-atelier-line" style="font-size:0.75rem;color:#374151;padding:3px 0;display:flex;justify-content:space-between;align-items:center;">${icon} ${esc(at.title)}${excluNote}<span style="color:#5b6785;font-size:0.6875rem;flex-shrink:0;margin-left:8px;">${dateLabel}</span></div>`;
           });
           html+=`</div>`;
         }else{html+=`<div style="padding:10px 52px;background:#f9fafb;font-size:0.75rem;color:#5b6785;font-style:italic;">Aucune activité sur cette période</div>`;}
@@ -2928,7 +2965,7 @@ async function loadAndRenderStats(){
       const taux=tot?Math.round(a.p/tot*100):0;
       const barColor=taux>=70?'#16a34a':taux>=40?'#f59e0b':'#ef4444';
       const border=idx<atelierList.length-1?'border-bottom:0.5px solid var(--color-border-tertiary);':'';
-      html+=`<div style="padding:10px 12px;${border}"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px;"><div><div style="font-size:0.8125rem;font-weight:700;color:#1a2340;">${esc(a.name)}</div><div style="font-size:0.6875rem;color:#48547a;margin-top:1px;">${a.seances} séance${a.seances>1?'s':''} · ${a.p} présence${a.p>1?'s':''} / ${tot} inscrit${tot>1?'s':''}</div></div><span style="font-size:0.8125rem;font-weight:800;color:${barColor};white-space:nowrap;margin-left:8px;">${taux}%</span></div><div style="height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden;margin-top:5px;"><div style="width:${taux}%;height:100%;background:${barColor};border-radius:2px;"></div></div></div>`;
+      html+=`<div class="pdf-block" style="padding:10px 12px;${border}"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px;"><div><div style="font-size:0.8125rem;font-weight:700;color:#1a2340;">${esc(a.name)}</div><div style="font-size:0.6875rem;color:#48547a;margin-top:1px;">${a.seances} séance${a.seances>1?'s':''} · ${a.p} présence${a.p>1?'s':''} / ${tot} inscrit${tot>1?'s':''}</div></div><span style="font-size:0.8125rem;font-weight:800;color:${barColor};white-space:nowrap;margin-left:8px;">${taux}%</span></div><div style="height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden;margin-top:5px;"><div style="width:${taux}%;height:100%;background:${barColor};border-radius:2px;"></div></div></div>`;
     });
     if(atelierList.length===0)html+=`<div style="padding:20px;text-align:center;color:#5b6785;font-style:italic;font-size:0.8125rem;">Aucune activité sur cette période</div>`;
     html+=`</div>`;
@@ -2967,7 +3004,7 @@ async function loadAndRenderStats(){
               return `<div style="font-size:0.75rem;color:#48547a;padding:2px 0;">• <b style="color:#1a2340;">${esc(dt.titre)}</b> ${dl?'du '+dl:''} <span style="font-size:0.625rem;font-weight:700;padding:1px 6px;border-radius:8px;background:${tagBg};color:${tagC};">${dt.anim}</span></div>`;
             }).join('');
             const reste=p.count>5?`<div style="font-size:0.6875rem;color:#5b6785;margin-top:2px;">…et ${p.count-5} autre${p.count-5>1?'s':''}</div>`:'';
-            html+=`<details style="${border}"><summary style="padding:12px;display:flex;align-items:center;gap:12px;cursor:pointer;list-style:none;">
+            html+=`<details class="pdf-block" style="${border}"><summary style="padding:12px;display:flex;align-items:center;gap:12px;cursor:pointer;list-style:none;">
               <div style="width:40px;height:40px;border-radius:50%;background:#2c3e91;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">${esc((p.prenom||'?').charAt(0).toUpperCase())}</div>
               <div style="flex:1;"><div style="font-weight:700;font-size:0.875rem;color:#1a2340;">${esc(p.prenom)}</div><div style="font-size:0.6875rem;color:#48547a;">Dernière fois : ${dernierLabel}</div></div>
               <span style="background:${fond};color:${txtC};font-weight:800;border-radius:20px;padding:4px 11px;font-size:0.8125rem;">${p.count}×</span>
@@ -3141,7 +3178,7 @@ async function loadAndRenderBilan(){
     if(domaineList.length===0){
       html+=`<div style="padding:18px;text-align:center;color:#5b6785;font-style:italic;font-size:0.8125rem;">Aucune activité sur cette période</div>`;
     }else{
-      html+=domaineList.map(d=>`<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:0.8125rem;margin-bottom:3px;"><span style="font-weight:700;color:#1a2340;">${esc(d.nom)}</span><span style="color:#48547a;">${d.activites} activité${d.activites>1?'s':''} · ${d.participations} participation${d.participations>1?'s':''}</span></div><div style="height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;"><div style="width:${Math.round(d.participations/maxParticipations*100)}%;height:100%;background:#2d6a4f;border-radius:3px;"></div></div>${d.noms.length?`<div style="font-size:0.68rem;color:#8992b8;margin-top:3px;">${esc(d.noms.join(', '))}</div>`:''}</div>`).join('');
+      html+=domaineList.map(d=>`<div class="pdf-block" style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:0.8125rem;margin-bottom:3px;"><span style="font-weight:700;color:#1a2340;">${esc(d.nom)}</span><span style="color:#48547a;">${d.activites} activité${d.activites>1?'s':''} · ${d.participations} participation${d.participations>1?'s':''}</span></div><div style="height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;"><div style="width:${Math.round(d.participations/maxParticipations*100)}%;height:100%;background:#2d6a4f;border-radius:3px;"></div></div>${d.noms.length?`<div style="font-size:0.68rem;color:#8992b8;margin-top:3px;">${esc(d.noms.join(', '))}</div>`:''}</div>`).join('');
     }
 
     html+=`<div style="border-top:1.5px solid #e5e7eb;margin:16px 0 12px;"></div><div class="stats-section">— Des activités qui mobilisent —</div>`;
@@ -3152,7 +3189,7 @@ async function loadAndRenderBilan(){
         const border=idx<activiteList.length-1?'border-bottom:0.5px solid var(--color-border-tertiary);':'';
         const domId=a.cleanId.replace(/\s+/g,'_');
         const jsId=a.cleanId.replace(/'/g,"\\'");
-        return `<div style="padding:10px 12px;${border}" id="bilan-act-${esc(domId)}"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;"><div style="flex:1;min-width:0;"><div style="font-size:0.8125rem;font-weight:700;color:#1a2340;display:flex;align-items:center;gap:6px;"><span class="bilan-act-badge" style="display:${a.nouveau?'inline':'none'};">🆕</span><span>${esc(a.nom)}</span></div><div style="font-size:0.6875rem;color:#48547a;margin-top:1px;">${a.seances} séance${a.seances>1?'s':''} · ${a.p} participation${a.p>1?'s':''}</div><div style="font-size:0.625rem;color:#8992b8;margin-top:1px;">${a.taux}% de présence</div></div><label class="bilan-no-print" style="display:flex;align-items:center;gap:4px;font-size:0.6875rem;color:#8992b8;cursor:pointer;flex-shrink:0;white-space:nowrap;"><input type="checkbox" ${a.nouveau?'checked':''} onchange="toggleActiviteNouveau('${jsId}','${esc(domId)}',this.checked)"> Nouveau</label></div></div>`;
+        return `<div class="pdf-block" style="padding:10px 12px;${border}" id="bilan-act-${esc(domId)}"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;"><div style="flex:1;min-width:0;"><div style="font-size:0.8125rem;font-weight:700;color:#1a2340;display:flex;align-items:center;gap:6px;"><span class="bilan-act-badge" style="display:${a.nouveau?'inline':'none'};">🆕</span><span>${esc(a.nom)}</span></div><div style="font-size:0.6875rem;color:#48547a;margin-top:1px;">${a.seances} séance${a.seances>1?'s':''} · ${a.p} participation${a.p>1?'s':''}</div><div style="font-size:0.625rem;color:#8992b8;margin-top:1px;">${a.taux}% de présence</div></div><label class="bilan-no-print" style="display:flex;align-items:center;gap:4px;font-size:0.6875rem;color:#8992b8;cursor:pointer;flex-shrink:0;white-space:nowrap;"><input type="checkbox" ${a.nouveau?'checked':''} onchange="toggleActiviteNouveau('${jsId}','${esc(domId)}',this.checked)"> Nouveau</label></div></div>`;
       }).join('')+`</div>`;
     }
 
@@ -3171,7 +3208,7 @@ async function loadAndRenderBilan(){
       `Une dynamique collective${seancesCoAnimees?`, avec ${seancesCoAnimees} séance${seancesCoAnimees>1?'s':''} co-animée${seancesCoAnimees>1?'s':''} avec ${esc(autreNom)}`:''}.`,
       `Une autonomie réelle dans les inscriptions : les bénéficiaires s'inscrivent eux-mêmes aux activités, ces chiffres reflètent donc une démarche volontaire et non une simple déclaration.`
     ];
-    html+=`<div style="border-top:1.5px solid #e5e7eb;margin:16px 0 12px;"></div><div class="stats-section">— Synthèse —</div><div style="background:#f0fdf9;border-radius:12px;padding:14px 16px;margin-bottom:14px;">`+syntheseItems.map(t=>`<div style="display:flex;gap:8px;padding:4px 0;font-size:0.85rem;color:#1a2340;line-height:1.4;"><span style="color:#16a34a;font-weight:800;flex-shrink:0;">✓</span><span>${t}</span></div>`).join('')+`</div>`;
+    html+=`<div style="border-top:1.5px solid #e5e7eb;margin:16px 0 12px;"></div><div class="stats-section">— Synthèse —</div><div class="pdf-block" style="background:#f0fdf9;border-radius:12px;padding:14px 16px;margin-bottom:14px;">`+syntheseItems.map(t=>`<div style="display:flex;gap:8px;padding:4px 0;font-size:0.85rem;color:#1a2340;line-height:1.4;"><span style="color:#16a34a;font-weight:800;flex-shrink:0;">✓</span><span>${t}</span></div>`).join('')+`</div>`;
 
     html+=`<div style="border-top:1.5px solid #e5e7eb;margin:16px 0 12px;"></div><div class="stats-section">— Note de contexte —</div>
     <div id="bilan-note-print" style="display:none;white-space:pre-wrap;background:#f9fafb;border-radius:12px;padding:14px 16px;margin-bottom:10px;font-size:0.85rem;color:#1a2340;line-height:1.5;"></div>
@@ -3252,28 +3289,7 @@ document.getElementById('bilan-export-btn').addEventListener('click',async()=>{
 
     const{jsPDF}=window.jspdf;
     const pdf=new jsPDF('p','mm','a4');
-    const pageW=210,pageH=297;
-    const margin=10;
-    const imgW=pageW-margin*2;
-    const pagePxH=canvas.width*(pageH-margin*2)/imgW;
-    let yPx=0;
-    let pageNum=0;
-    while(yPx<canvas.height){
-      const sliceH=Math.min(pagePxH,canvas.height-yPx);
-      const sliceCanvas=document.createElement('canvas');
-      sliceCanvas.width=canvas.width;
-      sliceCanvas.height=sliceH;
-      const ctx=sliceCanvas.getContext('2d');
-      ctx.fillStyle='#ffffff';
-      ctx.fillRect(0,0,sliceCanvas.width,sliceCanvas.height);
-      ctx.drawImage(canvas,0,yPx,canvas.width,sliceH,0,0,canvas.width,sliceH);
-      const sliceImg=sliceCanvas.toDataURL('image/png');
-      const sliceImgH=sliceH*imgW/canvas.width;
-      if(pageNum>0)pdf.addPage();
-      pdf.addImage(sliceImg,'PNG',margin,margin,imgW,sliceImgH);
-      yPx+=sliceH;
-      pageNum++;
-    }
+    addCanvasSmartPages(pdf,canvas,body);
     const q=currentBilanRange();
     const label=q?q.label.replace(/[^\w.]+/g,'_'):'bilan';
     pdf.save(`AVP_Bilan_${label}.pdf`);
