@@ -2900,8 +2900,9 @@ async function loadAndRenderStats(){
         if(st&&st.status&&st.statusFrom&&isAbsent&&r.date>=st.statusFrom)exclu=true;
         if(!exclu){if(isAbsent)benefMap[u.prenom].a++;else benefMap[u.prenom].p++;}
         benefMap[u.prenom].ateliers.push({title:r.title||'?',date:r.date,statut:isAbsent?'absent':'present',exclu});
-        const normalTitle=(r.title||'?').replace(/\s*\(\d+\)\s*$/,'').trim();
-        if(!atelierMap[normalTitle])atelierMap[normalTitle]={p:0,a:0,seances:new Set()};
+        const displayTitle=(r.title||'?').replace(/\s*\(\d+\)\s*$/,'').trim().replace(/\s+/g,' ');
+        const normalTitle=displayTitle.toLowerCase();
+        if(!atelierMap[normalTitle])atelierMap[normalTitle]={display:displayTitle,p:0,a:0,seances:new Set()};
         atelierMap[normalTitle].seances.add(r.date+'_'+r.time);
         if(isAbsent)atelierMap[normalTitle].a++;else atelierMap[normalTitle].p++;
       });
@@ -2909,7 +2910,7 @@ async function loadAndRenderStats(){
     const benefList=Object.entries(benefMap).map(([nm,s])=>{const st=s.uid?statuses[s.uid]:null;return{name:nm,p:s.p,a:s.a,uid:s.uid,ateliers:s.ateliers,status:st?.status,statusFrom:st?.statusFrom};}).sort((a,b)=>(b.p+b.a)-(a.p+a.a)||b.p-a.p);
     const totalP=benefList.filter(b=>!b.status).reduce((s,b)=>s+b.p,0);
     const totalA=benefList.filter(b=>!b.status).reduce((s,b)=>s+b.a,0);
-    const atelierList=Object.entries(atelierMap).map(([nm,s])=>({name:nm,p:s.p,a:s.a,seances:s.seances.size})).sort((a,b)=>b.seances-a.seances||(b.p+b.a)-(a.p+a.a));
+    const atelierList=Object.entries(atelierMap).map(([nm,s])=>({name:s.display,p:s.p,a:s.a,seances:s.seances.size})).sort((a,b)=>b.seances-a.seances||(b.p+b.a)-(a.p+a.a));
     const monthlyData={};
     users.forEach(u=>{(u.reminders||[]).filter(r=>r.source==='atelier'&&r.date&&r.date<=today&&isAnimAtelier(r)).forEach(r=>{const ym=r.date.slice(0,7);if(!monthlyData[ym])monthlyData[ym]={p:0,a:0};const atelierKey=r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');const presKey=sanitizePresKey(atelierKey+'__'+u.prenom);const pres=presencesMap[presKey];if(pres&&pres.statut==='absent')monthlyData[ym].a++;else monthlyData[ym].p++;});});
     const monthKeys=Object.keys(monthlyData).sort();
@@ -3132,30 +3133,34 @@ async function loadAndRenderBilan(){
     const domaineMap={};
     inscriptions.forEach(i=>{
       const dom=getActivityDomain(i.titre);
-      if(!domaineMap[dom])domaineMap[dom]={activites:new Set(),participations:0};
-      domaineMap[dom].activites.add(i.titre);
+      if(!domaineMap[dom])domaineMap[dom]={activites:new Map(),participations:0};
+      const dispTitre=(i.titre||'?').trim().replace(/\s+/g,' ');
+      const keyTitre=dispTitre.toLowerCase();
+      if(!domaineMap[dom].activites.has(keyTitre))domaineMap[dom].activites.set(keyTitre,dispTitre);
       if(i.present)domaineMap[dom].participations++;
     });
-    const domaineList=Object.entries(domaineMap).map(([nom,d])=>({nom,activites:d.activites.size,noms:Array.from(d.activites).sort((a,b)=>a.localeCompare(b,'fr')),participations:d.participations})).sort((a,b)=>b.participations-a.participations);
+    const domaineList=Object.entries(domaineMap).map(([nom,d])=>({nom,activites:d.activites.size,noms:Array.from(d.activites.values()).sort((a,b)=>a.localeCompare(b,'fr')),participations:d.participations})).sort((a,b)=>b.participations-a.participations);
     const maxParticipations=Math.max(1,...domaineList.map(d=>d.participations),0);
 
     // 3) Toutes les activités, triées par nombre de participations (pas par taux : un
     // taux de 100% sur une seule séance n'est pas représentatif)
     const atelierMap={};
     inscriptions.forEach(i=>{
-      if(!atelierMap[i.titre])atelierMap[i.titre]={p:0,tot:0,seances:new Set()};
-      atelierMap[i.titre].tot++;
-      atelierMap[i.titre].seances.add(i.date+'_'+i.time);
-      if(i.present)atelierMap[i.titre].p++;
+      const displayTitre=(i.titre||'?').trim().replace(/\s+/g,' ');
+      const keyTitre=displayTitre.toLowerCase();
+      if(!atelierMap[keyTitre])atelierMap[keyTitre]={display:displayTitre,p:0,tot:0,seances:new Set()};
+      atelierMap[keyTitre].tot++;
+      atelierMap[keyTitre].seances.add(i.date+'_'+i.time);
+      if(i.present)atelierMap[keyTitre].p++;
     });
     const activiteList=Object.entries(atelierMap).map(([nom,s])=>{
-      const cleanId=cleanDocId(nom);
-      return {nom,p:s.p,tot:s.tot,seances:s.seances.size,taux:s.tot?Math.round(s.p/s.tot*100):0,cleanId,nouveau:!!nouveauMap[cleanId]};
+      const cleanId=cleanDocId(s.display);
+      return {nom:s.display,p:s.p,tot:s.tot,seances:s.seances.size,taux:s.tot?Math.round(s.p/s.tot*100):0,cleanId,nouveau:!!nouveauMap[cleanId]};
     }).sort((a,b)=>b.p-a.p||b.seances-a.seances);
 
     // 4) Vision d'ensemble
     const beneficiairesAccompagnes=new Set(inscriptions.map(i=>i.prenom)).size;
-    const activitesProposees=new Set(inscriptions.map(i=>i.titre)).size;
+    const activitesProposees=new Set(inscriptions.map(i=>(i.titre||'').trim().replace(/\s+/g,' ').toLowerCase())).size;
     const totalPresences=inscriptions.filter(i=>i.present).length;
     const totalInscriptions=inscriptions.length;
     const participationMoyenne=totalInscriptions?Math.round(totalPresences/totalInscriptions*100):0;
