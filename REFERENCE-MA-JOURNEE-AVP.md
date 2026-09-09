@@ -15,7 +15,8 @@ Version en prod (`version.txt`) : **1.0.8**. `APP_VERSION` dans le code web est 
 - Synthèse vocale à l'appui sur la carte (plugin text-to-speech APK / speechSynthesis web)
 - Alarme plein écran (plugin natif Java maison) + repli notifications locales Capacitor
 - Sonnerie unique à l'heure de départ quand un trajet est renseigné (jamais de double alarme, jamais d'alarme à l'heure d'arrivée)
-- Planning Steve / Planning Greg depuis Google Sheets CSV, mois à jour (septembre inclus)
+- Planning Steve / Planning Greg depuis Google Sheets CSV, mois à jour (septembre inclus). Chaque carte affiche un aperçu croisé : bloc « Vous avez déjà » (rappels perso + ateliers déjà inscrits ce jour-là, Steve et Greg confondus, toujours visible si contenu) et bandeau repliable « [Autre animateur] propose aussi ce jour-là » listant les ateliers de l'autre animateur pas encore choisis, avec inscription directe
+- Bouton audio dédié sur chaque carte de planning (44×44 min), lecture/arrêt indépendant par carte (même mécanisme que les cartes de rappel) — remplace l'ancien tap sur toute la carte qui ne pouvait pas être arrêté
 - Inscription / désinscription aux ateliers avec règle 3 jours (popup commentaire ≥3j, blocage + appel animateur <3j), et **file d'attente hors-ligne** : si Firestore échoue (pas de connexion), l'action est mémorisée en local et rejouée automatiquement (retour en ligne, ouverture app, retour au premier plan) ; la notif à l'animateur ne part qu'après succès confirmé
 - Liste des inscrits visible
 - Adresse + temps de trajet + bouton Google Maps : estimation auto par géolocalisation (OpenRouteService) à pied/voiture, repli `navigator.geolocation` hors APK, bus via lien Google Maps transit, choix manuel 10/20/30/45 min toujours en repli
