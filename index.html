@@ -198,8 +198,9 @@
     /* Nouvelles cartes planning aérées (vue bénéficiaire) */
     .pcard { background: white; border: 2px solid #2c3e91; border-radius: 18px; margin-bottom: 14px; box-shadow: 0 2px 10px rgba(26,35,64,0.07); overflow: hidden; position: relative; }
     .pcard-annule { background: #fdf0f2; border-left: 4px solid #d63447; opacity: 0.9; }
-    .audio-badge { position: absolute; top: 12px; right: 12px; background: #eef1fb; color: #2c3e91; border: none; border-radius: 20px; font-size:0.75rem; font-weight: 700; padding: 5px 10px; font-family: inherit; cursor: pointer; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
-    .audio-badge.on { background: #2c3e91; color: #fff; }
+    .audio-badge { position: absolute; top: 12px; right: 12px; background: #2c3e91; color: #fff; border: none; border-radius: 999px; font-size:0.75rem; font-weight: 700; padding: 5px 10px; font-family: inherit; cursor: pointer; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; overflow: hidden; box-shadow: 0 4px 8px rgba(44,62,145,0.5); transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease; }
+    .audio-badge::before { content:''; position: absolute; top: 9%; left: 6%; right: 6%; height: 47%; border-radius: 50%; background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.88), rgba(255,255,255,0) 75%); pointer-events: none; }
+    .audio-badge:active { transform: scale(0.95); box-shadow: 0 1px 3px rgba(44,62,145,0.5); }
     .pcard-top { display: flex; align-items: center; gap: 14px; padding: 16px 16px 12px; padding-right: 5.75rem; }
     .pcard-ico { width: 48px; height: 48px; border-radius: 14px; background: #f1f3f8; display: flex; align-items: center; justify-content: center; font-size:1.625rem; flex-shrink: 0; }
     .pcard-ico img { width: 30px; height: 30px; }
@@ -217,25 +218,30 @@
     .pcard-tags { display: flex; flex-wrap: wrap; gap: 6px; }
     .pcard-tag { font-size:0.75rem; font-weight: 600; padding: 5px 11px; border-radius: 20px; background: #eef1fb; color: #2c3e91; }
     .pcard-tag-empty { font-size:0.75rem; color: #707a96; font-style: italic; }
-    /* Aperçu croisé : "Vous avez déjà" (toujours visible) et "[Anim] propose aussi" (repliable) */
+    /* Aperçu croisé : "Vous avez déjà" et "[Anim] propose aussi" — tous deux toujours visibles s'il y a quelque chose à montrer */
     .pcard-vousavez { margin: 12px 16px 0; padding-top: 10px; border-top: 1px dashed #e5e9f2; }
     .pcard-vousavez-label { font-size:0.75rem; color: #2c3e91; font-weight: 700; margin-bottom: 6px; }
     .pcard-vousavez-item { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size:0.8125rem; color: #48547a; padding: 4px 0; }
     .pcard-vousavez-item b { color: #1a2340; }
-    .pcard-propose { margin: 12px 16px 0; }
-    .pcard-propose-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #fdf0dc; color: #a8650a; border: none; border-radius: 12px; padding: 10px 14px; font-size:0.8125rem; font-weight: 700; font-family: inherit; cursor: pointer; }
-    .pcard-propose-arrow { display: inline-block; transition: transform 0.2s; }
-    .pcard-propose-toggle.ouvert .pcard-propose-arrow { transform: rotate(180deg); }
-    .pcard-propose-panel { display: none; padding: 10px 2px 0; }
-    .pcard-propose-panel.ouvert { display: block; }
-    .pcard-propose-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f0f1f6; font-size:0.8125rem; color: #48547a; }
-    .pcard-propose-item:last-child { border-bottom: none; }
-    .pcard-propose-item b { color: #1a2340; flex: 1; min-width: 0; }
-    .pcard-propose-item .pcard-places { flex-shrink: 0; }
+    .pcard-other-anim { margin: 0 16px 16px; background: #fdf0dc; border-radius: 12px; padding: 10px 12px; display: flex; align-items: flex-start; gap: 8px; }
+    .pcard-other-anim i { color: #8a5a00; font-size:1.1rem; flex-shrink: 0; margin-top: 1px; }
+    .pcard-other-anim span { color: #8a5a00; font-size:0.875rem; line-height: 1.45; }
     .pcard-action { padding: 0 16px 16px; }
-    .pcard-btn { width: 100%; background: #22a559; color: white; border: none; border-radius: 14px; padding: 14px; font-size:1rem; font-weight: 700; cursor: pointer; font-family: inherit; }
-    .pcard-btn.inscrit { background: #eef6ff; color: #2c3e91; border: 2px solid #2c3e91; }
-    .pcard-btn.complet { background: #d63447; color: white; cursor: not-allowed; opacity: 0.85; }
+    .pcard-btn { width: 100%; background: #22a559; color: white; border: none; border-radius: 999px; padding: 14px; font-size:1rem; font-weight: 700; cursor: pointer; font-family: inherit; position: relative; overflow: hidden; box-shadow: 0 4px 8px rgba(34,165,89,0.5); transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease; }
+    .pcard-btn::before { content:''; position: absolute; top: 9%; left: 6%; right: 6%; height: 47%; border-radius: 50%; background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.88), rgba(255,255,255,0) 75%); pointer-events: none; }
+    .pcard-btn:active { transform: scale(0.95); box-shadow: 0 1px 3px rgba(34,165,89,0.5); }
+    .pcard-btn.inscrit { background: #eef6ff; color: #2c3e91; border: 2px solid #2c3e91; box-shadow: 0 4px 8px rgba(44,62,145,0.5); }
+    .pcard-btn.inscrit:active { box-shadow: 0 1px 3px rgba(44,62,145,0.5); }
+    .pcard-btn.complet { background: #d63447; color: white; cursor: not-allowed; opacity: 0.85; box-shadow: 0 4px 8px rgba(214,52,71,0.5); }
+    /* Effet "scanner" au survol souris — bande lumineuse en aller-retour, jamais actif au tactile */
+    .btn-scan { position:absolute; top:0; bottom:0; left:-60%; width:40%; background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(255,255,255,0.55) 50%,rgba(255,255,255,0) 100%); transform:skewX(-20deg); pointer-events:none; }
+    @keyframes btnScanBounce { 0%{left:-60%;} 50%{left:120%;} 100%{left:-60%;} }
+    @media (hover: hover) and (pointer: fine) {
+      .audio-badge:hover { transform: scale(1.03); box-shadow: 0 6px 12px rgba(44,62,145,0.5); }
+      .pcard-btn:not(.complet):hover { transform: scale(1.03); box-shadow: 0 6px 12px rgba(34,165,89,0.5); }
+      .pcard-btn.inscrit:hover { box-shadow: 0 6px 12px rgba(44,62,145,0.5); }
+      .audio-badge:hover .btn-scan, .pcard-btn:not(.complet):hover .btn-scan { animation: btnScanBounce 2s ease-in-out infinite; }
+    }
     .empty { text-align: center; padding: 60px 20px; color: #6c7a99; }
     .empty-icon { font-size:4rem; margin-bottom: 16px; }
     .empty-text { font-size:1.125rem; line-height: 1.5; }
@@ -4881,11 +4887,13 @@ function _phraseCarte(r){
 }
 
 // Bouton 🔊 : un appui lit, un 2e appui arrête ; le bouton change d'apparence.
+// btn.textContent efface tous les enfants (dont .btn-scan sur .audio-badge) : on le réinsère après coup.
 let _carteLectureBtn=null;
+function _majLabelBtn(btn,label){const scan=btn.querySelector('.btn-scan');btn.textContent=label;if(scan)btn.prepend(scan);}
 function _arreterLectureCarte(){
   try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech)window.Capacitor.Plugins.TextToSpeech.stop();}catch(e){}
   try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){}
-  if(_carteLectureBtn){_carteLectureBtn.classList.remove('on');_carteLectureBtn.textContent=_carteLectureBtn.dataset.labelOff||'🔊';_carteLectureBtn=null;}
+  if(_carteLectureBtn){_carteLectureBtn.classList.remove('on');_majLabelBtn(_carteLectureBtn,_carteLectureBtn.dataset.labelOff||'🔊');_carteLectureBtn=null;}
 }
 // Un appui lit le texte donné, un 2e appui sur le même bouton arrête ; un appui sur un autre bouton
 // pendant une lecture arrête l'ancienne avant de lancer la nouvelle. Partagé par les rappels perso et
@@ -4895,7 +4903,7 @@ function _lireTexteCarte(phrase,btn){
   _arreterLectureCarte();
   if(memeCarte)return;   // 2e appui sur le même bouton = arrêt
   if(!phrase)return;
-  _carteLectureBtn=btn;btn.classList.add('on');btn.textContent=btn.dataset.labelOn||'⏹️';
+  _carteLectureBtn=btn;btn.classList.add('on');_majLabelBtn(btn,btn.dataset.labelOn||'⏹️');
   try{
     if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech){
       window.Capacitor.Plugins.TextToSpeech.speak({text:phrase,lang:'fr-FR',rate:1.0,pitch:1.0,volume:1.0,category:'ambient'}).then(()=>{if(_carteLectureBtn===btn)_arreterLectureCarte();}).catch(()=>{if(_carteLectureBtn===btn)_arreterLectureCarte();});
@@ -5244,6 +5252,18 @@ function renderPlanning(skipScroll){
   });
 }
 
+// Assombrissement réel du fond au press (en plus du scale/ombre déjà gérés en CSS via :active) ;
+// revient à la couleur normale (définie en CSS) au relâche, quel que soit l'événement qui le déclenche.
+function _wireBtnPress(btn,pressColor){
+  const press=()=>{btn.style.background=pressColor;};
+  const release=()=>{btn.style.background='';};
+  btn.addEventListener('mousedown',press);
+  btn.addEventListener('touchstart',press,{passive:true});
+  btn.addEventListener('mouseup',release);
+  btn.addEventListener('touchend',release);
+  btn.addEventListener('mouseleave',release);
+}
+
 function scrollToToday(content){const tryScroll=(attempt)=>{const today=dateKey(new Date());let target=content.querySelector(`[data-date="${today}"]`);if(!target){const allHeaders=content.querySelectorAll('[data-date]');for(const h of allHeaders){if(h.dataset.date>=today){target=h;break;}}if(!target&&allHeaders.length>0){target=allHeaders[allHeaders.length-1];}}if(target){target.scrollIntoView({behavior:'smooth',block:'start'});}else if(attempt<5){setTimeout(()=>tryScroll(attempt+1),200);}};setTimeout(()=>tryScroll(1),300);}
 
 async function loadAllInscriptions(){const result={};try{const snap=await db.collection('users').get();snap.docs.forEach(doc=>{const u=doc.data();if(!u.prenom)return;const add=(key)=>{if(!key)return;if(!result[key])result[key]=[];if(!result[key].includes(u.prenom))result[key].push(u.prenom);};
@@ -5297,7 +5317,7 @@ function renderPlanningInner(content,events){
       if(annulation){
         const speechAnnule=`${e.title}, à ${timeToSpeech(e.time)}. Cet atelier est annulé. ${annulation.motif||''}`;
         html+=`<div class="pcard pcard-annule">
-          <button type="button" class="audio-badge" data-speak-txt="${esc(speechAnnule)}" data-label-off="🔊 audio" data-label-on="⏹️ stop">🔊 audio</button>
+          <button type="button" class="audio-badge" data-speak-txt="${esc(speechAnnule)}" data-label-off="🔊 audio" data-label-on="⏹️ stop"><div class="btn-scan"></div>🔊 audio</button>
           <div class="pcard-top">
             <div class="pcard-ico">${iconHTML(e.icon)}</div>
             <div class="pcard-titre-zone">
@@ -5326,7 +5346,7 @@ function renderPlanningInner(content,events){
       const lien=(state.atelierDescs&&state.atelierDescs[cleDesc]&&state.atelierDescs[cleDesc].lien)?state.atelierDescs[cleDesc].lien:'';
       const lienHTML=lien?`<div class="pcard-lien"><a href="${esc(lien)}" target="_blank" rel="noopener" data-nospeech="1">▶️ En savoir plus</a></div>`:'';
       const enAttente=isPendingAtelier(ek);
-      const placesBtn=enAttente?pendingBadgeHTML():(complet?'<button class="pcard-btn complet" disabled>❌ Complet</button>':`<button class="pcard-btn ${inscrit?'inscrit':''}" data-ekey="${esc(ek)}" data-edate="${esc(e.date)}" data-etime="${esc(e.time)}" data-etitle="${esc(e.title)}" data-eicon="${esc(e.icon||'📋')}" data-elimite="${limite||''}" data-eanim="${esc(state.currentAnim||'Steve')}">${inscrit?'✓ Vous êtes inscrit<br><span style="font-size:0.8125rem;font-weight:600;opacity:0.85;">Appuyez ici pour vous désinscrire</span>':"M'inscrire"}</button>`);
+      const placesBtn=enAttente?pendingBadgeHTML():(complet?'<button class="pcard-btn complet" disabled>❌ Complet</button>':`<button class="pcard-btn ${inscrit?'inscrit':''}" data-ekey="${esc(ek)}" data-edate="${esc(e.date)}" data-etime="${esc(e.time)}" data-etitle="${esc(e.title)}" data-eicon="${esc(e.icon||'📋')}" data-elimite="${limite||''}" data-eanim="${esc(state.currentAnim||'Steve')}"><div class="btn-scan"></div>${inscrit?'✓ Vous êtes inscrit<br><span style="font-size:0.8125rem;font-weight:600;opacity:0.85;">Appuyez ici pour vous désinscrire</span>':"M'inscrire"}</button>`);
       const tagsHTML=inscritsList.length?`<div class="pcard-tags">${inscritsList.map(p=>`<span class="pcard-tag">${esc(p)}</span>`).join('')}</div>`:'<span class="pcard-tag-empty">Aucun inscrit pour le moment</span>';
 
       // Bloc A — "Vous avez déjà" : rappels perso + ateliers déjà inscrits ce jour (Steve et Greg confondus)
@@ -5343,29 +5363,19 @@ function renderPlanningInner(content,events){
       });
       const blocAHTML=blocAItems.length?`<div class="pcard-vousavez"><div class="pcard-vousavez-label">👀 Vous avez déjà :</div>${blocAItems.join('')}</div>`:'';
 
-      // Bloc B — "Planning de [Autre animateur] ce jour-là" : lecture seule, replié par défaut
-      // (pour s'inscrire, le bénéficiaire va sur le vrai planning de cet animateur)
+      // Bloc B — "[Autre animateur] propose aussi" : toujours visible s'il y a quelque chose,
+      // absent sinon. Purement informatif — pas d'inscription possible depuis ce bloc.
       let blocBHTML='';
       if(otherRestantsDuJour.length){
-        const itemsHTML=otherRestantsDuJour.map(oe=>{
-          const oek=ekOf(oe);
-          const oeInscrits=(allInscrits[oek]||[]).length;
-          const oeLimite=oe.limite||null;
-          let placesHTML='';
-          if(oeLimite!==null){
-            const oeLibres=Math.max(0,oeLimite-oeInscrits);
-            placesHTML=oeLibres<=0?`<div class="pcard-places" style="background:#d63447">Complet</div>`:`<div class="pcard-places" style="background:${oeLibres===1?'#e09400':'#22a559'}"><strong>${oeLibres}</strong> place${oeLibres>1?'s':''}</div>`;
-          }
-          return `<div class="pcard-propose-item">${iconHTML(oe.icon)} <b>${esc(oe.title)} — ${oe.time.replace(':','h')}</b>${placesHTML}</div>`;
-        }).join('');
-        blocBHTML=`<div class="pcard-propose">
-          <button type="button" class="pcard-propose-toggle" data-nospeech="1">Planning de ${esc(otherAnimLabel)} ce jour-là <span class="pcard-propose-arrow">▾</span></button>
-          <div class="pcard-propose-panel">${itemsHTML}</div>
-        </div>`;
+        const titres=otherRestantsDuJour.map(oe=>esc(oe.title));
+        const texte=titres.length===1
+          ?`${esc(otherAnimLabel)} propose aussi : ${titres[0]} à ${otherRestantsDuJour[0].time.replace(':','h')}`
+          :`${esc(otherAnimLabel)} propose aussi : ${titres.join(', ')}`;
+        blocBHTML=`<div class="pcard-other-anim"><i class="ti ti-user" aria-hidden="true"></i><span>${texte}</span></div>`;
       }
 
       html+=`<div class="pcard">
-        <button type="button" class="audio-badge" data-speak-txt="${esc(speech)}" data-label-off="🔊 audio" data-label-on="⏹️ stop">🔊 audio</button>
+        <button type="button" class="audio-badge" data-speak-txt="${esc(speech)}" data-label-off="🔊 audio" data-label-on="⏹️ stop"><div class="btn-scan"></div>🔊 audio</button>
         <div class="pcard-top">
           <div class="pcard-ico">${iconHTML(e.icon)}</div>
           <div class="pcard-titre-zone">
@@ -5374,31 +5384,22 @@ function renderPlanningInner(content,events){
           </div>
         </div>
         ${blocAHTML}
-        ${blocBHTML}
         ${descHTML}
         ${lienHTML}
         <div class="pcard-places-row">${compteurHTML.replace('planning-places','pcard-places')}</div>
         <div class="pcard-inscrits"><div class="pcard-inscrits-label">Déjà inscrits :</div>${tagsHTML}</div>
         <div class="pcard-action">${placesBtn}</div>
+        ${blocBHTML}
       </div>`;
     });
   });
   content.innerHTML=html;
 
   // Bouton audio dédié par carte (lecture avec arrêt possible, cf. _lireTexteCarte)
-  content.querySelectorAll('.audio-badge').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();_lireTexteCarte(btn.dataset.speakTxt||'',btn);});});
+  content.querySelectorAll('.audio-badge').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();_lireTexteCarte(btn.dataset.speakTxt||'',btn);});_wireBtnPress(btn,'#1e2c6b');});
 
-  // Bloc B : dépli/repli du panneau "Planning de [autre animateur] ce jour-là" (flèche qui tourne, comme un <details>)
-  // Purement informatif — pas d'inscription possible depuis ce panneau.
-  content.querySelectorAll('.pcard-propose-toggle').forEach(btn=>{
-    btn.addEventListener('click',e=>{
-      e.stopPropagation();
-      btn.classList.toggle('ouvert');
-      btn.nextElementSibling.classList.toggle('ouvert');
-    });
-  });
-
-  content.querySelectorAll('.pcard-btn:not(.complet)').forEach(btn=>{btn.addEventListener('click',async e=>{e.stopPropagation();if(btn.disabled)return;const ev={date:btn.dataset.edate,time:btn.dataset.etime,title:btn.dataset.etitle,icon:btn.dataset.eicon};const limite=btn.dataset.elimite?parseInt(btn.dataset.elimite):null;const anim=btn.dataset.eanim||'Steve';const ek=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');const dejaInscrit=isInscrit(ek);if(dejaInscrit){await demanderDesinscription(ev,ek,anim,content,events);return;}if(!dejaInscrit&&limite!==null){btn.disabled=true;btn.textContent='⏳ Vérification...';const freshInscriptions=await loadAllInscriptions();const currentCount=(freshInscriptions[ek]||[]).length;if(currentCount>=limite){showConfirm({icon:'😔',title:'Atelier complet',text:`Désolé, les ${limite} places pour "${ev.title}" viennent d'être prises.`,okText:'OK',hideCancel:true});state.allInscriptions=freshInscriptions;renderPlanningInner(content,events);return;}}await toggleInscription(ev);state.allInscriptions=await loadAllInscriptions();renderPlanningInner(content,events);});});
+  content.querySelectorAll('.pcard-btn:not(.complet)').forEach(btn=>{btn.addEventListener('click',async e=>{e.stopPropagation();if(btn.disabled)return;const ev={date:btn.dataset.edate,time:btn.dataset.etime,title:btn.dataset.etitle,icon:btn.dataset.eicon};const limite=btn.dataset.elimite?parseInt(btn.dataset.elimite):null;const anim=btn.dataset.eanim||'Steve';const ek=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');const dejaInscrit=isInscrit(ek);if(dejaInscrit){await demanderDesinscription(ev,ek,anim,content,events);return;}if(!dejaInscrit&&limite!==null){btn.disabled=true;_majLabelBtn(btn,'⏳ Vérification...');const freshInscriptions=await loadAllInscriptions();const currentCount=(freshInscriptions[ek]||[]).length;if(currentCount>=limite){showConfirm({icon:'😔',title:'Atelier complet',text:`Désolé, les ${limite} places pour "${ev.title}" viennent d'être prises.`,okText:'OK',hideCancel:true});state.allInscriptions=freshInscriptions;renderPlanningInner(content,events);return;}}await toggleInscription(ev);state.allInscriptions=await loadAllInscriptions();renderPlanningInner(content,events);});});
+  content.querySelectorAll('.pcard-btn:not(.complet):not(.inscrit)').forEach(btn=>{_wireBtnPress(btn,'#1a8747');});
 }
 
 // ===== Tiroir menu, ouvert par la languette du bord gauche ou un glissé depuis le bord (§2) =====
