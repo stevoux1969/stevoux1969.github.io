@@ -1608,10 +1608,15 @@ function setTheme(t){try{localStorage.setItem(THEME_KEY,t);}catch(e){}appliquerT
 appliquerTheme(getTheme());
 
 const TAILLE_KEY='avp_taille';
-const TAILLES_PX={normal:'24px',grand:'28px','tres-grand':'32px'};
+const TAILLES_RATIO={grand:28/24,'tres-grand':32/24};
 function getTailleTexte(){try{return localStorage.getItem(TAILLE_KEY)||'normal';}catch(e){return'normal';}}
 function majBoutonsTaille(t){document.querySelectorAll('.taille-btn').forEach(b=>b.classList.toggle('actif',b.dataset.taille===t));}
-function appliquerTailleTexte(t){document.documentElement.style.fontSize=TAILLES_PX[t]||TAILLES_PX.normal;majBoutonsTaille(t);}
+function tailleBaseNaturelle(){return window.matchMedia('(min-width: 600px)').matches?24:16;}
+function appliquerTailleTexte(t){
+  const ratio=TAILLES_RATIO[t];
+  document.documentElement.style.fontSize=ratio?(tailleBaseNaturelle()*ratio)+'px':'';
+  majBoutonsTaille(t);
+}
 function setTailleTexte(t){try{localStorage.setItem(TAILLE_KEY,t);}catch(e){}appliquerTailleTexte(t);}
 appliquerTailleTexte(getTailleTexte());
 
