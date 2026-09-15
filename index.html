@@ -681,6 +681,36 @@
     .tiroir-item.theme-actif .tiroir-check { display:inline; }
     .tiroir-item.theme-actif { background:#f1f3f8; }
 
+    /* Boutons pilule + reflet (cohérent avec la page planning) */
+    .planning-btn-split, .btn-voir-agenda, .btn-arrow, .btn-nouveau-rappel {
+      position: relative; overflow: hidden;
+    }
+    .planning-btn-split::before, .btn-voir-agenda::before,
+    .btn-arrow::before, .btn-nouveau-rappel::before {
+      content: ""; position: absolute; top: 8%; left: 6%; right: 6%; height: 48%;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.85), rgba(255,255,255,0) 75%);
+      pointer-events: none;
+    }
+    .planning-btn-split { border-radius: 999px; }
+    .btn-voir-agenda { width: auto; margin: 16px auto 8px; padding: 14px 26px; border-radius: 999px; }
+    .btn-arrow { box-shadow: 0 4px 8px rgba(0,0,0,0.25); }
+    .planning-btn-split:active, .btn-voir-agenda:active,
+    .btn-arrow:active, .btn-nouveau-rappel:active {
+      transform: scale(0.94);
+    }
+
+    /* Panneau « Taille du texte » de l'accueil */
+    .taille-overlay-accueil { position:fixed; inset:0; background:rgba(20,26,50,.45); opacity:0; pointer-events:none; transition:opacity .3s ease; z-index:70; }
+    .taille-overlay-accueil.visible { opacity:1; pointer-events:auto; }
+    .taille-panel-accueil { position:fixed; left:0; right:0; bottom:0; background:#fff; border-radius:24px 24px 0 0; padding:10px 22px calc(24px + env(safe-area-inset-bottom)); transform:translateY(100%); transition:transform .35s ease; z-index:71; box-shadow:0 -10px 30px rgba(0,0,0,.2); max-height:80vh; overflow-y:auto; }
+    .taille-panel-accueil.visible { transform:translateY(0); }
+    .taille-panel-accueil .aide-handle { width:42px; height:5px; background:#dcdfec; border-radius:3px; margin:8px auto 14px; }
+    .taille-panel-accueil h2 { color:#2c3e91; font-size:1.2rem; margin:0 0 14px; }
+    .taille-choix { display:flex; flex-direction:column; gap:10px; }
+    .taille-btn { background:#eef1fb; color:#2c3e91; border:none; border-radius:12px; padding:14px; text-align:center; font-weight:700; font-size:.95rem; cursor:pointer; font-family:inherit; }
+    .taille-btn.actif { background:#2c3e91; color:#fff; }
+
     /* ===================== THEME SOMBRE (écran d'accueil) ===================== */
     body[data-theme="sombre"] { background:#0f1424; }
     body[data-theme="sombre"] .screen { background:#0f1424; }
@@ -739,6 +769,11 @@
     body[data-theme="sombre"] .aide-panel-accueil .aide-lire-btn { background:#232b4d; color:#a9b3e0; }
     body[data-theme="sombre"] .aide-panel-accueil .aide-lire-btn.actif { background:#2c3e91; color:#fff; }
     body[data-theme="sombre"] .aide-panel-accueil .aide-fermer-btn { color:#7f8bb8; }
+    body[data-theme="sombre"] .taille-panel-accueil { background:#161d38; box-shadow:none; }
+    body[data-theme="sombre"] .taille-panel-accueil .aide-handle { background:#3a4570; }
+    body[data-theme="sombre"] .taille-panel-accueil h2 { color:#8fa4ff; }
+    body[data-theme="sombre"] .taille-btn { background:#232b4d; color:#a9b3e0; }
+    body[data-theme="sombre"] .taille-btn.actif { background:#2c3e91; color:#fff; }
     /* Tiroir menu */
     body[data-theme="sombre"] .tiroir-menu { background:#161d38; box-shadow:none; border-right:1px solid #2a3350; }
     body[data-theme="sombre"] .tiroir-menu h2 { color:#8fa4ff; }
@@ -1019,12 +1054,22 @@
   <div class="tiroir-menu" id="tiroir-menu">
     <div class="tiroir-entete"><h2>Menu</h2><button type="button" class="tiroir-fermer" id="tiroir-fermer-btn" aria-label="Fermer">✕</button></div>
     <div class="tiroir-item" id="tiroir-item-reglages"><span class="tiroir-ic">⚙️</span><span>Réglages</span></div>
-    <div class="tiroir-item a-venir"><span class="tiroir-ic">🔤</span><span>Taille du texte</span><span class="tiroir-tag">bientôt</span></div>
+    <div class="tiroir-item" id="tiroir-item-taille"><span class="tiroir-ic">🔤</span><span>Taille du texte</span></div>
     <div class="tiroir-separateur"></div>
     <div class="tiroir-item" id="tiroir-item-clair"><span class="tiroir-ic">☀️</span><span>Clair</span><span class="tiroir-check">✓</span></div>
     <div class="tiroir-item" id="tiroir-item-sombre"><span class="tiroir-ic">🌙</span><span>Sombre</span><span class="tiroir-check">✓</span></div>
     <div class="tiroir-separateur"></div>
     <div class="tiroir-item" id="tiroir-item-avis"><span class="tiroir-ic">💬</span><span>Donner mon avis</span></div>
+  </div>
+  <div class="taille-overlay-accueil" id="taille-overlay-accueil"></div>
+  <div class="taille-panel-accueil" id="taille-panel-accueil">
+    <div class="aide-handle"></div>
+    <h2>🔤 Taille du texte</h2>
+    <div class="taille-choix">
+      <button type="button" class="taille-btn" data-taille="normal">Normal</button>
+      <button type="button" class="taille-btn" data-taille="grand">Grand</button>
+      <button type="button" class="taille-btn" data-taille="tres-grand">Très grand</button>
+    </div>
   </div>
   <button type="button" id="add-btn" class="btn-nouveau-rappel">
     <div class="bn-plus">+</div>
@@ -1561,6 +1606,14 @@ function appliquerTheme(t){document.body.setAttribute('data-theme',t==='sombre'?
 function majTiroirTheme(){const t=getTheme();const bc=document.getElementById('tiroir-item-clair');const bs=document.getElementById('tiroir-item-sombre');if(bc)bc.classList.toggle('theme-actif',t!=='sombre');if(bs)bs.classList.toggle('theme-actif',t==='sombre');}
 function setTheme(t){try{localStorage.setItem(THEME_KEY,t);}catch(e){}appliquerTheme(t);majTiroirTheme();}
 appliquerTheme(getTheme());
+
+const TAILLE_KEY='avp_taille';
+const TAILLES_PX={normal:'24px',grand:'28px','tres-grand':'32px'};
+function getTailleTexte(){try{return localStorage.getItem(TAILLE_KEY)||'normal';}catch(e){return'normal';}}
+function majBoutonsTaille(t){document.querySelectorAll('.taille-btn').forEach(b=>b.classList.toggle('actif',b.dataset.taille===t));}
+function appliquerTailleTexte(t){document.documentElement.style.fontSize=TAILLES_PX[t]||TAILLES_PX.normal;majBoutonsTaille(t);}
+function setTailleTexte(t){try{localStorage.setItem(TAILLE_KEY,t);}catch(e){}appliquerTailleTexte(t);}
+appliquerTailleTexte(getTailleTexte());
 
 const SVG_HDJ = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="60" cy="14" r="10" fill="#FFD93D"/><line x1="60" y1="2" x2="60" y2="4" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><line x1="60" y1="24" x2="60" y2="26" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><line x1="48" y1="14" x2="50" y2="14" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><line x1="70" y1="14" x2="72" y2="14" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><circle cx="30" cy="18" r="8" fill="#F5DEB3"/><rect x="22" y="28" width="16" height="24" rx="3" fill="#2AA198"/><rect x="18" y="28" width="8" height="18" rx="2" fill="#2AA198"/><rect x="34" y="28" width="8" height="18" rx="2" fill="#2AA198"/><rect x="24" y="52" width="6" height="14" rx="2" fill="#3B6B8A"/><rect x="32" y="52" width="6" height="14" rx="2" fill="#3B6B8A"/><rect x="26" y="32" width="8" height="3" rx="1" fill="white"/><rect x="29" y="30" width="2" height="7" rx="1" fill="white"/><circle cx="30" cy="14" r="2" fill="#2AA198"/></svg>`;
 const SVG_CMP = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><polygon points="40,8 8,35 72,35" fill="#E85D4A"/><rect x="14" y="35" width="52" height="32" fill="#FFF5E6"/><rect x="14" y="35" width="52" height="3" fill="#D44A3A"/><rect x="30" y="45" width="20" height="22" rx="2" fill="#8B6914"/><circle cx="46" cy="57" r="2" fill="#FFD93D"/><rect x="18" y="40" width="10" height="10" rx="1" fill="#87CEEB"/><line x1="23" y1="40" x2="23" y2="50" stroke="white" stroke-width="1"/><line x1="18" y1="45" x2="28" y2="45" stroke="white" stroke-width="1"/><rect x="52" y="40" width="10" height="10" rx="1" fill="#87CEEB"/><line x1="57" y1="40" x2="57" y2="50" stroke="white" stroke-width="1"/><line x1="52" y1="45" x2="62" y2="45" stroke="white" stroke-width="1"/><text x="40" y="76" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#2c3e91">CMP</text></svg>`;
@@ -5410,6 +5463,11 @@ document.getElementById('tiroir-item-clair').addEventListener('click',()=>setThe
 document.getElementById('tiroir-item-sombre').addEventListener('click',()=>setTheme('sombre'));
 majTiroirTheme();
 document.getElementById('tiroir-item-avis').addEventListener('click',()=>{_fermerTiroirMenu();_ouvrirEcranAvis();});
+document.getElementById('tiroir-item-taille').addEventListener('click',()=>{_fermerTiroirMenu();_ouvrirTailleAccueil();});
+function _ouvrirTailleAccueil(){majBoutonsTaille(getTailleTexte());document.getElementById('taille-overlay-accueil').classList.add('visible');document.getElementById('taille-panel-accueil').classList.add('visible');}
+function _fermerTailleAccueil(){document.getElementById('taille-overlay-accueil').classList.remove('visible');document.getElementById('taille-panel-accueil').classList.remove('visible');}
+document.getElementById('taille-overlay-accueil').addEventListener('click',_fermerTailleAccueil);
+document.querySelectorAll('.taille-btn').forEach(b=>b.addEventListener('click',()=>{setTailleTexte(b.dataset.taille);_fermerTailleAccueil();}));
 function _ouvrirTiroirMenu(){document.getElementById('voile-tiroir').classList.add('visible');document.getElementById('tiroir-menu').classList.add('visible');}
 function _fermerTiroirMenu(){document.getElementById('voile-tiroir').classList.remove('visible');document.getElementById('tiroir-menu').classList.remove('visible');}
 document.getElementById('voile-tiroir').addEventListener('click',_fermerTiroirMenu);
