@@ -1,6 +1,6 @@
 # Ma Journée AVP — Référence (source de vérité)
 
-Mise à jour : 18/09/2026. Application Android pour ~30 adultes en situation de handicap psychique du service AVP (association La Clé, Rouen). Sert à ne pas rater les rendez-vous : ateliers, rappels personnels, agenda.
+Mise à jour : 18/09/2026 (soir). Application Android pour ~30 adultes en situation de handicap psychique du service AVP (association La Clé, Rouen). Sert à ne pas rater les rendez-vous : ateliers, rappels personnels, agenda.
 
 Deux dépôts :
 - `stevoux1969.github.io` (public, sert l'app en direct) — cloné dans `C:\Users\samsah32\stevoux1969.github.io`
@@ -21,13 +21,14 @@ Version en prod (`version.txt`) : **1.0.8**. `APP_VERSION` dans le code web est 
 - Liste des inscrits visible
 - Adresse + temps de trajet + bouton Google Maps : estimation auto par géolocalisation (OpenRouteService) à pied/voiture, repli `navigator.geolocation` hors APK, bus via lien Google Maps transit, choix manuel 10/20/30/45 min toujours en repli
 - Widget écran d'accueil : 3 prochains rappels, mise en forme côté JS (natif reste « bête »)
-- Thème clair/sombre au choix (tiroir latéral), clair par défaut
+- Thème clair/sombre au choix (tiroir latéral), clair par défaut. Languette d'ouverture du tiroir redessinée (34px, fond plein, label vertical « Réglages ») pour être plus visible qu'avant (poussé le 18/09/2026, était en chantier local depuis plusieurs sessions)
 - Système d'avis enrichi : deux avis séparés (app / AVP) avec note emoji, liste publique sans modération, stats globales
 - Tutoriel guidé interactif (doigt sur les vrais boutons + mascotte animée, 8 expressions) pour créer un premier rappel : reprise à l'étape quittée, suppression uniquement via une vraie leçon (pas automatique), bouton Fermer visible tout du long, nettoyage correct si on sort par le bouton Retour Android
 - Bulles de tutoriel sur planning, avis bénéficiaire, avis
 - Écran de démarrage (splash) animé, sans mention AVP/La Clé, durée minimale 3 s
 - Parcours de configuration guidée (`reglages.html?guide=1`), proposé auto ~4 s après connexion, redirection directe sans popup de confirmation : batterie, autostart constructeur, étape MIUI dédiée (Xiaomi/HyperOS, autostart fusionné dedans), position, notifications, fenêtres superposées, voix, widget
 - Bouton retour Android intercepté globalement (`history.pushState`/`popstate`) : recule d'une étape dans le wizard/tutoriel/guide au lieu de fermer l'écran
+- Mise à jour automatique **obligatoire** : `checkUpdate()` (compare `APP_VERSION` à `version.txt`) se relance à chaque retour au premier plan via `App.addListener('resume', …)` (plugin Capacitor App), pas seulement au démarrage. `showUpdatePopup()` affiche un écran plein bleu bloquant (icône 🔄, badge « Message de Steve », sans bouton, sans fermeture), qui se recharge tout seul après ~3s (`location.href` anti-cache). Anti-spam `localStorage` (`update_seen_`+version) inchangé.
 
 ## Fonctionnalités admin (✅ fonctionne)
 
