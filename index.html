@@ -2306,8 +2306,6 @@ function _occurrencesNatives(){
         if(r.annule)return;   // atelier annulé : pas d'alarme
         if(!r.date||!r.time)return;
         const evMs=new Date(r.date+'T'+r.time+':00').getTime();
-        const veille=new Date(evMs);veille.setDate(veille.getDate()-1);veille.setHours(15,0,0,0);
-        add(r.id+'|veille',r,veille.getTime(),'alarme',true);
         add(r.id+'|2h',r,evMs-2*3600000,'alarme',true);
         add(r.id+'|ev',r,evMs,'notification');
         const tiA=_trajetInfo(r);
@@ -2470,7 +2468,7 @@ async function tagOneSignalAtelier(atelierKey,inscrit){try{if(window.OneSignalDe
 
 async function queueNotification(title,message,sendAtDate,sendAtTime,targetTag){try{const[y,mo,d]=sendAtDate.split('-').map(Number);const[h,m]=sendAtTime.split(':').map(Number);const sendDate=new Date(y,mo-1,d,h,m,0);if(sendDate.getTime()<Date.now())return;const notif={title,message,sendAt:sendDate.toISOString(),sendAtMs:sendDate.getTime(),targetTagKey:targetTag.key,targetTagValue:targetTag.value,sent:false,createdAt:Date.now(),createdBy:currentUser?currentUser.prenom:'unknown'};await db.collection('notifications').add(notif);}catch(e){}}
 
-async function queueAtelierNotifications(atelier,atelierKey){const atelierDate=new Date(atelier.date+'T'+atelier.time+':00');const tagKey="atelier_"+atelierKey.replace(/[^a-z0-9_]/gi,'_').slice(0,60);const target={key:tagKey,value:"1"};const veille=new Date(atelierDate);veille.setDate(veille.getDate()-1);await queueNotification('📅 Demain : '+atelier.title,'⏰ Demain à '+atelier.time.replace(':','h')+' · Pensez à venir !',dateKey(veille),'15:00',target);const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const hh=String(avant2h.getHours()).padStart(2,'0');const mm=String(avant2h.getMinutes()).padStart(2,'0');await queueNotification('🔔 Dans 2h : '+atelier.title,'⏰ Aujourd\'hui à '+atelier.time.replace(':','h')+' · Préparez-vous !',dateKey(avant2h),hh+':'+mm,target);}
+async function queueAtelierNotifications(atelier,atelierKey){const atelierDate=new Date(atelier.date+'T'+atelier.time+':00');const tagKey="atelier_"+atelierKey.replace(/[^a-z0-9_]/gi,'_').slice(0,60);const target={key:tagKey,value:"1"};const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const hh=String(avant2h.getHours()).padStart(2,'0');const mm=String(avant2h.getMinutes()).padStart(2,'0');await queueNotification('🔔 Dans 2h : '+atelier.title,'⏰ Aujourd\'hui à '+atelier.time.replace(':','h')+' · Préparez-vous !',dateKey(avant2h),hh+':'+mm,target);}
 
 // Notifie l'animateur (Steve ou Greg) quand un bénéficiaire s'inscrit ou se désinscrit
 async function notifyAnimateur(action, event){
@@ -3659,8 +3657,6 @@ async function adminInscrireAtelier(uid, prenom) {
         newInscriptions[ek] = true;
         const loc = getAVPLocation(cb.dataset.title);
         newAteliers.push({id:'atelier_'+ek,title:cb.dataset.title,icon:cb.dataset.icon,time:cb.dataset.time,date:cb.dataset.date,recurrence:'once',note:loc?loc.address:'',mapLink:loc?'https://www.google.com/maps/search/?api=1&query='+loc.query:null,done:{},source:'atelier'});
-        const veille = new Date(cb.dataset.date+'T12:00:00'); veille.setDate(veille.getDate()-1);
-        queueNotification('📅 Demain : '+cb.dataset.title,'Rappel : demain à '+cb.dataset.time.replace(':','h')+' — '+cb.dataset.title,dateKey(veille),'15:00',{key:'prenom',value:prenom.toLowerCase()});
         const avant = new Date(cb.dataset.date+'T'+cb.dataset.time+':00'); avant.setTime(avant.getTime()-2*60*60*1000);
         queueNotification('🔔 Dans 2h : '+cb.dataset.title,'Rappel : '+cb.dataset.title+' à '+cb.dataset.time.replace(':','h'),dateKey(avant),String(avant.getHours()).padStart(2,'0')+':'+String(avant.getMinutes()).padStart(2,'0'),{key:'prenom',value:prenom.toLowerCase()});
       }
@@ -4890,8 +4886,8 @@ function _carteRappel(r,key,jourAffiche){
     rows+=`<div class="c-row"><div class="c-row-ic">🚫</div><div class="c-row-tx"><div class="c-row-t1" style="color:#d63447;font-weight:700;">Atelier annulé</div>${r.motif?`<div class="c-row-t2">${esc(r.motif)}</div>`:''}</div></div>`;
   }else if(isAtelier){
     const ev=new Date(r.date+'T'+r.time+':00');const a2=new Date(ev.getTime()-2*3600000);
-    const sonnT1=`Sonnerie la veille à 15h00 et à ${pad2(a2.getHours())}h${pad2(a2.getMinutes())}`;
-    rows+=`<div class="c-row"><div class="c-row-ic">🔔</div><div class="c-row-tx"><div class="c-row-t1">${sonnT1}</div><div class="c-row-t2">Deux sonneries avant l'atelier</div></div></div>`;
+    const sonnT1=`Sonnerie à ${pad2(a2.getHours())}h${pad2(a2.getMinutes())}`;
+    rows+=`<div class="c-row"><div class="c-row-ic">🔔</div><div class="c-row-tx"><div class="c-row-t1">${sonnT1}</div><div class="c-row-t2">2 heures avant l'atelier</div></div></div>`;
     if(ti&&ti.adresse)rows+=`<div class="c-row"><div class="c-row-ic">📍</div><div class="c-row-tx"><div class="c-row-t1">${esc(ti.adresse)}</div></div></div>`;
   }else if(!(ti&&ti.departMs)){
     // S'il y a un trajet, le bloc « Départ » ci-dessus affiche déjà l'heure de sonnerie : pas besoin de la répéter ici.
@@ -4940,7 +4936,7 @@ function _phraseCarte(r){
   if(annule){p+=' Cet atelier est annulé.'+(r.motif?' '+r.motif+'.':'');return p;}
   if(ti&&ti.adresse)p+=' Adresse : '+ti.adresse+'.';
   if(ti&&ti.departMs){const dp=new Date(ti.departMs);p+=' Départ à '+timeToSpeech(pad2(dp.getHours())+':'+pad2(dp.getMinutes()))+', '+ti.travelMin+' minutes de trajet.';}
-  if(isAtelier){const ev=new Date(r.date+'T'+r.time+':00');const a2=new Date(ev.getTime()-2*3600000);p+=' Sonnerie la veille à 15 heures, et 2 heures avant, à '+timeToSpeech(pad2(a2.getHours())+':'+pad2(a2.getMinutes()))+'.';}
+  if(isAtelier){const ev=new Date(r.date+'T'+r.time+':00');const a2=new Date(ev.getTime()-2*3600000);p+=' Sonnerie 2 heures avant, à '+timeToSpeech(pad2(a2.getHours())+':'+pad2(a2.getMinutes()))+'.';}
   else if(!(ti&&ti.departMs)){const sonnMs=_sonnerieUniqueMs(r,ti,getCurrentDate());if(sonnMs!==null)p+=' Sonnerie à '+timeToSpeech(pad2(new Date(sonnMs).getHours())+':'+pad2(new Date(sonnMs).getMinutes()))+'.';}
   if(r.note&&!isAtelier)p+=' '+r.note+'.';
   return p;
