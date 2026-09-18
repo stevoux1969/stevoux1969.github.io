@@ -1,6 +1,6 @@
 # Ma Journée AVP — Référence (source de vérité)
 
-Mise à jour : 02/09/2026. Application Android pour ~30 adultes en situation de handicap psychique du service AVP (association La Clé, Rouen). Sert à ne pas rater les rendez-vous : ateliers, rappels personnels, agenda.
+Mise à jour : 18/09/2026. Application Android pour ~30 adultes en situation de handicap psychique du service AVP (association La Clé, Rouen). Sert à ne pas rater les rendez-vous : ateliers, rappels personnels, agenda.
 
 Deux dépôts :
 - `stevoux1969.github.io` (public, sert l'app en direct) — cloné dans `C:\Users\samsah32\stevoux1969.github.io`
@@ -46,6 +46,7 @@ Version en prod (`version.txt`) : **1.0.8**. `APP_VERSION` dans le code web est 
 
 ## Bugs corrigés récemment (ne pas réintroduire)
 
+- **Doublon de sonnerie ateliers** : les ateliers (`source:'atelier'`) programmaient deux alarmes (veille 15h + 2h avant). Retiré la sonnerie veille partout où elle existait — alarme native (`_occurrencesNatives`), repli notification push web (`queueAtelierNotifications`, auto-inscription bénéficiaire), inscription groupée admin par prénom (`adminInscrireAtelier`) — ainsi que le texte affiché sur la carte et la synthèse vocale (`_carteRappel`, `_phraseCarte`), qui annonçaient encore « deux sonneries ». Ne reste qu'une seule alarme, 2h avant. Le choix veille/2h des rappels personnels (assistant « Nouveau rappel ») est une fonctionnalité séparée, volontaire, non touchée.
 - **Pipeline FCM animateur** (`Code.js`, Google Apps Script, dépôt séparé non versionné dans `Desktop/majourneeavp-apps-script`) : passé d'un simple GET de collection (ordre arbitraire + filtre côté client) à une requête structurée Firestore (`documents:runQuery`) avec filtre serveur `sent==false` et tri `createdAt ASC`. **Fonctionne**, mais le fichier contient encore l'ancienne implémentation en code mort : `sendAnimateurNotifications`, `getFCMToken`, `sendFCMv1`, `markAnimNotifSent` sont chacune définies deux fois dans le fichier — la deuxième définition écrase la première donc ça marche, mais c'est fragile (toute édition de la mauvaise copie ne ferait rien). Nettoyage à faire, voir Chantiers.
 - `planning-print.html` : regex de détection de début de mois décalé ne couvrait que « Lundi » → ajout de Mercredi/Jeudi/Vendredi puis du cas Mardi (mois démarrant un mardi).
 - Nettoyage du tutoriel guidé (bouton Fermer + retour app Android) : ne laissait plus le guide dans un état zombie.
