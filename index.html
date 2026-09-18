@@ -6604,24 +6604,27 @@ function showUpdatePopup(remoteVersion){
   const today=new Date().toISOString().slice(0,10);
   const seen=localStorage.getItem('update_seen_'+remoteVersion);
   if(seen===today)return;
-  const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
-  overlay.innerHTML=`
-    <div style="background:white;border-radius:18px;padding:28px 22px;max-width:380px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,0.3);">
-      <div style="font-size:3rem;margin-bottom:8px;">🆕</div>
-      <h2 style="margin:0 0 12px;color:#2c3e91;font-size:1.375rem;">Mise à jour disponible</h2>
-      <p style="margin:0 0 6px;color:#444;font-size:0.9375rem;line-height:1.4;">Une nouvelle version de l'application est disponible.</p>
-      <p style="margin:0 0 20px;color:#888;font-size:0.8125rem;">Version ${remoteVersion} (vous avez ${APP_VERSION})</p>
-      <p style="margin:0 0 20px;color:#444;font-size:0.875rem;line-height:1.4;">Elle sera proposée automatiquement au prochain démarrage de l'application.</p>
-      <button id="update-later" style="width:100%;background:#22a559;color:white;border:none;padding:14px;border-radius:12px;font-weight:700;font-size:1rem;cursor:pointer;font-family:inherit;">D'accord</button>
-    </div>
-  `;
   // Mémoriser dès l'affichage pour éviter la boucle
   localStorage.setItem('update_seen_'+remoteVersion,today);
+  // Écran plein, bloquant, sans bouton : se recharge tout seul après ~3s.
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:#2c3e91;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML=`
+    <div style="text-align:center;max-width:340px;">
+      <div style="font-size:3rem;margin-bottom:16px;">🔄</div>
+      <div style="color:white;font-size:1.0625rem;font-weight:500;margin-bottom:14px;">Mise à jour</div>
+      <div style="display:inline-block;background:#fdf0dc;color:#2c3e91;font-size:0.8125rem;font-weight:700;padding:6px 16px;border-radius:999px;margin-bottom:16px;">Message de Steve</div>
+      <p style="margin:0 0 8px;color:#e4e7f7;font-size:0.9375rem;line-height:1.4;">Pour l'amélioration de notre application, je fais une mise à jour.</p>
+      <p style="margin:0 0 20px;color:#b9c0e8;font-size:0.8125rem;">Ne fermez pas l'application.</p>
+      <div style="display:flex;justify-content:center;gap:8px;">
+        <div style="width:8px;height:8px;border-radius:50%;background:#22a559;"></div>
+        <div style="width:8px;height:8px;border-radius:50%;background:#22a559;"></div>
+        <div style="width:8px;height:8px;border-radius:50%;background:#22a559;"></div>
+      </div>
+    </div>
+  `;
   document.body.appendChild(overlay);
-  document.getElementById('update-later').addEventListener('click',()=>{
-    overlay.remove();
-  });
+  setTimeout(()=>{location.href=location.pathname+'?_='+Date.now();},3000);
 }
 
 async function init(){
@@ -6642,6 +6645,12 @@ async function init(){
   document.getElementById('field-prenom').style.display='none';
   // Vérifier les mises à jour APK (APK seulement)
   checkUpdate();
+  // Relancer la vérification à chaque retour au premier plan (pas seulement au démarrage)
+  try{
+    if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
+      window.Capacitor.Plugins.App.addListener('resume',()=>checkUpdate());
+    }
+  }catch(e){}
   // Afficher bouton téléchargement APK uniquement sur navigateur Android (pas dans l'APK Capacitor)
   try{
     const isCapacitor=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
