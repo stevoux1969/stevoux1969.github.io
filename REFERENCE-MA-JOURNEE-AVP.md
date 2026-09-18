@@ -6,7 +6,7 @@ Deux dépôts :
 - `stevoux1969.github.io` (public, sert l'app en direct) — cloné dans `C:\Users\samsah32\stevoux1969.github.io`
 - `majourneeavp-android` (privé, projet Capacitor/Android) — cloné dans `C:\Users\samsah32\Desktop\majourneeavp`, dossier `www/` synchronisé à la main avec le dépôt web
 
-Version en prod (`version.txt`) : **1.0.8**. `APP_VERSION` dans le code web est déjà à **1.0.9** — écart volontaire : les 30 bénéficiaires sont encore sur l'APK 1.0.3 (pré-migration), `install.html` et ses builds successifs restent à usage personnel de Steve. Ne jamais modifier `version.txt` sans son accord explicite.
+Version en prod (`version.txt`) et `APP_VERSION` dans le code web : **1.0.10** (synchronisés le 18/09/2026, accord explicite de Steve — sonnerie atelier, bouton Réglages, maj obligatoire). Les 30 bénéficiaires sont encore sur l'APK 1.0.3 (pré-migration) et ne voient donc pas cette mise à jour ; `install.html` et ses builds successifs restent à usage personnel de Steve. Ne jamais modifier `version.txt` sans son accord explicite.
 
 ## Fonctionnalités bénéficiaire (✅ fonctionne)
 
