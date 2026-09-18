@@ -154,8 +154,27 @@
     .header-title h1 { font-size:clamp(1.125rem, 5.5vw, 1.625rem); font-weight: 700; letter-spacing: -0.5px; }
     .header-title .date { font-size:0.875rem; opacity: 0.85; margin-top: 4px; text-transform: capitalize; }
     /* Languette discrète sur le bord gauche : glisser depuis là ouvre le tiroir menu */
-    .menu-languette { position:fixed; left:0; top:50%; transform:translateY(-50%); width:7px; height:52px; background:rgba(44,62,145,0.35); border-radius:0 8px 8px 0; z-index:40; transition:background .2s ease, width .2s ease; }
-    .menu-languette.touchee { background:rgba(44,62,145,0.6); width:10px; }
+    .menu-languette {
+      position:fixed; left:0; top:50%; transform:translateY(-50%);
+      width:34px; height:110px;
+      background:#2c3e91;
+      border-radius:0 16px 16px 0;
+      box-shadow:2px 4px 10px rgba(0,0,0,0.25);
+      z-index:40;
+      display:flex; align-items:center; justify-content:center;
+      transition:background .2s ease, width .2s ease;
+    }
+    .menu-languette::after {
+      content:"Réglages";
+      writing-mode:vertical-rl;
+      text-orientation:mixed;
+      color:#fff;
+      font-size:0.75rem;
+      font-weight:700;
+      letter-spacing:0.02em;
+      transform:rotate(180deg);
+    }
+    .menu-languette.touchee { background:#1f2d70; width:38px; }
     .voile-tiroir { position:fixed; inset:0; background:rgba(20,26,50,.45); opacity:0; pointer-events:none; transition:opacity .3s ease; z-index:70; }
     .voile-tiroir.visible { opacity:1; pointer-events:auto; }
     .tiroir-menu { position:fixed; top:0; bottom:0; left:0; width:78%; max-width:300px; background:#fff; box-shadow:4px 0 24px rgba(0,0,0,.2); transform:translateX(-100%); transition:transform .3s ease; z-index:71; padding:calc(26px + env(safe-area-inset-top)) 0 20px; overflow-y:auto; }
@@ -682,9 +701,10 @@
     .tiroir-item.theme-actif { background:#f1f3f8; }
 
     /* Boutons pilule + reflet (cohérent avec la page planning) */
-    .planning-btn-split, .btn-voir-agenda, .btn-arrow, .btn-nouveau-rappel {
+    .planning-btn-split, .btn-voir-agenda, .btn-arrow {
       position: relative; overflow: hidden;
     }
+    .btn-nouveau-rappel { overflow: hidden; }
     .planning-btn-split::before, .btn-voir-agenda::before,
     .btn-arrow::before, .btn-nouveau-rappel::before {
       content: ""; position: absolute; top: 8%; left: 6%; right: 6%; height: 48%;
@@ -718,8 +738,8 @@
     body[data-theme="sombre"] .btn-arrow { background:rgba(255,255,255,0.08); }
     body[data-theme="sombre"] .btn-arrow:active { background:rgba(255,255,255,0.18); }
     body[data-theme="sombre"] .header-user { background:rgba(255,255,255,0.1); }
-    body[data-theme="sombre"] .menu-languette { background:rgba(143,164,255,0.35); }
-    body[data-theme="sombre"] .menu-languette.touchee { background:rgba(143,164,255,0.55); }
+    body[data-theme="sombre"] .menu-languette { background:#3a4570; }
+    body[data-theme="sombre"] .menu-languette.touchee { background:#4a5590; }
     body[data-theme="sombre"] .today-bar { background:#3a2f14; border-bottom-color:#5a4720; }
     body[data-theme="sombre"] .today-bar button { color:#f0c674; }
     body[data-theme="sombre"] .planning-btn-split { background:#232b4d; color:#dbe1fa; border:1px solid #3a4570; box-shadow:none; }
