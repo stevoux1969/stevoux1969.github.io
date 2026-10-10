@@ -1295,6 +1295,10 @@
       <p>Je n'arrive pas à bien vous comprendre. Vous voulez choisir avec les images ?</p>
       <button type="button" class="vc-lien-images" id="vc-aide-images-btn" style="background:#2c3e91;color:#fff">👆 Oui, avec les images</button>
     </div>
+    <div class="vc-bulle-aide" id="vc-erreur" hidden>
+      <p id="vc-erreur-texte">Problème avec le micro.</p>
+      <button type="button" class="vc-lien-images" id="vc-erreur-reessayer" style="background:#2c3e91;color:#fff">🔄 Réessayer</button>
+    </div>
     <button type="button" class="vc-lien-images" id="voix-lien-images">👆 Je préfère appuyer sur des images</button>
   </div>
 </div>
@@ -6568,11 +6572,13 @@ document.getElementById('add-btn').addEventListener('click',()=>{
 });
 document.getElementById('choix-rappel-back').addEventListener('click',()=>showScreen('main-screen'));
 document.getElementById('choix-images-btn').addEventListener('click',()=>openEdit(null));
-document.getElementById('choix-voix-btn').addEventListener('click',()=>{ vcReset(); showScreen('voix-screen'); });
-document.getElementById('voix-back').addEventListener('click',()=>showScreen('choix-rappel-screen'));
-document.getElementById('voix-lien-images').addEventListener('click',()=>openEdit(null));
-document.getElementById('vc-aide-images-btn').addEventListener('click',()=>openEdit(null));
-// Remet l'écran "Je le dis" dans son état initial (étape 1 : pas encore de micro ni d'IA branchés).
+document.getElementById('choix-voix-btn').addEventListener('click',()=>{ showScreen('voix-screen'); vcDemarrerConversation(); });
+document.getElementById('voix-back').addEventListener('click',()=>{ vcArreterTout(); showScreen('choix-rappel-screen'); });
+document.getElementById('voix-lien-images').addEventListener('click',()=>{ vcArreterTout(); openEdit(null); });
+document.getElementById('vc-aide-images-btn').addEventListener('click',()=>{ vcArreterTout(); openEdit(null); });
+document.getElementById('vc-erreur-reessayer').addEventListener('click',()=>{ document.getElementById('vc-erreur').hidden=true; vcEcouter(); });
+document.getElementById('vc-rond-voix').addEventListener('click',()=>{ vcRelance=false; document.getElementById('vc-aide').hidden=true; document.getElementById('vc-erreur').hidden=true; vcEcouter(); });
+// Remet l'écran "Je le dis" dans son état initial.
 function vcReset(){
   const corps=document.getElementById('vc-voix-body');
   corps.classList.remove('parle','ecoute');
@@ -6587,6 +6593,73 @@ function vcReset(){
   });
   document.getElementById('vc-fin').hidden=true;
   document.getElementById('vc-aide').hidden=true;
+  document.getElementById('vc-erreur').hidden=true;
+}
+// Étape 2 : écoute réelle (plugin natif Voice, android.speech.SpeechRecognizer).
+// Jamais de réponse inventée : seul ce que la personne dit vraiment s'affiche.
+// Une seule relance après silence ; à la 2e incompréhension d'affilée, proposition des images.
+let vcRelance=false;
+function vcDemarrerConversation(){
+  vcReset();
+  vcRelance=false;
+  vcParler("Bonjour ! Qu'est-ce que je dois vous rappeler ?", vcEcouter);
+}
+function vcParler(texte, puis){
+  const corps=document.getElementById('vc-voix-body');
+  corps.classList.remove('ecoute'); corps.classList.add('parle');
+  document.getElementById('vc-etat').textContent='Je parle…';
+  document.getElementById('vc-phrase').textContent=texte;
+  if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech){
+    window.Capacitor.Plugins.TextToSpeech.speak({text:texte,lang:'fr-FR',rate:0.95,pitch:1.0,volume:1.0,category:'ambient'})
+      .then(()=>{ if(puis) puis(); }).catch(()=>{ if(puis) puis(); });
+  } else if(puis) puis();
+}
+function vcEcouter(){
+  const corps=document.getElementById('vc-voix-body');
+  corps.classList.remove('parle'); corps.classList.add('ecoute');
+  document.getElementById('vc-etat').textContent='Je vous écoute…';
+  if(!(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Voice)){ vcErreurMicro('indisponible'); return; }
+  window.Capacitor.Plugins.Voice.demarrer();
+}
+function vcArreterEcoute(){
+  document.getElementById('vc-voix-body').classList.remove('ecoute','parle');
+}
+function vcArreterTout(){
+  vcArreterEcoute();
+  try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech)window.Capacitor.Plugins.TextToSpeech.stop();}catch(e){}
+  try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Voice)window.Capacitor.Plugins.Voice.arreter();}catch(e){}
+}
+function vcSurTexte(texte){
+  vcArreterEcoute();
+  vcRelance=false;
+  document.getElementById('vc-aide').hidden=true;
+  document.getElementById('vc-dit').textContent='« '+texte+' »';
+  document.getElementById('vc-etat').textContent="Reçu. L'assistant IA arrive à l'étape suivante.";
+}
+function vcSurSilence(){
+  vcArreterEcoute();
+  if(!vcRelance){
+    vcRelance=true;
+    vcParler("Je ne vous ai pas entendu.", vcEcouter);
+  } else {
+    vcRelance=false;
+    document.getElementById('vc-etat').textContent='';
+    document.getElementById('vc-aide').hidden=false;
+  }
+}
+function vcErreurMicro(code){
+  vcArreterEcoute();
+  let msg='Problème avec le micro. Appuyez sur Réessayer.';
+  if(code==='permission') msg="Le micro a été refusé. Appuyez sur Réessayer pour l'autoriser.";
+  else if(code==='indisponible') msg="Le micro n'est pas disponible sur cet appareil.";
+  document.getElementById('vc-erreur-texte').textContent=msg;
+  document.getElementById('vc-erreur').hidden=false;
+  document.getElementById('vc-etat').textContent='';
+}
+if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Voice){
+  window.Capacitor.Plugins.Voice.addListener('texte',(e)=>vcSurTexte(e&&e.texte||''));
+  window.Capacitor.Plugins.Voice.addListener('silence',()=>vcSurSilence());
+  window.Capacitor.Plugins.Voice.addListener('erreur',(e)=>vcErreurMicro(e&&e.code||'autre'));
 }
 document.getElementById('back-btn').addEventListener('click',()=>{if(guideActif)guideAnnuler(false);if(state.editingAdminMode&&adminEditingUid){const uid=adminEditingUid;state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showAdminUserDetail(uid);return;}showScreen('main-screen');});
 
