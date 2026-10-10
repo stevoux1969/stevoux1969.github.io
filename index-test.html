@@ -154,8 +154,27 @@
     .header-title h1 { font-size:clamp(1.125rem, 5.5vw, 1.625rem); font-weight: 700; letter-spacing: -0.5px; }
     .header-title .date { font-size:0.875rem; opacity: 0.85; margin-top: 4px; text-transform: capitalize; }
     /* Languette discrète sur le bord gauche : glisser depuis là ouvre le tiroir menu */
-    .menu-languette { position:fixed; left:0; top:50%; transform:translateY(-50%); width:7px; height:52px; background:rgba(44,62,145,0.35); border-radius:0 8px 8px 0; z-index:40; transition:background .2s ease, width .2s ease; }
-    .menu-languette.touchee { background:rgba(44,62,145,0.6); width:10px; }
+    .menu-languette {
+      position:fixed; left:0; top:50%; transform:translateY(-50%);
+      width:34px; height:110px;
+      background:#2c3e91;
+      border-radius:0 16px 16px 0;
+      box-shadow:2px 4px 10px rgba(0,0,0,0.25);
+      z-index:40;
+      display:flex; align-items:center; justify-content:center;
+      transition:background .2s ease, width .2s ease;
+    }
+    .menu-languette::after {
+      content:"Réglages";
+      writing-mode:vertical-rl;
+      text-orientation:mixed;
+      color:#fff;
+      font-size:0.75rem;
+      font-weight:700;
+      letter-spacing:0.02em;
+      transform:rotate(180deg);
+    }
+    .menu-languette.touchee { background:#1f2d70; width:38px; }
     .voile-tiroir { position:fixed; inset:0; background:rgba(20,26,50,.45); opacity:0; pointer-events:none; transition:opacity .3s ease; z-index:70; }
     .voile-tiroir.visible { opacity:1; pointer-events:auto; }
     .tiroir-menu { position:fixed; top:0; bottom:0; left:0; width:78%; max-width:300px; background:#fff; box-shadow:4px 0 24px rgba(0,0,0,.2); transform:translateX(-100%); transition:transform .3s ease; z-index:71; padding:calc(26px + env(safe-area-inset-top)) 0 20px; overflow-y:auto; }
@@ -681,6 +700,37 @@
     .tiroir-item.theme-actif .tiroir-check { display:inline; }
     .tiroir-item.theme-actif { background:#f1f3f8; }
 
+    /* Boutons pilule + reflet (cohérent avec la page planning) */
+    .planning-btn-split, .btn-voir-agenda, .btn-arrow {
+      position: relative; overflow: hidden;
+    }
+    .btn-nouveau-rappel { overflow: hidden; }
+    .planning-btn-split::before, .btn-voir-agenda::before,
+    .btn-arrow::before, .btn-nouveau-rappel::before {
+      content: ""; position: absolute; top: 8%; left: 6%; right: 6%; height: 48%;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.85), rgba(255,255,255,0) 75%);
+      pointer-events: none;
+    }
+    .planning-btn-split { border-radius: 999px; }
+    .btn-voir-agenda { width: auto; margin: 16px auto 8px; padding: 14px 26px; border-radius: 999px; }
+    .btn-arrow { box-shadow: 0 4px 8px rgba(0,0,0,0.25); }
+    .planning-btn-split:active, .btn-voir-agenda:active,
+    .btn-arrow:active, .btn-nouveau-rappel:active {
+      transform: scale(0.94);
+    }
+
+    /* Panneau « Taille du texte » de l'accueil */
+    .taille-overlay-accueil { position:fixed; inset:0; background:rgba(20,26,50,.45); opacity:0; pointer-events:none; transition:opacity .3s ease; z-index:70; }
+    .taille-overlay-accueil.visible { opacity:1; pointer-events:auto; }
+    .taille-panel-accueil { position:fixed; left:0; right:0; bottom:0; background:#fff; border-radius:24px 24px 0 0; padding:10px 22px calc(24px + env(safe-area-inset-bottom)); transform:translateY(100%); transition:transform .35s ease; z-index:71; box-shadow:0 -10px 30px rgba(0,0,0,.2); max-height:80vh; overflow-y:auto; }
+    .taille-panel-accueil.visible { transform:translateY(0); }
+    .taille-panel-accueil .aide-handle { width:42px; height:5px; background:#dcdfec; border-radius:3px; margin:8px auto 14px; }
+    .taille-panel-accueil h2 { color:#2c3e91; font-size:1.2rem; margin:0 0 14px; }
+    .taille-choix { display:flex; flex-direction:column; gap:10px; }
+    .taille-btn { background:#eef1fb; color:#2c3e91; border:none; border-radius:12px; padding:14px; text-align:center; font-weight:700; font-size:.95rem; cursor:pointer; font-family:inherit; }
+    .taille-btn.actif { background:#2c3e91; color:#fff; }
+
     /* ===================== THEME SOMBRE (écran d'accueil) ===================== */
     body[data-theme="sombre"] { background:#0f1424; }
     body[data-theme="sombre"] .screen { background:#0f1424; }
@@ -688,8 +738,8 @@
     body[data-theme="sombre"] .btn-arrow { background:rgba(255,255,255,0.08); }
     body[data-theme="sombre"] .btn-arrow:active { background:rgba(255,255,255,0.18); }
     body[data-theme="sombre"] .header-user { background:rgba(255,255,255,0.1); }
-    body[data-theme="sombre"] .menu-languette { background:rgba(143,164,255,0.35); }
-    body[data-theme="sombre"] .menu-languette.touchee { background:rgba(143,164,255,0.55); }
+    body[data-theme="sombre"] .menu-languette { background:#3a4570; }
+    body[data-theme="sombre"] .menu-languette.touchee { background:#4a5590; }
     body[data-theme="sombre"] .today-bar { background:#3a2f14; border-bottom-color:#5a4720; }
     body[data-theme="sombre"] .today-bar button { color:#f0c674; }
     body[data-theme="sombre"] .planning-btn-split { background:#232b4d; color:#dbe1fa; border:1px solid #3a4570; box-shadow:none; }
@@ -739,6 +789,11 @@
     body[data-theme="sombre"] .aide-panel-accueil .aide-lire-btn { background:#232b4d; color:#a9b3e0; }
     body[data-theme="sombre"] .aide-panel-accueil .aide-lire-btn.actif { background:#2c3e91; color:#fff; }
     body[data-theme="sombre"] .aide-panel-accueil .aide-fermer-btn { color:#7f8bb8; }
+    body[data-theme="sombre"] .taille-panel-accueil { background:#161d38; box-shadow:none; }
+    body[data-theme="sombre"] .taille-panel-accueil .aide-handle { background:#3a4570; }
+    body[data-theme="sombre"] .taille-panel-accueil h2 { color:#8fa4ff; }
+    body[data-theme="sombre"] .taille-btn { background:#232b4d; color:#a9b3e0; }
+    body[data-theme="sombre"] .taille-btn.actif { background:#2c3e91; color:#fff; }
     /* Tiroir menu */
     body[data-theme="sombre"] .tiroir-menu { background:#161d38; box-shadow:none; border-right:1px solid #2a3350; }
     body[data-theme="sombre"] .tiroir-menu h2 { color:#8fa4ff; }
@@ -1019,12 +1074,22 @@
   <div class="tiroir-menu" id="tiroir-menu">
     <div class="tiroir-entete"><h2>Menu</h2><button type="button" class="tiroir-fermer" id="tiroir-fermer-btn" aria-label="Fermer">✕</button></div>
     <div class="tiroir-item" id="tiroir-item-reglages"><span class="tiroir-ic">⚙️</span><span>Réglages</span></div>
-    <div class="tiroir-item a-venir"><span class="tiroir-ic">🔤</span><span>Taille du texte</span><span class="tiroir-tag">bientôt</span></div>
+    <div class="tiroir-item" id="tiroir-item-taille"><span class="tiroir-ic">🔤</span><span>Taille du texte</span></div>
     <div class="tiroir-separateur"></div>
     <div class="tiroir-item" id="tiroir-item-clair"><span class="tiroir-ic">☀️</span><span>Clair</span><span class="tiroir-check">✓</span></div>
     <div class="tiroir-item" id="tiroir-item-sombre"><span class="tiroir-ic">🌙</span><span>Sombre</span><span class="tiroir-check">✓</span></div>
     <div class="tiroir-separateur"></div>
     <div class="tiroir-item" id="tiroir-item-avis"><span class="tiroir-ic">💬</span><span>Donner mon avis</span></div>
+  </div>
+  <div class="taille-overlay-accueil" id="taille-overlay-accueil"></div>
+  <div class="taille-panel-accueil" id="taille-panel-accueil">
+    <div class="aide-handle"></div>
+    <h2>🔤 Taille du texte</h2>
+    <div class="taille-choix">
+      <button type="button" class="taille-btn" data-taille="normal">Normal</button>
+      <button type="button" class="taille-btn" data-taille="grand">Grand</button>
+      <button type="button" class="taille-btn" data-taille="tres-grand">Très grand</button>
+    </div>
   </div>
   <button type="button" id="add-btn" class="btn-nouveau-rappel">
     <div class="bn-plus">+</div>
@@ -1562,6 +1627,19 @@ function majTiroirTheme(){const t=getTheme();const bc=document.getElementById('t
 function setTheme(t){try{localStorage.setItem(THEME_KEY,t);}catch(e){}appliquerTheme(t);majTiroirTheme();}
 appliquerTheme(getTheme());
 
+const TAILLE_KEY='avp_taille';
+const TAILLES_RATIO={grand:28/24,'tres-grand':32/24};
+function getTailleTexte(){try{return localStorage.getItem(TAILLE_KEY)||'normal';}catch(e){return'normal';}}
+function majBoutonsTaille(t){document.querySelectorAll('.taille-btn').forEach(b=>b.classList.toggle('actif',b.dataset.taille===t));}
+function tailleBaseNaturelle(){return window.matchMedia('(min-width: 600px)').matches?24:16;}
+function appliquerTailleTexte(t){
+  const ratio=TAILLES_RATIO[t];
+  document.documentElement.style.fontSize=ratio?(tailleBaseNaturelle()*ratio)+'px':'';
+  majBoutonsTaille(t);
+}
+function setTailleTexte(t){try{localStorage.setItem(TAILLE_KEY,t);}catch(e){}appliquerTailleTexte(t);}
+appliquerTailleTexte(getTailleTexte());
+
 const SVG_HDJ = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="60" cy="14" r="10" fill="#FFD93D"/><line x1="60" y1="2" x2="60" y2="4" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><line x1="60" y1="24" x2="60" y2="26" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><line x1="48" y1="14" x2="50" y2="14" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><line x1="70" y1="14" x2="72" y2="14" stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"/><circle cx="30" cy="18" r="8" fill="#F5DEB3"/><rect x="22" y="28" width="16" height="24" rx="3" fill="#2AA198"/><rect x="18" y="28" width="8" height="18" rx="2" fill="#2AA198"/><rect x="34" y="28" width="8" height="18" rx="2" fill="#2AA198"/><rect x="24" y="52" width="6" height="14" rx="2" fill="#3B6B8A"/><rect x="32" y="52" width="6" height="14" rx="2" fill="#3B6B8A"/><rect x="26" y="32" width="8" height="3" rx="1" fill="white"/><rect x="29" y="30" width="2" height="7" rx="1" fill="white"/><circle cx="30" cy="14" r="2" fill="#2AA198"/></svg>`;
 const SVG_CMP = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><polygon points="40,8 8,35 72,35" fill="#E85D4A"/><rect x="14" y="35" width="52" height="32" fill="#FFF5E6"/><rect x="14" y="35" width="52" height="3" fill="#D44A3A"/><rect x="30" y="45" width="20" height="22" rx="2" fill="#8B6914"/><circle cx="46" cy="57" r="2" fill="#FFD93D"/><rect x="18" y="40" width="10" height="10" rx="1" fill="#87CEEB"/><line x1="23" y1="40" x2="23" y2="50" stroke="white" stroke-width="1"/><line x1="18" y1="45" x2="28" y2="45" stroke="white" stroke-width="1"/><rect x="52" y="40" width="10" height="10" rx="1" fill="#87CEEB"/><line x1="57" y1="40" x2="57" y2="50" stroke="white" stroke-width="1"/><line x1="52" y1="45" x2="62" y2="45" stroke="white" stroke-width="1"/><text x="40" y="76" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#2c3e91">CMP</text></svg>`;
 const SVG_AUX = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="28" cy="16" r="7" fill="#E8D5C4"/><rect x="22" y="25" width="12" height="20" rx="3" fill="#D4A0D0"/><rect x="18" y="25" width="6" height="15" rx="2" fill="#D4A0D0"/><rect x="34" y="25" width="6" height="15" rx="2" fill="#D4A0D0"/><rect x="23" y="45" width="5" height="16" rx="2" fill="#8B7355"/><rect x="30" y="45" width="5" height="16" rx="2" fill="#8B7355"/><line x1="20" y1="42" x2="14" y2="62" stroke="#8B6914" stroke-width="2.5" stroke-linecap="round"/><circle cx="52" cy="18" r="7" fill="#F5DEB3"/><rect x="46" y="27" width="12" height="20" rx="3" fill="#64B5F6"/><rect x="42" y="27" width="6" height="15" rx="2" fill="#64B5F6"/><rect x="58" y="27" width="6" height="15" rx="2" fill="#64B5F6"/><rect x="47" y="47" width="5" height="16" rx="2" fill="#3B6B8A"/><rect x="54" y="47" width="5" height="16" rx="2" fill="#3B6B8A"/><path d="M36,36 Q40,34 44,36" stroke="#D4A0D0" stroke-width="2" fill="none"/></svg>`;
@@ -1641,6 +1719,7 @@ const AVP_CSV_URLS = {
   7: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiMQSY5bkzgEsLV58rkPeAxuAffVuw0qPuehrTL_92BdlYDgL_QMjHZTzd5KF_IhhPm3pfmQJsXB7T/pub?gid=1325311580&single=true&output=csv',
   8: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiMQSY5bkzgEsLV58rkPeAxuAffVuw0qPuehrTL_92BdlYDgL_QMjHZTzd5KF_IhhPm3pfmQJsXB7T/pub?gid=803134238&single=true&output=csv',
   9: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiMQSY5bkzgEsLV58rkPeAxuAffVuw0qPuehrTL_92BdlYDgL_QMjHZTzd5KF_IhhPm3pfmQJsXB7T/pub?gid=1849419380&single=true&output=csv',
+  10: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiMQSY5bkzgEsLV58rkPeAxuAffVuw0qPuehrTL_92BdlYDgL_QMjHZTzd5KF_IhhPm3pfmQJsXB7T/pub?gid=1351412147&single=true&output=csv',
 };
 const GREG_CSV_URLS = {
   5: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTVyCIhrJco50xlQhnGeJ3wDpxvu-h5ZzHyN5Z-GrHb8ekkwtobyKxFFXevdr1QDDk4wZo-mtyirB8y/pub?gid=506017650&single=true&output=csv',
@@ -1648,6 +1727,7 @@ const GREG_CSV_URLS = {
   7: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTVyCIhrJco50xlQhnGeJ3wDpxvu-h5ZzHyN5Z-GrHb8ekkwtobyKxFFXevdr1QDDk4wZo-mtyirB8y/pub?gid=1325311580&single=true&output=csv',
   8: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTVyCIhrJco50xlQhnGeJ3wDpxvu-h5ZzHyN5Z-GrHb8ekkwtobyKxFFXevdr1QDDk4wZo-mtyirB8y/pub?gid=803134238&single=true&output=csv',
   9: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTVyCIhrJco50xlQhnGeJ3wDpxvu-h5ZzHyN5Z-GrHb8ekkwtobyKxFFXevdr1QDDk4wZo-mtyirB8y/pub?gid=1849419380&single=true&output=csv',
+  10: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTVyCIhrJco50xlQhnGeJ3wDpxvu-h5ZzHyN5Z-GrHb8ekkwtobyKxFFXevdr1QDDk4wZo-mtyirB8y/pub?gid=1351412147&single=true&output=csv',
 };
 
 function getAVPCsvUrl(mois) {
@@ -2246,8 +2326,6 @@ function _occurrencesNatives(){
         if(r.annule)return;   // atelier annulé : pas d'alarme
         if(!r.date||!r.time)return;
         const evMs=new Date(r.date+'T'+r.time+':00').getTime();
-        const veille=new Date(evMs);veille.setDate(veille.getDate()-1);veille.setHours(15,0,0,0);
-        add(r.id+'|veille',r,veille.getTime(),'alarme',true);
         add(r.id+'|2h',r,evMs-2*3600000,'alarme',true);
         add(r.id+'|ev',r,evMs,'notification');
         const tiA=_trajetInfo(r);
@@ -2410,7 +2488,7 @@ async function tagOneSignalAtelier(atelierKey,inscrit){try{if(window.OneSignalDe
 
 async function queueNotification(title,message,sendAtDate,sendAtTime,targetTag){try{const[y,mo,d]=sendAtDate.split('-').map(Number);const[h,m]=sendAtTime.split(':').map(Number);const sendDate=new Date(y,mo-1,d,h,m,0);if(sendDate.getTime()<Date.now())return;const notif={title,message,sendAt:sendDate.toISOString(),sendAtMs:sendDate.getTime(),targetTagKey:targetTag.key,targetTagValue:targetTag.value,sent:false,createdAt:Date.now(),createdBy:currentUser?currentUser.prenom:'unknown'};await db.collection('notifications').add(notif);}catch(e){}}
 
-async function queueAtelierNotifications(atelier,atelierKey){const atelierDate=new Date(atelier.date+'T'+atelier.time+':00');const tagKey="atelier_"+atelierKey.replace(/[^a-z0-9_]/gi,'_').slice(0,60);const target={key:tagKey,value:"1"};const veille=new Date(atelierDate);veille.setDate(veille.getDate()-1);await queueNotification('📅 Demain : '+atelier.title,'⏰ Demain à '+atelier.time.replace(':','h')+' · Pensez à venir !',dateKey(veille),'15:00',target);const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const hh=String(avant2h.getHours()).padStart(2,'0');const mm=String(avant2h.getMinutes()).padStart(2,'0');await queueNotification('🔔 Dans 2h : '+atelier.title,'⏰ Aujourd\'hui à '+atelier.time.replace(':','h')+' · Préparez-vous !',dateKey(avant2h),hh+':'+mm,target);}
+async function queueAtelierNotifications(atelier,atelierKey){const atelierDate=new Date(atelier.date+'T'+atelier.time+':00');const tagKey="atelier_"+atelierKey.replace(/[^a-z0-9_]/gi,'_').slice(0,60);const target={key:tagKey,value:"1"};const avant2h=new Date(atelierDate.getTime()-2*60*60*1000);const hh=String(avant2h.getHours()).padStart(2,'0');const mm=String(avant2h.getMinutes()).padStart(2,'0');await queueNotification('🔔 Dans 2h : '+atelier.title,'⏰ Aujourd\'hui à '+atelier.time.replace(':','h')+' · Préparez-vous !',dateKey(avant2h),hh+':'+mm,target);}
 
 // Notifie l'animateur (Steve ou Greg) quand un bénéficiaire s'inscrit ou se désinscrit
 async function notifyAnimateur(action, event){
@@ -3599,8 +3677,6 @@ async function adminInscrireAtelier(uid, prenom) {
         newInscriptions[ek] = true;
         const loc = getAVPLocation(cb.dataset.title);
         newAteliers.push({id:'atelier_'+ek,title:cb.dataset.title,icon:cb.dataset.icon,time:cb.dataset.time,date:cb.dataset.date,recurrence:'once',note:loc?loc.address:'',mapLink:loc?'https://www.google.com/maps/search/?api=1&query='+loc.query:null,done:{},source:'atelier'});
-        const veille = new Date(cb.dataset.date+'T12:00:00'); veille.setDate(veille.getDate()-1);
-        queueNotification('📅 Demain : '+cb.dataset.title,'Rappel : demain à '+cb.dataset.time.replace(':','h')+' — '+cb.dataset.title,dateKey(veille),'15:00',{key:'prenom',value:prenom.toLowerCase()});
         const avant = new Date(cb.dataset.date+'T'+cb.dataset.time+':00'); avant.setTime(avant.getTime()-2*60*60*1000);
         queueNotification('🔔 Dans 2h : '+cb.dataset.title,'Rappel : '+cb.dataset.title+' à '+cb.dataset.time.replace(':','h'),dateKey(avant),String(avant.getHours()).padStart(2,'0')+':'+String(avant.getMinutes()).padStart(2,'0'),{key:'prenom',value:prenom.toLowerCase()});
       }
@@ -4830,8 +4906,8 @@ function _carteRappel(r,key,jourAffiche){
     rows+=`<div class="c-row"><div class="c-row-ic">🚫</div><div class="c-row-tx"><div class="c-row-t1" style="color:#d63447;font-weight:700;">Atelier annulé</div>${r.motif?`<div class="c-row-t2">${esc(r.motif)}</div>`:''}</div></div>`;
   }else if(isAtelier){
     const ev=new Date(r.date+'T'+r.time+':00');const a2=new Date(ev.getTime()-2*3600000);
-    const sonnT1=`Sonnerie la veille à 15h00 et à ${pad2(a2.getHours())}h${pad2(a2.getMinutes())}`;
-    rows+=`<div class="c-row"><div class="c-row-ic">🔔</div><div class="c-row-tx"><div class="c-row-t1">${sonnT1}</div><div class="c-row-t2">Deux sonneries avant l'atelier</div></div></div>`;
+    const sonnT1=`Sonnerie à ${pad2(a2.getHours())}h${pad2(a2.getMinutes())}`;
+    rows+=`<div class="c-row"><div class="c-row-ic">🔔</div><div class="c-row-tx"><div class="c-row-t1">${sonnT1}</div><div class="c-row-t2">2 heures avant l'atelier</div></div></div>`;
     if(ti&&ti.adresse)rows+=`<div class="c-row"><div class="c-row-ic">📍</div><div class="c-row-tx"><div class="c-row-t1">${esc(ti.adresse)}</div></div></div>`;
   }else if(!(ti&&ti.departMs)){
     // S'il y a un trajet, le bloc « Départ » ci-dessus affiche déjà l'heure de sonnerie : pas besoin de la répéter ici.
@@ -4880,7 +4956,7 @@ function _phraseCarte(r){
   if(annule){p+=' Cet atelier est annulé.'+(r.motif?' '+r.motif+'.':'');return p;}
   if(ti&&ti.adresse)p+=' Adresse : '+ti.adresse+'.';
   if(ti&&ti.departMs){const dp=new Date(ti.departMs);p+=' Départ à '+timeToSpeech(pad2(dp.getHours())+':'+pad2(dp.getMinutes()))+', '+ti.travelMin+' minutes de trajet.';}
-  if(isAtelier){const ev=new Date(r.date+'T'+r.time+':00');const a2=new Date(ev.getTime()-2*3600000);p+=' Sonnerie la veille à 15 heures, et 2 heures avant, à '+timeToSpeech(pad2(a2.getHours())+':'+pad2(a2.getMinutes()))+'.';}
+  if(isAtelier){const ev=new Date(r.date+'T'+r.time+':00');const a2=new Date(ev.getTime()-2*3600000);p+=' Sonnerie 2 heures avant, à '+timeToSpeech(pad2(a2.getHours())+':'+pad2(a2.getMinutes()))+'.';}
   else if(!(ti&&ti.departMs)){const sonnMs=_sonnerieUniqueMs(r,ti,getCurrentDate());if(sonnMs!==null)p+=' Sonnerie à '+timeToSpeech(pad2(new Date(sonnMs).getHours())+':'+pad2(new Date(sonnMs).getMinutes()))+'.';}
   if(r.note&&!isAtelier)p+=' '+r.note+'.';
   return p;
@@ -5408,6 +5484,11 @@ document.getElementById('tiroir-item-clair').addEventListener('click',()=>setThe
 document.getElementById('tiroir-item-sombre').addEventListener('click',()=>setTheme('sombre'));
 majTiroirTheme();
 document.getElementById('tiroir-item-avis').addEventListener('click',()=>{_fermerTiroirMenu();_ouvrirEcranAvis();});
+document.getElementById('tiroir-item-taille').addEventListener('click',()=>{_fermerTiroirMenu();_ouvrirTailleAccueil();});
+function _ouvrirTailleAccueil(){majBoutonsTaille(getTailleTexte());document.getElementById('taille-overlay-accueil').classList.add('visible');document.getElementById('taille-panel-accueil').classList.add('visible');}
+function _fermerTailleAccueil(){document.getElementById('taille-overlay-accueil').classList.remove('visible');document.getElementById('taille-panel-accueil').classList.remove('visible');}
+document.getElementById('taille-overlay-accueil').addEventListener('click',_fermerTailleAccueil);
+document.querySelectorAll('.taille-btn').forEach(b=>b.addEventListener('click',()=>{setTailleTexte(b.dataset.taille);_fermerTailleAccueil();}));
 function _ouvrirTiroirMenu(){document.getElementById('voile-tiroir').classList.add('visible');document.getElementById('tiroir-menu').classList.add('visible');}
 function _fermerTiroirMenu(){document.getElementById('voile-tiroir').classList.remove('visible');document.getElementById('tiroir-menu').classList.remove('visible');}
 document.getElementById('voile-tiroir').addEventListener('click',_fermerTiroirMenu);
@@ -6490,7 +6571,7 @@ Object.keys(pendingRerings).forEach(id=>{
 document.body.addEventListener('click',()=>{const c=getAudioContext();if(c&&c.state==='suspended')c.resume().catch(()=>{});},{once:true});
 
 // Version actuelle de l'APK — à incrémenter à chaque rebuild
-const APP_VERSION='1.0.9';
+const APP_VERSION='1.0.10';
 const VERSION_URL='https://stevoux1969.github.io/version.txt';
 
 async function checkUpdate(){
@@ -6523,24 +6604,27 @@ function showUpdatePopup(remoteVersion){
   const today=new Date().toISOString().slice(0,10);
   const seen=localStorage.getItem('update_seen_'+remoteVersion);
   if(seen===today)return;
-  const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
-  overlay.innerHTML=`
-    <div style="background:white;border-radius:18px;padding:28px 22px;max-width:380px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,0.3);">
-      <div style="font-size:3rem;margin-bottom:8px;">🆕</div>
-      <h2 style="margin:0 0 12px;color:#2c3e91;font-size:1.375rem;">Mise à jour disponible</h2>
-      <p style="margin:0 0 6px;color:#444;font-size:0.9375rem;line-height:1.4;">Une nouvelle version de l'application est disponible.</p>
-      <p style="margin:0 0 20px;color:#888;font-size:0.8125rem;">Version ${remoteVersion} (vous avez ${APP_VERSION})</p>
-      <p style="margin:0 0 20px;color:#444;font-size:0.875rem;line-height:1.4;">Elle sera proposée automatiquement au prochain démarrage de l'application.</p>
-      <button id="update-later" style="width:100%;background:#22a559;color:white;border:none;padding:14px;border-radius:12px;font-weight:700;font-size:1rem;cursor:pointer;font-family:inherit;">D'accord</button>
-    </div>
-  `;
   // Mémoriser dès l'affichage pour éviter la boucle
   localStorage.setItem('update_seen_'+remoteVersion,today);
+  // Écran plein, bloquant, sans bouton : se recharge tout seul après ~3s.
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:#2c3e91;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML=`
+    <div style="text-align:center;max-width:340px;">
+      <div style="font-size:3rem;margin-bottom:16px;">🔄</div>
+      <div style="color:white;font-size:1.0625rem;font-weight:500;margin-bottom:14px;">Mise à jour</div>
+      <div style="display:inline-block;background:#fdf0dc;color:#2c3e91;font-size:0.8125rem;font-weight:700;padding:6px 16px;border-radius:999px;margin-bottom:16px;">Message de Steve</div>
+      <p style="margin:0 0 8px;color:#e4e7f7;font-size:0.9375rem;line-height:1.4;">Pour l'amélioration de notre application, je fais une mise à jour.</p>
+      <p style="margin:0 0 20px;color:#b9c0e8;font-size:0.8125rem;">Ne fermez pas l'application.</p>
+      <div style="display:flex;justify-content:center;gap:8px;">
+        <div style="width:8px;height:8px;border-radius:50%;background:#22a559;"></div>
+        <div style="width:8px;height:8px;border-radius:50%;background:#22a559;"></div>
+        <div style="width:8px;height:8px;border-radius:50%;background:#22a559;"></div>
+      </div>
+    </div>
+  `;
   document.body.appendChild(overlay);
-  document.getElementById('update-later').addEventListener('click',()=>{
-    overlay.remove();
-  });
+  setTimeout(()=>{location.href=location.pathname+'?_='+Date.now();},3000);
 }
 
 async function init(){
@@ -6561,6 +6645,12 @@ async function init(){
   document.getElementById('field-prenom').style.display='none';
   // Vérifier les mises à jour APK (APK seulement)
   checkUpdate();
+  // Relancer la vérification à chaque retour au premier plan (pas seulement au démarrage)
+  try{
+    if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
+      window.Capacitor.Plugins.App.addListener('resume',()=>checkUpdate());
+    }
+  }catch(e){}
   // Afficher bouton téléchargement APK uniquement sur navigateur Android (pas dans l'APK Capacitor)
   try{
     const isCapacitor=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
