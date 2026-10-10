@@ -475,6 +475,11 @@
     .vc-voix-body.ecoute .vc-rond{background:#22a559;}
     .vc-voix-body.ecoute .vc-rond::after{border-color:#22a559;}
     @keyframes vcPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+    .vc-detail-btn{background:none;border:2px solid #dde2f0;border-radius:999px;color:#5d6680;font-weight:700;font-size:.8125rem;padding:8px 14px;font-family:inherit;cursor:pointer;flex-shrink:0;}
+    .vc-detail-overlay{position:fixed;inset:0;background:rgba(20,26,50,.45);opacity:0;pointer-events:none;transition:opacity .3s ease;z-index:70;}
+    .vc-detail-overlay.visible{opacity:1;pointer-events:auto;}
+    .vc-detail-panel{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:24px 24px 0 0;padding:10px 22px calc(24px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .35s ease;z-index:71;box-shadow:0 -10px 30px rgba(0,0,0,.2);max-height:80vh;overflow-y:auto;}
+    .vc-detail-panel.visible{transform:translateY(0);}
     .field { margin-bottom: 24px; }
     .field label { display: block; font-size:0.9375rem; font-weight: 700; color: #48547a; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
     .field-hint { font-size:0.8125rem; color: #5b6785; margin-top: 6px; line-height: 1.35; font-style: italic; }
@@ -1273,6 +1278,15 @@
   <div class="edit-header">
     <button class="back-btn" id="voix-back">‹ Retour</button>
     <h2 style="flex:1">Je le dis</h2>
+    <button type="button" class="vc-detail-btn" id="vc-detail-btn">Détails</button>
+  </div>
+  <div class="vc-detail-overlay" id="vc-detail-overlay"></div>
+  <div class="vc-detail-panel" id="vc-detail-panel">
+    <div class="aide-handle"></div>
+    <h2 style="color:#2c3e91;font-size:1.2rem;margin:0 0 14px">Détails</h2>
+    <div style="font-size:.9375rem;color:#5d6680">Temps de réponse de l'IA : <b id="vc-detail-temps" style="color:#1a2340">–</b></div>
+    <div style="margin:18px 0 8px;font-weight:800;color:#5d6680;text-transform:uppercase;font-size:.8125rem;letter-spacing:.04em">Voix</div>
+    <div class="taille-choix" id="vc-detail-voix"></div>
   </div>
   <div class="edit-body vc-voix-body" id="vc-voix-body">
     <span class="vc-rond" id="vc-rond-voix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg></span>
@@ -6603,6 +6617,7 @@ function vcDemarrerConversation(){
   vcReset();
   vcRelance=false;
   vcRappel={}; vcEtape='libre'; vcDerniereQuestion='';
+  vcChargerVoix();
   vcParler("Bonjour ! Qu'est-ce que je dois vous rappeler ?", vcEcouter);
   vcChargerGemmaSiBesoin();
 }
@@ -6612,7 +6627,9 @@ function vcParler(texte, puis){
   document.getElementById('vc-etat').textContent='Je parle…';
   document.getElementById('vc-phrase').textContent=texte;
   if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech){
-    window.Capacitor.Plugins.TextToSpeech.speak({text:texte,lang:'fr-FR',rate:0.95,pitch:1.0,volume:1.0,category:'ambient'})
+    const opts={text:texte,lang:'fr-FR',rate:0.95,pitch:1.0,volume:1.0,category:'ambient'};
+    if(vcVoixChoisieIndex>=0) opts.voice=vcVoixChoisieIndex;
+    window.Capacitor.Plugins.TextToSpeech.speak(opts)
       .then(()=>{ if(puis) puis(); else vcArreterEcoute(); }).catch(()=>{ if(puis) puis(); else vcArreterEcoute(); });
   } else if(puis) puis(); else vcArreterEcoute();
 }
@@ -6832,6 +6849,7 @@ async function vcTraiter(phrase){
     const minuteur=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),20000));
     const rep=await Promise.race([window.Capacitor.Plugins.Gemma.demander({texte:phrase}), minuteur]);
     brut=(rep&&rep.texte)||'';
+    if(rep&&rep.ms!=null) vcDernierTempsIA=rep.ms;
   }catch(e){
     vcOccupe=false;
     vcParler("Ça prend plus de temps que prévu. Vous pouvez répéter ?", vcEcouter);
@@ -6931,6 +6949,65 @@ function vcEnregistrerRappel(r){
   state.editing=null;
   document.getElementById('save-btn').click();
 }
+
+// ================= Écran "Détails" : voix + temps de réponse de l'IA =================
+let vcVoixToutes=[], vcVoixChoisieIndex=-1, vcVoixChargees=false, vcDernierTempsIA=null;
+async function vcChargerVoix(){
+  if(vcVoixChargees) return;
+  vcVoixChargees=true;
+  if(!(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech)) return;
+  try{
+    const r=await window.Capacitor.Plugins.TextToSpeech.getSupportedVoices();
+    vcVoixToutes=(r&&r.voices)||[];
+  }catch(e){ vcVoixToutes=[]; }
+  let sauvee=-1;
+  try{ sauvee=parseInt(localStorage.getItem('avp_vc_voix_index'),10); }catch(e){}
+  if(!isNaN(sauvee) && vcVoixToutes[sauvee] && /^fr/i.test(vcVoixToutes[sauvee].lang)){
+    vcVoixChoisieIndex=sauvee;
+  } else {
+    // Par défaut : meilleure voix française disponible, en privilégiant une voix
+    // hors connexion (locale) pour que la voix marche même sans réseau, comme l'IA.
+    let meilleure=-1;
+    vcVoixToutes.forEach((v,i)=>{
+      if(!/^fr/i.test(v.lang)) return;
+      if(meilleure===-1) meilleure=i;
+      else if(v.localService && !vcVoixToutes[meilleure].localService) meilleure=i;
+    });
+    vcVoixChoisieIndex=meilleure;
+  }
+}
+function vcOuvrirDetails(){
+  document.getElementById('vc-detail-temps').textContent = vcDernierTempsIA!=null ? (vcDernierTempsIA/1000).toFixed(1).replace('.',',')+' s' : '–';
+  const liste=document.getElementById('vc-detail-voix');
+  liste.innerHTML='';
+  const frs=vcVoixToutes.map((v,i)=>({v,i})).filter(x=>/^fr/i.test(x.v.lang));
+  frs.sort((a,b)=>(a.v.localService===b.v.localService)?0:(a.v.localService?-1:1));
+  if(!frs.length){ liste.innerHTML='<div style="color:#5d6680;font-size:.9375rem">Aucune voix française trouvée sur ce téléphone.</div>'; }
+  frs.forEach(({v,i})=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='taille-btn'+(i===vcVoixChoisieIndex?' actif':'');
+    b.style.textAlign='left';
+    b.textContent=v.name+(v.localService?' (hors connexion)':' (réseau)');
+    b.addEventListener('click',()=>{
+      vcVoixChoisieIndex=i;
+      try{localStorage.setItem('avp_vc_voix_index',String(i));}catch(e){}
+      vcOuvrirDetails();
+      try{
+        const opts={text:'Voici ma voix.',lang:'fr-FR',rate:0.95,category:'ambient',voice:i};
+        window.Capacitor.Plugins.TextToSpeech.speak(opts);
+      }catch(e){}
+    });
+    liste.appendChild(b);
+  });
+  document.getElementById('vc-detail-overlay').classList.add('visible');
+  document.getElementById('vc-detail-panel').classList.add('visible');
+}
+function vcFermerDetails(){
+  document.getElementById('vc-detail-overlay').classList.remove('visible');
+  document.getElementById('vc-detail-panel').classList.remove('visible');
+}
+document.getElementById('vc-detail-btn').addEventListener('click', vcOuvrirDetails);
+document.getElementById('vc-detail-overlay').addEventListener('click', vcFermerDetails);
 document.getElementById('back-btn').addEventListener('click',()=>{if(guideActif)guideAnnuler(false);if(state.editingAdminMode&&adminEditingUid){const uid=adminEditingUid;state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showAdminUserDetail(uid);return;}showScreen('main-screen');});
 
 document.getElementById('save-btn').addEventListener('click',async()=>{const title=document.getElementById('f-title').value.trim();if(!title){showConfirm({icon:'⚠️',title:'Titre manquant',text:"Appuyez sur une image ou écrivez ce qu'il faut faire.",okText:'OK',hideCancel:true});return;}const rec=getSelectedRecurrence();const data={time:getTPVal('f-time'),title,icon:getSelectedIcon(),note:document.getElementById('f-note').value.trim(),recurrence:rec};if(rec==='once'){const rdvDate=document.getElementById('f-event-date').value||dateKey(getCurrentDate());const rdvTime=getTPVal('f-event-time');const choix=getSonnerieChoix();data.eventDate=rdvDate;data.eventTime=rdvTime;data.sonnerieChoix=choix;const _adr=(document.getElementById('f-address')?document.getElementById('f-address').value.trim():'');data.address=_adr;data.mapQuery=_adr?encodeURIComponent(_adr):'';data.travelMin=wizTravel||0;data.travelMode=wizTravelMode||'';const _sonn=_calcSonnerieRappel(rdvDate,rdvTime,choix,data.travelMin);data.date=_sonn.date;data.time=_sonn.time;if(!data.date){showConfirm({icon:'⚠️',title:'Date manquante',text:'Choisissez la date du rendez-vous.',okText:'OK',hideCancel:true});return;}if(state.editing){Object.assign(state.reminders.find(x=>x.id===state.editing),data);}else{state.reminders.push({id:uid(),...data,done:{}});if(guideActif)guideRappelCreeId=state.reminders[state.reminders.length-1].id;}
