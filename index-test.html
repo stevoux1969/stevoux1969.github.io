@@ -6602,7 +6602,9 @@ let vcRelance=false;
 function vcDemarrerConversation(){
   vcReset();
   vcRelance=false;
+  vcRappel={}; vcEtape='libre'; vcDerniereQuestion='';
   vcParler("Bonjour ! Qu'est-ce que je dois vous rappeler ?", vcEcouter);
+  vcChargerGemmaSiBesoin();
 }
 function vcParler(texte, puis){
   const corps=document.getElementById('vc-voix-body');
@@ -6611,8 +6613,8 @@ function vcParler(texte, puis){
   document.getElementById('vc-phrase').textContent=texte;
   if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech){
     window.Capacitor.Plugins.TextToSpeech.speak({text:texte,lang:'fr-FR',rate:0.95,pitch:1.0,volume:1.0,category:'ambient'})
-      .then(()=>{ if(puis) puis(); }).catch(()=>{ if(puis) puis(); });
-  } else if(puis) puis();
+      .then(()=>{ if(puis) puis(); else vcArreterEcoute(); }).catch(()=>{ if(puis) puis(); else vcArreterEcoute(); });
+  } else if(puis) puis(); else vcArreterEcoute();
 }
 function vcEcouter(){
   const corps=document.getElementById('vc-voix-body');
@@ -6634,7 +6636,7 @@ function vcSurTexte(texte){
   vcRelance=false;
   document.getElementById('vc-aide').hidden=true;
   document.getElementById('vc-dit').textContent='« '+texte+' »';
-  document.getElementById('vc-etat').textContent="Reçu. L'assistant IA arrive à l'étape suivante.";
+  vcTraiter(texte);
 }
 function vcSurSilence(){
   vcArreterEcoute();
@@ -6652,6 +6654,8 @@ function vcErreurMicro(code){
   let msg='Problème avec le micro. Appuyez sur Réessayer.';
   if(code==='permission') msg="Le micro a été refusé. Appuyez sur Réessayer pour l'autoriser.";
   else if(code==='indisponible') msg="Le micro n'est pas disponible sur cet appareil.";
+  else if(code==='modele_absent') msg="L'assistant vocal n'est pas encore installé sur ce téléphone.";
+  else if(code==='erreur_ia') msg="Problème avec l'assistant IA. Appuyez sur Réessayer.";
   document.getElementById('vc-erreur-texte').textContent=msg;
   document.getElementById('vc-erreur').hidden=false;
   document.getElementById('vc-etat').textContent='';
@@ -6660,6 +6664,272 @@ if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Voice){
   window.Capacitor.Plugins.Voice.addListener('texte',(e)=>vcSurTexte(e&&e.texte||''));
   window.Capacitor.Plugins.Voice.addListener('silence',()=>vcSurSilence());
   window.Capacitor.Plugins.Voice.addListener('erreur',(e)=>vcErreurMicro(e&&e.code||'autre'));
+}
+document.getElementById('vc-btn-oui').addEventListener('click',()=>{ vcArreterTout(); document.getElementById('vc-dit').textContent='(appui sur Oui)'; vcValider(); });
+document.getElementById('vc-btn-non').addEventListener('click',()=>{
+  vcArreterTout();
+  document.getElementById('vc-fin').hidden=true; document.getElementById('vc-compris').hidden=false;
+  vcEtape='libre';
+  vcParler("D'accord. Qu'est-ce qu'il faut changer ?", vcEcouter);
+});
+
+// ================= Étape 3 : IA Gemma — comprend le rappel, le code calcule la date/l'heure =================
+const VC_JOURS=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+const VC_MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const VC_TEXTE_DETRESSE="Je ne peux pas vous aider pour ça. Parlez-en à Steve ou Greg. Si c'est urgent, appelez le 15. Si vous avez des idées de suicide, appelez le 3114, jour et nuit, gratuit.";
+const VC_REGLES=`Tu es l'assistant vocal de l'application Ma Journée AVP. Tu parles à un adulte en situation de handicap psychique. Ton seul travail : l'aider à créer UN rappel (rendez-vous, médicaments, courses, ménage, repas, papiers, appel, sortie, atelier AVP...).
+À chaque message, réponds UNIQUEMENT avec un objet JSON de cette forme :
+{"type":"rappel","quoi":"","icone":"","jour":"","heure":"","moment":"","tous_les_jours":false,"parole":""}
+Champs :
+- type : "rappel" si la personne parle d'un rappel ou répond à ta question ; "bavardage" si elle dit autre chose (bonjour, merci, ça va, la météo) ; "detresse" si elle exprime de la souffrance, de la tristesse forte, des idées noires ou un danger.
+- quoi : ce qu'il faut rappeler, en quelques mots. Vide si inconnu.
+- icone : un seul emoji simple.
+- jour : les mots exacts de la personne pour le jour (exemples : "mardi", "demain", "le 15"). Vide si elle ne l'a pas dit. N'invente jamais.
+- heure : l'heure dite, au format HH:MM. Vide si elle ne l'a pas dite. N'invente jamais.
+- moment : "matin", "après-midi" ou "soir" seulement si la personne l'a dit.
+- tous_les_jours : true si elle dit "tous les jours", "tous les soirs", "chaque matin".
+- Garde les informations données dans les messages d'avant.
+- parole : ce que tu dis à voix haute. UNE phrase courte, chaleureuse, vouvoiement, mots très simples. Reprends ce que tu as compris, puis demande UNE seule chose qui manque. Ne répète jamais une phrase déjà dite. Jamais "Bravo".`;
+
+const VC_sansAccent=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const VC_auHasard=arr=>arr[Math.floor(Math.random()*arr.length)];
+const VC_pad=n=>String(n).padStart(2,'0');
+const VC_debutJour=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+const VC_charabia=s=>/[Ѐ-ӿ԰-֏ऀ-ॿ぀-ヿ一-鿿가-힯]/.test(s||'');
+
+function vcTrouverJour(txt, now, accepterNombreSeul){
+  if(!txt) return null;
+  const t=' '+VC_sansAccent(txt)+' ';
+  const auj=VC_debutJour(now);
+  const plus=n=>new Date(auj.getFullYear(),auj.getMonth(),auj.getDate()+n);
+  if(/apres[- ]demain/.test(t)) return plus(2);
+  if(/\bdemain\b/.test(t)) return plus(1);
+  if(/aujourd|ce soir|ce matin|cet apres|tout a l.heure|maintenant/.test(t)) return auj;
+  for(let i=0;i<7;i++){
+    if(new RegExp('\\b'+VC_JOURS[i]+'\\b').test(t)){
+      let ecart=(i-auj.getDay()+7)%7;
+      if(ecart===0 && !/\bce\b/.test(t)) ecart=7;
+      if(/prochain/.test(t) && ecart===0) ecart=7;
+      return plus(ecart);
+    }
+  }
+  const moisRe=VC_MOIS.map(VC_sansAccent).join('|');
+  const m=t.match(new RegExp('\\ble (\\d{1,2})(?:er)?\\b(?!\\s*(?:h|heure|:))(?:\\s+('+moisRe+'))?'))
+       || t.match(new RegExp('\\b(\\d{1,2})(?:er)?\\s+('+moisRe+')\\b'))
+       || (accepterNombreSeul ? t.match(/^\s*(\d{1,2})(?:er)?\s*$/) : null);
+  if(m){
+    const jour=+m[1];
+    if(jour<1||jour>31) return null;
+    let moisIdx=-1;
+    if(m[2]) moisIdx=VC_MOIS.map(VC_sansAccent).indexOf(m[2]);
+    if(moisIdx>=0){
+      let d=new Date(auj.getFullYear(),moisIdx,jour);
+      if(d<auj) d=new Date(auj.getFullYear()+1,moisIdx,jour);
+      return d.getDate()===jour?d:null;
+    }
+    for(let k=0;k<13;k++){
+      const d=new Date(auj.getFullYear(),auj.getMonth()+k,jour);
+      if(d.getDate()===jour && d>=auj) return d;
+    }
+  }
+  const iso=t.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if(iso) return new Date(+iso[1],+iso[2]-1,+iso[3]);
+  return null;
+}
+function vcTrouverMoment(txt){
+  const t=VC_sansAccent(txt||'');
+  if(/apres[- ]?midi|aprem/.test(t)) return 'après-midi';
+  if(/\bsoir\b|\bce soir\b/.test(t)) return 'soir';
+  if(/\bmatin\b/.test(t)) return 'matin';
+  if(/\bmidi\b/.test(t)) return 'midi';
+  return '';
+}
+function vcLireHeure(h){
+  if(!h) return null;
+  const t=VC_sansAccent(String(h));
+  if(/\bmidi\b/.test(t)) return {h:12,m:0};
+  if(/minuit/.test(t)) return {h:0,m:0};
+  const m=t.match(/(\d{1,2})\s*(?:[:h]|heures?)?\s*(\d{2})?/);
+  if(!m) return null;
+  let hh=+m[1], mm=m[2]?+m[2]:0;
+  if(/et demie/.test(t)) mm=30;
+  if(/et quart/.test(t)) mm=15;
+  if(hh>23||mm>59) return null;
+  return {h:hh,m:mm};
+}
+function vcHeureParlee(h,m){
+  if(h===12&&m===0) return 'midi';
+  if(h===0&&m===0) return 'minuit';
+  let s=h+' heure'+(h>1?'s':'');
+  if(m===30) return s+' et demie';
+  if(m===15) return s+' et quart';
+  if(m) return s+' '+m;
+  return s;
+}
+function vcJourParle(d){
+  const auj=VC_debutJour(new Date());
+  const ecart=Math.round((d-auj)/86400000);
+  const base=VC_JOURS[d.getDay()]+' '+d.getDate()+(d.getDate()===1?'er':'')+' '+VC_MOIS[d.getMonth()];
+  if(ecart===0) return "aujourd'hui, "+base;
+  if(ecart===1) return 'demain, '+base;
+  return base;
+}
+function vcLireJson(t){
+  if(!t) return null;
+  let s=String(t).trim();
+  const f=s.match(/```(?:json)?\s*([\s\S]*?)```/); if(f) s=f[1].trim();
+  try{ return JSON.parse(s); }catch(e){}
+  const a=s.indexOf('{'), b=s.lastIndexOf('}');
+  if(a>=0&&b>a){ try{ return JSON.parse(s.slice(a,b+1)); }catch(e){} }
+  return null;
+}
+const VC_OUI=/^(oui|ouais|ok|okay|d.accord|c.est (ca|bon|ca|juste)|exact|parfait|tres bien|voila|bien sur|c.est bien ca)\b/;
+const VC_NON=/^(non|pas du tout|c.est pas ca|ce n.est pas ca|faux|erreur)\b/;
+
+let vcRappel={}, vcEtape='libre', vcOccupe=false, vcChargement=null, vcDerniereQuestion='';
+
+function vcLigneCompris(id,val,cls){
+  const l=document.getElementById(id);
+  l.className='vc-ligne '+(cls||'');
+  l.querySelector('.vc-val').textContent=val;
+  l.querySelector('.vc-ic').textContent=cls==='ok'?'✓':(cls==='flou'?'?':'○');
+}
+function vcMajCompris(){
+  vcLigneCompris('vc-c-quoi', vcRappel.quoi||'…', vcRappel.quoi?'ok':'');
+  vcLigneCompris('vc-c-jour', vcRappel.quotidien?'Tous les jours':(vcRappel.jourDate?vcJourParle(vcRappel.jourDate).replace(/^./,s=>s.toUpperCase()):(vcRappel.jour||'…')), (vcRappel.quotidien||vcRappel.jourDate)?'ok':(vcRappel.jour?'flou':''));
+  const hm=vcLireHeure(vcRappel.heure);
+  vcLigneCompris('vc-c-heure', (vcRappel.h!=null)?vcHeureParlee(vcRappel.h,vcRappel.m):(hm?vcHeureParlee(hm.h,hm.m):'…'), (vcRappel.h!=null)?'ok':(hm?'flou':''));
+}
+function vcChargerGemmaSiBesoin(){
+  if(vcChargement) return vcChargement;
+  if(!(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Gemma)) return Promise.resolve(false);
+  vcChargement=window.Capacitor.Plugins.Gemma.charger({reglement:VC_REGLES}).then(()=>true).catch(()=>{vcChargement=null;return false;});
+  return vcChargement;
+}
+async function vcTraiter(phrase){
+  if(vcOccupe) return;
+  const p=VC_sansAccent(phrase).replace(/[.!?,]/g,'').trim();
+  if(vcEtape==='confirmation'){
+    if(VC_OUI.test(p)) return vcValider();
+    if(VC_NON.test(p) && p.split(' ').length<=3){
+      document.getElementById('vc-fin').hidden=true; document.getElementById('vc-compris').hidden=false;
+      vcEtape='libre';
+      return vcParler(VC_auHasard(["D'accord. Qu'est-ce qu'il faut changer ?","Pas de souci. Dites-moi ce qu'il faut corriger."]), vcEcouter);
+    }
+    document.getElementById('vc-fin').hidden=true; document.getElementById('vc-compris').hidden=false;
+    vcEtape='libre';
+  }
+  const corps=document.getElementById('vc-voix-body');
+  corps.classList.remove('ecoute','parle');
+  document.getElementById('vc-etat').textContent='Je réfléchis…';
+  vcOccupe=true;
+  const ok=await vcChargerGemmaSiBesoin();
+  if(!ok){ vcOccupe=false; vcErreurMicro('modele_absent'); return; }
+  const mom=vcTrouverMoment(phrase);
+  if(mom && mom!=='midi') vcRappel.moment=mom;
+  let brut='';
+  try{
+    const minuteur=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),20000));
+    const rep=await Promise.race([window.Capacitor.Plugins.Gemma.demander({texte:phrase}), minuteur]);
+    brut=(rep&&rep.texte)||'';
+  }catch(e){
+    vcOccupe=false;
+    vcParler("Ça prend plus de temps que prévu. Vous pouvez répéter ?", vcEcouter);
+    return;
+  }
+  vcOccupe=false;
+  const d=vcLireJson(brut);
+  if(!d || VC_charabia(brut)) return vcParler("Pardon, je n'ai pas bien compris. Vous pouvez répéter ?", vcEcouter);
+  if(d.type==='detresse'){
+    document.getElementById('vc-dit').textContent='';
+    vcParler(VC_TEXTE_DETRESSE, null);
+    return;
+  }
+  const parole=String(d.parole||'').trim().slice(0,240);
+  if(d.quoi) vcRappel.quoi=String(d.quoi).slice(0,50);
+  if(d.icone && String(d.icone).length<=8) vcRappel.icone=d.icone;
+  if(d.jour) vcRappel.jour=String(d.jour);
+  if(d.heure) vcRappel.heure=String(d.heure);
+  if(d.moment) vcRappel.moment=String(d.moment);
+  if(d.tous_les_jours===true) vcRappel.quotidien=true;
+  const jourPhrase=vcTrouverJour(phrase, new Date(), vcDerniereQuestion==='jour');
+  if(jourPhrase) vcRappel.jourDate=jourPhrase;
+  else if(vcRappel.jour && !vcRappel.jourDate) vcRappel.jourDate=vcTrouverJour(vcRappel.jour, new Date());
+  vcMajCompris();
+  if(d.type==='bavardage' && !vcRappel.quoi) return vcParler(parole || "Je peux vous rappeler quelque chose ?", vcEcouter);
+  vcEtapeSuivante(parole);
+}
+function vcEtapeSuivante(parole){
+  const r=vcRappel;
+  const quoi=r.quoi?r.quoi.toLowerCase():'';
+  vcDerniereQuestion='';
+  if(!r.quoi) return vcParler(parole || "Qu'est-ce que je dois vous rappeler ?", vcEcouter);
+  if(!r.quotidien && !r.jourDate){
+    vcDerniereQuestion='jour';
+    return vcParler(parole && /jour|quand/i.test(parole) ? parole : VC_auHasard([`D'accord, ${quoi}. C'est quel jour ?`,`Très bien, ${quoi}. C'est pour quel jour ?`]), vcEcouter);
+  }
+  const hm=vcLireHeure(r.heure);
+  if(!hm){
+    vcDerniereQuestion='heure';
+    return vcParler(parole && /heure/i.test(parole) ? parole : VC_auHasard(["Entendu. C'est à quelle heure ?","D'accord. Vers quelle heure ?"]), vcEcouter);
+  }
+  let h=hm.h;
+  if(h>=1 && h<=7 && !r.moment){
+    return vcParler(VC_auHasard([`${vcHeureParlee(h,hm.m)}… C'est le matin ou l'après-midi ?`,`D'accord. ${vcHeureParlee(h,hm.m)} du matin, ou de l'après-midi ?`]), vcEcouter);
+  }
+  if(h<12 && (r.moment==='après-midi'||r.moment==='soir')) h+=12;
+  r.h=h; r.m=hm.m;
+  if(!r.quotidien){
+    const now=new Date();
+    if(+VC_debutJour(r.jourDate)===+VC_debutJour(now) && (h*60+hm.m)<(now.getHours()*60+now.getMinutes())){
+      r.jourDate=null; r.jour=''; vcDerniereQuestion='jour';
+      return vcParler("Cette heure est déjà passée aujourd'hui. C'est pour quel jour ?", vcEcouter);
+    }
+  }
+  vcMajCompris();
+  vcProposer();
+}
+function vcProposer(){
+  const r=vcRappel;
+  const quand=r.quotidien?'tous les jours':vcJourParle(r.jourDate);
+  const phrase=VC_auHasard(['Très bien, je note : ','Parfait, je note : ','Entendu, je note : '])
+    + r.quoi.toLowerCase()+', '+quand+', à '+vcHeureParlee(r.h,r.m)+". C'est bien ça ?";
+  document.getElementById('vc-carte-h').textContent=VC_pad(r.h)+'h'+VC_pad(r.m);
+  document.getElementById('vc-carte-t').innerHTML=(r.icone||'📋')+' '+esc(r.quoi)+'<br><span style="font-weight:700">'+esc(r.quotidien?'Tous les jours':vcJourParle(r.jourDate).replace(/^./,s=>s.toUpperCase()))+'</span>';
+  document.getElementById('vc-compris').hidden=true;
+  document.getElementById('vc-fin').hidden=false;
+  document.getElementById('vc-carte-fin').classList.remove('valide');
+  document.getElementById('vc-btn-oui').hidden=false;
+  document.getElementById('vc-btn-non').hidden=false;
+  document.querySelector('.vc-ou-dites').hidden=false;
+  vcEtape='confirmation';
+  vcParler(phrase, vcEcouter);
+}
+function vcValider(){
+  const r=Object.assign({},vcRappel);
+  document.getElementById('vc-carte-fin').classList.add('valide');
+  document.getElementById('vc-btn-oui').hidden=true;
+  document.getElementById('vc-btn-non').hidden=true;
+  document.querySelector('.vc-ou-dites').hidden=true;
+  vcParler("C'est noté !", null);
+  setTimeout(()=>vcEnregistrerRappel(r), 1200);
+}
+function vcEnregistrerRappel(r){
+  wizIcon=r.icone||'🗓️';
+  wizRec=r.quotidien?'daily':'once';
+  wizTravel=0; wizTravelMode=null;
+  document.getElementById('f-title').value=r.quoi;
+  document.getElementById('f-note').value='';
+  const fa=document.getElementById('f-address'); if(fa) fa.value='';
+  document.querySelectorAll('.sonnerie-choix-btn').forEach(b=>b.classList.toggle('active', b.dataset.choix==='2h'));
+  if(r.quotidien){
+    setTPVal('f-time', VC_pad(r.h)+':'+VC_pad(r.m));
+  } else {
+    document.getElementById('f-event-date').value=dateKey(r.jourDate);
+    setTPVal('f-event-time', VC_pad(r.h)+':'+VC_pad(r.m));
+  }
+  state.editing=null;
+  document.getElementById('save-btn').click();
 }
 document.getElementById('back-btn').addEventListener('click',()=>{if(guideActif)guideAnnuler(false);if(state.editingAdminMode&&adminEditingUid){const uid=adminEditingUid;state.editingAdminMode=false;state.editingAdminPrenom=null;state.reminders=[];state.inscriptions={};showAdminUserDetail(uid);return;}showScreen('main-screen');});
 
