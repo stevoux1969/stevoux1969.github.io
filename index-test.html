@@ -7030,6 +7030,9 @@ function vcEnregistrerRappel(r){
 
 // ================= Écran "Détails" : voix + temps de réponse de l'IA =================
 let vcVoixToutes=[], vcVoixChoisieIndex=-1, vcVoixChargees=false, vcDernierTempsIA=null, vcDernierBrut='';
+// "français France" uniquement : jamais le Canada ni une autre variante, même par
+// defaut. v.lang est au format BCP 47 (ex. "fr-FR", "fr-CA") renvoye par le plugin.
+const VC_EST_FR_FR=v=>/^fr-fr$/i.test(v.lang||'');
 async function vcChargerVoix(){
   if(vcVoixChargees) return;
   vcVoixChargees=true;
@@ -7040,14 +7043,16 @@ async function vcChargerVoix(){
   }catch(e){ vcVoixToutes=[]; }
   let sauvee=-1;
   try{ sauvee=parseInt(localStorage.getItem('avp_vc_voix_index'),10); }catch(e){}
-  if(!isNaN(sauvee) && vcVoixToutes[sauvee] && /^fr/i.test(vcVoixToutes[sauvee].lang)){
+  if(!isNaN(sauvee) && vcVoixToutes[sauvee] && VC_EST_FR_FR(vcVoixToutes[sauvee])){
     vcVoixChoisieIndex=sauvee;
   } else {
-    // Par défaut : meilleure voix française disponible, en privilégiant une voix
-    // hors connexion (locale) pour que la voix marche même sans réseau, comme l'IA.
+    // Par défaut : meilleure voix française (France) disponible, en privilégiant
+    // une voix hors connexion (locale) pour que la voix marche même sans réseau,
+    // comme l'IA. Si aucune voix fr-FR n'existe sur le téléphone, on laisse -1
+    // (voix par défaut du système) plutôt que de prendre une variante étrangère.
     let meilleure=-1;
     vcVoixToutes.forEach((v,i)=>{
-      if(!/^fr/i.test(v.lang)) return;
+      if(!VC_EST_FR_FR(v)) return;
       if(meilleure===-1) meilleure=i;
       else if(v.localService && !vcVoixToutes[meilleure].localService) meilleure=i;
     });
@@ -7062,24 +7067,38 @@ function vcOuvrirDetails(){
   document.getElementById('vc-detail-brut').textContent = vcDernierBrut ? ('Brut : '+vcDernierBrut) : '';
   const liste=document.getElementById('vc-detail-voix');
   liste.innerHTML='';
-  const frs=vcVoixToutes.map((v,i)=>({v,i})).filter(x=>/^fr/i.test(x.v.lang));
+  // Uniquement français France (jamais Canada) : le plugin ne donne ni genre ni nom
+  // lisible par voix (v.name = "français France" identique pour toutes), d'où la
+  // numérotation "Voix 1, Voix 2…" plutôt qu'un nom technique.
+  const frs=vcVoixToutes.map((v,i)=>({v,i})).filter(x=>VC_EST_FR_FR(x.v));
   frs.sort((a,b)=>(a.v.localService===b.v.localService)?0:(a.v.localService?-1:1));
-  if(!frs.length){ liste.innerHTML='<div style="color:#5d6680;font-size:.9375rem">Aucune voix française trouvée sur ce téléphone.</div>'; }
-  frs.forEach(({v,i})=>{
+  if(!frs.length){ liste.innerHTML='<div style="color:#5d6680;font-size:.9375rem">Aucune voix française (France) trouvée sur ce téléphone.</div>'; }
+  frs.forEach(({v,i},ordre)=>{
+    const ligne=document.createElement('div');
+    ligne.style.display='flex'; ligne.style.gap='8px';
     const b=document.createElement('button');
     b.type='button'; b.className='taille-btn'+(i===vcVoixChoisieIndex?' actif':'');
-    b.style.textAlign='left';
-    b.textContent=v.name+(v.localService?' (hors connexion)':' (réseau)');
+    b.style.flex='1'; b.style.textAlign='left';
+    b.textContent='Voix '+(ordre+1)+(v.localService?' (hors connexion)':' (réseau)');
     b.addEventListener('click',()=>{
       vcVoixChoisieIndex=i;
       try{localStorage.setItem('avp_vc_voix_index',String(i));}catch(e){}
       vcOuvrirDetails();
+    });
+    const ecouter=document.createElement('button');
+    ecouter.type='button';
+    ecouter.setAttribute('aria-label','Écouter la voix '+(ordre+1));
+    ecouter.style.cssText='background:#2c3e91;color:#fff;border:none;border-radius:12px;padding:0 18px;font-size:1.125rem;cursor:pointer;flex-shrink:0';
+    ecouter.textContent='🔊';
+    ecouter.addEventListener('click',(ev)=>{
+      ev.stopPropagation();
       try{
         const opts={text:'Voici ma voix.',lang:'fr-FR',rate:0.95,category:'ambient',voice:i};
         window.Capacitor.Plugins.TextToSpeech.speak(opts);
       }catch(e){}
     });
-    liste.appendChild(b);
+    ligne.appendChild(b); ligne.appendChild(ecouter);
+    liste.appendChild(ligne);
   });
   document.getElementById('vc-detail-overlay').classList.add('visible');
   document.getElementById('vc-detail-panel').classList.add('visible');
