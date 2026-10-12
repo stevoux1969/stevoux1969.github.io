@@ -474,7 +474,10 @@
     .vc-voix-body.parle .vc-rond{animation:vcPulse .9s ease-in-out infinite;}
     .vc-voix-body.ecoute .vc-rond{background:#22a559;}
     .vc-voix-body.ecoute .vc-rond::after{border-color:#22a559;}
+    .vc-voix-body.prepare .vc-rond{opacity:.5;}
+    .vc-voix-body.prepare .vc-rond::before{content:'';position:absolute;inset:6px;border-radius:50%;border:4px solid rgba(255,255,255,.35);border-top-color:#fff;animation:vcSpin .9s linear infinite;}
     @keyframes vcPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+    @keyframes vcSpin{to{transform:rotate(360deg);}}
     .vc-detail-btn{background:none;border:2px solid #dde2f0;border-radius:999px;color:#5d6680;font-weight:700;font-size:.8125rem;padding:8px 14px;font-family:inherit;cursor:pointer;flex-shrink:0;}
     .vc-detail-overlay{position:fixed;inset:0;background:rgba(20,26,50,.45);opacity:0;pointer-events:none;transition:opacity .3s ease;z-index:70;}
     .vc-detail-overlay.visible{opacity:1;pointer-events:auto;}
@@ -6581,7 +6584,7 @@ function assistantVoixDisponible(){
   catch(e){ return false; }
 }
 document.getElementById('add-btn').addEventListener('click',()=>{
-  if(assistantVoixDisponible()) showScreen('choix-rappel-screen');
+  if(assistantVoixDisponible()){ showScreen('choix-rappel-screen'); vcChargerGemmaSiBesoin(); }
   else openEdit(null);
 });
 document.getElementById('choix-rappel-back').addEventListener('click',()=>showScreen('main-screen'));
@@ -6595,7 +6598,7 @@ document.getElementById('vc-rond-voix').addEventListener('click',()=>{ vcRelance
 // Remet l'écran "Je le dis" dans son état initial.
 function vcReset(){
   const corps=document.getElementById('vc-voix-body');
-  corps.classList.remove('parle','ecoute');
+  corps.classList.remove('parle','ecoute','prepare');
   document.getElementById('vc-etat').textContent='Je vous écoute…';
   document.getElementById('vc-phrase').textContent="Bonjour ! Qu'est-ce que je dois vous rappeler ?";
   document.getElementById('vc-dit').textContent='';
@@ -6612,14 +6615,34 @@ function vcReset(){
 // Étape 2 : écoute réelle (plugin natif Voice, android.speech.SpeechRecognizer).
 // Jamais de réponse inventée : seul ce que la personne dit vraiment s'affiche.
 // Une seule relance après silence ; à la 2e incompréhension d'affilée, proposition des images.
-let vcRelance=false;
+let vcRelance=false, vcEcranActif=false;
 function vcDemarrerConversation(){
   vcReset();
   vcRelance=false;
+  vcEcranActif=true;
   vcRappel={}; vcEtape='libre'; vcDerniereQuestion='';
   vcChargerVoix();
-  vcParler("Bonjour ! Qu'est-ce que je dois vous rappeler ?", vcEcouter);
-  vcChargerGemmaSiBesoin();
+  const PHRASE_ACCUEIL="Bonjour ! Qu'est-ce que je dois vous rappeler ?";
+  const chargement=vcChargerGemmaSiBesoin();
+  if(vcGemmaPret){
+    vcParler(PHRASE_ACCUEIL, vcEcouter);
+  } else {
+    vcAfficherPreparation();
+    chargement.then(()=>{
+      if(!vcEcranActif) return;
+      vcMasquerPreparation();
+      vcParler(PHRASE_ACCUEIL, vcEcouter);
+    });
+  }
+}
+function vcAfficherPreparation(){
+  const corps=document.getElementById('vc-voix-body');
+  corps.classList.remove('parle','ecoute'); corps.classList.add('prepare');
+  document.getElementById('vc-etat').textContent='';
+  document.getElementById('vc-phrase').textContent='Je me prépare…';
+}
+function vcMasquerPreparation(){
+  document.getElementById('vc-voix-body').classList.remove('prepare');
 }
 function vcParler(texte, puis){
   const corps=document.getElementById('vc-voix-body');
@@ -6644,6 +6667,7 @@ function vcArreterEcoute(){
   document.getElementById('vc-voix-body').classList.remove('ecoute','parle');
 }
 function vcArreterTout(){
+  vcEcranActif=false;
   vcArreterEcoute();
   try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech)window.Capacitor.Plugins.TextToSpeech.stop();}catch(e){}
   try{if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Voice)window.Capacitor.Plugins.Voice.arreter();}catch(e){}
@@ -6817,10 +6841,11 @@ function vcMajCompris(){
   const hm=vcLireHeure(vcRappel.heure);
   vcLigneCompris('vc-c-heure', (vcRappel.h!=null)?vcHeureParlee(vcRappel.h,vcRappel.m):(hm?vcHeureParlee(hm.h,hm.m):'…'), (vcRappel.h!=null)?'ok':(hm?'flou':''));
 }
+let vcGemmaPret=false;
 function vcChargerGemmaSiBesoin(){
   if(vcChargement) return vcChargement;
-  if(!(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Gemma)) return Promise.resolve(false);
-  vcChargement=window.Capacitor.Plugins.Gemma.charger({reglement:VC_REGLES}).then(()=>true).catch(()=>{vcChargement=null;return false;});
+  if(!(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Gemma)){ vcGemmaPret=true; return Promise.resolve(false); }
+  vcChargement=window.Capacitor.Plugins.Gemma.charger({reglement:VC_REGLES}).then(()=>{vcGemmaPret=true;return true;}).catch(()=>{vcChargement=null;vcGemmaPret=false;return false;});
   return vcChargement;
 }
 async function vcTraiter(phrase){
