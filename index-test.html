@@ -1291,6 +1291,7 @@
     <div style="font-size:.9375rem;color:#5d6680">Chargement du modèle : <b id="vc-detail-moteur" style="color:#1a2340">–</b></div>
     <div style="font-size:.9375rem;color:#5d6680">Lecture du règlement : <b id="vc-detail-reglement" style="color:#1a2340">–</b></div>
     <div style="font-size:.9375rem;color:#5d6680">Dernière réponse de l'IA : <b id="vc-detail-temps" style="color:#1a2340">–</b></div>
+    <div style="font-size:.9375rem;color:#5d6680">Tokens générés : <b id="vc-detail-tokens" style="color:#1a2340">–</b></div>
     <div style="font-size:.8125rem;color:#5d6680;margin-top:8px;word-break:break-word" id="vc-detail-brut"></div>
     <div style="margin:18px 0 8px;font-weight:800;color:#5d6680;text-transform:uppercase;font-size:.8125rem;letter-spacing:.04em">Voix</div>
     <div class="taille-choix" id="vc-detail-voix"></div>
@@ -6731,18 +6732,18 @@ const VC_JOURS=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi
 const VC_MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
 const VC_TEXTE_DETRESSE="Je ne peux pas vous aider pour ça. Parlez-en à Steve ou Greg. Si c'est urgent, appelez le 15. Si vous avez des idées de suicide, appelez le 3114, jour et nuit, gratuit.";
 const VC_REGLES=`Tu es l'assistant vocal de l'application Ma Journée AVP. Tu parles à un adulte en situation de handicap psychique. Ton seul travail : l'aider à créer UN rappel (rendez-vous, médicaments, courses, ménage, repas, papiers, appel, sortie, atelier AVP...).
-À chaque message, réponds UNIQUEMENT avec un objet JSON de cette forme :
-{"type":"rappel","quoi":"","icone":"","jour":"","heure":"","moment":"","tous_les_jours":false,"parole":""}
-Champs :
-- type : "rappel" si la personne parle d'un rappel ou répond à ta question ; "bavardage" si elle dit autre chose (bonjour, merci, ça va, la météo) ; "detresse" si elle exprime de la souffrance, de la tristesse forte, des idées noires ou un danger.
+Réponds TOUJOURS avec un seul objet JSON, rien d'autre : jamais de \`\`\`json, jamais de texte avant ou après, jamais d'icône.
+Pour un rappel : {"t":"rappel","quoi":"","jour":"","heure":"","moment":"","tlj":false}
+Pour un bavardage (bonjour, merci, ça va, la météo...) : {"t":"bavardage","parole":""}
+Pour une détresse (souffrance, tristesse forte, idées noires, danger) : {"t":"detresse"}
+Champs du rappel :
 - quoi : ce qu'il faut rappeler, en quelques mots. Vide si inconnu.
-- icone : un seul emoji simple.
-- jour : les mots exacts de la personne pour le jour (exemples : "mardi", "demain", "le 15"). Vide si elle ne l'a pas dit. N'invente jamais.
-- heure : l'heure dite, au format HH:MM. Vide si elle ne l'a pas dite. N'invente jamais.
+- jour : les mots EXACTS de la personne pour le jour (exemples : "mardi", "demain", "le 15", "jeudi prochain"). Vide si elle ne l'a pas dit. Ne calcule jamais la date, ne traduis jamais, recopie ses mots.
+- heure : l'heure EXACTE dite par la personne, au format HH:MM. Vide si elle ne l'a pas dite. N'invente jamais.
 - moment : "matin", "après-midi" ou "soir" seulement si la personne l'a dit.
-- tous_les_jours : true si elle dit "tous les jours", "tous les soirs", "chaque matin".
+- tlj : true si elle dit "tous les jours", "tous les soirs", "chaque matin".
 - Garde les informations données dans les messages d'avant.
-- parole : ce que tu dis à voix haute. UNE phrase courte, chaleureuse, vouvoiement, mots très simples. Reprends ce que tu as compris, puis demande UNE seule chose qui manque. Ne répète jamais une phrase déjà dite. Jamais "Bravo".`;
+parole (bavardage uniquement) : UNE phrase très courte (12 mots maximum), chaleureuse, vouvoiement, mots très simples.`;
 
 const VC_sansAccent=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 const VC_auHasard=arr=>arr[Math.floor(Math.random()*arr.length)];
@@ -6796,6 +6797,43 @@ function vcTrouverMoment(txt){
   if(/\bmatin\b/.test(t)) return 'matin';
   if(/\bmidi\b/.test(t)) return 'midi';
   return '';
+}
+// Icône choisie par la page (jamais par l'IA), mêmes emojis que les thèmes de
+// l'assistant images (THEMES) ; recherche par mot-clé plutôt que correspondance
+// exacte car "quoi" est reformulé librement, pas recopié d'un libellé de THEMES.
+const VC_ICONES=[
+  [/medicament/, '💊'], [/pharmacie/, '💊'],
+  [/medecin|generaliste/, '👨‍⚕️'],
+  [/infirmiere|infirmier/, '👩‍⚕️'],
+  [/psychiatre|\bpsy\b/, '🧠'],
+  [/dentiste/, '🦷'],
+  [/hopital/, '🏥'],
+  [/specialiste|cardiologue|ophtalmo/, '🩺'],
+  [/petit.?dejeuner/, '🥐'],
+  [/repas|dejeuner|diner/, '🍽️'],
+  [/douche/, '🚿'],
+  [/menage/, '🧹'],
+  [/lessive/, '🧺'],
+  [/poubelle/, '🗑️'],
+  [/boulangerie|\bpain\b/, '🥖'],
+  [/course/, '🛒'],
+  [/curatelle/, '🏛️'],
+  [/mdph|\bcaf\b/, '📄'],
+  [/banque/, '🏦'],
+  [/courrier|poste/, '✉️'],
+  [/appel|telephon|appeler/, '📞'],
+  [/visite/, '👥'],
+  [/\bbus\b/, '🚌'],
+  [/train/, '🚆'],
+  [/taxi|vsl/, '🚕'],
+  [/sport/, '⚽'],
+  [/atelier/, '🔑'],
+  [/promenade|sortie/, '🚶']
+];
+function vcTrouverIcone(quoi){
+  const t=VC_sansAccent(quoi||'');
+  for(const [re,ic] of VC_ICONES) if(re.test(t)) return ic;
+  return '📋';
 }
 function vcLireHeure(h){
   if(!h) return null;
@@ -6906,6 +6944,7 @@ async function vcTraiter(phrase){
   const corps=document.getElementById('vc-voix-body');
   corps.classList.remove('ecoute','parle');
   document.getElementById('vc-etat').textContent='Je réfléchis…';
+  document.getElementById('vc-abandon').hidden=true;
   vcOccupe=true;
   const ok=await vcChargerGemmaSiBesoin();
   if(!ok){ vcOccupe=false; vcErreurMicro('modele_absent'); return; }
@@ -6925,6 +6964,7 @@ async function vcTraiter(phrase){
     brut=(rep&&rep.texte)||'';
     vcDernierBrut=brut;
     if(rep&&rep.ms!=null) vcDernierTempsIA=rep.ms;
+    if(rep&&rep.tokens!=null){ vcDernierTokens=rep.tokens; vcDernierTokensParSeconde=rep.tokensParSeconde; }
   }catch(e){
     if(monJeton!==vcJetonRequete) return;
     vcNettoyerMinuteursReflexion();
@@ -6934,25 +6974,25 @@ async function vcTraiter(phrase){
   }
   vcNettoyerMinuteursReflexion();
   vcOccupe=false;
+  document.getElementById('vc-abandon').hidden=true;
   const d=vcLireJson(brut);
   if(!d || VC_charabia(brut)) return vcParler("Pardon, je n'ai pas bien compris. Vous pouvez répéter ?", vcEcouter);
-  if(d.type==='detresse'){
+  if(d.t==='detresse'){
     document.getElementById('vc-dit').textContent='';
     vcParler(VC_TEXTE_DETRESSE, null);
     return;
   }
-  const parole=String(d.parole||'').trim().slice(0,240);
-  if(d.quoi) vcRappel.quoi=String(d.quoi).slice(0,50);
-  if(d.icone && String(d.icone).length<=8) vcRappel.icone=d.icone;
+  const parole=d.t==='bavardage' ? String(d.parole||'').trim().slice(0,240) : '';
+  if(d.quoi){ vcRappel.quoi=String(d.quoi).slice(0,50); vcRappel.icone=vcTrouverIcone(vcRappel.quoi); }
   if(d.jour) vcRappel.jour=String(d.jour);
   if(d.heure) vcRappel.heure=String(d.heure);
   if(d.moment) vcRappel.moment=String(d.moment);
-  if(d.tous_les_jours===true) vcRappel.quotidien=true;
+  if(d.tlj===true) vcRappel.quotidien=true;
   const jourPhrase=vcTrouverJour(phrase, new Date(), vcDerniereQuestion==='jour');
   if(jourPhrase) vcRappel.jourDate=jourPhrase;
   else if(vcRappel.jour && !vcRappel.jourDate) vcRappel.jourDate=vcTrouverJour(vcRappel.jour, new Date());
   vcMajCompris();
-  if(d.type==='bavardage' && !vcRappel.quoi) return vcParler(parole || "Je peux vous rappeler quelque chose ?", vcEcouter);
+  if(d.t==='bavardage' && !vcRappel.quoi) return vcParler(parole || "Je peux vous rappeler quelque chose ?", vcEcouter);
   vcEtapeSuivante(parole);
 }
 function vcEtapeSuivante(parole){
@@ -7029,7 +7069,7 @@ function vcEnregistrerRappel(r){
 }
 
 // ================= Écran "Détails" : voix + temps de réponse de l'IA =================
-let vcVoixToutes=[], vcVoixChoisieIndex=-1, vcVoixChargees=false, vcDernierTempsIA=null, vcDernierBrut='';
+let vcVoixToutes=[], vcVoixChoisieIndex=-1, vcVoixChargees=false, vcDernierTempsIA=null, vcDernierBrut='', vcDernierTokens=null, vcDernierTokensParSeconde=null;
 // "français France" uniquement : jamais le Canada ni une autre variante, même par
 // defaut. v.lang est au format BCP 47 (ex. "fr-FR", "fr-CA") renvoye par le plugin.
 const VC_EST_FR_FR=v=>/^fr-fr$/i.test(v.lang||'');
@@ -7064,6 +7104,7 @@ function vcOuvrirDetails(){
   document.getElementById('vc-detail-moteur').textContent = vcFormatSecondes(vcTempsMoteur);
   document.getElementById('vc-detail-reglement').textContent = vcFormatSecondes(vcTempsReglement);
   document.getElementById('vc-detail-temps').textContent = vcFormatSecondes(vcDernierTempsIA);
+  document.getElementById('vc-detail-tokens').textContent = vcDernierTokens!=null ? (vcDernierTokens+' ('+vcDernierTokensParSeconde.toFixed(1).replace('.',',')+' tok/s)') : '–';
   document.getElementById('vc-detail-brut').textContent = vcDernierBrut ? ('Brut : '+vcDernierBrut) : '';
   const liste=document.getElementById('vc-detail-voix');
   liste.innerHTML='';
