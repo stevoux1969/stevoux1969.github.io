@@ -1288,7 +1288,10 @@
   <div class="vc-detail-panel" id="vc-detail-panel">
     <div class="aide-handle"></div>
     <h2 style="color:#2c3e91;font-size:1.2rem;margin:0 0 14px">Détails</h2>
-    <div style="font-size:.9375rem;color:#5d6680">Temps de réponse de l'IA : <b id="vc-detail-temps" style="color:#1a2340">–</b></div>
+    <div style="font-size:.9375rem;color:#5d6680">Chargement du modèle : <b id="vc-detail-moteur" style="color:#1a2340">–</b></div>
+    <div style="font-size:.9375rem;color:#5d6680">Lecture du règlement : <b id="vc-detail-reglement" style="color:#1a2340">–</b></div>
+    <div style="font-size:.9375rem;color:#5d6680">Dernière réponse de l'IA : <b id="vc-detail-temps" style="color:#1a2340">–</b></div>
+    <div style="font-size:.8125rem;color:#5d6680;margin-top:8px;word-break:break-word" id="vc-detail-brut"></div>
     <div style="margin:18px 0 8px;font-weight:800;color:#5d6680;text-transform:uppercase;font-size:.8125rem;letter-spacing:.04em">Voix</div>
     <div class="taille-choix" id="vc-detail-voix"></div>
   </div>
@@ -6850,11 +6853,16 @@ function vcMajCompris(){
   const hm=vcLireHeure(vcRappel.heure);
   vcLigneCompris('vc-c-heure', (vcRappel.h!=null)?vcHeureParlee(vcRappel.h,vcRappel.m):(hm?vcHeureParlee(hm.h,hm.m):'…'), (vcRappel.h!=null)?'ok':(hm?'flou':''));
 }
-let vcGemmaPret=false;
+let vcGemmaPret=false, vcTempsMoteur=null, vcTempsReglement=null;
 function vcChargerGemmaSiBesoin(){
   if(vcChargement) return vcChargement;
   if(!(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Gemma)){ vcGemmaPret=true; return Promise.resolve(false); }
-  vcChargement=window.Capacitor.Plugins.Gemma.charger({reglement:VC_REGLES}).then(()=>{vcGemmaPret=true;return true;}).catch(()=>{vcChargement=null;vcGemmaPret=false;return false;});
+  vcChargement=window.Capacitor.Plugins.Gemma.charger({reglement:VC_REGLES}).then((r)=>{
+    vcGemmaPret=true;
+    if(r&&r.msMoteur) vcTempsMoteur=r.msMoteur;
+    if(r&&r.msReglement!=null) vcTempsReglement=r.msReglement;
+    return true;
+  }).catch(()=>{vcChargement=null;vcGemmaPret=false;return false;});
   return vcChargement;
 }
 // Porte de sortie pendant que l'IA réfléchit : jeton pour ignorer toute réponse
@@ -6915,6 +6923,7 @@ async function vcTraiter(phrase){
     const rep=await window.Capacitor.Plugins.Gemma.demander({texte:phrase});
     if(monJeton!==vcJetonRequete) return; // reponse tardive : deja arretee ou abandonnee, on l'ignore
     brut=(rep&&rep.texte)||'';
+    vcDernierBrut=brut;
     if(rep&&rep.ms!=null) vcDernierTempsIA=rep.ms;
   }catch(e){
     if(monJeton!==vcJetonRequete) return;
@@ -7020,7 +7029,7 @@ function vcEnregistrerRappel(r){
 }
 
 // ================= Écran "Détails" : voix + temps de réponse de l'IA =================
-let vcVoixToutes=[], vcVoixChoisieIndex=-1, vcVoixChargees=false, vcDernierTempsIA=null;
+let vcVoixToutes=[], vcVoixChoisieIndex=-1, vcVoixChargees=false, vcDernierTempsIA=null, vcDernierBrut='';
 async function vcChargerVoix(){
   if(vcVoixChargees) return;
   vcVoixChargees=true;
@@ -7045,8 +7054,12 @@ async function vcChargerVoix(){
     vcVoixChoisieIndex=meilleure;
   }
 }
+function vcFormatSecondes(ms){ return ms!=null ? (ms/1000).toFixed(1).replace('.',',')+' s' : '–'; }
 function vcOuvrirDetails(){
-  document.getElementById('vc-detail-temps').textContent = vcDernierTempsIA!=null ? (vcDernierTempsIA/1000).toFixed(1).replace('.',',')+' s' : '–';
+  document.getElementById('vc-detail-moteur').textContent = vcFormatSecondes(vcTempsMoteur);
+  document.getElementById('vc-detail-reglement').textContent = vcFormatSecondes(vcTempsReglement);
+  document.getElementById('vc-detail-temps').textContent = vcFormatSecondes(vcDernierTempsIA);
+  document.getElementById('vc-detail-brut').textContent = vcDernierBrut ? ('Brut : '+vcDernierBrut) : '';
   const liste=document.getElementById('vc-detail-voix');
   liste.innerHTML='';
   const frs=vcVoixToutes.map((v,i)=>({v,i})).filter(x=>/^fr/i.test(x.v.lang));
