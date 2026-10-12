@@ -6659,7 +6659,8 @@ function vcMasquerPreparation(){
 }
 function vcParler(texte, puis){
   const corps=document.getElementById('vc-voix-body');
-  corps.classList.remove('ecoute'); corps.classList.add('parle');
+  corps.classList.remove('ecoute','prepare'); corps.classList.add('parle');
+  console.log('[vc-etat] parle, classes='+corps.className);
   document.getElementById('vc-etat').textContent='Je parle…';
   document.getElementById('vc-phrase').textContent=texte;
   if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech){
@@ -6671,7 +6672,8 @@ function vcParler(texte, puis){
 }
 function vcEcouter(){
   const corps=document.getElementById('vc-voix-body');
-  corps.classList.remove('parle'); corps.classList.add('ecoute');
+  corps.classList.remove('parle','prepare'); corps.classList.add('ecoute');
+  console.log('[vc-etat] ecoute, classes='+corps.className);
   document.getElementById('vc-etat').textContent='Je vous écoute…';
   if(!(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Voice)){ vcErreurMicro('indisponible'); return; }
   window.Capacitor.Plugins.Voice.demarrer();
@@ -6923,11 +6925,23 @@ function vcAbandonnerReflexion(jeton){
   vcJetonRequete++;
   vcNettoyerMinuteursReflexion();
   vcOccupe=false;
-  document.getElementById('vc-voix-body').classList.remove('parle','ecoute');
+  document.getElementById('vc-voix-body').classList.remove('parle','ecoute','prepare');
   document.getElementById('vc-etat').textContent='';
   document.getElementById('vc-abandon').hidden=false;
 }
 document.getElementById('vc-btn-arreter').addEventListener('click', vcArreterReflexion);
+// Phrase courte dite tout de suite apres reconnaissance, en parallele de l'appel a
+// l'IA (jamais avant), pour que l'attente paraisse moins longue. Ne passe pas par
+// vcParler() : on reste sur le rond qui tourne ('prepare'), pas le pouls de la parole.
+const VC_PATIENCE=["D'accord, je note…","Un instant…"];
+function vcDirePatience(){
+  if(!(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.TextToSpeech)) return;
+  try{
+    const opts={text:VC_auHasard(VC_PATIENCE),lang:'fr-FR',rate:0.95,pitch:1.0,volume:1.0,category:'ambient'};
+    if(vcVoixChoisieIndex>=0) opts.voice=vcVoixChoisieIndex;
+    window.Capacitor.Plugins.TextToSpeech.speak(opts);
+  }catch(e){}
+}
 async function vcTraiter(phrase){
   if(vcOccupe) return;
   const p=VC_sansAccent(phrase).replace(/[.!?,]/g,'').trim();
@@ -6942,9 +6956,10 @@ async function vcTraiter(phrase){
     vcEtape='libre';
   }
   const corps=document.getElementById('vc-voix-body');
-  corps.classList.remove('ecoute','parle');
+  corps.classList.remove('ecoute','parle'); corps.classList.add('prepare');
   document.getElementById('vc-etat').textContent='Je réfléchis…';
   document.getElementById('vc-abandon').hidden=true;
+  vcDirePatience();
   vcOccupe=true;
   const ok=await vcChargerGemmaSiBesoin();
   if(!ok){ vcOccupe=false; vcErreurMicro('modele_absent'); return; }
