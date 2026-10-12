@@ -7024,11 +7024,18 @@ function vcEtapeSuivante(parole){
   vcMajCompris();
   vcProposer();
 }
+function vcJourCourt(d){
+  const auj=VC_debutJour(new Date());
+  const ecart=Math.round((d-auj)/86400000);
+  if(ecart===0) return "aujourd'hui";
+  if(ecart===1) return 'demain';
+  return VC_JOURS[d.getDay()];
+}
 function vcProposer(){
   const r=vcRappel;
-  const quand=r.quotidien?'tous les jours':vcJourParle(r.jourDate);
-  const phrase=VC_auHasard(['Très bien, je note : ','Parfait, je note : ','Entendu, je note : '])
-    + r.quoi.toLowerCase()+', '+quand+', à '+vcHeureParlee(r.h,r.m)+". C'est bien ça ?";
+  const quand=r.quotidien?'tous les jours':vcJourCourt(r.jourDate);
+  const quoiMaj=r.quoi.charAt(0).toUpperCase()+r.quoi.slice(1).toLowerCase();
+  const phrase=quoiMaj+', '+quand+' à '+vcHeureParlee(r.h,r.m)+". C'est bien ça ?";
   document.getElementById('vc-carte-h').textContent=VC_pad(r.h)+'h'+VC_pad(r.m);
   document.getElementById('vc-carte-t').innerHTML=(r.icone||'📋')+' '+esc(r.quoi)+'<br><span style="font-weight:700">'+esc(r.quotidien?'Tous les jours':vcJourParle(r.jourDate).replace(/^./,s=>s.toUpperCase()))+'</span>';
   document.getElementById('vc-compris').hidden=true;
