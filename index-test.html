@@ -478,6 +478,7 @@
     .vc-voix-body.prepare .vc-rond::before{content:'';position:absolute;inset:6px;border-radius:50%;border:4px solid rgba(255,255,255,.35);border-top-color:#fff;animation:vcSpin .9s linear infinite;}
     @keyframes vcPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
     @keyframes vcSpin{to{transform:rotate(360deg);}}
+    .vc-btn-arreter{background:#fff;color:#b02a3e;border:2px solid #f3c3ca;border-radius:999px;padding:12px 18px;font-size:1rem;font-weight:800;font-family:inherit;cursor:pointer;width:100%;}
     .vc-detail-btn{background:none;border:2px solid #dde2f0;border-radius:999px;color:#5d6680;font-weight:700;font-size:.8125rem;padding:8px 14px;font-family:inherit;cursor:pointer;flex-shrink:0;}
     .vc-detail-overlay{position:fixed;inset:0;background:rgba(20,26,50,.45);opacity:0;pointer-events:none;transition:opacity .3s ease;z-index:70;}
     .vc-detail-overlay.visible{opacity:1;pointer-events:auto;}
@@ -1296,6 +1297,11 @@
     <div class="vc-etat" id="vc-etat">Je vous écoute…</div>
     <p class="vc-phrase" id="vc-phrase">Bonjour ! Qu'est-ce que je dois vous rappeler ?</p>
     <p class="vc-dit" id="vc-dit"></p>
+    <button type="button" class="vc-btn-arreter" id="vc-btn-arreter" hidden>⏹ Arrêter</button>
+    <div class="vc-bulle-aide" id="vc-abandon" hidden>
+      <p>Ça prend trop de temps. Vous voulez choisir avec les images ?</p>
+      <button type="button" class="vc-lien-images" id="vc-abandon-images-btn" style="background:#2c3e91;color:#fff">👆 Oui, avec les images</button>
+    </div>
     <div class="vc-compris" id="vc-compris">
       <div class="vc-compris-titre">Ce que j'ai compris</div>
       <div class="vc-ligne" id="vc-c-quoi"><span class="vc-ic">○</span><span class="vc-lb">Quoi</span><span class="vc-val">…</span></div>
@@ -6594,7 +6600,8 @@ document.getElementById('voix-back').addEventListener('click',()=>{ vcArreterTou
 document.getElementById('voix-lien-images').addEventListener('click',()=>{ vcArreterTout(); openEdit(null); });
 document.getElementById('vc-aide-images-btn').addEventListener('click',()=>{ vcArreterTout(); openEdit(null); });
 document.getElementById('vc-erreur-reessayer').addEventListener('click',()=>{ document.getElementById('vc-erreur').hidden=true; vcEcouter(); });
-document.getElementById('vc-rond-voix').addEventListener('click',()=>{ vcRelance=false; document.getElementById('vc-aide').hidden=true; document.getElementById('vc-erreur').hidden=true; vcEcouter(); });
+document.getElementById('vc-rond-voix').addEventListener('click',()=>{ vcRelance=false; document.getElementById('vc-aide').hidden=true; document.getElementById('vc-erreur').hidden=true; document.getElementById('vc-abandon').hidden=true; vcEcouter(); });
+document.getElementById('vc-abandon-images-btn').addEventListener('click',()=>{ vcArreterTout(); openEdit(null); });
 // Remet l'écran "Je le dis" dans son état initial.
 function vcReset(){
   const corps=document.getElementById('vc-voix-body');
@@ -6611,6 +6618,8 @@ function vcReset(){
   document.getElementById('vc-fin').hidden=true;
   document.getElementById('vc-aide').hidden=true;
   document.getElementById('vc-erreur').hidden=true;
+  document.getElementById('vc-abandon').hidden=true;
+  document.getElementById('vc-btn-arreter').hidden=true;
 }
 // Étape 2 : écoute réelle (plugin natif Voice, android.speech.SpeechRecognizer).
 // Jamais de réponse inventée : seul ce que la personne dit vraiment s'affiche.
@@ -6848,6 +6857,31 @@ function vcChargerGemmaSiBesoin(){
   vcChargement=window.Capacitor.Plugins.Gemma.charger({reglement:VC_REGLES}).then(()=>{vcGemmaPret=true;return true;}).catch(()=>{vcChargement=null;vcGemmaPret=false;return false;});
   return vcChargement;
 }
+// Porte de sortie pendant que l'IA réfléchit : jeton pour ignorer toute réponse
+// tardive une fois qu'on a arrêté ou abandonné, jamais de 2e appel natif tant que
+// le premier n'a pas répondu (voir aussi la file d'exécution unique côté GemmaPlugin).
+let vcJetonRequete=0, vcMinuteurLent=null, vcMinuteurAbandon=null;
+function vcNettoyerMinuteursReflexion(){
+  if(vcMinuteurLent){clearTimeout(vcMinuteurLent);vcMinuteurLent=null;}
+  if(vcMinuteurAbandon){clearTimeout(vcMinuteurAbandon);vcMinuteurAbandon=null;}
+  document.getElementById('vc-btn-arreter').hidden=true;
+}
+function vcArreterReflexion(){
+  vcJetonRequete++;
+  vcNettoyerMinuteursReflexion();
+  vcOccupe=false;
+  vcParler("D'accord.", vcEcouter);
+}
+function vcAbandonnerReflexion(jeton){
+  if(jeton!==vcJetonRequete) return;
+  vcJetonRequete++;
+  vcNettoyerMinuteursReflexion();
+  vcOccupe=false;
+  document.getElementById('vc-voix-body').classList.remove('parle','ecoute');
+  document.getElementById('vc-etat').textContent='';
+  document.getElementById('vc-abandon').hidden=false;
+}
+document.getElementById('vc-btn-arreter').addEventListener('click', vcArreterReflexion);
 async function vcTraiter(phrase){
   if(vcOccupe) return;
   const p=VC_sansAccent(phrase).replace(/[.!?,]/g,'').trim();
@@ -6869,17 +6903,27 @@ async function vcTraiter(phrase){
   if(!ok){ vcOccupe=false; vcErreurMicro('modele_absent'); return; }
   const mom=vcTrouverMoment(phrase);
   if(mom && mom!=='midi') vcRappel.moment=mom;
+  const monJeton=++vcJetonRequete;
+  document.getElementById('vc-btn-arreter').hidden=false;
+  vcMinuteurLent=setTimeout(()=>{
+    if(monJeton!==vcJetonRequete) return;
+    document.getElementById('vc-etat').textContent='Ça prend plus de temps que prévu, je continue à réfléchir…';
+  },60000);
+  vcMinuteurAbandon=setTimeout(()=>vcAbandonnerReflexion(monJeton),120000);
   let brut='';
   try{
-    const minuteur=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),20000));
-    const rep=await Promise.race([window.Capacitor.Plugins.Gemma.demander({texte:phrase}), minuteur]);
+    const rep=await window.Capacitor.Plugins.Gemma.demander({texte:phrase});
+    if(monJeton!==vcJetonRequete) return; // reponse tardive : deja arretee ou abandonnee, on l'ignore
     brut=(rep&&rep.texte)||'';
     if(rep&&rep.ms!=null) vcDernierTempsIA=rep.ms;
   }catch(e){
+    if(monJeton!==vcJetonRequete) return;
+    vcNettoyerMinuteursReflexion();
     vcOccupe=false;
-    vcParler("Ça prend plus de temps que prévu. Vous pouvez répéter ?", vcEcouter);
+    vcErreurMicro('erreur_ia');
     return;
   }
+  vcNettoyerMinuteursReflexion();
   vcOccupe=false;
   const d=vcLireJson(brut);
   if(!d || VC_charabia(brut)) return vcParler("Pardon, je n'ai pas bien compris. Vous pouvez répéter ?", vcEcouter);
