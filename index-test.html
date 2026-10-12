@@ -1291,7 +1291,7 @@
     <div style="font-size:.9375rem;color:#5d6680">Chargement du modèle : <b id="vc-detail-moteur" style="color:#1a2340">–</b></div>
     <div style="font-size:.9375rem;color:#5d6680">Lecture du règlement : <b id="vc-detail-reglement" style="color:#1a2340">–</b></div>
     <div style="font-size:.9375rem;color:#5d6680">Dernière réponse de l'IA : <b id="vc-detail-temps" style="color:#1a2340">–</b></div>
-    <div style="font-size:.9375rem;color:#5d6680">Tokens générés : <b id="vc-detail-tokens" style="color:#1a2340">–</b></div>
+    <div style="font-size:.9375rem;color:#5d6680">Taille de la réponse : <b id="vc-detail-tokens" style="color:#1a2340">–</b></div>
     <div style="font-size:.8125rem;color:#5d6680;margin-top:8px;word-break:break-word" id="vc-detail-brut"></div>
     <div style="margin:18px 0 8px;font-weight:800;color:#5d6680;text-transform:uppercase;font-size:.8125rem;letter-spacing:.04em">Voix</div>
     <div class="taille-choix" id="vc-detail-voix"></div>
@@ -6964,7 +6964,6 @@ async function vcTraiter(phrase){
     brut=(rep&&rep.texte)||'';
     vcDernierBrut=brut;
     if(rep&&rep.ms!=null) vcDernierTempsIA=rep.ms;
-    if(rep&&rep.tokens!=null){ vcDernierTokens=rep.tokens; vcDernierTokensParSeconde=rep.tokensParSeconde; }
   }catch(e){
     if(monJeton!==vcJetonRequete) return;
     vcNettoyerMinuteursReflexion();
@@ -7069,7 +7068,7 @@ function vcEnregistrerRappel(r){
 }
 
 // ================= Écran "Détails" : voix + temps de réponse de l'IA =================
-let vcVoixToutes=[], vcVoixChoisieIndex=-1, vcVoixChargees=false, vcDernierTempsIA=null, vcDernierBrut='', vcDernierTokens=null, vcDernierTokensParSeconde=null;
+let vcVoixToutes=[], vcVoixChoisieIndex=-1, vcVoixChargees=false, vcDernierTempsIA=null, vcDernierBrut='';
 // "français France" uniquement : jamais le Canada ni une autre variante, même par
 // defaut. v.lang est au format BCP 47 (ex. "fr-FR", "fr-CA") renvoye par le plugin.
 const VC_EST_FR_FR=v=>/^fr-fr$/i.test(v.lang||'');
@@ -7104,7 +7103,7 @@ function vcOuvrirDetails(){
   document.getElementById('vc-detail-moteur').textContent = vcFormatSecondes(vcTempsMoteur);
   document.getElementById('vc-detail-reglement').textContent = vcFormatSecondes(vcTempsReglement);
   document.getElementById('vc-detail-temps').textContent = vcFormatSecondes(vcDernierTempsIA);
-  document.getElementById('vc-detail-tokens').textContent = vcDernierTokens!=null ? (vcDernierTokens+' ('+vcDernierTokensParSeconde.toFixed(1).replace('.',',')+' tok/s)') : '–';
+  document.getElementById('vc-detail-tokens').textContent = vcDernierBrut ? (vcDernierBrut.length+' caractères') : '–';
   document.getElementById('vc-detail-brut').textContent = vcDernierBrut ? ('Brut : '+vcDernierBrut) : '';
   const liste=document.getElementById('vc-detail-voix');
   liste.innerHTML='';
