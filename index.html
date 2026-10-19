@@ -2966,9 +2966,40 @@ async function buildAnimAtelierIndex(animForce){
     });
     allEvents.push(...events);
   });
+  // Index par date, pour la correspondance tolérante de matchAtelierPlanning (niveaux 2 et 3) :
+  // retrouver tous les ateliers de ce planning un jour donné, pour vérifier qu'un seul candidat
+  // correspond avant de compter une présence.
+  const byDate = {};
+  allEvents.forEach(e=>{ (byDate[e.date]=byDate[e.date]||[]).push(e); });
   if(!state.statsAtelierIndex) state.statsAtelierIndex = {};
-  state.statsAtelierIndex[anim] = {set, events:allEvents};
+  state.statsAtelierIndex[anim] = {set, events:allEvents, byDate};
   return set;
+}
+
+// Fait correspondre un rappel atelier déjà enregistré au planning ACTUEL d'un animateur, de
+// façon tolérante aux corrections après coup du Google Sheet (heure ou libellé corrigé depuis
+// l'inscription), sans jamais deviner en cas d'ambiguïté. Utilisé par les Statistiques ET le
+// Bilan (trimestriel/annuel), avec le même index par animateur — ne change rien à la séparation
+// Steve/Greg ni à la liste d'exclusion, qui restent appliquées autour de cet appel.
+// Deux niveaux, du plus strict au plus souple :
+//  1) clé exacte date+heure+titre(20 car.) — comportement historique, inchangé.
+//  2) même date + titre normalisé identique (accents/casse/émojis ignorés), heure ignorée —
+//     seulement si un SEUL atelier de ce planning ce jour-là a ce titre normalisé.
+// Si plusieurs ateliers du planning correspondent à égalité : on ne compte pas. Mieux vaut une
+// présence invisible qu'une présence attribuée au mauvais atelier.
+// Pas de 3e niveau "même heure, titre ignoré" : mesuré sur les vraies données, Steve et Greg
+// réutilisent les mêmes créneaux horaires (09h, 10h30, 13h...) pour des activités différentes
+// le même jour — ignorer le titre aurait fait basculer des présences d'un planning à l'autre.
+function matchAtelierPlanning(r, idx){
+  if(!idx || !r.date) return false;
+  const k = r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');
+  if(idx.set.has(k)) return true;
+  const sameDay = idx.byDate[r.date];
+  if(!sameDay || !sameDay.length) return false;
+  const rTitreNorm = normaliserTitreAtelier(r.title);
+  const memeTitre = sameDay.filter(e=>normaliserTitreAtelier(e.title)===rTitreNorm);
+  if(memeTitre.length===1) return true;
+  return false;
 }
 
 // Document unique config/statsExclusions = { ids:[...uid], updatedAt } : comptes exclus
@@ -3002,8 +3033,9 @@ async function loadAndRenderStats(){
     const users=usersSnap.docs.filter(d=>{const u=d.data();return u.prenom&&u.code!=='196969'&&u.code!==196969&&u.code!=='555888'&&u.code!==555888&&!exclSet.has(d.id);}).map(d=>({uid:d.id,...d.data()}));
     // Index des ateliers de l'animateur connecté, construit depuis TOUS les mois publiés
     // (pas seulement le planning chargé) → les mois passés (ex. mai) ne disparaissent plus des stats.
-    const animEvents=await buildAnimAtelierIndex();
-    const isAnimAtelier=r=>{const k=r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');return animEvents.has(k);};
+    await buildAnimAtelierIndex();
+    const animIdx=state.statsAtelierIndex[(currentUser&&currentUser.isGreg)?'greg':'steve'];
+    const isAnimAtelier=r=>matchAtelierPlanning(r,animIdx);
     const monthSet=new Set([curYM]);
     users.forEach(u=>{(u.reminders||[]).filter(r=>r.source==='atelier'&&r.date&&r.date<=today&&isAnimAtelier(r)).forEach(r=>{if(/^\d{4}-\d{2}/.test(r.date))monthSet.add(r.date.slice(0,7));});});
     const months=[...monthSet].sort().reverse();
@@ -3251,7 +3283,7 @@ async function loadAndRenderBilan(){
     const autreNom=anim==='greg'?'Steve':'Greg';
     const periodeMotSur=q.type==='annee'?"sur l'année":'sur le trimestre';
     const periodeMotDe=q.type==='annee'?"de l'année":'du trimestre';
-    const [usersSnap,presSnap,mesEvents,autreEvents,nouveauSnap,exclSet]=await Promise.all([
+    const [usersSnap,presSnap,,,nouveauSnap,exclSet]=await Promise.all([
       db.collection('users').get(),
       db.collection('presences').get(),
       buildAnimAtelierIndex(anim),
@@ -3266,8 +3298,10 @@ async function loadAndRenderBilan(){
     const users=usersSnap.docs.filter(d=>{const u=d.data();return u.prenom&&u.code!=='196969'&&u.code!==196969&&u.code!=='555888'&&u.code!==555888&&!exclSet.has(d.id);}).map(d=>({uid:d.id,...d.data()}));
     const today=new Date().toISOString().slice(0,10);
     const cleAtelier=r=>r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');
-    const isMonAtelier=r=>mesEvents.has(cleAtelier(r));
-    const isCoAnime=r=>autreEvents.has(cleAtelier(r));
+    const mesIdx=state.statsAtelierIndex[anim];
+    const autreIdx=state.statsAtelierIndex[autreAnim];
+    const isMonAtelier=r=>matchAtelierPlanning(r,mesIdx);
+    const isCoAnime=r=>matchAtelierPlanning(r,autreIdx);
     const dansPeriode=r=>r.date&&r.date<=today&&r.date>=q.debut&&r.date<=q.fin;
 
     // Une entrée par (bénéficiaire, séance) de la période, sur le planning de l'animateur connecté
@@ -3741,23 +3775,64 @@ async function adminInscrireAtelier(uid, prenom) {
   document.getElementById('atelier-select-cancel').onclick = () => { overlay.style.display = 'none'; };
   document.getElementById('atelier-select-ok').onclick = async () => {
     overlay.style.display = 'none';
+    // Relit les données FRAÎCHES juste avant d'écrire (elles peuvent avoir changé depuis
+    // l'ouverture du sélecteur), puis ne touche QUE les ateliers visibles dans cette fenêtre
+    // (celle de "ateliers" ci-dessus : mois affiché, à partir d'aujourd'hui). Tout le reste —
+    // rappels personnels, ateliers passés, autres mois, ateliers de Greg — est reporté intact.
+    // Corrige le bug qui remplaçait tout le tableau par la seule sélection visible ici, effaçant
+    // silencieusement l'historique des mois précédents à chaque utilisation de cet écran.
     const freshSnap = await db.collection('users').doc(uid).get();
-    const freshData = freshSnap.data();
-    const personnels = (freshData.reminders || []).filter(r => r.source !== 'atelier');
-    const newInscriptions = {};
-    const newAteliers = [];
+    const freshData = freshSnap.data() || {};
+    const freshReminders = freshData.reminders || [];
+    const personnels = freshReminders.filter(r => r.source !== 'atelier');
+    const freshAteliers = freshReminders.filter(r => r.source === 'atelier');
+    const ekVisibles = new Set(ateliers.map(e => e.date+'_'+e.time+'_'+(e.title||'').slice(0,20).replace(/\s/g,'_')));
+    const ateliersHorsFenetre = freshAteliers.filter(r => !ekVisibles.has(r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_')));
+    const ateliersVisiblesParKey = {};
+    freshAteliers.forEach(r => { const ek = r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_'); if (ekVisibles.has(ek)) ateliersVisiblesParKey[ek] = r; });
+    const freshInscriptions = freshData.inscriptions || {};
+    const inscriptionsHorsFenetre = {};
+    Object.keys(freshInscriptions).forEach(k => { if (!ekVisibles.has(k)) inscriptionsHorsFenetre[k] = freshInscriptions[k]; });
+
+    const inscriptionsFenetre = {};
+    const ateliersFenetre = [];
+    let nbDecochees = 0;
     document.querySelectorAll('#atelier-check-list input[type=checkbox]').forEach(cb => {
+      const ek = cb.dataset.ek;
+      const dejaPresent = !!ateliersVisiblesParKey[ek];
       if (cb.checked) {
-        const ek = cb.dataset.ek;
-        newInscriptions[ek] = true;
-        const loc = getAVPLocation(cb.dataset.title);
-        newAteliers.push({id:'atelier_'+ek,title:cb.dataset.title,icon:cb.dataset.icon,time:cb.dataset.time,date:cb.dataset.date,recurrence:'once',note:loc?loc.address:'',mapLink:loc?'https://www.google.com/maps/search/?api=1&query='+loc.query:null,done:{},source:'atelier'});
-        const avant = new Date(cb.dataset.date+'T'+cb.dataset.time+':00'); avant.setTime(avant.getTime()-2*60*60*1000);
-        queueNotification('🔔 Dans 2h : '+cb.dataset.title,'Rappel : '+cb.dataset.title+' à '+cb.dataset.time.replace(':','h'),dateKey(avant),String(avant.getHours()).padStart(2,'0')+':'+String(avant.getMinutes()).padStart(2,'0'),{key:'prenom',value:prenom.toLowerCase()});
+        inscriptionsFenetre[ek] = true;
+        if (dejaPresent) {
+          ateliersFenetre.push(ateliersVisiblesParKey[ek]);
+        } else {
+          const loc = getAVPLocation(cb.dataset.title);
+          ateliersFenetre.push({id:'atelier_'+ek,title:cb.dataset.title,icon:cb.dataset.icon,time:cb.dataset.time,date:cb.dataset.date,recurrence:'once',note:loc?loc.address:'',mapLink:loc?'https://www.google.com/maps/search/?api=1&query='+loc.query:null,done:{},source:'atelier'});
+          const avant = new Date(cb.dataset.date+'T'+cb.dataset.time+':00'); avant.setTime(avant.getTime()-2*60*60*1000);
+          queueNotification('🔔 Dans 2h : '+cb.dataset.title,'Rappel : '+cb.dataset.title+' à '+cb.dataset.time.replace(':','h'),dateKey(avant),String(avant.getHours()).padStart(2,'0')+':'+String(avant.getMinutes()).padStart(2,'0'),{key:'prenom',value:prenom.toLowerCase()});
+        }
+      } else if (dejaPresent) {
+        nbDecochees++;
       }
     });
-    await db.collection('users').doc(uid).update({reminders:[...personnels,...newAteliers],inscriptions:newInscriptions});
-    showConfirm({icon:'✅',title:'Inscriptions enregistrées !',text:prenom+' est inscrit(e) à '+newAteliers.length+' atelier'+(newAteliers.length>1?'s':'')+'.',okText:'OK',hideCancel:true,onOk:()=>showAdminUserDetail(uid)});
+
+    // Garde-fou : le total après écriture ne doit jamais être inférieur à (total avant − nombre
+    // de cases explicitement décochées). Si c'est le cas, c'est qu'une incohérence est apparue
+    // (ex. données changées entre-temps) → on annule plutôt que de risquer d'effacer des données.
+    const avantTotal = freshAteliers.length;
+    const apresTotal = ateliersHorsFenetre.length + ateliersFenetre.length;
+    if (apresTotal < avantTotal - nbDecochees) {
+      showConfirm({icon:'⚠️',title:'Enregistrement annulé',text:"Une incohérence a été détectée, rien n'a été modifié par sécurité. Réessaie.",okText:'OK',hideCancel:true});
+      return;
+    }
+
+    const newReminders = [...personnels, ...ateliersHorsFenetre, ...ateliersFenetre];
+    const newInscriptions = {...inscriptionsHorsFenetre, ...inscriptionsFenetre};
+    try {
+      await db.collection('users').doc(uid).update({reminders:newReminders,inscriptions:newInscriptions});
+      showConfirm({icon:'✅',title:'Inscriptions enregistrées !',text:prenom+' est inscrit(e) à '+ateliersFenetre.length+' atelier'+(ateliersFenetre.length>1?'s':'')+' sur cette période.',okText:'OK',hideCancel:true,onOk:()=>showAdminUserDetail(uid)});
+    } catch(e) {
+      showConfirm({icon:'❌',title:'Erreur',text:"L'enregistrement a échoué, rien n'a été modifié. Vérifie la connexion et réessaie.",okText:'OK',hideCancel:true});
+    }
   };
 }
 
@@ -5231,6 +5306,18 @@ async function loadAVPMonthEvents(monthNum){
   return [];
 }
 
+// Retire tout emoji/pictogramme (+ sélecteurs de variante, + jointeurs ZWJ) d'un texte.
+// Utilisé pour nettoyer la fin des titres venant du planning CSV, et pour la comparaison
+// tolérante des titres (normaliserTitreAtelier) — jamais pour l'affichage normal.
+function nettoyerEmojis(s){return (s||'').replace(/[\p{Extended_Pictographic}‍️]/gu,'');}
+// Normalise un titre d'atelier pour une comparaison tolérante aux petites variations de
+// libellé (accents, casse, émojis ajoutés/retirés, espaces multiples) entre un rappel déjà
+// enregistré et le planning CSV actuel. Ne sert QU'à la correspondance (niveau 2 de
+// matchAtelierPlanning) — jamais à l'affichage, qui garde le titre tel que publié.
+function normaliserTitreAtelier(t){
+  return nettoyerEmojis(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+}
+
 function parseAVPPlanning(csv,moisCible){
   const events=[];
   const lines=csv.replace(/\r/g,'').split('\n');
@@ -5307,7 +5394,10 @@ function parseAVPPlanning(csv,moisCible){
             // Extraire emoji du début du titre
             const emojiMatch=activite.match(/^((?:[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]|[\u2300-\u23FF])+)/);
             const csvEmoji=emojiMatch?emojiMatch[1].trim():'';
-            const title=activite.replace(/^[^\wÀ-ÿ(]+/,'').replace(/\(\d{1,2}\)\s*$/,'').trim();
+            // Retire aussi les émojis en FIN de titre (ex. "Pique-nique en forê🧺") — avant,
+            // seuls ceux en début de titre étaient retirés (extraits comme icône) ; ceux en fin
+            // restaient collés au titre et cassaient la correspondance si retirés un autre mois.
+            const title=activite.replace(/^[^\wÀ-ÿ(]+/,'').replace(/\(\d{1,2}\)\s*$/,'').replace(/[\s\p{Extended_Pictographic}‍️]+$/gu,'').trim();
             if(!title)continue;
             events.push({date:dayMap[col],time:heure||'09:00',title:title,icon:csvEmoji||getActivityIcon(title),limite:limite});
           }
