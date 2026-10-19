@@ -592,6 +592,14 @@
     .stats-bar-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
     .stats-rate { font-size:0.75rem; font-weight: 700; min-width: 34px; text-align: right; }
     .stats-counts { font-size:0.6875rem; color: #5b6785; white-space: nowrap; }
+    .stats-exclusion-btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-bottom:14px; padding:14px; background:#2c3e91; color:#fff; border:none; border-radius:14px; font-size:0.875rem; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:0 4px 0 #1c2a66; min-height:44px; }
+    .stats-exclusion-btn:active { background:#243580; }
+    .pdf-export-mode .stats-exclusion-btn { display:none!important; }
+    .stats-exclusion-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; }
+    .stats-exclusion-toggle { min-width:92px; min-height:44px; border-radius:12px; font-weight:700; font-size:0.8125rem; cursor:pointer; font-family:inherit; border:none; }
+    .stats-exclusion-toggle.on { background:#22a559; color:#fff; box-shadow:0 3px 0 #1b7a43; }
+    .stats-exclusion-toggle.off { background:#e5e7eb; color:#6b7280; box-shadow:0 3px 0 #c7cad1; }
+    .stats-exclusion-counter { text-align:center; font-size:0.8125rem; font-weight:700; color:#48547a; padding:14px 0 6px; }
     .stats-atelier-row { background: white; border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
     .stats-atelier-name { font-size:0.8125rem; font-weight: 600; color: #1a2340; margin-bottom: 5px; }
     .stats-status-btn { font-size:0.6875rem; padding: 3px 8px; border-radius: 8px; border: 1px solid #d1d5db; background: #f9fafb; color: #374151; cursor: pointer; font-family: inherit; font-weight: 600; }
@@ -609,7 +617,7 @@
     .pdf-export-mode .stats-atelier-line { font-size:0.5625rem!important; padding:1px 0!important; }
     .pdf-export-mode .stats-status-btn { display:none!important; }
     .pdf-export-mode i.ti-chevron-up, .pdf-export-mode i.ti-chevron-down { display:none!important; }
-    @media print { .stats-header button, .stats-filter-bar, .stats-export-btn, .stats-status-btn, .bilan-no-print { display: none !important; } #bilan-note-print { display: block !important; } body { background: white; } .screen { display: block !important; position: static !important; } #admin-stats-screen, #admin-bilan-screen { display: block !important; } .stats-body { overflow: visible; padding-bottom: 0; } }
+    @media print { .stats-header button, .stats-filter-bar, .stats-export-btn, .stats-status-btn, .stats-exclusion-btn, .bilan-no-print { display: none !important; } #bilan-note-print { display: block !important; } body { background: white; } .screen { display: block !important; position: static !important; } #admin-stats-screen, #admin-bilan-screen { display: block !important; } .stats-body { overflow: visible; padding-bottom: 0; } }
     .atelier-pointage-list { display: flex; flex-direction: column; gap: 8px; }
     .atelier-pointage-row { display: flex; align-items: center; gap: 6px; padding: 8px 0; border-top: 1px solid #eef1fb; }
     .atelier-pointage-row:first-child { border-top: none; }
@@ -1532,6 +1540,16 @@
     <button id="bilan-export-btn" class="stats-export-btn" style="background:white;color:#2d6a4f;border:none;border-radius:8px;padding:6px 12px;font-size:0.8125rem;font-weight:700;cursor:pointer;">📄 PDF</button>
   </div>
   <div class="stats-body" id="bilan-content">
+    <div style="text-align:center;padding:40px;color:#48547a">Chargement…</div>
+  </div>
+</div>
+
+<div id="admin-stats-exclusions-screen" class="screen">
+  <div class="stats-header" style="background:#2c3e91;">
+    <button class="back-btn" id="stats-exclusions-back-btn" style="color:white">‹</button>
+    <h1 style="font-size:1.1875rem;font-weight:700;flex:1;">⚙️ Qui compte dans les stats</h1>
+  </div>
+  <div class="stats-body" id="stats-exclusions-content">
     <div style="text-align:center;padding:40px;color:#48547a">Chargement…</div>
   </div>
 </div>
@@ -2660,6 +2678,7 @@ async function showAdminConnexions(){
 }
 document.getElementById('stats-back-btn').addEventListener('click',()=>showScreen('admin-screen'));
 document.getElementById('bilan-back-btn').addEventListener('click',()=>showScreen('admin-screen'));
+document.getElementById('stats-exclusions-back-btn').addEventListener('click',()=>{showScreen('admin-stats-screen');loadAndRenderStats();});
 document.getElementById('admin-descriptions-btn').addEventListener('click',()=>showAdminDescriptions());
 document.getElementById('admin-mois-suivant-btn').addEventListener('click', async()=>{
   try{
@@ -2952,14 +2971,26 @@ async function buildAnimAtelierIndex(animForce){
   return set;
 }
 
+// Document unique config/statsExclusions = { ids:[...uid], updatedAt } : comptes exclus
+// des Statistiques (vue Steve + vue Greg) et des Bilans. Liste commune, modifiable par
+// Steve uniquement (voir showStatsExclusions), lue par Greg sans pouvoir la modifier.
+async function getStatsExclusions(){
+  try{
+    const snap=await db.collection('config').doc('statsExclusions').get();
+    const ids=(snap.exists&&Array.isArray(snap.data().ids))?snap.data().ids:[];
+    return new Set(ids);
+  }catch(e){return new Set();}
+}
+
 async function loadAndRenderStats(){
   const content=document.getElementById('stats-content');
   content.innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement…</div>';
   try{
-    const [usersSnap,presSnap,statusSnap]=await Promise.all([
+    const [usersSnap,presSnap,statusSnap,exclSet]=await Promise.all([
       db.collection('users').get(),
       db.collection('presences').get(),
-      db.collection('user_statuses').get()
+      db.collection('user_statuses').get(),
+      getStatsExclusions()
     ]);
     const mNames=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
     const today=new Date().toISOString().slice(0,10);
@@ -2968,7 +2999,7 @@ async function loadAndRenderStats(){
     statusSnap.docs.forEach(d=>{statuses[d.id]={...d.data()};});
     const presencesMap={};
     presSnap.docs.forEach(d=>{presencesMap[d.id]={...d.data()};});
-    const users=usersSnap.docs.filter(d=>{const u=d.data();return u.prenom&&u.code!=='196969'&&u.code!==196969&&u.code!=='555888'&&u.code!==555888;}).map(d=>({uid:d.id,...d.data()}));
+    const users=usersSnap.docs.filter(d=>{const u=d.data();return u.prenom&&u.code!=='196969'&&u.code!==196969&&u.code!=='555888'&&u.code!==555888&&!exclSet.has(d.id);}).map(d=>({uid:d.id,...d.data()}));
     // Index des ateliers de l'animateur connecté, construit depuis TOUS les mois publiés
     // (pas seulement le planning chargé) → les mois passés (ex. mai) ne disparaissent plus des stats.
     const animEvents=await buildAnimAtelierIndex();
@@ -3010,7 +3041,8 @@ async function loadAndRenderStats(){
     const monthLabels=monthKeys.map(k=>mNames[parseInt(k.split('-')[1])-1]);
     const monthPresences=monthKeys.map(k=>monthlyData[k].p);
     const monthOptions=months.map(ym=>{const[y,m]=ym.split('-');return`<option value="month_${ym}"${statsFilter==='month_'+ym?' selected':''}>${mNames[parseInt(m)-1]} ${y}</option>`;}).join('');
-    let html=`<div class="stats-filter-bar"><select style="flex:1;font-size:0.75rem;padding:7px 8px;border-radius:8px;border:1.5px solid #2d6a4f;background:white;color:#1a2340;font-weight:600;" onchange="setStatsFilter(this.value)">${monthOptions}<option value="all"${statsFilter==='all'?' selected':''}>Toute la période</option></select></div>
+    let html=currentUser.isGreg?'':`<button class="stats-exclusion-btn" onclick="showStatsExclusions()">⚙️ Choisir qui compte dans les stats</button>`;
+    html+=`<div class="stats-filter-bar"><select style="flex:1;font-size:0.75rem;padding:7px 8px;border-radius:8px;border:1.5px solid #2d6a4f;background:white;color:#1a2340;font-weight:600;" onchange="setStatsFilter(this.value)">${monthOptions}<option value="all"${statsFilter==='all'?' selected':''}>Toute la période</option></select></div>
     <div class="stats-kpi-grid">
       <div class="stats-kpi"><div class="stats-kpi-label">Bénéficiaires</div><div class="stats-kpi-value">${users.length}</div></div>
       <div class="stats-kpi"><div class="stats-kpi-label">Activités</div><div class="stats-kpi-value">${atelierList.length}</div></div>
@@ -3122,6 +3154,48 @@ async function loadAndRenderStats(){
 
 function setStatsFilter(val){statsFilter=val;loadAndRenderStats();}
 
+// ===== Choix des comptes comptés dans les Statistiques/Bilans (Steve uniquement) =====
+async function showStatsExclusions(){
+  showScreen('admin-stats-exclusions-screen');
+  await loadAndRenderStatsExclusions();
+}
+
+async function loadAndRenderStatsExclusions(){
+  const content=document.getElementById('stats-exclusions-content');
+  content.innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement…</div>';
+  try{
+    const [usersSnap,exclSet]=await Promise.all([
+      db.collection('users').get(),
+      getStatsExclusions()
+    ]);
+    const users=usersSnap.docs.filter(d=>d.data().prenom).map(d=>({uid:d.id,prenom:d.data().prenom})).sort((a,b)=>a.prenom.localeCompare(b.prenom,'fr'));
+    const nbExclus=users.filter(u=>exclSet.has(u.uid)).length;
+    const nbComptes=users.length-nbExclus;
+    let html=`<p style="font-size:0.8125rem;color:#48547a;margin-bottom:10px;">Les comptes exclus ne sont plus comptés dans les Statistiques (Steve et Greg) ni dans les Bilans.</p><div style="border:0.5px solid var(--color-border-tertiary);border-radius:10px;overflow:hidden;">`;
+    users.forEach((u,idx)=>{
+      const excl=exclSet.has(u.uid);
+      const border=idx<users.length-1?'border-bottom:0.5px solid var(--color-border-tertiary);':'';
+      html+=`<div class="stats-exclusion-row" style="${border}"><span style="font-size:0.9375rem;font-weight:600;color:${excl?'#9aa3c4':'#1a2340'};">${esc(u.prenom)}</span><button class="stats-exclusion-toggle ${excl?'off':'on'}" onclick="toggleStatsExclusion('${u.uid}')">${excl?'Exclu':'Compté'}</button></div>`;
+    });
+    html+=`</div><div class="stats-exclusion-counter">${nbComptes} compté${nbComptes>1?'s':''} · ${nbExclus} exclu${nbExclus>1?'s':''}</div>`;
+    content.innerHTML=html;
+  }catch(e){content.innerHTML='<div class="planning-empty">Erreur de chargement.</div>';console.error(e);}
+}
+
+async function toggleStatsExclusion(uid){
+  const docRef=db.collection('config').doc('statsExclusions');
+  try{
+    const snap=await docRef.get();
+    const ids=(snap.exists&&Array.isArray(snap.data().ids))?snap.data().ids.slice():[];
+    const idx=ids.indexOf(uid);
+    if(idx>=0)ids.splice(idx,1);else ids.push(uid);
+    await docRef.set({ids,updatedAt:Date.now()});
+  }catch(e){
+    alert("La mise à jour n'a pas pu être enregistrée. Vérifiez votre connexion.");
+  }
+  await loadAndRenderStatsExclusions();
+}
+
 // ========== BILAN TRIMESTRIEL (rapport positif destiné au financeur) ==========
 // Volontairement séparé des Statistiques : rien sur les désinscriptions ou les
 // difficultés d'un bénéficiaire ici, ça reste privé dans les Statistiques.
@@ -3177,18 +3251,19 @@ async function loadAndRenderBilan(){
     const autreNom=anim==='greg'?'Steve':'Greg';
     const periodeMotSur=q.type==='annee'?"sur l'année":'sur le trimestre';
     const periodeMotDe=q.type==='annee'?"de l'année":'du trimestre';
-    const [usersSnap,presSnap,mesEvents,autreEvents,nouveauSnap]=await Promise.all([
+    const [usersSnap,presSnap,mesEvents,autreEvents,nouveauSnap,exclSet]=await Promise.all([
       db.collection('users').get(),
       db.collection('presences').get(),
       buildAnimAtelierIndex(anim),
       buildAnimAtelierIndex(autreAnim),
-      db.collection('activites_nouveau').get()
+      db.collection('activites_nouveau').get(),
+      getStatsExclusions()
     ]);
     const presencesMap={};
     presSnap.docs.forEach(d=>{presencesMap[d.id]={...d.data()};});
     const nouveauMap={};
     nouveauSnap.docs.forEach(d=>{nouveauMap[d.id]=!!d.data().nouveau;});
-    const users=usersSnap.docs.filter(d=>{const u=d.data();return u.prenom&&u.code!=='196969'&&u.code!==196969&&u.code!=='555888'&&u.code!==555888;}).map(d=>({uid:d.id,...d.data()}));
+    const users=usersSnap.docs.filter(d=>{const u=d.data();return u.prenom&&u.code!=='196969'&&u.code!==196969&&u.code!=='555888'&&u.code!==555888&&!exclSet.has(d.id);}).map(d=>({uid:d.id,...d.data()}));
     const today=new Date().toISOString().slice(0,10);
     const cleAtelier=r=>r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');
     const isMonAtelier=r=>mesEvents.has(cleAtelier(r));

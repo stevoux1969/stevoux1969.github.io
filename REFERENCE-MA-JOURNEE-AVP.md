@@ -39,6 +39,7 @@ Version en prod (`version.txt`) et `APP_VERSION` dans le code web : **1.0.10** (
 - Message à tous / aux inscrits d'un atelier, écran « Messages envoyés » avec date de fin optionnelle
 - Statistiques de présence avec export PDF (jsPDF + html2canvas)
 - Bilan trimestriel séparé des Statistiques, avec vue annuelle et badge « Nouveau »
+- **Exclusion de comptes des Statistiques/Bilans** (bouton « Choisir qui compte dans les stats », visible pour Steve uniquement, cachée pour Greg) : liste commune `config/statsExclusions` (`{ids:[...uid], updatedAt}`), un compte exclu l'est à la fois pour Steve et pour Greg, dans les Statistiques comme dans le Bilan trimestriel/annuel et leurs exports PDF. Identifiant utilisé : l'uid Firestore du document `users` (stable, contrairement au prénom). Pré-rempli au lancement avec les comptes non-bénéficiaires repérés dans les données réelles : Test, Steve, Admin, Sophie, Sads, Accueil la clé.
 - Avis bénéficiaires sur les ateliers passés, filtrés par animateur
 - Pointage présence/absence
 - Repère version APK (pastille + compteur), enregistré à la connexion (`appVersion`/`appVersionAt` sur `users`)
