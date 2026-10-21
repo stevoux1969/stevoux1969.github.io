@@ -1,6 +1,6 @@
 # Ma Journée AVP — Référence (source de vérité)
 
-Mise à jour : 18/09/2026 (soir). Application Android pour ~30 adultes en situation de handicap psychique du service AVP (association La Clé, Rouen). Sert à ne pas rater les rendez-vous : ateliers, rappels personnels, agenda.
+Mise à jour : 11/10/2026. Application Android pour ~30 adultes en situation de handicap psychique du service AVP (association La Clé, Rouen). Sert à ne pas rater les rendez-vous : ateliers, rappels personnels, agenda.
 
 Deux dépôts :
 - `stevoux1969.github.io` (public, sert l'app en direct) — cloné dans `C:\Users\samsah32\stevoux1969.github.io`
@@ -45,6 +45,7 @@ Version en prod (`version.txt`) et `APP_VERSION` dans le code web : **1.0.10** (
 - Repère version APK (pastille + compteur), enregistré à la connexion (`appVersion`/`appVersionAt` sur `users`)
 - Notifs animateur à l'inscription/désinscription : écrites dans 2 collections, `notifications` (OneSignal web) + `notifs_animateur` (FCM APK), envoyées seulement après succès confirmé de l'écriture Firestore
 - Espace Admin repensé : fond `#dadde8` (clair, lisible), cartes blanches uniformes, actions en liste 1 colonne (plus de grille 2 colonnes)
+- **Aperçu compte Test depuis l'Espace Admin** (Steve ou Greg uniquement) : section « 👁️ Aperçu », bouton « 👁️ Voir comme Test » tout en haut (`voirCommeTest()`, index.html) — ouvre le compte bénéficiaire « Test » (trouvé par prénom dans `users`) exactement comme une connexion normale, sans ressaisir de code. Mémorise sur l'appareil qui doit revenir via la clé `localStorage` `avp_retour_admin` (valeur `"steve"` ou `"greg"`, jamais de code/PIN). Le bouton « ↩ Retour admin » apparaît tout en haut de `reglages.html` (le tiroir « Réglages ») uniquement si cette clé existe ET que le compte connecté est « Test » ; il rétablit la session admin (Steve/Greg selon la clé) et supprime la clé. La clé est aussi supprimée par `clearSession()` (déconnexion) et au début de `handleLogin()` (toute connexion manuelle), pour ne jamais laisser le bouton apparaître en dehors de ce parcours.
 
 ## Bugs corrigés récemment (ne pas réintroduire)
 
@@ -59,6 +60,28 @@ Version en prod (`version.txt`) et `APP_VERSION` dans le code web : **1.0.10** (
 - Trajet à pied/voiture : échecs intermittents en cliquant vite entre les modes.
 - `fermerGuide()` dans `reglages.html` redirige correctement vers `index.html` (bouton « Terminer » et bouton fermer X).
 - Dropdown « Inscrits aux ateliers » n'est plus limité au mois courant (détaillé ci-dessus).
+
+## Assistant vocal IA (« Je le dis ») — test uniquement, build `.test`
+
+Nouveau chemin de création de rappel en voix (rond bleu, maquette `maquette-nouveau-rappel-voix.html`), en plus des tuiles existantes (inchangées). Actif uniquement sur `AVP TEST` (paquet `fr.avplacle.majourneeavp.test`) : sur la prod ou dans un navigateur, le bouton « + » va direct aux tuiles comme avant (gating `Capacitor.isPluginAvailable('Voice'/'Gemma')`). Testé OK par Steve sur son Redmi Note 14 ; prochaine étape = test avec de vrais bénéficiaires.
+
+**Architecture (100 % gratuit, aucun service payant, aucune clé API)** :
+- IA : Gemma 4 E2B, exécutée dans le téléphone en CPU (jamais GPU — GPU donne du charabia sur ce Redmi) via LiteRT-LM (`GemmaPlugin.kt`, plugin natif maison, écrit en Kotlin).
+- Micro : reconnaissance vocale Android native (`android.speech.SpeechRecognizer`, fr-FR), plugin natif maison `VoicePlugin.java`.
+- Voix : plugin `@capacitor-community/text-to-speech` déjà présent dans l'app ; meilleure voix fr-FR **locale** choisie par défaut (hors connexion, cohérent avec une IA qui tourne sans internet), choix manuel dans l'écran « Détails » avec le temps de réponse de l'IA affiché.
+- Logique de compréhension portée de `test-ia.html` (prototype abandonné, récupérable via `git show 8673105:test-ia.html` sur ce dépôt) : l'IA renvoie un JSON `{type, quoi, icone, jour, heure, moment, tous_les_jours, parole}` — jour/heure restent les mots bruts dits par la personne, la date et l'heure réelles sont **toujours calculées par le code** (jamais par l'IA). Règlement envoyé une seule fois par conversation, pas à chaque message. `TEXTE_DETRESSE` fixe, jamais généré par l'IA ; plus d'écoute automatique après son affichage.
+- Le rappel validé est enregistré via le **même bouton** `#save-btn` que l'assistant tuiles (remplissage des mêmes champs cachés puis déclenchement du clic) — aucune logique de sauvegarde dupliquée.
+
+**Isolation stricte au build `.test`** (zéro impact prod) :
+- Classes réelles dans `android/app/src/debug/{java,kotlin}` (`VoicePlugin`, `GemmaPlugin`) ; classes vides de même nom dans `src/release/java` (sinon le projet ne compile pas en release). `MainActivity.onCreate` ne les enregistre que si `BuildConfig.DEBUG` → invisibles pour `Capacitor.isPluginAvailable()` côté bénéficiaires.
+- Permission `RECORD_AUDIO` déclarée uniquement dans `android/app/src/debug/AndroidManifest.xml` (jamais fusionnée en release).
+- Dépendance LiteRT-LM en `debugImplementation` uniquement.
+- Vérifié à chaque étape par recherche binaire dans les `.dex` extraits de l'APK release (un simple listing de fichiers ne voit pas le contenu du dex) : zéro trace de `litertlm`, de `SpeechRecognizer`, ni de la permission `RECORD_AUDIO`.
+- Seul effet de bord accepté côté release : `kotlin-stdlib` (quelques centaines de Ko, inerte, aucune permission/comportement nouveau) ajouté par l'outillage Kotlin lui-même — pas scopable par variante avec les outils standards.
+
+**Modèle Gemma sur le téléphone** : `gemma-4-E2B-it.litertlm` (2 588 147 712 octets) n'est **pas téléchargé par l'app**. Copié une seule fois à la main : `adb pull` depuis le cache de Google AI Edge Gallery (`com.google.ai.edge.gallery`, déjà installé sur le Redmi de test) puis `adb push` dans `/sdcard/Android/data/fr.avplacle.majourneeavp.test/files/models/gemma-4-E2B-it.litertlm`. Si ce téléphone est réinitialisé, ou pour tester sur un autre téléphone, il faut repousser ce fichier à la main (le dossier `files/models` n'existe qu'après un premier lancement de l'app installée).
+
+**Reste à tester** : usage avec de vrais bénéficiaires (vocabulaire varié, bruit ambiant, accents), fiabilité du micro sur plusieurs tours de conversation d'affilée, temps de chargement initial du modèle ressenti par un bénéficiaire (pas seulement par Steve), comportement si le modèle est absent sur un autre téléphone de test, et si l'IA retrouve bien les ateliers AVP spécifiques (pas encore mappés aux icônes/adresses exactes de l'app, contrairement à l'assistant tuiles).
 
 ## Chantiers ouverts / à venir
 

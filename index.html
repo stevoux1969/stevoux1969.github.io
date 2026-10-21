@@ -528,6 +528,9 @@
     .btn-new-user { margin: 0 16px 16px; padding: 18px; background: #d63447; color: white; border: none; border-radius: 16px; font-size:1.125rem; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 10px; }
     .btn-new-user:active { background: #b02a3e; }
     .btn-admin-action { margin: 0 16px 10px; padding: 16px; background: #ffffff; color: #20223a; border: 0.5px solid #e2e4ea; border-radius: 14px; font-size:1rem; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-apercu-test { margin: 0 16px 6px; padding: 16px; background: #2c3e91; color: #fff; border: none; border-radius: 14px; font-size:1rem; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 10px 20px rgba(44,62,145,0.4); }
+    .btn-apercu-test:active { background: #24316f; }
+    .admin-apercu-aide { margin: 0 16px 16px; font-size: 0.8125rem; color: #6b7590; text-align: center; }
     .admin-actions-grid { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 0 16px 12px; }
     .admin-actions-grid .btn-admin-action { margin: 0; padding: 10px 6px; font-size:0.75rem; border-radius: 12px; min-height: 56px; text-align: center; line-height: 1.2; }
     .admin-actions-grid:active { background: #dde3f7; }
@@ -1453,6 +1456,10 @@
     <h1 id="admin-titre">👑 Espace Admin</h1>
   </div>
   <div class="admin-scroll">
+  <div class="admin-section-titre">👁️ Aperçu</div>
+  <button class="btn-apercu-test" id="admin-apercu-test-btn">👁️ Voir comme Test</button>
+  <p class="admin-apercu-aide">Ouvre le compte Test, sans code.</p>
+
   <div class="admin-section-titre">👥 Bénéficiaires</div>
   <button class="btn-new-user" id="admin-new-user-btn">+ Créer un compte bénéficiaire</button>
   <div class="admin-actions-grid">
@@ -1791,6 +1798,7 @@ document.querySelectorAll('.pin-btn').forEach(btn => { btn.addEventListener('cli
 // Création de compte désactivée - gérée uniquement par l'admin
 
 async function handleLogin() {
+  try{localStorage.removeItem('avp_retour_admin');}catch(e){}
   const prenom=document.getElementById('login-prenom').value.trim();
   const code=pinValue;
   document.getElementById('login-error').classList.remove('visible');
@@ -1808,7 +1816,7 @@ async function handleLogin() {
 function showError(msg){const el=document.getElementById('login-error');el.textContent=msg;el.classList.add('visible');}
 function saveSession(){try{localStorage.setItem('avp_session',JSON.stringify(currentUser));}catch(e){}}
 function loadSession(){try{const s=localStorage.getItem('avp_session');if(s)return JSON.parse(s);}catch(e){}return null;}
-function clearSession(){try{localStorage.removeItem('avp_session');}catch(e){}}
+function clearSession(){try{localStorage.removeItem('avp_session');localStorage.removeItem('avp_retour_admin');}catch(e){}}
 
 // Trace une ouverture de l'app (1 max par heure pour ne pas gonfler les chiffres)
 async function logConnexion(){
@@ -2599,6 +2607,30 @@ async function showAdminScreen(){
 }
 async function loadAdminUsers(){const list=document.getElementById('admin-user-list');list.innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';try{const snap=await db.collection('users').get();if(snap.empty){list.innerHTML='<div class="planning-empty">Aucun compte créé.</div>';return;}const docs=snap.docs;let nbAJour=0;docs.forEach(d=>{if(_estAJour(d.data().appVersion))nbAJour++;});const total=docs.length;const pct=total?Math.round(nbAJour/total*100):0;const cards=docs.map(d=>{const u=d.data();const nb=(u.reminders||[]).length;return`<div class="admin-user-card" data-uid="${d.id}"><div class="user-avatar">${u.prenom.slice(0,1).toUpperCase()}</div><div class="admin-user-info"><div class="admin-user-name">${esc(u.prenom)}</div><div class="admin-user-meta">${nb} rappel${nb>1?'s':''} · Code : ${u.code}</div></div>${versionPill(u.appVersion)}</div>`;}).join('');list.innerHTML=`<div class="maj-compteur"><div class="maj-compteur-chiffre">${nbAJour} / ${total} à jour</div><div class="maj-compteur-txt">Passés en 1.0.4</div><div class="maj-barre"><i style="width:${pct}%"></i></div></div>`+cards;}catch(e){list.innerHTML='<div class="planning-empty">Erreur de chargement.</div>';}}
 
+async function voirCommeTest(){
+  if(!currentUser||!currentUser.isAdmin)return;
+  try{
+    const snap=await db.collection('users').get();
+    let found=null;
+    snap.docs.forEach(d=>{if((d.data().prenom||'').toLowerCase()==='test')found={id:d.id,...d.data()};});
+    if(!found){showConfirm({icon:'❌',title:'Compte Test introuvable',text:'Créez un compte bénéficiaire nommé « Test » pour utiliser l\'aperçu.',okText:'OK',hideCancel:true});return;}
+    localStorage.setItem('avp_retour_admin',currentUser.isGreg?'greg':'steve');
+    currentUser={id:found.id,prenom:found.prenom,isAdmin:false};
+    saveSession();
+    tagOneSignalUser(found.prenom);tagOneSignalAvpUser();
+    await loadUserData();
+    recordAppVersion(found.id);
+    logConnexion();
+    enterApp();
+    maybeShowAvisPopup();
+    maybeShowGuidePermissionsPopup();
+    if(estNatifAlarme())planifierNotifsSysteme();
+  }catch(e){
+    localStorage.removeItem('avp_retour_admin');
+    showConfirm({icon:'❌',title:'Erreur',text:'Impossible d\'ouvrir le compte Test.',okText:'OK',hideCancel:true});
+  }
+}
+document.getElementById('admin-apercu-test-btn').addEventListener('click',voirCommeTest);
 document.getElementById('admin-back-btn').addEventListener('click',()=>{clearSession();currentUser=null;showScreen('login-screen');});
 document.getElementById('admin-new-user-btn').addEventListener('click',()=>{showScreen('login-screen');loginMode='register';document.getElementById('login-card-title').textContent='Créer un compte';document.getElementById('field-prenom').style.display='block';document.getElementById('login-switch-text').textContent='';document.getElementById('login-switch-btn').textContent='';pinValue='';updatePinDots();});
 document.getElementById('admin-user-list').addEventListener('click',e=>{const card=e.target.closest('.admin-user-card');if(!card)return;showAdminUserDetail(card.dataset.uid);});

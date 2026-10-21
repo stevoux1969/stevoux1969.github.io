@@ -41,6 +41,8 @@
   .mono { font-family:ui-monospace, Menlo, Consolas, monospace; font-size:0.82rem; color:#3a4670;
           white-space:pre-wrap; word-break:break-word; background:#f6f8fc; border-radius:10px; padding:10px; margin-top:8px; }
   .gap > * + * { margin-top:12px; }
+  .btn-retour-admin { background:#d63447; box-shadow:0 10px 20px rgba(214,52,71,0.4); }
+  .retour-admin-aide { margin:10px 0 0; font-size:0.85rem; color:#6b7590; text-align:center; }
 
   /* Configuration guidée (guidePermissions) : batterie + démarrage automatique constructeur */
   .guide-overlay { position:fixed; inset:0; background:#eef1f6; z-index:80; display:none; flex-direction:column; }
@@ -85,6 +87,12 @@
 </header>
 
 <div class="wrap">
+
+  <!-- Retour admin (aperçu du compte Test par Steve ou Greg) -->
+  <div class="carte" id="carteRetourAdmin" style="display:none">
+    <button type="button" class="btn btn-retour-admin btn-large" style="width:100%" onclick="retourAdmin()">↩ Retour admin</button>
+    <p class="retour-admin-aide">Visible seulement si vous venez de l'admin.</p>
+  </div>
 
   <!-- État de l'environnement -->
   <div id="envKo" class="carte" style="display:none">
@@ -180,6 +188,29 @@ document.getElementById("g-son").addEventListener("click", () => {
   if (guideVoixCoupee) guideArreterVoix();
 });
 document.getElementById("g-son").textContent = guideVoixCoupee ? "🔇" : "🔊";
+
+// Retour admin (aperçu du compte Test depuis l'Espace Admin, voir index.html : voirCommeTest())
+function getSessionActuelle() {
+  try { const s = localStorage.getItem("avp_session"); if (s) return JSON.parse(s); } catch (e) {}
+  return null;
+}
+function afficherRetourAdmin() {
+  const qui = localStorage.getItem("avp_retour_admin");
+  const session = getSessionActuelle();
+  const estCompteTest = session && !session.isAdmin && (session.prenom || "").toLowerCase() === "test";
+  document.getElementById("carteRetourAdmin").style.display = (qui && estCompteTest) ? "" : "none";
+}
+function retourAdmin() {
+  const qui = localStorage.getItem("avp_retour_admin");
+  if (!qui) return;
+  const admin = qui === "greg"
+    ? { id: "adminGreg", prenom: "Greg", isAdmin: true, isGreg: true }
+    : { id: "admin", prenom: "Admin", isAdmin: true, isGreg: false };
+  try { localStorage.setItem("avp_session", JSON.stringify(admin)); } catch (e) {}
+  try { localStorage.removeItem("avp_retour_admin"); } catch (e) {}
+  window.location.href = "index.html";
+}
+afficherRetourAdmin();
 
 const ID_TEST = 990001; // id réservé au test (hors espace des hash de rappels)
 
