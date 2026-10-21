@@ -554,14 +554,22 @@
     .admin-reminder-del { background: #fdf0f2; border: 1px solid #f3c3ca; color: #d63447; border-radius: 8px; padding: 6px 10px; font-size:0.75rem; font-weight: 700; cursor: pointer; font-family: inherit; }
     .admin-empty { text-align: center; padding: 20px; color: #5b6785; font-style: italic; font-size:0.875rem; background: white; border-radius: 12px; }
     .btn-admin-danger { width: calc(100% - 32px); margin: 20px 16px 0; padding: 16px; background: white; color: #d63447; border: 2px solid #f3c3ca; border-radius: 14px; font-size:1rem; font-weight: 700; cursor: pointer; font-family: inherit; }
-    .inscrire-atelier-card { background: white; border-radius: 14px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(26,35,64,0.06); }
-    .inscrire-atelier-title { font-size:1rem; font-weight: 800; color: #1a2340; margin-bottom: 4px; }
-    .inscrire-atelier-date { font-size:0.8125rem; color: #48547a; margin-bottom: 12px; }
+    .inscrire-atelier-card { background: white; border-radius: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(26,35,64,0.06); overflow: hidden; }
+    .inscrire-atelier-card.ouvert { border: 2px solid #2c3e91; }
+    .inscrire-atelier-head { padding: 14px 16px; cursor: pointer; min-height: 44px; }
+    .inscrire-atelier-title { font-size:1rem; font-weight: 800; color: #2c3e91; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+    .inscrire-atelier-date { font-size:0.8125rem; color: #48547a; }
+    .inscrire-atelier-corps { display: none; padding: 0 16px 16px; }
+    .inscrire-atelier-card.ouvert .inscrire-atelier-corps { display: block; }
     .inscrire-beneficiaire-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f1f3f8; }
     .inscrire-beneficiaire-row:last-child { border-bottom: none; }
     .inscrire-beneficiaire-name { flex: 1; font-size:1rem; font-weight: 600; color: #1a2340; }
     .inscrire-checkbox { width: 26px; height: 26px; accent-color: #22a559; cursor: pointer; }
-    .btn-inscrire-valider { width: 100%; padding: 16px; background: #22a559; color: white; border: none; border-radius: 14px; font-size:1.0625rem; font-weight: 800; cursor: pointer; font-family: inherit; margin-top: 20px; }
+    .btn-inscrire-valider { width: 100%; padding: 16px; background: #22a559; color: white; border: none; border-radius: 14px; font-size:1.0625rem; font-weight: 800; cursor: pointer; font-family: inherit; margin-top: 20px; box-shadow: 0 10px 20px rgba(34,165,89,0.4); }
+    .grp-jour-barre { background: #2c3e91; border-radius: 16px; padding: 14px 12px; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+    .grp-jour-titre { flex: 1; min-width: 0; text-align: center; color: #fff; }
+    .grp-jour-titre h2 { font-size:1.0625rem; font-weight: 700; margin: 0; letter-spacing: -0.3px; }
+    .grp-jour-titre .grp-jour-date { font-size:0.8125rem; opacity: 0.85; margin-top: 2px; text-transform: capitalize; }
     .atelier-group { background: white; border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
     .atelier-group-header { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #e5e9f2; margin-bottom: 10px; }
     .atelier-group-date { background: #2c3e91; color: white; padding: 4px 10px; border-radius: 8px; font-size:0.75rem; font-weight: 700; text-transform: uppercase; }
@@ -3724,7 +3732,7 @@ async function envoyerMessageAdmin(mode,message,atelierKey,signataire,dateFin){
 document.getElementById('admin-annuler-btn').addEventListener('click',()=>showAdminAnnulerAtelier());
 document.getElementById('admin-ateliers-back').addEventListener('click',()=>showAdminScreen());
 document.getElementById('admin-inscrire-groupe-back').addEventListener('click',()=>showAdminScreen());
-document.getElementById('admin-inscrire-groupe-btn').addEventListener('click',()=>showAdminInscrireGroupe());
+document.getElementById('admin-inscrire-groupe-btn').addEventListener('click',()=>{state.admGroupeOffset=0;showAdminInscrireGroupe();});
 document.getElementById('admin-detail-back').addEventListener('click',()=>showAdminScreen());
 
 let adminEditingUid=null;
@@ -4158,7 +4166,8 @@ async function showAdminInscrireGroupe(){
   showScreen('admin-inscrire-groupe-screen');
   const body=document.getElementById('admin-inscrire-groupe-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#48547a">Chargement...</div>';
-  
+  if(typeof state.admGroupeOffset!=='number')state.admGroupeOffset=0;
+
   // Charger les bénéficiaires
   let users=[];
   try{
@@ -4166,51 +4175,97 @@ async function showAdminInscrireGroupe(){
     snap.forEach(doc=>{const d=doc.data();if(!d.isAdmin)users.push({uid:doc.id,prenom:d.prenom,inscriptions:d.inscriptions||{}});});
     users.sort((a,b)=>a.prenom.localeCompare(b.prenom));
   }catch(e){body.innerHTML='<div class="planning-empty">Erreur chargement bénéficiaires.</div>';return;}
-  
-  // Charger les ateliers du mois en cours depuis le planning
+
+  // Charger les ateliers du mois en cours depuis le planning (filtrage Steve/Greg via state.currentAnim, inchangé)
   await loadAVPPlanning();
   // Source unifiée des inscrits (même que tous les autres écrans)
   state.allInscriptions = await loadAllInscriptions();
   // Tous les ateliers chargés (mois courant + mois suivant si activé), Y COMPRIS les jours passés
-  // (l'admin peut corriger des inscriptions oubliées) — le scroll se place sur le premier atelier à venir
+  // (l'admin peut corriger des inscriptions oubliées) — filtrés par jour affiché dans renderAdminGroupeJour()
+  state._grpUsers=users;
+  state._grpAteliers=(state.avpEvents||[]).filter(ev=>!ev.cancelled);
+  state._grpOuvert=null;
+
+  renderAdminGroupeJour();
+}
+
+function renderAdminGroupeJour(){
+  const body=document.getElementById('admin-inscrire-groupe-body');
+  const d=new Date();d.setDate(d.getDate()+state.admGroupeOffset);
+  const key=dateKey(d);
+  const off=state.admGroupeOffset;
+  const label=off===0?"Aujourd'hui":off===1?"Demain":off===-1?"Hier":d.toLocaleDateString('fr-FR',{weekday:'long'});
   const todayG=dateKey(new Date());
-  const ateliers=(state.avpEvents||[]).filter(ev=>!ev.cancelled)
-    .sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const premierFuturIdx=ateliers.findIndex(ev=>ev.date>=todayG);
-  
-  if(ateliers.length===0){body.innerHTML='<div class="planning-empty">Aucun atelier ce mois-ci.</div>';return;}
-  
-  let html='<p style="color:#48547a;font-size:0.875rem;margin-bottom:16px;">Cochez les bénéficiaires à inscrire pour chaque atelier puis appuyez sur Valider.</p>';
-  
-  ateliers.forEach((ev,idx)=>{
-    const dateStr=new Date(ev.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-    const atelierKey=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');
-    
-    const estPasse=ev.date<todayG;
-    html+=`<div class="inscrire-atelier-card" id="grp-atelier-${idx}" ${estPasse?'style="opacity:0.75"':''}>
-      <div class="inscrire-atelier-title">${ev.emoji||'📅'} ${ev.title}${estPasse?' <span style="font-size:0.75rem;font-weight:700;color:#8a93b2;">(passé)</span>':''}</div>
-      <div class="inscrire-atelier-date">${dateStr} à ${ev.time}</div>`;
-    
-    users.forEach(u=>{
-      const checked=((state.allInscriptions&&state.allInscriptions[atelierKey]||[]).includes(u.prenom))?'checked':'';
-      html+=`<div class="inscrire-beneficiaire-row">
-        <span class="inscrire-beneficiaire-name">${u.prenom}</span>
-        <input type="checkbox" class="inscrire-checkbox" data-uid="${u.uid}" data-key="${atelierKey}" ${checked}>
+
+  const users=state._grpUsers||[];
+  const ateliersJour=(state._grpAteliers||[]).filter(ev=>ev.date===key).sort((a,b)=>a.time.localeCompare(b.time));
+
+  let html=`<div class="grp-jour-barre">
+    <button id="grp-prev-day" class="btn-arrow" aria-label="Jour précédent">‹</button>
+    <div class="grp-jour-titre"><h2>${label}</h2><div class="grp-jour-date">${formatDate(d)}</div></div>
+    <button id="grp-next-day" class="btn-arrow" aria-label="Jour suivant">›</button>
+  </div>`;
+
+  if(ateliersJour.length===0){
+    html+='<div class="planning-empty">Aucun atelier ce jour-là.</div>';
+  }else{
+    html+='<p style="color:#48547a;font-size:0.875rem;margin-bottom:16px;">Appuyez sur un atelier pour l\'ouvrir et cocher les inscriptions.</p>';
+    ateliersJour.forEach(ev=>{
+      const atelierKey=ev.date+'_'+ev.time+'_'+ev.title.slice(0,20).replace(/\s/g,'_');
+      const inscrits=(state.allInscriptions&&state.allInscriptions[atelierKey])||[];
+      const nb=inscrits.length;
+      const estPasse=ev.date<todayG;
+      const ouvert=state._grpOuvert===atelierKey;
+
+      html+=`<div class="inscrire-atelier-card${ouvert?' ouvert':''}" data-key="${atelierKey}">
+        <div class="inscrire-atelier-head" data-key="${atelierKey}">
+          <div class="inscrire-atelier-title"><span class="grp-fleche">${ouvert?'▾':'▸'}</span> ${ev.emoji||'📅'} ${ev.title}${estPasse?' <span style="font-size:0.75rem;font-weight:700;color:#8a93b2;">(passé)</span>':''}</div>
+          <div class="inscrire-atelier-date"><span class="grp-compte-txt" data-heure="${ev.time}">${ev.time} · ${nb} inscrit${nb===1?'':'s'}</span></div>
+        </div>
+        <div class="inscrire-atelier-corps">`;
+
+      users.forEach(u=>{
+        const checked=inscrits.includes(u.prenom)?'checked':'';
+        html+=`<div class="inscrire-beneficiaire-row">
+          <span class="inscrire-beneficiaire-name">${u.prenom}</span>
+          <input type="checkbox" class="inscrire-checkbox" data-uid="${u.uid}" data-key="${atelierKey}" ${checked}>
+        </div>`;
+      });
+
+      html+=`<button class="btn-inscrire-valider" onclick="validerInscriptionsGroupe(this,'${atelierKey}')">✅ Valider les inscriptions</button>
+        </div>
       </div>`;
     });
-    
-    html+=`<button class="btn-inscrire-valider" onclick="validerInscriptionsGroupe(this,'${atelierKey}')">✅ Valider les inscriptions</button>
-    </div>`;
-  });
-  
-  body.innerHTML=html;
-  // Scroll automatique sur le premier atelier à venir (le passé reste accessible en remontant)
-  if(premierFuturIdx>0){
-    setTimeout(()=>{
-      const cible=document.getElementById('grp-atelier-'+premierFuturIdx);
-      if(cible)body.scrollTop=Math.max(0,cible.offsetTop-body.offsetTop-8);
-    },50);
   }
+
+  body.innerHTML=html;
+
+  document.getElementById('grp-prev-day').addEventListener('click',()=>{state.admGroupeOffset--;renderAdminGroupeJour();});
+  document.getElementById('grp-next-day').addEventListener('click',()=>{state.admGroupeOffset++;renderAdminGroupeJour();});
+
+  // Un seul atelier ouvert à la fois : masqué/affiché en CSS, le contenu (cases cochées) n'est jamais reconstruit
+  body.querySelectorAll('.inscrire-atelier-head').forEach(head=>{
+    head.addEventListener('click',()=>{
+      const cleClic=head.dataset.key;
+      state._grpOuvert=(state._grpOuvert===cleClic)?null:cleClic;
+      body.querySelectorAll('.inscrire-atelier-card').forEach(card=>{
+        const estOuvert=card.dataset.key===state._grpOuvert;
+        card.classList.toggle('ouvert',estOuvert);
+        const fleche=card.querySelector('.grp-fleche');
+        if(fleche)fleche.textContent=estOuvert?'▾':'▸';
+      });
+    });
+  });
+
+  // Compteur d'inscrits mis à jour en direct au cochage/décochage
+  body.querySelectorAll('.inscrire-checkbox').forEach(cb=>{
+    cb.addEventListener('change',()=>{
+      const card=cb.closest('.inscrire-atelier-card');
+      const n=card.querySelectorAll('.inscrire-checkbox:checked').length;
+      const txt=card.querySelector('.grp-compte-txt');
+      if(txt)txt.textContent=txt.dataset.heure+' · '+n+' inscrit'+(n===1?'':'s');
+    });
+  });
 }
 
 async function validerInscriptionsGroupe(btn, atelierKey){
