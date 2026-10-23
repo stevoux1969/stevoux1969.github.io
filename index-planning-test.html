@@ -3003,7 +3003,7 @@ async function buildAnimAtelierIndex(animForce){
     if(fresh) return;
     const url = urls[mois];
     if(!url) return;
-    if(_iaYms.includes(_yIdx+'-'+pad2(parseInt(mois)))) return; // [TEST] mois publié dans l'appli
+    if(_iaYms.includes(_yIdx+'-'+pad2(parseInt(mois)))) return; // mois publié dans l'appli
     try{
       const r = await fetchAvecTimeout(url+'&_='+Date.now(), {cache:'no-store'}, 8000);
       if(!r.ok) return; // mois 404 / non publié, ou HTTP KO → on retentera au prochain appel
@@ -5316,7 +5316,7 @@ function loadPlanningCacheLS(anim){ try{ const s=localStorage.getItem(planningCa
 function saveSharedPlanningCacheLS(data){ try{ localStorage.setItem('avp_planning_shared', JSON.stringify(data)); }catch(e){} }
 function loadSharedPlanningCacheLS(){ try{ const s=localStorage.getItem('avp_planning_shared'); if(s) return JSON.parse(s); }catch(e){} return null; }
 
-// ===== [TEST] PLANNING DANS L'APPLI =====
+// ===== PLANNING DANS L'APPLI =====
 // Un mois "publié" depuis la page pro (collection planning + config/planningApp) remplace le Google Sheet
 // pour cet animateur et ce mois. Mois non publié = comportement habituel (Google Sheet).
 const INAPP_ANIMS = ['Steve'];
@@ -5341,6 +5341,7 @@ async function getInAppPlanning(anim){
     return res;
   }catch(e){
     _badgeTest('TEST planning · ERREUR lecture : '+((e&&e.message)||e));
+    if(c) return c; // échec réseau : on garde la dernière lecture réussie
     throw e;
   }
 }
@@ -5391,8 +5392,15 @@ async function loadAVPPlanning(force){
     const _ymA = _n0.getFullYear()+'-'+pad2(_n0.getMonth()+1);
     const _n1 = new Date(_n0.getFullYear(), _n0.getMonth()+1, 1);
     const _ymS = _n1.getFullYear()+'-'+pad2(_n1.getMonth()+1);
-    const inAppA = await getInAppMonthEvents(anim,_ymA);
-    const inAppS = await getInAppMonthEvents(anim,_ymS);
+    let inAppA = null, inAppS = null;
+    try{
+      inAppA = await getInAppMonthEvents(anim,_ymA);
+      inAppS = await getInAppMonthEvents(anim,_ymS);
+    }catch(e){
+      // Planning de l'appli illisible : si un planning est déjà en cache on le garde tel quel (rien n'est écrasé),
+      // sinon on continue avec le Google Sheet comme avant.
+      if(cache && cache.events && cache.events.length) throw e;
+    }
 
     // Charger le mois actuel
     let allEvents = [];
