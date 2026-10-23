@@ -2987,6 +2987,14 @@ async function buildAnimAtelierIndex(animForce){
   const monthCache = state.statsAtelierIndexMonths[anim]; // { [mois]: {events, ts} }, seul un fetch réussi y entre
 
   const urls = (anim==='greg') ? GREG_CSV_URLS : AVP_CSV_URLS;
+  // [Planning dans l'appli] mois publiés dans l'appli : remplacent le Google Sheet de ce mois
+  let _ia = null;
+  try{ _ia = await getInAppPlanning(anim==='greg'?'Greg':'Steve'); }catch(e){}
+  const _iaYms = _ia ? _ia.publishedYms : [];
+  const _yIdx = new Date().getFullYear();
+  Object.keys(monthCache).forEach(k=>{
+    if(k.charAt(0)==='A' || (/^\d+$/.test(k) && _iaYms.includes(_yIdx+'-'+pad2(parseInt(k))))) delete monthCache[k];
+  });
   // Télécharge en parallèle uniquement les mois dont le cache est absent ou périmé (mesuré :
   // 7 à 11s en séquentiel selon l'animateur, vs quelques secondes au pire pour un seul fetch).
   await Promise.all(Object.keys(urls).map(async mois => {
@@ -2994,6 +3002,7 @@ async function buildAnimAtelierIndex(animForce){
     if(fresh) return;
     const url = urls[mois];
     if(!url) return;
+    if(_iaYms.includes(_yIdx+'-'+pad2(parseInt(mois)))) return; // mois publié dans l'appli
     try{
       const r = await fetchAvecTimeout(url+'&_='+Date.now(), {cache:'no-store'}, 8000);
       if(!r.ok) return; // mois 404 / non publié, ou HTTP KO → on retentera au prochain appel
@@ -3003,6 +3012,7 @@ async function buildAnimAtelierIndex(animForce){
     }catch(e){ /* timeout/réseau KO → on retentera au prochain appel, sans toucher au cache existant */ }
   }));
 
+  if(_ia) _iaYms.forEach(ym=>{ monthCache['A'+ym] = {events:inAppEventsOf(_ia,ym), ts:Date.now()}; });
   const set = new Set();
   const allEvents = []; // conservé en plus du Set, pour l'aperçu croisé du planning (titre/heure/icône/limite)
   Object.values(monthCache).forEach(({events})=>{
@@ -4332,11 +4342,12 @@ async function showAdminAteliers(selectedMonth){
     const currentMonth=today.slice(0,7);
     // Tous les mois pour lesquels un CSV existe, + le mois en cours s'il n'y est pas encore
     const moisDispo=[...new Set(Object.keys(urls).map(m=>year+'-'+pad2(parseInt(m))))];
+    try{ const _iaR = await getInAppPlanning(anim); if(_iaR) _iaR.publishedYms.forEach(m=>{ if(!moisDispo.includes(m)) moisDispo.push(m); }); }catch(e){}
     if(!moisDispo.includes(currentMonth))moisDispo.push(currentMonth);
     moisDispo.sort();
     const moisActif=selectedMonth||(moisDispo.includes(currentMonth)?currentMonth:(moisDispo.filter(m=>m<=currentMonth).pop()||moisDispo[moisDispo.length-1]));
 
-    const[monthEvents,usersSnap,presSnap,annulSnap]=await Promise.all([loadAVPMonthEvents(parseInt(moisActif.split('-')[1],10)),db.collection('users').get(),db.collection('presences').get(),db.collection('annulations').get()]);
+    const[monthEvents,usersSnap,presSnap,annulSnap]=await Promise.all([loadAVPMonthEvents(parseInt(moisActif.split('-')[1],10),moisActif),db.collection('users').get(),db.collection('presences').get(),db.collection('annulations').get()]);
     const annulations={};
     annulSnap.docs.forEach(doc=>{annulations[doc.id]=doc.data();});const presences={};presSnap.docs.forEach(doc=>{presences[doc.id]=doc.data();});state.presences=presences;const groupes={};
       // SOURCE UNIQUE = state.allInscriptions, exactement comme la vue bénéficiaire (déjà dédoublonné par prénom).
@@ -5304,6 +5315,46 @@ function loadPlanningCacheLS(anim){ try{ const s=localStorage.getItem(planningCa
 function saveSharedPlanningCacheLS(data){ try{ localStorage.setItem('avp_planning_shared', JSON.stringify(data)); }catch(e){} }
 function loadSharedPlanningCacheLS(){ try{ const s=localStorage.getItem('avp_planning_shared'); if(s) return JSON.parse(s); }catch(e){} return null; }
 
+// ===== PLANNING DANS L'APPLI =====
+// Un mois "publié" depuis la page pro (collection planning + config/planningApp) remplace le Google Sheet
+// pour cet animateur et ce mois. Mois non publié = comportement habituel (Google Sheet).
+const INAPP_ANIMS = ['Steve'];
+async function getInAppPlanning(anim){
+  if(!INAPP_ANIMS.includes(anim)) return null;
+  if(!state.inAppPlanning) state.inAppPlanning = {};
+  const c = state.inAppPlanning[anim];
+  if(c && (Date.now()-c.ts) < 60000) return c;
+  try{
+    const cfg = await db.collection('config').doc('planningApp').get();
+    const publies = (cfg.exists && cfg.data().publies) || {};
+    const pref = anim+'_';
+    const publishedYms = Object.keys(publies).filter(k=>publies[k] && k.indexOf(pref)===0).map(k=>k.slice(pref.length).replace('_','-')).sort();
+    let docs = [];
+    if(publishedYms.length){
+      const snap = await db.collection('planning').where('anim','==',anim).get();
+      docs = snap.docs.map(d=>({id:d.id,...d.data()}));
+    }
+    const res = {docs, publishedYms, ts:Date.now()};
+    state.inAppPlanning[anim] = res;
+    return res;
+  }catch(e){
+    if(c) return c; // échec réseau : on garde la dernière lecture réussie
+    throw e;
+  }
+}
+function inAppEventsOf(res, ym){
+  return res.docs
+    .filter(d=>d.ym===ym && d.date && d.time && d.title)
+    .map(d=>({date:d.date,time:d.time,title:d.title,icon:d.icon||getActivityIcon(d.title),limite:(d.limite>0?d.limite:null)}))
+    .sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+}
+// Retourne les événements du mois s'il est publié dans l'appli, sinon null (=> Google Sheet)
+async function getInAppMonthEvents(anim, ym){
+  const res = await getInAppPlanning(anim);
+  if(!res || !res.publishedYms.includes(ym)) return null;
+  return inAppEventsOf(res, ym);
+}
+
 async function loadAVPPlanning(force){
   // Cache du planning par animateur (Steve/Greg) : mémoire (5 min) + localStorage (persistant)
   const anim = (state && state.currentAnim==='Greg') ? 'Greg' : 'Steve';
@@ -5331,16 +5382,34 @@ async function loadAVPPlanning(force){
     const moisActuel = new Date().getMonth() + 1;
     const moisSuivant = moisActuel === 12 ? 1 : moisActuel + 1;
 
+    // [Planning dans l'appli] mois publiés depuis la page pro (null = pas publié => Google Sheet)
+    if(force) state.inAppPlanning = null;
+    const _n0 = new Date();
+    const _ymA = _n0.getFullYear()+'-'+pad2(_n0.getMonth()+1);
+    const _n1 = new Date(_n0.getFullYear(), _n0.getMonth()+1, 1);
+    const _ymS = _n1.getFullYear()+'-'+pad2(_n1.getMonth()+1);
+    let inAppA = null, inAppS = null;
+    try{
+      inAppA = await getInAppMonthEvents(anim,_ymA);
+      inAppS = await getInAppMonthEvents(anim,_ymS);
+    }catch(e){
+      // Planning de l'appli illisible : si un planning est déjà en cache on le garde tel quel (rien n'est écrasé),
+      // sinon on continue avec le Google Sheet comme avant.
+      if(cache && cache.events && cache.events.length) throw e;
+    }
+
     // Charger le mois actuel
     let allEvents = [];
-    const url = getAVPCsvUrl(moisActuel);
+    const url = inAppA ? null : getAVPCsvUrl(moisActuel);
+    if(inAppA){ allEvents = inAppA; }
     if(url){
       const r = await fetchAvecTimeout(url+'&_='+Date.now(),{cache:'no-store'},8000);
       if(r.ok){ const csv=await r.text(); allEvents=parseAVPPlanning(csv,moisActuel); }
     }
 
     // Si le mois suivant est activé, charger et fusionner
-    if(moisSuivantActif){
+    if(inAppS){ allEvents=[...allEvents,...inAppS]; }
+    else if(moisSuivantActif){
       const urlSuivant = getAVPCsvUrl(moisSuivant);
       if(urlSuivant){
         try{
@@ -5376,12 +5445,14 @@ async function loadAVPPlanning(force){
 }
 
 // Charge (et met en cache par animateur+mois) les événements d'un mois précis, indépendamment de loadAVPPlanning()
-async function loadAVPMonthEvents(monthNum){
+async function loadAVPMonthEvents(monthNum, ymForce){
   const anim = (state && state.currentAnim==='Greg') ? 'Greg' : 'Steve';
   const year = new Date().getFullYear();
-  const ym = year+'-'+pad2(monthNum);
+  const ym = ymForce || (year+'-'+pad2(monthNum));
   if(!state.avpEventsByMonth) state.avpEventsByMonth = {};
   const cacheKey = anim+'_'+ym;
+  // [Planning dans l'appli] mois publié dans l'appli : toujours à jour, sans cache de session
+  try{ const _ia = await getInAppMonthEvents(anim, ym); if(_ia) return _ia; }catch(e){}
   if(state.avpEventsByMonth[cacheKey]) return state.avpEventsByMonth[cacheKey];
   const url = getAVPCsvUrl(monthNum);
   if(!url){ state.avpEventsByMonth[cacheKey]=[]; return []; }
