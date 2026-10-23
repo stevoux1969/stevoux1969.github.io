@@ -970,7 +970,7 @@
 </style>
 </head>
 <body>
-<div id="avp-test-badge" style="position:fixed;left:8px;bottom:8px;z-index:99999;background:#d63447;color:#fff;font:700 11px/1 -apple-system,Roboto,sans-serif;padding:5px 8px;border-radius:10px;opacity:.92;pointer-events:none">TEST planning</div>
+<div id="avp-test-badge" style="position:fixed;left:8px;bottom:8px;z-index:99999;background:#d63447;color:#fff;font:700 11px/1.25 -apple-system,Roboto,sans-serif;padding:5px 8px;border-radius:10px;opacity:.92;pointer-events:none;max-width:80vw">TEST planning</div>
 
 <div id="loading-screen" class="screen active">
   <div class="splash-badge">
@@ -5325,19 +5325,26 @@ async function getInAppPlanning(anim){
   if(!state.inAppPlanning) state.inAppPlanning = {};
   const c = state.inAppPlanning[anim];
   if(c && (Date.now()-c.ts) < 60000) return c;
-  const cfg = await db.collection('config').doc('planningApp').get();
-  const publies = (cfg.exists && cfg.data().publies) || {};
-  const pref = anim+'_';
-  const publishedYms = Object.keys(publies).filter(k=>publies[k] && k.indexOf(pref)===0).map(k=>k.slice(pref.length).replace('_','-')).sort();
-  let docs = [];
-  if(publishedYms.length){
-    const snap = await db.collection('planning').where('anim','==',anim).get();
-    docs = snap.docs.map(d=>({id:d.id,...d.data()}));
+  try{
+    const cfg = await db.collection('config').doc('planningApp').get();
+    const publies = (cfg.exists && cfg.data().publies) || {};
+    const pref = anim+'_';
+    const publishedYms = Object.keys(publies).filter(k=>publies[k] && k.indexOf(pref)===0).map(k=>k.slice(pref.length).replace('_','-')).sort();
+    let docs = [];
+    if(publishedYms.length){
+      const snap = await db.collection('planning').where('anim','==',anim).get();
+      docs = snap.docs.map(d=>({id:d.id,...d.data()}));
+    }
+    const res = {docs, publishedYms, ts:Date.now()};
+    state.inAppPlanning[anim] = res;
+    _badgeTest(publishedYms.length ? 'TEST planning · '+anim+' · publié : '+publishedYms.join(', ')+' · '+docs.length+' atelier(s) dans la base' : 'TEST planning · '+anim+' · aucun mois publié dans l\'appli');
+    return res;
+  }catch(e){
+    _badgeTest('TEST planning · ERREUR lecture : '+((e&&e.message)||e));
+    throw e;
   }
-  const res = {docs, publishedYms, ts:Date.now()};
-  state.inAppPlanning[anim] = res;
-  return res;
 }
+function _badgeTest(txt){ try{ const b=document.getElementById('avp-test-badge'); if(b) b.textContent=txt; }catch(e){} }
 function inAppEventsOf(res, ym){
   return res.docs
     .filter(d=>d.ym===ym && d.date && d.time && d.title)
@@ -5354,7 +5361,7 @@ async function getInAppMonthEvents(anim, ym){
 async function loadAVPPlanning(force){
   // Cache du planning par animateur (Steve/Greg) : mémoire (5 min) + localStorage (persistant)
   const anim = (state && state.currentAnim==='Greg') ? 'Greg' : 'Steve';
-  const CACHE_MS = 5*60*1000;
+  const CACHE_MS = 10*1000; // [TEST] cache court (10 s) pour voir tout de suite les changements de la page pro
   if(!state.planningCache) state.planningCache = {};
   let cache = state.planningCache[anim];
   if(!cache){
