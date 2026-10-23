@@ -108,7 +108,7 @@
     <option value="decembre">Décembre 2026</option>
   </select>
 
-  <button class="btn-print" onclick="window.print()">🖨️ Imprimer</button>
+  <button class="btn-print" id="btnImprimer" onclick="imprimer()">🖨️ Imprimer</button>
 </div>
 
 <div id="contenu">
@@ -503,6 +503,33 @@ function rendreSemaines(semaines, animateur, mois) {
 
   return html;
 }
+
+// Dans l'appli Android (APK), l'impression ne marche pas : le bouton ouvre cette même page dans le
+// navigateur du téléphone (Chrome), où l'on peut imprimer. Le lien en http:// est envoyé par l'APK vers le
+// navigateur (adresse différente de celle de l'appli) ; GitHub le repasse aussitôt en https.
+function dansAppli() {
+  try { return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); } catch (e) { return false; }
+}
+function imprimer() {
+  if (dansAppli()) {
+    const a = document.getElementById('selectAnimateur').value;
+    const m = document.getElementById('selectMois').value;
+    window.location.href = 'http://stevoux1969.github.io/planning-print.html?anim=' + encodeURIComponent(a) + '&mois=' + encodeURIComponent(m);
+    return;
+  }
+  window.print();
+}
+
+// Pré-sélection depuis le lien (ex. bouton « Imprimer le planning » de l'appli : ?anim=both&mois=novembre)
+(function () {
+  try {
+    const q = new URLSearchParams(location.search);
+    const choisir = (id, v) => { const sel = document.getElementById(id); if (v && [...sel.options].some(o => o.value === v)) sel.value = v; };
+    choisir('selectAnimateur', q.get('anim'));
+    choisir('selectMois', q.get('mois'));
+  } catch (e) {}
+  if (dansAppli()) document.getElementById('btnImprimer').textContent = '🖨️ Imprimer (ouvre Chrome)';
+})();
 
 // Chargement initial
 chargerPlanning();
