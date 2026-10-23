@@ -1482,6 +1482,7 @@
     <button class="btn-admin-action" id="admin-descriptions-btn">📝 Description de l'atelier</button>
     <button class="btn-admin-action" id="admin-avis-ateliers-btn">💬 Avis sur les ateliers</button>
     <button class="btn-admin-action" id="admin-mois-suivant-btn" style="display:none;">🗓️ Activer mois suivant</button>
+    <button class="btn-admin-action" id="admin-planning-pro-btn" style="display:none;">✏️ Créer mon planning (test)</button>
   </div>
 
   <div class="admin-section-titre">📢 Communication</div>
@@ -2598,6 +2599,9 @@ async function showAdminScreen(){
   // Bouton mois suivant : seulement pour Steve
   const btnMs = document.getElementById('admin-mois-suivant-btn');
   if(btnMs) btnMs.style.display = currentUser.isGreg ? 'none' : '';
+  // Bouton vers la page pro du planning (Steve uniquement pour l'instant) — invisible pour les bénéficiaires (écran admin)
+  const btnPP = document.getElementById('admin-planning-pro-btn');
+  if(btnPP) btnPP.style.display = currentUser.isGreg ? 'none' : '';
   const btnRep = document.getElementById('admin-reparer-btn');
   if(btnRep) btnRep.style.display = currentUser.isGreg ? 'none' : '';
   const btnDiag = document.getElementById('admin-diag-notif-btn');
@@ -2639,6 +2643,7 @@ async function voirCommeTest(){
   }
 }
 document.getElementById('admin-apercu-test-btn').addEventListener('click',voirCommeTest);
+document.getElementById('admin-planning-pro-btn').addEventListener('click',()=>{window.location.href='planning-pro.html';});
 document.getElementById('admin-back-btn').addEventListener('click',()=>{clearSession();currentUser=null;showScreen('login-screen');});
 document.getElementById('admin-new-user-btn').addEventListener('click',()=>{showScreen('login-screen');loginMode='register';document.getElementById('login-card-title').textContent='Créer un compte';document.getElementById('field-prenom').style.display='block';document.getElementById('login-switch-text').textContent='';document.getElementById('login-switch-btn').textContent='';pinValue='';updatePinDots();});
 document.getElementById('admin-user-list').addEventListener('click',e=>{const card=e.target.closest('.admin-user-card');if(!card)return;showAdminUserDetail(card.dataset.uid);});

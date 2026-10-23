@@ -88,7 +88,7 @@ Nouveau chemin de création de rappel en voix (rond bleu, maquette `maquette-nou
 
 **Objectif** : Steve (puis Greg, puis d'autres services comme le GEM) crée le planning dans une page pro au lieu du Google Sheet ; les bénéficiaires le voient dans l'appli **sans nouvel APK** (l'APK charge le site). Une seule base Firestore, une page pro séparée (pas un 2e APK).
 
-**Fichiers de test (rien de live touché, `index.html`, `reglages.html` et `version.txt` inchangés)** :
+**Fichiers de test** (seul changement dans `index.html` live : un bouton « ✏️ Créer mon planning (test) » dans l'écran admin, section Ateliers et activités, visible pour Steve seulement, qui ouvre `planning-pro.html` ; `reglages.html` et `version.txt` inchangés) :
 - `planning-pro.html` — page pro mobile. Accès provisoire par code (`196969` = Steve uniquement, **PAS de vraie sécurité** : règles Firestore ouvertes). Mois par mois : brouillon/publié, ajout/modification/suppression d'ateliers, menu des ateliers habituels (icône automatique, reprise de la dernière description/adresse/heure/places), calendrier, répétition hebdomadaire, places ou illimité. Pas de champ trajet (chacun habite ailleurs). Dates limitées à partir de **novembre 2026** (`MIN_DATE`), octobre et avant restent sur le Sheet.
 - `index-planning-test.html` — copie de `index.html` (prod 1.0.10) + 74 lignes de différence, repérables par `[TEST planning dans l'appli]` : pastille « TEST planning » en bas à gauche, cache local séparé (`avp_planning_events_T2_`), lecture du planning de l'appli.
 
