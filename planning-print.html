@@ -53,12 +53,14 @@
   .pastille{width:14px;height:14px;border-radius:4px;display:inline-block;}
   .loading{text-align:center;padding:60px;font-size:16px;color:var(--bleu);font-weight:600;}
   .erreur{text-align:center;padding:40px;color:#c0392b;font-weight:600;}
+  .avis-ecran{max-width:1100px;margin:0 auto 14px;background:#fdf0dc;color:#8a5a00;border-radius:10px;padding:10px 14px;font-weight:700;font-size:14px;}
   @media print{
     @page{size:A4 landscape;margin:4mm;}
     /* Force l'impression des fonds colores (Chrome les supprime par defaut) */
     *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
     body{background:white;padding:0;margin:0;}
     .controls{display:none !important;}
+    .avis-ecran{display:none !important;}
     .page{box-shadow:none;border-radius:0;margin:0;width:277mm;max-width:277mm;page-break-after:always;font-size:10px;}
     .page:last-child{page-break-after:avoid;}
     .entete{padding:7px 14px;}
@@ -113,6 +115,8 @@
   <div class="loading">⏳ Chargement du planning...</div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
 // URLs CSV des Sheets — à compléter pour Greg
 const CSV_URLS = {
@@ -153,29 +157,133 @@ function fetchCSV(url) {
   return fetch(url + '&_=' + Date.now(), { cache: 'no-store' }).then(r => r.text());
 }
 
-function chargerPlanning() {
+// ===== Planning saisi dans l'appli (page pro) =====
+// Un mois PUBLIÉ dans l'appli remplace le Google Sheet pour cet animateur ; sinon on lit le Sheet comme avant.
+const MOIS_NUM = { avril:4, mai:5, juin:6, juillet:7, aout:8, septembre:9, octobre:10, novembre:11, decembre:12 };
+const ANNEE = 2026;
+const APPLI_ANIMS = ['steve'];   // animateurs dont le planning peut être saisi dans l'appli (comme dans l'appli bénéficiaires)
+let _db = null;
+function getDb() {
+  if (_db) return _db;
+  firebase.initializeApp({
+    apiKey: "AIzaSyCF1JkJDjW6vtoGoKZQrTbe0kWy1p45Uqg",
+    authDomain: "majourneeavp.firebaseapp.com",
+    projectId: "majourneeavp",
+    storageBucket: "majourneeavp.firebasestorage.app",
+    messagingSenderId: "462434472591",
+    appId: "1:462434472591:web:300522e541df2ce1ae96fa"
+  });
+  _db = firebase.firestore();
+  return _db;
+}
+function p2(n) { return (n < 10 ? '0' : '') + n; }
+function escHtml(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
+function fmtH(t) { const p = String(t || '').split(':'); const h = parseInt(p[0], 10); return h + 'h' + (p[1] && p[1] !== '00' ? p[1] : ''); }
+
+// Liste des ateliers du mois si ce mois est publié dans l'appli, sinon null (=> Google Sheet)
+async function lireAppli(a, mois) {
+  if (!APPLI_ANIMS.includes(a) || typeof firebase === 'undefined') return null;
+  const num = MOIS_NUM[mois];
+  if (!num) return null;
+  const db = getDb();
+  const label = (a === 'steve') ? 'Steve' : 'Greg';
+  const ym = ANNEE + '-' + p2(num);
+  const cfg = await db.collection('config').doc('planningApp').get();
+  const publies = (cfg.exists && cfg.data().publies) || {};
+  if (!publies[label + '_' + ym.replace('-', '_')]) return null;
+  const snap = await db.collection('planning').where('anim', '==', label).get();
+  return snap.docs.map(d => d.data()).filter(d => d.ym === ym);
+}
+
+// Jours fériés français (jour fixe + Pâques) : affichés « Jour férié » quand aucun atelier n'est prévu ce jour-là
+function joursFeries(y) {
+  const s = new Set();
+  const add = (m, d) => s.add(y + '-' + p2(m) + '-' + p2(d));
+  add(1, 1); add(5, 1); add(5, 8); add(7, 14); add(8, 15); add(11, 1); add(11, 11); add(12, 25);
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4;
+  const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const moisP = Math.floor((h + l - 7 * m + 114) / 31), jourP = ((h + l - 7 * m + 114) % 31) + 1;
+  const paques = new Date(y, moisP - 1, jourP);
+  [1, 39, 50].forEach(n => { const x = new Date(paques.getFullYear(), paques.getMonth(), paques.getDate() + n); add(x.getMonth() + 1, x.getDate()); });
+  return s;
+}
+
+// Construit les semaines (lundi à vendredi) d'un mois à partir des ateliers saisis dans l'appli
+function construirePlanningAppli(docs, animateur, mois) {
+  const num = MOIS_NUM[mois];
+  const feries = joursFeries(ANNEE);
+  const noms = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'];
+  const nbJours = new Date(ANNEE, num, 0).getDate();
+  const semaines = [];
+  let cur = null;
+  for (let d = 1; d <= nbJours; d++) {
+    const wd = new Date(ANNEE, num - 1, d).getDay();   // 0 = dimanche … 6 = samedi
+    if (wd === 0 || wd === 6) continue;
+    if (wd === 1 || !cur) { cur = { jours: [] }; semaines.push(cur); }
+    const iso = ANNEE + '-' + p2(num) + '-' + p2(d);
+    const du = docs.filter(x => x.date === iso).sort((x, y) => String(x.time).localeCompare(String(y.time)));
+    const jour = { nom: noms[wd - 1], num: d, col: 0, creneaux: [], ferie: false };
+    du.forEach(x => {
+      jour.creneaux.push({
+        heure: fmtH(x.time) + (x.fin ? ' – ' + fmtH(x.fin) : ''),
+        activite: x.title,
+        titre: escHtml(x.title),
+        emoji: escHtml(x.icon || '📋'),
+        periode: parseInt(String(x.time || '0').slice(0, 2), 10) < 12 ? 'Matin' : 'Après-midi'
+      });
+    });
+    if (!du.length && feries.has(iso)) jour.ferie = true;
+    cur.jours.push(jour);
+  }
+  return rendreSemaines(semaines, animateur, mois);
+}
+
+let _requete = 0;
+async function chargerPlanning() {
+  const moi = ++_requete;
   const animateur = document.getElementById('selectAnimateur').value;
   const mois = document.getElementById('selectMois').value;
   const cible = document.getElementById('contenu');
 
-  // "both" = Steve puis Greg, dans cet ordre (page 1 / page 2)
+  // "both" = Steve puis Greg, dans cet ordre (page 1 = recto / page 2 = verso)
   const liste = (animateur === 'both') ? ['steve', 'greg'] : [animateur];
-
-  const manquants = liste.filter(a => !(CSV_URLS[a] || {})[mois]);
-  if (manquants.length) {
-    cible.innerHTML = `<div class="erreur">⚠️ Ce planning n'est pas encore disponible.<br>Ajoute l'URL CSV pour ${manquants.join(' et ')} / ${mois}.</div>`;
-    return;
-  }
+  const nom = a => (a === 'steve') ? 'Steve' : 'Greg';
 
   cible.innerHTML = '<div class="loading">⏳ Chargement...</div>';
 
-  Promise.all(liste.map(a => fetchCSV(CSV_URLS[a][mois]).then(csv => ({ a: a, csv: csv }))))
-    .then(res => {
+  // Pour chaque animateur : mois publié dans l'appli, sinon Google Sheet, sinon rien
+  const sources = [];
+  for (const a of liste) {
+    let docs = null;
+    try { docs = await lireAppli(a, mois); } catch (e) { docs = null; }
+    if (docs) sources.push({ a: a, type: 'appli', docs: docs });
+    else if ((CSV_URLS[a] || {})[mois]) sources.push({ a: a, type: 'csv' });
+    else sources.push({ a: a, type: 'absent' });
+  }
+  if (moi !== _requete) return;
+
+  const dispo = sources.filter(s => s.type !== 'absent');
+  const absents = sources.filter(s => s.type === 'absent').map(s => nom(s.a));
+  if (!dispo.length) {
+    cible.innerHTML = `<div class="erreur">⚠️ Ce planning n'est pas encore disponible.<br>${absents.join(' et ')} : rien de publié dans l'appli et pas de Google Sheet pour ce mois.</div>`;
+    return;
+  }
+
+  Promise.all(dispo.map(s => s.type === 'appli'
+      ? Promise.resolve(construirePlanningAppli(s.docs, s.a, mois))
+      : fetchCSV(CSV_URLS[s.a][mois]).then(csv => construirePlanning(csv, s.a, mois))))
+    .then(pages => {
+      if (moi !== _requete) return;
       let html = '';
-      res.forEach(x => { html += construirePlanning(x.csv, x.a, mois); });
-      cible.innerHTML = html;
+      if (absents.length) {
+        html += `<div class="avis-ecran">⚠️ Pas de planning pour ${absents.join(' et ')} ce mois-ci : seule la page de ${dispo.map(s => nom(s.a)).join(' et ')} sera imprimée.</div>`;
+      }
+      cible.innerHTML = html + pages.join('');
     })
     .catch(() => {
+      if (moi !== _requete) return;
       cible.innerHTML = `<div class="erreur">❌ Impossible de charger le planning.<br>Vérifie que le Sheet est bien publié en CSV.</div>`;
     });
 }
@@ -309,7 +417,13 @@ function construirePlanning(csv, animateur, mois) {
     }
   }
 
-  // Construire le HTML
+  return rendreSemaines(semaines, animateur, mois);
+}
+
+// Construit le HTML d'un planning à partir des semaines (que les données viennent du Sheet ou de l'appli)
+function rendreSemaines(semaines, animateur, mois) {
+  const titreMois = MOIS_NOMS[mois] || mois;
+  const nomAnimateur = animateur === 'steve' ? 'Steve' : 'Greg';
   function extraireEmoji(txt){
     txt=(txt||'').trim();
     const m=txt.match(/^((?:[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]|[\u2300-\u23FF]|\uFE0F|\u200D)+)/);
@@ -362,7 +476,7 @@ function construirePlanning(csv, animateur, mois) {
           html += `<div style="color:#bbb;font-size:10px;text-align:center;padding:8px 0;">Pas d'atelier</div>`;
         } else {
           jour.creneaux.forEach(c => {
-            const _e = extraireEmoji(c.activite);
+            const _e = (c.titre !== undefined) ? { emoji: c.emoji, titre: c.titre } : extraireEmoji(c.activite);
             const _cls = /matin/i.test(c.periode) ? 'creneau creneau-matin' : (/apr/i.test(c.periode) ? 'creneau creneau-aprem' : 'creneau');
             html += `<div class="${_cls}">
               <div class="creneau-txt">

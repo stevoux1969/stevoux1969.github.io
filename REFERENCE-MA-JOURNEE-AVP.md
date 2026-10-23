@@ -102,13 +102,15 @@ Nouveau chemin de création de rappel en voix (rond bleu, maquette `maquette-nou
 
 **Règle de bascule (par animateur et par mois)** : si le mois est publié dans l'appli → il remplace le Sheet ; sinon → Google Sheet comme avant. Pour l'instant seul `Steve` est autorisé (`INAPP_ANIMS`) ; Greg reste 100 % Sheet. Fonctions patchées dans la copie de test : `loadAVPPlanning`, `loadAVPMonthEvents` (+ paramètre `ymForce`), `showAdminAteliers` (menu des mois), `buildAnimAtelierIndex` (stats, Bilans, aperçu croisé) ; nouvelles : `getInAppPlanning`, `getInAppMonthEvents`, `inAppEventsOf`.
 
+**Impression** : `planning-print.html` (A4 paysage, option « Les deux (recto-verso) » = page 1 Steve, page 2 Greg) lit le planning de l'appli pour Steve quand le mois est publié, sinon le Google Sheet (inchangé). Si un animateur n'a pas de planning pour le mois (ex. Greg en novembre), seule l'autre page est imprimée, avec un avis à l'écran non imprimé. Jours fériés français affichés « Jour férié » quand aucun atelier n'est prévu.
+
 **Règle de protection** : un atelier qui a des inscrits n'a plus de titre/date/heure de début modifiables et ne peut pas être supprimé depuis la page pro (la clé d'inscription en dépend) — passer par « Annuler un atelier » de l'appli. À valider avec Steve.
 
 **Reste à faire** :
 1. Vraie sécurité : Firebase Auth pour les pros + règles Firestore (`planning`, `config/planningApp`, `ateliers_habituels` en écriture réservée aux pros ; lecture libre). Étapes console Firebase possibles avec Steve.
 2. ~~Reporter les patchs dans `index.html`~~ FAIT le 23/10/2026 avec l'accord de Steve (testé sur son téléphone via la copie de test). `version.txt` non touché : jamais sans accord explicite de Steve. Rien ne change pour les bénéficiaires tant qu'aucun mois n'est publié depuis la page pro.
 3. Décider du filet pour novembre si Greg est absent : le planning de Steve suffit (publié dans l'appli).
-4. Non couvert : `planning-print.html` (lit encore les CSV du Sheet), écran Descriptions admin (modifie `atelier_descriptions` mais pas le champ `description` du document `planning` : la page pro relit le document `planning`), ouverture aux autres services (identifiant de service + comptes).
+4. Non couvert : écran Descriptions admin (modifie `atelier_descriptions` mais pas le champ `description` du document `planning` : la page pro relit le document `planning`), ouverture aux autres services (identifiant de service + comptes).
 
 ## Chantiers ouverts / à venir
 
