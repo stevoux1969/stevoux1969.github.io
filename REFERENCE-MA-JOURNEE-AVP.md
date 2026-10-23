@@ -84,6 +84,31 @@ Nouveau chemin de création de rappel en voix (rond bleu, maquette `maquette-nou
 
 **Reste à tester** : usage avec de vrais bénéficiaires (vocabulaire varié, bruit ambiant, accents), fiabilité du micro sur plusieurs tours de conversation d'affilée, temps de chargement initial du modèle ressenti par un bénéficiaire (pas seulement par Steve), comportement si le modèle est absent sur un autre téléphone de test, et si l'IA retrouve bien les ateliers AVP spécifiques (pas encore mappés aux icônes/adresses exactes de l'app, contrairement à l'assistant tuiles).
 
+## Planning dans l'appli (TEST, 23/10/2026) — remplace peu à peu le Google Sheet
+
+**Objectif** : Steve (puis Greg, puis d'autres services comme le GEM) crée le planning dans une page pro au lieu du Google Sheet ; les bénéficiaires le voient dans l'appli **sans nouvel APK** (l'APK charge le site). Une seule base Firestore, une page pro séparée (pas un 2e APK).
+
+**Fichiers de test (rien de live touché, `index.html`, `reglages.html` et `version.txt` inchangés)** :
+- `planning-pro.html` — page pro mobile. Accès provisoire par code (`196969` = Steve uniquement, **PAS de vraie sécurité** : règles Firestore ouvertes). Mois par mois : brouillon/publié, ajout/modification/suppression d'ateliers, menu des ateliers habituels (icône automatique, reprise de la dernière description/adresse/heure/places), calendrier, répétition hebdomadaire, places ou illimité. Pas de champ trajet (chacun habite ailleurs). Dates limitées à partir de **novembre 2026** (`MIN_DATE`), octobre et avant restent sur le Sheet.
+- `index-planning-test.html` — copie de `index.html` (prod 1.0.10) + 74 lignes de différence, repérables par `[TEST planning dans l'appli]` : pastille « TEST planning » en bas à gauche, cache local séparé (`avp_planning_events_T2_`), lecture du planning de l'appli.
+
+**Modèle de données (Firestore)** :
+- `planning/{auto}` : `{anim:'Steve', ym:'2026-11', date, time, fin, title, icon, limite (nombre ou null = illimité), description, adresse, lien, createdAt, updatedAt}`.
+- `config/planningApp` : `{publies:{Steve_2026_11:true,…}}` (clé `Animateur_AAAA_MM`).
+- `ateliers_habituels/{Steve|Titre}` : mémoire « dernière fois » `{anim,title,icon,heure,fin,places,description,adresse,lien,liste}` ; `liste:true` = atelier personnalisé ajouté au menu.
+- Écriture miroir dans `atelier_descriptions/{descKey(titre,date,heure)}` (`description, adresse, lien, travelMin:0`) : l'affichage bénéficiaire des descriptions n'a **pas changé**. `travelMin` toujours 0 pour les ateliers de l'appli (plus d'alarme « heure de partir » commune à tous).
+- Les inscriptions restent dans `users[].reminders` (`source:'atelier'`) avec la même clé `date_heure_titre(20 car.)` : **aucun changement côté inscriptions/annulations/pointage**.
+
+**Règle de bascule (par animateur et par mois)** : si le mois est publié dans l'appli → il remplace le Sheet ; sinon → Google Sheet comme avant. Pour l'instant seul `Steve` est autorisé (`INAPP_ANIMS`) ; Greg reste 100 % Sheet. Fonctions patchées dans la copie de test : `loadAVPPlanning`, `loadAVPMonthEvents` (+ paramètre `ymForce`), `showAdminAteliers` (menu des mois), `buildAnimAtelierIndex` (stats, Bilans, aperçu croisé) ; nouvelles : `getInAppPlanning`, `getInAppMonthEvents`, `inAppEventsOf`.
+
+**Règle de protection** : un atelier qui a des inscrits n'a plus de titre/date/heure de début modifiables et ne peut pas être supprimé depuis la page pro (la clé d'inscription en dépend) — passer par « Annuler un atelier » de l'appli. À valider avec Steve.
+
+**Reste à faire pour passer en vrai (lundi 26/10 au plus tôt)** :
+1. Vraie sécurité : Firebase Auth pour les pros + règles Firestore (`planning`, `config/planningApp`, `ateliers_habituels` en écriture réservée aux pros ; lecture libre). Étapes console Firebase possibles avec Steve.
+2. Reporter les patchs de `index-planning-test.html` dans `index.html` (retirer pastille/titre TEST et la clé de cache `T2`), tester sur le téléphone de Steve, puis push. `version.txt` : seulement avec l'accord explicite de Steve.
+3. Décider du filet pour novembre si Greg est absent : le planning de Steve suffit (publié dans l'appli).
+4. Non couvert : `planning-print.html` (lit encore les CSV du Sheet), écran Descriptions admin (modifie `atelier_descriptions` mais pas le champ `description` du document `planning` : la page pro relit le document `planning`), ouverture aux autres services (identifiant de service + comptes).
+
 ## Chantiers ouverts / à venir
 
 - Nettoyer le code mort dupliqué dans `Code.js` (Apps Script) — 4 fonctions définies deux fois, garder uniquement la version avec requête structurée.

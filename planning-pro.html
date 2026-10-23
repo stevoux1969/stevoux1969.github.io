@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#d63447">
+<title>Mon planning — Pro</title>
+<style>
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:#dadde8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#1a2340;font-size:16px;line-height:1.4}
+button,select,input,textarea{font-family:inherit}
+button{cursor:pointer}
+[hidden]{display:none !important}
+.screen{max-width:430px;margin:0 auto;min-height:100vh;padding-bottom:60px;background:#dadde8}
+
+/* En-tête rouge de l'admin */
+.hdr{background:#d63447;color:#fff;padding:24px 16px 18px;display:flex;align-items:center;gap:12px}
+.hdr h1{margin:0;font-size:22px;font-weight:700;flex:1}
+.hdr .who{font-size:14px;font-weight:600;opacity:.95}
+.iconbtn{width:44px;height:44px;border:none;border-radius:12px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0}
+.iconbtn svg{width:22px;height:22px}
+.txtbtn{min-height:44px;border:none;border-radius:12px;background:rgba(255,255,255,.18);color:#fff;font-size:14px;font-weight:700;padding:0 14px}
+
+/* Barre de mois */
+.monthbar{margin:16px 16px 0;background:#2c3e91;border-radius:14px;padding:6px;display:flex;align-items:center;gap:6px;box-shadow:0 4px 0 #1c2a66}
+.monthbar .label{flex:1;text-align:center;color:#fff;font-size:18px;font-weight:700}
+.monthbar .iconbtn{border-radius:10px}
+
+/* Cartes et textes */
+.card{background:#fff;border-radius:16px;padding:16px;box-shadow:0 2px 8px rgba(26,35,64,.06)}
+.muted{color:#48547a}
+.statuscard{margin:16px 16px 0}
+.statusrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.statuscard p{margin:10px 0 0;font-size:14px}
+.pill{display:inline-block;font-size:13px;font-weight:700;padding:5px 12px;border-radius:20px}
+.pill-draft{background:#fdf0dc;color:#8a5a00}
+.pill-ok{background:#e3f5ea;color:#1c7d45;border:1.5px solid #b6e3c8;padding:3.5px 10.5px}
+.pill-warn{display:inline-block;margin-top:6px;background:#fdf0dc;color:#8a5a00;font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:20px}
+.testnote{margin:16px 16px 0;background:#fdf0dc;border-radius:12px;padding:10px 12px;color:#8a5a00;font-size:14px;line-height:1.45}
+
+/* Boutons en relief */
+.btn-green,.btn-blue,.btn-ghost,.btn-danger{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;border:none;border-radius:14px;font-weight:700}
+.btn-green{min-height:56px;background:#22a559;color:#fff;font-size:19px;box-shadow:0 4px 0 #1b7a43}
+.btn-blue{min-height:56px;background:#2c3e91;color:#fff;font-size:18px;box-shadow:0 4px 0 #1c2a66}
+.btn-ghost{min-height:56px;background:#fff;color:#1c7d45;border:2px solid #b6e3c8;font-size:17px;box-shadow:0 4px 0 #cfe8d8}
+.btn-danger{min-height:52px;background:#fff;color:#b02a3e;border:2px solid #f3c3ca;font-size:16px;box-shadow:0 4px 0 #f6d9de}
+.btn-danger:disabled{opacity:.45}
+.btn-green:disabled,.btn-blue:disabled,.btn-ghost:disabled{opacity:.6}
+.statuscard .btn-green,.statuscard .btn-ghost{margin-top:14px}
+.addbtn{margin:16px 16px 0;width:calc(100% - 32px)}
+.btn-blue svg{width:22px;height:22px}
+.linkbtn{display:flex;align-items:center;justify-content:center;min-height:48px;margin:18px 16px 0;border-radius:12px;background:#eef1fb;color:#2c3e91;font-size:16px;font-weight:700;text-decoration:none}
+
+/* Planning */
+.list{padding:0 16px}
+.day{background:#2c3e91;color:#fff;padding:12px 16px;margin:22px 0 8px;border-radius:12px;font-size:17px;font-weight:700}
+.row{width:100%;text-align:left;background:#fff;border:none;border-radius:16px;padding:14px;margin:0 0 10px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(26,35,64,.06);color:inherit}
+.row:active{transform:scale(.985)}
+.ico{width:48px;height:48px;border-radius:14px;background:#f1f3f8;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.row .txt{flex:1;min-width:0}
+.row .t{font-size:17px;font-weight:700;color:#1a2340}
+.row .m{font-size:14px;color:#48547a;margin-top:2px}
+.row .m b{color:#2c3e91}
+.row svg{width:20px;height:20px;flex-shrink:0}
+.empty{margin:28px 16px 0;text-align:center;color:#48547a;font-size:16px}
+.loading{padding:60px 16px;text-align:center;color:#48547a;font-size:17px}
+
+/* Formulaire */
+.formbody{padding:0 16px}
+.sec{margin:20px 4px 8px;font-size:12.5px;font-weight:800;color:#33364a;text-transform:uppercase;letter-spacing:.6px}
+.l{display:block;font-size:14px;font-weight:700;color:#48547a;margin:0 0 6px}
+.gap14{margin-top:14px}
+.gap16{margin-top:16px}
+input[type=text],input[type=password],input[type=date],input[type=time],select,textarea{display:block;width:100%;min-width:0;height:52px;padding:0 14px;border:1.5px solid #d1d5db;border-radius:10px;font-size:17px;color:#1a2340;background:#fff}
+input:disabled,select:disabled{background:#eef0f5;color:#48547a}
+textarea{height:auto;min-height:110px;padding:12px 14px;line-height:1.4;resize:none}
+input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#2c3e91}
+.pickrow{display:flex;align-items:center;gap:12px}
+.pickrow select{flex:1}
+.datelabel{font-size:14px;color:#48547a;margin-top:6px}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.tile{height:48px;border:2px solid transparent;border-radius:14px;background:#f1f3f8;font-size:24px;padding:0}
+.tile[aria-pressed=true]{border-color:#2c3e91;background:#eef1fb}
+.seg{display:flex;gap:4px;background:#eef1fb;border-radius:12px;padding:4px}
+.seg button{flex:1;height:48px;border:none;border-radius:10px;background:transparent;color:#48547a;font-size:16px;font-weight:700}
+.seg button[aria-pressed=true]{background:#2c3e91;color:#fff}
+.info{margin-top:12px;background:#fdf0dc;border-radius:12px;padding:10px 12px;color:#8a5a00;font-size:14px;line-height:1.45}
+.note{margin-top:8px;font-size:13.5px;color:#48547a;line-height:1.4}
+.stepper{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.stepper.off{opacity:.4}
+.step{width:52px;height:52px;border:none;border-radius:14px;background:#eef1fb;color:#2c3e91;font-size:30px;font-weight:700;padding:0;box-shadow:0 3px 0 #cfd6ee}
+.stepper .val{min-width:48px;text-align:center;font-size:30px;font-weight:800}
+.check{display:flex;align-items:center;gap:12px;min-height:44px;margin-top:12px;font-size:16px}
+.check input{width:24px;height:24px;accent-color:#2c3e91}
+.savebtn{margin-top:24px}
+.hint{text-align:center;font-size:14px;color:#48547a;margin-top:14px}
+.cancel{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;margin-top:6px;background:none;border:none;color:#48547a;font-size:16px;font-weight:700}
+
+/* Connexion */
+.loginbox{margin:40px 16px 0}
+.loginbox h2{margin:0 0 6px;font-size:22px}
+.loginbox p{margin:0 0 16px;color:#48547a;font-size:15px}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1a2340;color:#fff;padding:12px 18px;border-radius:12px;font-size:15px;font-weight:700;z-index:60;max-width:90%;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+</style>
+</head>
+<body>
+
+<!-- CONNEXION (provisoire) -->
+<section class="screen" id="s-login" hidden>
+  <header class="hdr"><h1>Mon planning</h1></header>
+  <div class="loginbox">
+    <div class="card">
+      <h2>Espace professionnel</h2>
+      <p>Entre ton code pour préparer le planning.</p>
+      <label class="l" for="code">Code</label>
+      <input id="code" type="password" inputmode="numeric" autocomplete="off" placeholder="Code">
+      <button class="btn-blue" id="loginbtn" type="button" style="margin-top:16px">Entrer</button>
+    </div>
+  </div>
+</section>
+
+<!-- ÉCRAN 1 : le mois en un coup d'œil -->
+<section class="screen" id="s-mois" hidden>
+  <header class="hdr">
+    <h1>Mon planning</h1>
+    <span class="who" id="who"></span>
+    <button class="txtbtn" id="logout" type="button">Quitter</button>
+  </header>
+
+  <div class="monthbar">
+    <button class="iconbtn" id="prev" type="button" aria-label="Mois précédent"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="label" id="monthlabel">…</div>
+    <button class="iconbtn" id="next" type="button" aria-label="Mois suivant"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+
+  <div class="testnote" id="testnote">Version de test : on peut créer des ateliers à partir de novembre 2026. Octobre et avant restent sur le Google Sheet.</div>
+
+  <div id="mainzone"><div class="loading">Chargement…</div></div>
+</section>
+
+<!-- ÉCRAN 2 : nouvel atelier / modifier -->
+<section class="screen" id="s-form" hidden>
+  <header class="hdr">
+    <button class="iconbtn" type="button" id="formback" aria-label="Retour au mois"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h1 id="formtitle">Nouvel atelier</h1>
+  </header>
+
+  <div class="formbody">
+    <h2 class="sec">Quel atelier ?</h2>
+    <div class="card">
+      <label class="l" for="atelier">Atelier habituel</label>
+      <div class="pickrow">
+        <div class="ico" id="pickico" aria-hidden="true">📋</div>
+        <select id="atelier"><option value="">Choisir un atelier…</option></select>
+      </div>
+      <div class="note" id="habitnote" hidden>Rempli avec les infos de la dernière fois. Tout peut être modifié.</div>
+      <div id="other-block" hidden>
+        <label class="l gap14" for="titre">Titre</label>
+        <input id="titre" type="text" placeholder="Ex : Atelier photo">
+        <div class="l gap16">Icône</div>
+        <div class="tiles" id="tiles"></div>
+        <label class="check" for="addlist"><input id="addlist" type="checkbox" checked> Ajouter à mes ateliers habituels</label>
+      </div>
+    </div>
+
+    <h2 class="sec">Quand ?</h2>
+    <div class="card">
+      <label class="l" for="date">Date</label>
+      <input id="date" type="date">
+      <div class="datelabel" id="datelabel"></div>
+      <div class="two gap14">
+        <div><label class="l" for="debut">Début</label><input id="debut" type="time" value="10:00"></div>
+        <div><label class="l" for="fin">Fin</label><input id="fin" type="time" value="12:00"></div>
+      </div>
+      <div class="info" id="lock-note" hidden></div>
+      <div id="repeat-block">
+        <div class="l gap16">Répéter</div>
+        <div class="seg" id="seg">
+          <button type="button" data-rep="once" aria-pressed="true">Une seule fois</button>
+          <button type="button" data-rep="weekly" aria-pressed="false">Chaque semaine</button>
+        </div>
+        <div id="rep-extra" hidden>
+          <label class="l gap14" for="jusqua">Jusqu'au</label>
+          <input id="jusqua" type="date">
+          <div class="info" id="rep-info"></div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="sec">Combien de places ?</h2>
+    <div class="card">
+      <div class="stepper" id="stepper">
+        <button class="step" type="button" id="minus" aria-label="Une place de moins">−</button>
+        <div class="val" id="places" aria-live="polite">8</div>
+        <button class="step" type="button" id="plus" aria-label="Une place de plus">+</button>
+        <div class="muted">places au maximum</div>
+      </div>
+      <label class="check" for="illimite"><input id="illimite" type="checkbox"> Sans limite de places</label>
+    </div>
+
+    <h2 class="sec">Ce que verront les bénéficiaires</h2>
+    <div class="card">
+      <label class="l" for="description">Description</label>
+      <textarea id="description" placeholder="Ex : On peint ensemble. Le matériel est fourni."></textarea>
+      <label class="l gap14" for="adresse">Adresse (facultatif)</label>
+      <input id="adresse" type="text" placeholder="Ex : Local de La Clé">
+      <label class="l gap14" for="lien">Lien « En savoir plus » (facultatif)</label>
+      <input id="lien" type="text" placeholder="https://…">
+    </div>
+
+    <button class="btn-green savebtn" id="save" type="button">Enregistrer</button>
+    <div class="hint" id="savehint"></div>
+    <button class="cancel" id="cancel" type="button">Annuler</button>
+    <div id="delzone" hidden style="margin-top:18px">
+      <button class="btn-danger" id="delbtn" type="button">Supprimer cet atelier</button>
+      <div class="note" id="delnote" hidden></div>
+    </div>
+  </div>
+</section>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  /* ===== Firebase : même base que l'appli des bénéficiaires ===== */
+  firebase.initializeApp({
+    apiKey: "AIzaSyCF1JkJDjW6vtoGoKZQrTbe0kWy1p45Uqg",
+    authDomain: "majourneeavp.firebaseapp.com",
+    projectId: "majourneeavp",
+    storageBucket: "majourneeavp.firebasestorage.app",
+    messagingSenderId: "462434472591",
+    appId: "1:462434472591:web:300522e541df2ce1ae96fa"
+  });
+  var db=firebase.firestore();
+
+  /* ===== Réglages de la version de test ===== */
+  var CODES={'196969':'Steve'};      // accès provisoire (vraie connexion prévue ensuite)
+  var MIN_DATE='2026-11-01';          // test : pas d'atelier avant novembre 2026 (avant = Google Sheet)
+  var LS_KEY='avp_pro_anim';
+
+  var $=function(id){return document.getElementById(id);};
+  var S={anim:null, ym:null, docs:[], habits:[], publies:{}, inscrits:{}, descs:null, mode:'new', edit:null, locked:false, busy:false};
+  var toastTimer=null;
+
+  /* ===== Liste des ateliers habituels (celle de l'appli + Journal AVP, Piscine, Vélo) ===== */
+  var BASE=[
+    {t:'Anglais',i:'🇬🇧'},{t:'Atelier bien-être',i:'💆'},{t:'Atelier libre',i:'🆓'},{t:'Atelier numérique',i:'💻'},
+    {t:'Barbecue',i:'🍖'},{t:'Cinéma / vidéo',i:'🎬'},{t:'Collectif rue de Paris',i:'👥'},{t:'Cuisine thérapeutique',i:'🍳'},
+    {t:'Gym douce',i:'🧘'},{t:'Groupe de parole',i:'👂'},{t:'Infos / débat',i:'🗣️'},{t:'Jardinage',i:'🌱'},
+    {t:'Jeux de société',i:'🎲'},{t:'Journal AVP',i:'📰'},{t:'Lecture / écriture',i:'📖'},{t:'Loisirs créatifs',i:'✂️'},
+    {t:'Marche / Promenade',i:'🚶'},{t:'Méditation',i:'🧘‍♂️'},{t:'Mobil sport',i:'⚽'},{t:'Musique / chant',i:'🎵'},
+    {t:'Peinture / dessin',i:'🎨'},{t:'Pétanque',i:'🎯'},{t:'Petit déjeuner collectif',i:'☕'},{t:'Piscine',i:'🏊'},
+    {t:'Réflexion collective',i:'💬'},{t:'Sophrologie',i:'🧘'},{t:'Sortie culturelle',i:'🎭'},{t:'Sortie extérieure',i:'🚗'},
+    {t:'Vélo',i:'🚲'},{t:'Visite à domicile',i:'🏠'}
+  ];
+  var ICONS=['🏊','🚲','📰','📸','🛒','🎤','⚽','🌱','🎲','🎵','📖','🎬'];
+  var MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var MENU=[];
+
+  /* ===== Outils (mêmes règles que l'appli des bénéficiaires) ===== */
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function pad2(n){return (n<10?'0':'')+n;}
+  function cleanDocId(id){return String(id||'').replace(/[\/\\.#$\[\]]/g,'_');}
+  function descKey(titre,date,time){
+    var t=(titre||'').replace(/\s*\(\d+\)\s*$/,'').trim();
+    return cleanDocId(t+'|'+(date||'')+'|'+(time||''));
+  }
+  /* Clé d'un atelier = celle qui relie les inscriptions des bénéficiaires */
+  function ekOf(date,time,title){return date+'_'+time+'_'+(title||'').slice(0,20).replace(/\s/g,'_');}
+  function norm(s){return String(s||'').trim().toLowerCase();}
+  function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+  function parseISO(s){var p=s.split('-');return new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));}
+  function toISO(d){return d.getUTCFullYear()+'-'+pad2(d.getUTCMonth()+1)+'-'+pad2(d.getUTCDate());}
+  function longDate(s){
+    if(!s) return '';
+    return cap(parseISO(s).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}));
+  }
+  function dayLabel(s){
+    return cap(parseISO(s).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'}));
+  }
+  function monthLabel(ym){var p=ym.split('-');return cap(MOIS[+p[1]-1])+' '+p[0];}
+  function shiftYm(ym,delta){var p=ym.split('-');var d=new Date(Date.UTC(+p[0],+p[1]-1+delta,1));return d.getUTCFullYear()+'-'+pad2(d.getUTCMonth()+1);}
+  function fmtH(t){var p=String(t||'').split(':');var h=parseInt(p[0],10);return h+'h'+(p[1]&&p[1]!=='00'?p[1]:'');}
+  function pubKey(ym){return S.anim+'_'+ym.replace('-','_');}
+  function isPublished(ym){return !!S.publies[pubKey(ym)];}
+  function cmpDoc(a,b){return (a.date+a.time).localeCompare(b.date+b.time)||String(a.title).localeCompare(String(b.title),'fr');}
+  function todayYm(){var n=new Date();return n.getFullYear()+'-'+pad2(n.getMonth()+1);}
+  function defaultYm(){
+    var n=new Date();
+    var ym=todayYm();
+    if(n.getDate()>=20) ym=shiftYm(ym,1);       // fin de mois : on prépare le mois suivant
+    return ym<MIN_DATE.slice(0,7)?MIN_DATE.slice(0,7):ym;
+  }
+  function defaultDate(ym){
+    // premier jour de semaine (lundi à vendredi) du mois affiché
+    var d=parseISO(ym+'-01');
+    for(var i=0;i<7;i++){var wd=d.getUTCDay();if(wd>=1&&wd<=5)break;d.setUTCDate(d.getUTCDate()+1);}
+    var iso=toISO(d);
+    return iso<MIN_DATE?MIN_DATE:iso;
+  }
+
+  function toast(msg){
+    var t=$('toast');t.textContent=msg;t.hidden=false;
+    clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.hidden=true;},3600);
+  }
+  function show(id){
+    ['login','mois','form'].forEach(function(s){$('s-'+s).hidden=(s!==id);});
+    window.scrollTo(0,0);
+  }
+  function errMsg(e){return (e&&e.message)?e.message:String(e);}
+
+  /* ===== Chargement des données ===== */
+  async function loadInscrits(){
+    var map={};
+    var snap=await db.collection('users').get();
+    snap.docs.forEach(function(doc){
+      var u=doc.data();
+      if(!u.prenom) return;
+      (u.reminders||[]).forEach(function(r){
+        if(r.source!=='atelier') return;
+        var k=ekOf(r.date,r.time,r.title);
+        if(!map[k]) map[k]={};
+        map[k][u.prenom]=1;
+      });
+    });
+    var out={};
+    Object.keys(map).forEach(function(k){out[k]=Object.keys(map[k]).length;});
+    return out;
+  }
+  async function loadAll(){
+    var r=await Promise.all([
+      db.collection('planning').where('anim','==',S.anim).get(),
+      db.collection('ateliers_habituels').where('anim','==',S.anim).get(),
+      db.collection('config').doc('planningApp').get(),
+      loadInscrits().catch(function(){return S.inscrits||{};})
+    ]);
+    S.docs=r[0].docs.map(function(d){var x=d.data();x.id=d.id;return x;});
+    S.habits=r[1].docs.map(function(d){var x=d.data();x.id=d.id;return x;});
+    S.publies=(r[2].exists&&r[2].data().publies)||{};
+    S.inscrits=r[3];
+  }
+  async function loadDescs(){
+    if(S.descs) return S.descs;
+    var out=[];
+    try{
+      var snap=await db.collection('atelier_descriptions').get();
+      snap.docs.forEach(function(d){var x=d.data();if(x&&x.description) out.push({id:d.id,description:x.description,adresse:x.adresse||'',lien:x.lien||''});});
+    }catch(e){}
+    S.descs=out;return out;
+  }
+  function nbInscrits(d){return S.inscrits[ekOf(d.date,d.time,d.title)]||0;}
+
+  /* ===== Écran « mois » ===== */
+  function renderMonth(){
+    $('monthlabel').textContent=monthLabel(S.ym);
+    $('prev').disabled=(shiftYm(S.ym,-1)<MIN_DATE.slice(0,7));
+    $('prev').style.opacity=$('prev').disabled?'.35':'1';
+    var list=S.docs.filter(function(d){return d.ym===S.ym;}).sort(cmpDoc);
+    var pub=isPublished(S.ym);
+    var aCompleter=list.filter(function(d){return !d.description||!d.adresse;}).length;
+    var h='';
+    h+='<div class="card statuscard"><div class="statusrow">'
+      +(pub?'<span class="pill pill-ok">Publié</span>':'<span class="pill pill-draft">Brouillon</span>')
+      +'<span class="muted" style="font-size:15px">'+(list.length===0?'Aucun atelier':list.length+' atelier'+(list.length>1?'s':'')+(aCompleter?' · '+aCompleter+' à compléter':''))+'</span></div>';
+    if(pub){
+      var txt='Les bénéficiaires voient ce mois. Un atelier ajouté est visible tout de suite.';
+      if(S.ym>shiftYm(todayYm(),1)) txt='Publié. Il apparaîtra dans l\'appli le 1er '+MOIS[+shiftYm(S.ym,-1).split('-')[1]-1]+'.';
+      h+='<p class="muted">'+esc(txt)+'</p><button class="btn-ghost" id="pubbtn" type="button">Repasser en brouillon</button>';
+    }else{
+      h+='<p class="muted">Les bénéficiaires ne voient pas encore ce mois.</p><button class="btn-green" id="pubbtn" type="button">Publier le mois</button>';
+    }
+    h+='</div>';
+    h+='<button class="btn-blue addbtn" id="addbtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Ajouter un atelier</button>';
+    if(list.length===0){
+      h+='<div class="empty">Aucun atelier ce mois-ci.<br>Appuie sur « Ajouter un atelier ».</div>';
+    }else{
+      h+='<div class="list">';
+      var last='';
+      list.forEach(function(d){
+        if(d.date!==last){h+='<div class="day">'+esc(dayLabel(d.date))+'</div>';last=d.date;}
+        var n=nbInscrits(d);
+        var warn=!d.description?'Description manquante':(!d.adresse?'Adresse manquante':'');
+        h+='<button class="row" type="button" data-id="'+esc(d.id)+'">'
+          +'<div class="ico" aria-hidden="true">'+esc(d.icon||'📋')+'</div>'
+          +'<div class="txt"><div class="t">'+esc(d.title)+'</div>'
+          +'<div class="m"><b>'+esc(fmtH(d.time)+(d.fin?' – '+fmtH(d.fin):''))+'</b> · '+(d.limite?d.limite+' places':'Sans limite')+(n?' · '+n+' inscrit'+(n>1?'s':''):'')+'</div>'
+          +(warn?'<div class="pill-warn">'+esc(warn)+'</div>':'')+'</div>'
+          +'<svg viewBox="0 0 24 24" fill="none" stroke="#5b6785" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>'
+          +'</button>';
+      });
+      h+='</div>';
+    }
+    h+='<a class="linkbtn" href="index-planning-test.html">👁️ Ouvrir l\'appli de test (vue bénéficiaire)</a>';
+    if(list.length){
+      h+='<div style="margin:18px 16px 0"><button class="btn-danger" id="wipebtn" type="button">Supprimer tous les ateliers de ce mois</button></div>';
+    }
+    $('mainzone').innerHTML=h;
+    $('pubbtn').addEventListener('click',togglePublish);
+    $('addbtn').addEventListener('click',function(){openForm('new');});
+    var wipe=$('wipebtn');if(wipe) wipe.addEventListener('click',wipeMonth);
+    $('mainzone').querySelectorAll('.row').forEach(function(r){
+      r.addEventListener('click',function(){
+        var id=r.getAttribute('data-id');
+        var d=S.docs.filter(function(x){return x.id===id;})[0];
+        if(d) openForm('edit',d);
+      });
+    });
+  }
+
+  async function togglePublish(){
+    if(S.busy) return;
+    var key=pubKey(S.ym), nowPub=!isPublished(S.ym);
+    var list=S.docs.filter(function(d){return d.ym===S.ym;});
+    if(nowPub&&list.length===0){toast('Ajoute au moins un atelier avant de publier');return;}
+    if(!nowPub&&!window.confirm('Repasser '+monthLabel(S.ym)+' en brouillon ?\nLes bénéficiaires ne verront plus ce mois.')) return;
+    S.busy=true;
+    try{
+      var patch={};patch[key]=nowPub;
+      await db.collection('config').doc('planningApp').set({publies:patch,updatedAt:Date.now()},{merge:true});
+      S.publies[key]=nowPub;
+      toast(nowPub?'Mois publié':'Mois repassé en brouillon');
+    }catch(e){toast('Erreur : '+errMsg(e));}
+    S.busy=false;renderMonth();
+  }
+
+  async function wipeMonth(){
+    if(S.busy) return;
+    var list=S.docs.filter(function(d){return d.ym===S.ym;});
+    if(!list.length) return;
+    var avecInscrits=list.filter(function(d){return nbInscrits(d)>0;});
+    if(avecInscrits.length){toast('Impossible : des personnes sont déjà inscrites à certains ateliers');return;}
+    if(!window.confirm('Supprimer les '+list.length+' ateliers de '+monthLabel(S.ym)+' ?\nCette action ne peut pas être annulée.')) return;
+    S.busy=true;
+    try{
+      var batch=db.batch();
+      list.forEach(function(d){
+        batch.delete(db.collection('planning').doc(d.id));
+        batch.delete(db.collection('atelier_descriptions').doc(descKey(d.title,d.date,d.time)));
+      });
+      if(isPublished(S.ym)){var patch={};patch[pubKey(S.ym)]=false;batch.set(db.collection('config').doc('planningApp'),{publies:patch,updatedAt:Date.now()},{merge:true});}
+      await batch.commit();
+      var ids={};list.forEach(function(d){ids[d.id]=1;});
+      S.docs=S.docs.filter(function(d){return !ids[d.id];});
+      S.publies[pubKey(S.ym)]=false;
+      toast('Ateliers supprimés');
+    }catch(e){toast('Erreur : '+errMsg(e));}
+    S.busy=false;renderMonth();
+  }
+
+  /* ===== Menu des ateliers habituels ===== */
+  function buildMenu(){
+    var seen={};MENU=[];
+    BASE.forEach(function(a){seen[norm(a.t)]=1;MENU.push({t:a.t,i:a.i});});
+    S.habits.forEach(function(h){
+      if(h.liste&&h.title&&!seen[norm(h.title)]){seen[norm(h.title)]=1;MENU.push({t:h.title,i:h.icon||'📋'});}
+    });
+    MENU.sort(function(a,b){return a.t.localeCompare(b.t,'fr');});
+    var sel=$('atelier');
+    sel.innerHTML='<option value="">Choisir un atelier…</option>';
+    MENU.forEach(function(a,idx){
+      var o=document.createElement('option');o.value=String(idx);o.textContent=a.i+' '+a.t;sel.appendChild(o);
+    });
+    var oAutre=document.createElement('option');oAutre.value='__autre';oAutre.textContent='➕ Autre atelier…';sel.appendChild(oAutre);
+  }
+  function buildTiles(){
+    var box=$('tiles');box.innerHTML='';
+    ICONS.forEach(function(ico){
+      var b=document.createElement('button');b.type='button';b.className='tile';
+      b.setAttribute('data-ico',ico);b.setAttribute('aria-pressed','false');b.textContent=ico;box.appendChild(b);
+    });
+  }
+  function setIco(ico){$('pickico').textContent=ico;}
+  function pressOne(container,btn){
+    container.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',b===btn?'true':'false');});
+  }
+  function chosenTitle(){
+    var v=$('atelier').value;
+    if(v==='') return '';
+    if(v==='__autre') return $('titre').value.trim();
+    return MENU[parseInt(v,10)].t;
+  }
+
+  /* Remplit avec les infos de la dernière fois */
+  function lastUse(title){
+    var best=null,t=norm(title);
+    S.docs.forEach(function(d){if(norm(d.title)===t&&(!best||d.date>best.date)) best=d;});
+    return best;
+  }
+  async function applyHabit(title){
+    var t=norm(title),h=null;
+    S.habits.forEach(function(x){if(norm(x.title)===t) h=x;});
+    var last=lastUse(title);
+    var src=null;
+    if(h) src={heure:h.heure,fin:h.fin,places:h.places,description:h.description,adresse:h.adresse,lien:h.lien};
+    else if(last) src={heure:last.time,fin:last.fin,places:last.limite||0,description:last.description,adresse:last.adresse,lien:last.lien};
+    var filled=false;
+    if(src){
+      if(src.heure) $('debut').value=src.heure;
+      if(src.fin) $('fin').value=src.fin;
+      setPlaces(parseInt(src.places,10)||0);
+      $('description').value=src.description||'';
+      $('adresse').value=src.adresse||'';
+      $('lien').value=src.lien||'';
+      filled=!!(src.description||src.adresse||src.heure);
+    }else{
+      $('debut').value='10:00';$('fin').value='12:00';setPlaces(8);
+      $('description').value='';$('adresse').value='';$('lien').value='';
+    }
+    if(!(src&&src.description)){
+      var descs=await loadDescs();
+      if(chosenTitle()!==title) return;               // l'utilisateur a changé d'atelier entre-temps
+      var prefix=cleanDocId(String(title).replace(/\s*\(\d+\)\s*$/,'').trim())+'|',best=null;
+      descs.forEach(function(d){
+        if(d.id.indexOf(prefix)!==0) return;
+        var date=d.id.split('|')[1]||'';
+        if(!best||date>best.date) best={date:date,d:d};
+      });
+      if(best){
+        $('description').value=best.d.description;
+        if(!$('adresse').value) $('adresse').value=best.d.adresse;
+        if(!$('lien').value) $('lien').value=best.d.lien;
+        filled=true;
+      }
+    }
+    $('habitnote').hidden=!filled;
+  }
+
+  /* ===== Places ===== */
+  function setPlaces(n){
+    var illimite=(n===0);
+    $('illimite').checked=illimite;
+    $('stepper').className=illimite?'stepper off':'stepper';
+    $('places').textContent=illimite?'8':String(n);
+  }
+  function getLimite(){return $('illimite').checked?null:parseInt($('places').textContent,10);}
+
+  /* ===== Dates et répétition ===== */
+  function updateDateLabel(){
+    $('datelabel').textContent=longDate($('date').value);
+    var d=$('date').value;
+    if(S.mode==='new'&&d){
+      var ym=d.slice(0,7);
+      $('savehint').textContent='Ajouté à '+monthLabel(ym).toLowerCase()+(isPublished(ym)?' : visible tout de suite.':', en brouillon.');
+    }
+  }
+  function repeatList(d0,d1){
+    var a=parseISO(d0),b=parseISO(d1);
+    if(b<a) return {err:'La date de fin est avant la date de début.'};
+    var list=[],cur=new Date(a.getTime());
+    while(cur<=b&&list.length<52){list.push(toISO(cur));cur.setUTCDate(cur.getUTCDate()+7);}
+    if(cur<=b) return {err:'Trop long : 52 semaines au maximum.'};
+    return {list:list};
+  }
+  function updateRepeatInfo(){
+    var info=$('rep-info'),d0=$('date').value,d1=$('jusqua').value;
+    if(!d0||!d1){info.textContent='Choisis les deux dates.';return;}
+    var r=repeatList(d0,d1);
+    if(r.err){info.textContent=r.err;return;}
+    var dates=r.list.map(parseISO);
+    var sameMonth=dates.every(function(d){return d.getUTCMonth()===dates[0].getUTCMonth()&&d.getUTCFullYear()===dates[0].getUTCFullYear();});
+    var txt;
+    if(sameMonth){
+      var jours=dates.map(function(d){return String(d.getUTCDate());});
+      var fin=jours.length>1?jours.slice(0,-1).join(', ')+' et '+jours[jours.length-1]:jours[0];
+      txt=(dates.length>1?'les ':'le ')+fin+' '+MOIS[dates[0].getUTCMonth()];
+    }else{
+      var pieces=dates.map(function(d){return d.getUTCDate()+' '+MOIS[d.getUTCMonth()];});
+      txt=(pieces.length>1?'les ':'le ')+(pieces.length>1?pieces.slice(0,-1).join(', ')+' et '+pieces[pieces.length-1]:pieces[0]);
+    }
+    info.textContent=(dates.length>1?dates.length+' ateliers seront créés : ':'1 atelier sera créé : ')+txt+'.';
+  }
+
+  /* ===== Formulaire ===== */
+  function setLocked(lock,n){
+    S.locked=lock;
+    ['atelier','titre','date','debut'].forEach(function(id){$(id).disabled=lock;});
+    $('tiles').querySelectorAll('button').forEach(function(b){b.disabled=lock;});
+    var note=$('lock-note');
+    if(lock){
+      note.hidden=false;
+      note.textContent=n+(n>1?' personnes sont inscrites':' personne est inscrite')+' : le titre, la date et l\'heure de début ne peuvent plus changer. Pour déplacer cet atelier, utilise « Annuler un atelier » dans l\'appli, puis crée-en un nouveau.';
+    }else{note.hidden=true;}
+  }
+  function openForm(mode,d){
+    S.mode=mode;S.edit=d||null;
+    buildMenu();buildTiles();
+    $('habitnote').hidden=true;
+    var sel=$('atelier');
+    if(mode==='edit'&&d){
+      $('formtitle').textContent="Modifier l'atelier";
+      $('repeat-block').hidden=true;
+      var idx=-1;MENU.forEach(function(a,i){if(norm(a.t)===norm(d.title)) idx=i;});
+      if(idx>=0){sel.value=String(idx);$('other-block').hidden=true;$('titre').value='';}
+      else{
+        sel.value='__autre';$('other-block').hidden=false;$('titre').value=d.title;
+        $('addlist').checked=false;
+        $('tiles').querySelectorAll('.tile').forEach(function(t){t.setAttribute('aria-pressed',t.getAttribute('data-ico')===d.icon?'true':'false');});
+      }
+      setIco(d.icon||'📋');
+      $('date').value=d.date;$('debut').value=d.time;$('fin').value=d.fin||'';
+      setPlaces(d.limite||0);
+      $('description').value=d.description||'';$('adresse').value=d.adresse||'';$('lien').value=d.lien||'';
+      $('savehint').textContent='Les changements sont enregistrés tout de suite.';
+      var n=nbInscrits(d);
+      setLocked(n>0,n);
+      $('delzone').hidden=false;
+      $('delbtn').disabled=n>0;
+      var dn=$('delnote');
+      if(n>0){dn.hidden=false;dn.textContent='Suppression impossible : '+n+(n>1?' personnes sont inscrites.':' personne est inscrite.')+' Utilise « Annuler un atelier » dans l\'appli pour les prévenir.';}
+      else dn.hidden=true;
+    }else{
+      $('formtitle').textContent='Nouvel atelier';
+      $('repeat-block').hidden=false;
+      setLocked(false,0);
+      sel.value='';$('other-block').hidden=true;$('titre').value='';setIco('📋');
+      var dd=defaultDate(S.ym);
+      $('date').value=dd;$('debut').value='10:00';$('fin').value='12:00';
+      pressOne($('seg'),$('seg').querySelector('[data-rep=once]'));$('rep-extra').hidden=true;
+      $('jusqua').value=dd;$('jusqua').min=dd;
+      setPlaces(8);
+      $('description').value='';$('adresse').value='';$('lien').value='';
+      $('addlist').checked=true;
+      $('delzone').hidden=true;
+    }
+    $('date').min=MIN_DATE;
+    updateDateLabel();updateRepeatInfo();
+    $('save').disabled=false;$('save').textContent='Enregistrer';
+    show('form');
+  }
+
+  $('atelier').addEventListener('change',function(){
+    var v=this.value;
+    if(v===''){$('other-block').hidden=true;setIco('📋');$('habitnote').hidden=true;}
+    else if(v==='__autre'){
+      $('other-block').hidden=false;$('habitnote').hidden=true;
+      var on=$('tiles').querySelector('[aria-pressed=true]');
+      setIco(on?on.getAttribute('data-ico'):'📋');
+    }else{
+      $('other-block').hidden=true;
+      var a=MENU[parseInt(v,10)];
+      setIco(a.i);
+      if(S.mode==='new') applyHabit(a.t);
+    }
+  });
+  $('tiles').addEventListener('click',function(e){
+    var b=e.target.closest('.tile');if(!b||b.disabled) return;
+    pressOne($('tiles'),b);setIco(b.getAttribute('data-ico'));
+  });
+  $('minus').addEventListener('click',function(){
+    if($('illimite').checked) return;
+    var n=parseInt($('places').textContent,10);if(n>1) $('places').textContent=String(n-1);
+  });
+  $('plus').addEventListener('click',function(){
+    if($('illimite').checked) return;
+    var n=parseInt($('places').textContent,10);if(n<30) $('places').textContent=String(n+1);
+  });
+  $('illimite').addEventListener('change',function(){
+    $('stepper').className=this.checked?'stepper off':'stepper';
+  });
+  $('seg').addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b) return;
+    pressOne($('seg'),b);
+    var weekly=(b.getAttribute('data-rep')==='weekly');
+    $('rep-extra').hidden=!weekly;
+    if(weekly){
+      $('jusqua').min=$('date').value;
+      if(!$('jusqua').value||$('jusqua').value<$('date').value) $('jusqua').value=$('date').value;
+      updateRepeatInfo();
+    }
+  });
+  $('date').addEventListener('change',function(){
+    updateDateLabel();
+    if($('jusqua').value&&$('jusqua').value<$('date').value) $('jusqua').value=$('date').value;
+    $('jusqua').min=$('date').value;
+    updateRepeatInfo();
+  });
+  $('jusqua').addEventListener('change',updateRepeatInfo);
+  $('formback').addEventListener('click',function(){show('mois');});
+  $('cancel').addEventListener('click',function(){show('mois');});
+
+  /* ===== Enregistrer ===== */
+  function habitData(title,icon,debut,fin,limite,desc,adr,lien,now){
+    var h={anim:S.anim,title:title,icon:icon,heure:debut,fin:fin,places:limite||0,description:desc,adresse:adr,lien:lien,updatedAt:now};
+    if($('atelier').value==='__autre'&&$('addlist').checked) h.liste=true;
+    return h;
+  }
+  async function save(){
+    if(S.busy) return;
+    var title=chosenTitle();
+    if($('atelier').value===''){toast('Choisis un atelier');$('atelier').focus();return;}
+    if(!title){toast("Écris le titre de l'atelier");$('titre').focus();return;}
+    var date=$('date').value,debut=$('debut').value,fin=$('fin').value;
+    if(!date){toast('Choisis une date');return;}
+    if(date<MIN_DATE){toast('Test : à partir de novembre 2026 seulement');return;}
+    if(!debut){toast("Choisis l'heure de début");return;}
+    if(!fin){toast("Choisis l'heure de fin");return;}
+    if(fin<=debut){toast("L'heure de fin doit être après le début");return;}
+    var icon=$('pickico').textContent||'📋';
+    var limite=getLimite();
+    var desc=$('description').value.trim(),adr=$('adresse').value.trim(),lien=$('lien').value.trim();
+    if(lien&&!/^https?:\/\//i.test(lien)) lien='https://'+lien;
+    var now=Date.now();
+
+    var dates=[date];
+    if(S.mode==='new'&&$('seg').querySelector('[aria-pressed=true]').getAttribute('data-rep')==='weekly'){
+      var r=repeatList(date,$('jusqua').value||date);
+      if(r.err){toast(r.err);return;}
+      dates=r.list;
+    }
+    /* Pas deux fois le même atelier au même moment */
+    var autres=S.docs.filter(function(d){return !(S.mode==='edit'&&S.edit&&d.id===S.edit.id);});
+    var doublons=dates.filter(function(ds){
+      return autres.some(function(d){return d.date===ds&&d.time===debut&&norm(d.title)===norm(title);});
+    });
+    if(doublons.length){
+      toast('Déjà dans le planning : '+doublons.slice(0,3).map(function(x){return dayLabel(x).toLowerCase();}).join(', ')+(doublons.length>3?'…':''));
+      return;
+    }
+
+    S.busy=true;$('save').disabled=true;$('save').textContent='Enregistrement…';
+    try{
+      var batch=db.batch();
+      var habRef=db.collection('ateliers_habituels').doc(cleanDocId(S.anim+'|'+title));
+      var saved=[];
+      if(S.mode==='edit'&&S.edit){
+        var old=S.edit;
+        var ref=db.collection('planning').doc(old.id);
+        var upd={ym:date.slice(0,7),date:date,time:debut,fin:fin,title:title,icon:icon,limite:limite,description:desc,adresse:adr,lien:lien,updatedAt:now};
+        batch.update(ref,upd);
+        var oldKey=descKey(old.title,old.date,old.time),newKey=descKey(title,date,debut);
+        if(oldKey!==newKey) batch.delete(db.collection('atelier_descriptions').doc(oldKey));
+        batch.set(db.collection('atelier_descriptions').doc(newKey),{description:desc,adresse:adr,lien:lien,travelMin:0,updatedAt:now});
+        var merged=Object.assign({},old,upd);saved.push(merged);
+      }else{
+        dates.forEach(function(ds){
+          var ref=db.collection('planning').doc();
+          var data={anim:S.anim,ym:ds.slice(0,7),date:ds,time:debut,fin:fin,title:title,icon:icon,limite:limite,description:desc,adresse:adr,lien:lien,createdAt:now,updatedAt:now};
+          batch.set(ref,data);
+          batch.set(db.collection('atelier_descriptions').doc(descKey(title,ds,debut)),{description:desc,adresse:adr,lien:lien,travelMin:0,updatedAt:now});
+          var full=Object.assign({id:ref.id},data);saved.push(full);
+        });
+      }
+      batch.set(habRef,habitData(title,icon,debut,fin,limite,desc,adr,lien,now),{merge:true});
+      await batch.commit();
+
+      /* mise à jour locale */
+      if(S.mode==='edit'&&S.edit){
+        S.docs=S.docs.map(function(d){return d.id===S.edit.id?saved[0]:d;});
+      }else{
+        S.docs=S.docs.concat(saved);
+      }
+      var h=habitData(title,icon,debut,fin,limite,desc,adr,lien,now);h.id=habRef.id;
+      var found=false;
+      S.habits=S.habits.map(function(x){if(x.id===h.id){found=true;return Object.assign({},x,h);}return x;});
+      if(!found) S.habits.push(h);
+
+      var first=saved.map(function(d){return d.date;}).sort()[0];
+      S.ym=first.slice(0,7);
+      var pub=isPublished(S.ym);
+      var msg=S.mode==='edit'?'Atelier modifié':(saved.length>1?saved.length+' ateliers ajoutés':'Atelier ajouté')+(pub?' : visible tout de suite':' en brouillon');
+      toast(msg);
+      S.busy=false;
+      renderMonth();show('mois');
+    }catch(e){
+      S.busy=false;$('save').disabled=false;$('save').textContent='Enregistrer';
+      toast('Erreur : '+errMsg(e));
+    }
+  }
+  $('save').addEventListener('click',save);
+
+  /* ===== Supprimer un atelier ===== */
+  $('delbtn').addEventListener('click',async function(){
+    if(S.busy||!S.edit) return;
+    var d=S.edit;
+    if(nbInscrits(d)>0){toast('Des personnes sont inscrites : suppression impossible');return;}
+    if(!window.confirm('Supprimer « '+d.title+' » du '+dayLabel(d.date).toLowerCase()+' ?')) return;
+    S.busy=true;
+    try{
+      var batch=db.batch();
+      batch.delete(db.collection('planning').doc(d.id));
+      batch.delete(db.collection('atelier_descriptions').doc(descKey(d.title,d.date,d.time)));
+      await batch.commit();
+      S.docs=S.docs.filter(function(x){return x.id!==d.id;});
+      toast('Atelier supprimé');
+      S.busy=false;renderMonth();show('mois');
+    }catch(e){S.busy=false;toast('Erreur : '+errMsg(e));}
+  });
+
+  /* ===== Mois précédent / suivant ===== */
+  $('prev').addEventListener('click',function(){
+    var p=shiftYm(S.ym,-1);if(p<MIN_DATE.slice(0,7)) return;
+    S.ym=p;renderMonth();
+  });
+  $('next').addEventListener('click',function(){S.ym=shiftYm(S.ym,1);renderMonth();});
+
+  /* ===== Connexion provisoire ===== */
+  function remember(anim){try{localStorage.setItem(LS_KEY,anim);}catch(e){}}
+  function forget(){try{localStorage.removeItem(LS_KEY);}catch(e){}}
+  function remembered(){try{return localStorage.getItem(LS_KEY);}catch(e){return null;}}
+  async function enter(anim){
+    S.anim=anim;$('who').textContent=anim;
+    S.ym=defaultYm();
+    show('mois');
+    $('mainzone').innerHTML='<div class="loading">Chargement…</div>';
+    try{
+      await loadAll();
+      renderMonth();
+    }catch(e){
+      $('mainzone').innerHTML='<div class="empty">Impossible de charger le planning.<br>'+esc(errMsg(e))+'<br><br><button class="btn-blue" id="retry" type="button" style="width:auto;padding:0 24px">Réessayer</button></div>';
+      $('retry').addEventListener('click',function(){enter(anim);});
+    }
+  }
+  function tryLogin(){
+    var c=$('code').value.trim();
+    if(CODES[c]){remember(CODES[c]);$('code').value='';enter(CODES[c]);}
+    else{toast('Code incorrect');$('code').value='';}
+  }
+  $('loginbtn').addEventListener('click',tryLogin);
+  $('code').addEventListener('keydown',function(e){if(e.key==='Enter') tryLogin();});
+  $('logout').addEventListener('click',function(){forget();S.anim=null;show('login');});
+
+  var r0=remembered();
+  if(r0&&(r0==='Steve')) enter(r0); else show('login');
+})();
+</script>
+</body>
+</html>
