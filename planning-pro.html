@@ -173,6 +173,14 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       </div>
     </div>
 
+    <div id="extra-block">
+    <h2 class="sec">D'autres ateliers en même temps ?</h2>
+    <div class="card">
+      <div class="note" style="margin-top:0;margin-bottom:8px">Facultatif. Coche les autres ateliers qui ont lieu au même créneau : ils seront créés aux mêmes dates et heures, chacun avec ses infos de la dernière fois (description, places…).</div>
+      <div class="benefs" id="extras"></div>
+    </div>
+    </div>
+
     <h2 class="sec">Quand ?</h2>
     <div class="card">
       <label class="l" for="date">Date</label>
@@ -199,7 +207,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
 
     <h2 class="sec">Qui peut s'inscrire ?</h2>
     <div class="card">
-      <label class="check" for="reserve" style="margin-top:0"><input id="reserve" type="checkbox"> Atelier réservé : personne ne peut s'inscrire</label>
+      <label class="check" for="reserve" style="margin-top:0"><input id="reserve" type="checkbox"> Atelier réservé à certaines personnes</label>
       <div id="reserve-extra" hidden>
         <label class="l gap14" for="reservePour">Phrase affichée aux bénéficiaires</label>
         <input id="reservePour" type="text" placeholder="Ex : Réservé aux habitants de la rue de Paris">
@@ -207,6 +215,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
         <div class="note" style="margin:0 0 8px">Les personnes cochées gardent le bouton « M'inscrire ». Tous les autres voient 🔒 et la phrase.</div>
         <div class="benefs" id="benefs"></div>
         <div class="note" id="benefs-count"></div>
+        <label class="check" id="applyall-row" for="applyall" hidden><input id="applyall" type="checkbox" checked> <span id="applyall-txt"></span></label>
       </div>
     </div>
 
@@ -551,6 +560,50 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
     $('places-block').hidden=!!on;
     if(txt!==undefined) $('reservePour').value=txt||'';
     if(ids!==undefined) buildBenefs(ids||[]);
+    updateApplyAll();
+  }
+  /* liste des résidents : la mettre aussi sur les autres dates à venir du même atelier */
+  function autresDatesFutures(title){
+    var t=norm(title),n=new Date(),today=n.getFullYear()+'-'+pad2(n.getMonth()+1)+'-'+pad2(n.getDate());
+    return S.docs.filter(function(d){return norm(d.title)===t&&d.date>=today&&!(S.mode==='edit'&&S.edit&&d.id===S.edit.id);});
+  }
+  function updateApplyAll(){
+    var title=chosenTitle(),n=(title&&$('reserve').checked)?autresDatesFutures(title).length:0;
+    $('applyall-row').hidden=!n;
+    if(n) $('applyall-txt').textContent='Mettre aussi cette liste sur '+(n>1?'les '+n+' autres dates':'l\'autre date')+' à venir de « '+title+' »';
+  }
+  /* autres ateliers au même créneau (nouvel atelier seulement) */
+  function buildExtras(){
+    var keep={};
+    [].forEach.call($('extras').querySelectorAll('input:checked'),function(c){keep[c.getAttribute('data-t')]=1;});
+    var main=norm(chosenTitle()),h='';
+    MENU.forEach(function(a){
+      if(norm(a.t)===main) return;
+      h+='<label class="check"><input type="checkbox" data-t="'+esc(a.t)+'" data-i="'+esc(a.i)+'"'+(keep[a.t]?' checked':'')+'> '+esc(a.i+' '+a.t)+'</label>';
+    });
+    $('extras').innerHTML=h;
+  }
+  function getExtras(){
+    return [].map.call($('extras').querySelectorAll('input:checked'),function(c){return {t:c.getAttribute('data-t'),i:c.getAttribute('data-i')};});
+  }
+  async function infoExtra(title){
+    var t=norm(title),h=null;
+    S.habits.forEach(function(x){if(norm(x.title)===t) h=x;});
+    var last=lastUse(title);
+    var src=h?{places:h.places,description:h.description,adresse:h.adresse,lien:h.lien,reserve:h.reserve,reservePour:h.reservePour,reserveIds:h.reserveIds}
+             :(last?{places:last.limite||0,description:last.description,adresse:last.adresse,lien:last.lien,reserve:last.reserve,reservePour:last.reservePour,reserveIds:last.reserveIds}:null);
+    var out={limite:src?((parseInt(src.places,10)||0)||null):8,description:(src&&src.description)||'',adresse:(src&&src.adresse)||'',lien:(src&&src.lien)||'',
+             reserve:!!(src&&src.reserve),reservePour:(src&&src.reservePour)||'',reserveIds:(src&&src.reserveIds)||[]};
+    if(!out.description){
+      var descs=await loadDescs(),prefix=cleanDocId(String(title).replace(/\s*\(\d+\)\s*$/,'').trim())+'|',best=null;
+      descs.forEach(function(d){
+        if(d.id.indexOf(prefix)!==0) return;
+        var date=d.id.split('|')[1]||'';
+        if(!best||date>best.date) best={date:date,d:d};
+      });
+      if(best){out.description=best.d.description;if(!out.adresse) out.adresse=best.d.adresse;if(!out.lien) out.lien=best.d.lien;}
+    }
+    return out;
   }
   function buildBenefs(ids){
     var box=$('benefs'),h='';
@@ -688,6 +741,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
     if(mode==='edit'&&d){
       $('formtitle').textContent="Modifier l'atelier";
       $('repeat-block').hidden=true;
+      $('extra-block').hidden=true;$('extras').innerHTML='';
       var idx=-1;MENU.forEach(function(a,i){if(norm(a.t)===norm(d.title)) idx=i;});
       if(idx>=0){sel.value=String(idx);$('other-block').hidden=true;$('titre').value='';}
       else{
@@ -722,8 +776,10 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       $('addlist').checked=true;
       S.icoManuel=false;setReserve(false,'',[]);
       $('delzone').hidden=true;
+      $('extra-block').hidden=false;$('extras').innerHTML='';buildExtras();
     }
     $('date').min=MIN_DATE;
+    $('applyall').checked=true;updateApplyAll();
     updateDateLabel();updateRepeatInfo();
     $('save').disabled=false;$('save').textContent='Enregistrer';
     show('form');
@@ -742,13 +798,15 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       setIco(a.i);
       if(S.mode==='new') applyHabit(a.t);
     }
+    if(S.mode==='new') buildExtras();
+    updateApplyAll();
   });
   $('tiles').addEventListener('click',function(e){
     var b=e.target.closest('.tile');if(!b||b.disabled) return;
     S.icoManuel=true;
     pressIco(b.getAttribute('data-ico'));setIco(b.getAttribute('data-ico'));
   });
-  $('titre').addEventListener('input',autoIco);
+  $('titre').addEventListener('input',function(){autoIco();updateApplyAll();});
   $('benefs').addEventListener('change',countBenefs);
   $('reserve').addEventListener('change',function(){setReserve(this.checked);if(this.checked&&!$('reservePour').value) $('reservePour').focus();});
   $('minus').addEventListener('click',function(){
@@ -796,7 +854,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
     if(!title){toast("Écris le titre de l'atelier");$('titre').focus();return;}
     var date=$('date').value,debut=$('debut').value,fin=$('fin').value;
     if(!date){toast('Choisis une date');return;}
-    if(date<MIN_DATE){toast('Test : à partir de novembre 2026 seulement');return;}
+    if(date<MIN_DATE){toast('Avant novembre 2026, le planning reste sur le Google Sheet');return;}
     if(!debut){toast("Choisis l'heure de début");return;}
     if(!fin){toast("Choisis l'heure de fin");return;}
     if(fin<=debut){toast("L'heure de fin doit être après le début");return;}
@@ -822,9 +880,20 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       toast('Déjà dans le planning : '+doublons.slice(0,3).map(function(x){return dayLabel(x).toLowerCase();}).join(', ')+(doublons.length>3?'…':''));
       return;
     }
+    /* Autres ateliers au même créneau */
+    var extras=(S.mode==='new')?getExtras():[];
+    for(var xi=0;xi<extras.length;xi++){
+      var dx=dates.filter(function(ds){return autres.some(function(d){return d.date===ds&&d.time===debut&&norm(d.title)===norm(extras[xi].t);});});
+      if(dx.length){toast('« '+extras[xi].t+' » est déjà dans le planning le '+dayLabel(dx[0]).toLowerCase());return;}
+    }
+    /* Liste des résidents à mettre aussi sur les autres dates à venir */
+    var applyAll=(reserve&&!$('applyall-row').hidden&&$('applyall').checked)?autresDatesFutures(title):[];
+    if(dates.length*2*(1+extras.length)+applyAll.length+1>450){toast("Trop d'ateliers d'un coup : raccourcis la période");return;}
 
     S.busy=true;$('save').disabled=true;$('save').textContent='Enregistrement…';
     try{
+      var extraInfos=[];
+      for(var xj=0;xj<extras.length;xj++) extraInfos.push({t:extras[xj].t,i:extras[xj].i,info:await infoExtra(extras[xj].t)});
       var batch=db.batch();
       var habRef=db.collection('ateliers_habituels').doc(cleanDocId(S.anim+'|'+title));
       var saved=[];
@@ -844,8 +913,17 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
           batch.set(ref,data);
           batch.set(db.collection('atelier_descriptions').doc(descKey(title,ds,debut)),{description:desc,adresse:adr,lien:lien,travelMin:0,updatedAt:now});
           var full=Object.assign({id:ref.id},data);saved.push(full);
+          extraInfos.forEach(function(x){
+            var xref=db.collection('planning').doc(),inf=x.info;
+            var xdata={anim:S.anim,ym:ds.slice(0,7),date:ds,time:debut,fin:fin,title:x.t,icon:x.i,limite:inf.limite,reserve:inf.reserve,reservePour:inf.reservePour,reserveIds:inf.reserveIds,description:inf.description,adresse:inf.adresse,lien:inf.lien,createdAt:now,updatedAt:now};
+            batch.set(xref,xdata);
+            batch.set(db.collection('atelier_descriptions').doc(descKey(x.t,ds,debut)),{description:inf.description,adresse:inf.adresse,lien:inf.lien,travelMin:0,updatedAt:now});
+            saved.push(Object.assign({id:xref.id},xdata));
+          });
         });
       }
+      var majListe={reserve:true,reservePour:reservePour,reserveIds:reserveIds,updatedAt:now};
+      applyAll.forEach(function(d){batch.update(db.collection('planning').doc(d.id),majListe);});
       batch.set(habRef,habitData(title,icon,debut,fin,limite,desc,adr,lien,now),{merge:true});
       await batch.commit();
 
@@ -854,6 +932,10 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
         S.docs=S.docs.map(function(d){return d.id===S.edit.id?saved[0]:d;});
       }else{
         S.docs=S.docs.concat(saved);
+      }
+      if(applyAll.length){
+        var ids={};applyAll.forEach(function(d){ids[d.id]=1;});
+        S.docs=S.docs.map(function(d){return ids[d.id]?Object.assign({},d,majListe):d;});
       }
       var h=habitData(title,icon,debut,fin,limite,desc,adr,lien,now);h.id=habRef.id;
       var found=false;
@@ -864,6 +946,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       S.ym=first.slice(0,7);
       var pub=isPublished(S.ym);
       var msg=S.mode==='edit'?'Atelier modifié':(saved.length>1?saved.length+' ateliers ajoutés':'Atelier ajouté')+(pub?' : visible tout de suite':' en brouillon');
+      if(applyAll.length) msg+=' · liste mise sur '+applyAll.length+' autre'+(applyAll.length>1?'s dates':' date');
       toast(msg);
       S.busy=false;
       renderMonth();show('mois');
