@@ -253,6 +253,7 @@
     .pcard-btn.inscrit:active { box-shadow: 0 1px 3px rgba(44,62,145,0.5); }
     .pcard-btn.complet { background: #d63447; color: white; cursor: not-allowed; opacity: 0.85; box-shadow: 0 4px 8px rgba(214,52,71,0.5); }
     .pcard-reserve { background: #eef1fb; color: #2c3e91; border: 2px dashed #9aa6d6; border-radius: 16px; padding: 12px 14px; font-size: 1rem; font-weight: 700; text-align: center; line-height: 1.35; }
+    .pcard-reserve-info { margin: 0 16px 10px; font-size: 0.875rem; font-weight: 700; color: #2c3e91; }
     /* Effet "scanner" au survol souris — bande lumineuse en aller-retour, jamais actif au tactile */
     .btn-scan { position:absolute; top:0; bottom:0; left:-60%; width:40%; background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(255,255,255,0.55) 50%,rgba(255,255,255,0) 100%); transform:skewX(-20deg); pointer-events:none; }
     @keyframes btnScanBounce { 0%{left:-60%;} 50%{left:120%;} 100%{left:-60%;} }
@@ -5357,7 +5358,7 @@ function _badgeTest(txt){ try{ const b=document.getElementById('avp-test-badge')
 function inAppEventsOf(res, ym){
   return res.docs
     .filter(d=>d.ym===ym && d.date && d.time && d.title)
-    .map(d=>({date:d.date,time:d.time,title:d.title,icon:d.icon||getActivityIcon(d.title),limite:(d.limite>0?d.limite:null),reserve:!!d.reserve,reservePour:d.reservePour||''}))
+    .map(d=>({date:d.date,time:d.time,title:d.title,icon:d.icon||getActivityIcon(d.title),limite:(d.limite>0?d.limite:null),reserve:!!d.reserve,reservePour:d.reservePour||'',reserveIds:Array.isArray(d.reserveIds)?d.reserveIds:[]}))
     .sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
 }
 // Retourne les événements du mois s'il est publié dans l'appli, sinon null (=> Google Sheet)
@@ -5718,6 +5719,8 @@ function renderPlanningInner(content,events){
     grouped[dk].forEach(e=>{
       const ek=ekOf(e);
       const inscrit=isInscrit(ek);
+      // Atelier réservé : seules les personnes cochées dans la page pro peuvent s'inscrire elles-mêmes
+      const _reserveBloque=!!(e.reserve&&!(currentUser&&(e.reserveIds||[]).includes(currentUser.id)));
       const inscritsList=allInscrits[ek]||[];
       const nbInscrits=inscritsList.length;
       const limite=e.limite||null;
@@ -5752,7 +5755,7 @@ function renderPlanningInner(content,events){
       let speech=`${e.title}, à ${timeToSpeech(e.time)}.`;
       if(desc)speech+=` ${desc}.`;
       if(inscrit){speech+=` Vous êtes inscrit à cet atelier.`;}
-      else if(e.reserve){speech+=` ${(e.reservePour||'Cet atelier est réservé').replace(/[.\s]+$/,'')}. Il n'y a pas d'inscription.`;}
+      else if(_reserveBloque){speech+=` ${(e.reservePour||'Cet atelier est réservé').replace(/[.\s]+$/,'')}. Il n'y a pas d'inscription.`;}
       else if(limite!==null){
         const libres=Math.max(0,limite-nbInscrits);
         if(libres<=0){speech+=` C'est complet pour cette fois. N'hésitez pas pour un prochain atelier.`;}
@@ -5803,9 +5806,10 @@ function renderPlanningInner(content,events){
         ${blocAHTML}
         ${descHTML}
         ${lienHTML}
-        ${e.reserve?'':`<div class="pcard-places-row">${compteurHTML.replace('planning-places','pcard-places')}</div>`}
-        ${(e.reserve&&!inscritsList.length)?'':`<div class="pcard-inscrits"><div class="pcard-inscrits-label">Déjà inscrits :</div>${tagsHTML}</div>`}
-        <div class="pcard-action">${(e.reserve&&!inscrit)?`<div class="pcard-reserve">🔒 ${esc(e.reservePour||"Atelier réservé, pas d'inscription")}</div>`:placesBtn}</div>
+        ${(e.reserve&&!_reserveBloque)?`<div class="pcard-reserve-info">🔒 ${esc(e.reservePour||'Atelier réservé')}</div>`:''}
+        ${_reserveBloque?'':`<div class="pcard-places-row">${compteurHTML.replace('planning-places','pcard-places')}</div>`}
+        ${(_reserveBloque&&!inscritsList.length)?'':`<div class="pcard-inscrits"><div class="pcard-inscrits-label">Déjà inscrits :</div>${tagsHTML}</div>`}
+        <div class="pcard-action">${(_reserveBloque&&!inscrit)?`<div class="pcard-reserve">🔒 ${esc(e.reservePour||"Atelier réservé, pas d'inscription")}</div>`:placesBtn}</div>
         ${blocBHTML}
       </div>`;
     });

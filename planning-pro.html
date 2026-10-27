@@ -86,6 +86,8 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
 .tile[aria-pressed=true]{border-color:#2c3e91;background:#eef1fb}
 .icobox{max-height:320px;overflow-y:auto;border:1.5px solid #e3e6ef;border-radius:12px;padding:2px 8px 10px;-webkit-overflow-scrolling:touch}
 .icogroup{font-size:12.5px;font-weight:800;color:#48547a;margin:12px 2px 6px;text-transform:uppercase;letter-spacing:.4px}
+.benefs{max-height:300px;overflow-y:auto;border:1.5px solid #e3e6ef;border-radius:12px;padding:2px 12px 6px;-webkit-overflow-scrolling:touch}
+.benefs .check{margin-top:4px}
 .pill-lock{display:inline-block;margin-top:6px;background:#eef1fb;color:#2c3e91;font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:20px}
 .seg{display:flex;gap:4px;background:#eef1fb;border-radius:12px;padding:4px}
 .seg button{flex:1;height:48px;border:none;border-radius:10px;background:transparent;color:#48547a;font-size:16px;font-weight:700}
@@ -201,7 +203,10 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       <div id="reserve-extra" hidden>
         <label class="l gap14" for="reservePour">Phrase affichée aux bénéficiaires</label>
         <input id="reservePour" type="text" placeholder="Ex : Réservé aux habitants de la rue de Paris">
-        <div class="note">À la place du bouton « M'inscrire », les bénéficiaires verront 🔒 et cette phrase.</div>
+        <div class="l gap16">Qui est concerné ?</div>
+        <div class="note" style="margin:0 0 8px">Les personnes cochées gardent le bouton « M'inscrire ». Tous les autres voient 🔒 et la phrase.</div>
+        <div class="benefs" id="benefs"></div>
+        <div class="note" id="benefs-count"></div>
       </div>
     </div>
 
@@ -364,11 +369,12 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
 
   /* ===== Chargement des données ===== */
   async function loadInscrits(){
-    var map={};
+    var map={},benefs=[];
     var snap=await db.collection('users').get();
     snap.docs.forEach(function(doc){
       var u=doc.data();
       if(!u.prenom) return;
+      if(!u.isAdmin) benefs.push({id:doc.id,prenom:u.prenom});
       (u.reminders||[]).forEach(function(r){
         if(r.source!=='atelier') return;
         var k=ekOf(r.date,r.time,r.title);
@@ -378,6 +384,8 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
     });
     var out={};
     Object.keys(map).forEach(function(k){out[k]=Object.keys(map[k]).length;});
+    benefs.sort(function(a,b){return a.prenom.localeCompare(b.prenom,'fr');});
+    S.benefs=benefs;
     return out;
   }
   async function loadAll(){
@@ -436,7 +444,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
         h+='<button class="row" type="button" data-id="'+esc(d.id)+'">'
           +'<div class="ico" aria-hidden="true">'+esc(d.icon||'📋')+'</div>'
           +'<div class="txt"><div class="t">'+esc(d.title)+'</div>'
-          +'<div class="m"><b>'+esc(fmtH(d.time)+(d.fin?' – '+fmtH(d.fin):''))+'</b> · '+(d.reserve?'🔒 Réservé':(d.limite?d.limite+' places':'Sans limite'))+(n?' · '+n+' inscrit'+(n>1?'s':''):'')+'</div>'
+          +'<div class="m"><b>'+esc(fmtH(d.time)+(d.fin?' – '+fmtH(d.fin):''))+'</b> · '+(d.reserve?'🔒 Réservé'+((d.reserveIds||[]).length?' ('+d.reserveIds.length+' pers.)':''):(d.limite?d.limite+' places':'Sans limite'))+(n?' · '+n+' inscrit'+(n>1?'s':''):'')+'</div>'
           +(warn?'<div class="pill-warn">'+esc(warn)+'</div>':'')+'</div>'
           +'<svg viewBox="0 0 24 24" fill="none" stroke="#5b6785" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>'
           +'</button>';
@@ -537,11 +545,27 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
     setIco(ico);pressIco(ico);
   }
   /* atelier réservé */
-  function setReserve(on,txt){
+  function setReserve(on,txt,ids){
     $('reserve').checked=!!on;
     $('reserve-extra').hidden=!on;
     $('places-block').hidden=!!on;
     if(txt!==undefined) $('reservePour').value=txt||'';
+    if(ids!==undefined) buildBenefs(ids||[]);
+  }
+  function buildBenefs(ids){
+    var box=$('benefs'),h='';
+    (S.benefs||[]).forEach(function(b){
+      h+='<label class="check"><input type="checkbox" data-id="'+esc(b.id)+'"'+(ids.indexOf(b.id)>=0?' checked':'')+'> '+esc(b.prenom)+'</label>';
+    });
+    box.innerHTML=h||'<div class="note">Aucun bénéficiaire trouvé.</div>';
+    countBenefs();
+  }
+  function getReserveIds(){
+    return [].map.call($('benefs').querySelectorAll('input:checked'),function(c){return c.getAttribute('data-id');});
+  }
+  function countBenefs(){
+    var n=getReserveIds().length;
+    $('benefs-count').textContent=n?(n+(n>1?' personnes cochées':' personne cochée')):'Personne n\'est coché : toi seul pourras les inscrire (« Inscrire au groupe »).';
   }
   function setIco(ico){$('pickico').textContent=ico;}
   function pressOne(container,btn){
@@ -565,9 +589,9 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
     S.habits.forEach(function(x){if(norm(x.title)===t) h=x;});
     var last=lastUse(title);
     var src=null;
-    if(h) src={heure:h.heure,fin:h.fin,places:h.places,description:h.description,adresse:h.adresse,lien:h.lien,reserve:h.reserve,reservePour:h.reservePour};
-    else if(last) src={heure:last.time,fin:last.fin,places:last.limite||0,description:last.description,adresse:last.adresse,lien:last.lien,reserve:last.reserve,reservePour:last.reservePour};
-    setReserve(!!(src&&src.reserve),(src&&src.reservePour)||'');
+    if(h) src={heure:h.heure,fin:h.fin,places:h.places,description:h.description,adresse:h.adresse,lien:h.lien,reserve:h.reserve,reservePour:h.reservePour,reserveIds:h.reserveIds};
+    else if(last) src={heure:last.time,fin:last.fin,places:last.limite||0,description:last.description,adresse:last.adresse,lien:last.lien,reserve:last.reserve,reservePour:last.reservePour,reserveIds:last.reserveIds};
+    setReserve(!!(src&&src.reserve),(src&&src.reservePour)||'',(src&&src.reserveIds)||[]);
     var filled=false;
     if(src){
       if(src.heure) $('debut').value=src.heure;
@@ -675,7 +699,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       $('date').value=d.date;$('debut').value=d.time;$('fin').value=d.fin||'';
       setPlaces(d.limite||0);
       $('description').value=d.description||'';$('adresse').value=d.adresse||'';$('lien').value=d.lien||'';
-      setReserve(!!d.reserve,d.reservePour||'');
+      setReserve(!!d.reserve,d.reservePour||'',d.reserveIds||[]);
       $('savehint').textContent='Les changements sont enregistrés tout de suite.';
       var n=nbInscrits(d);
       setLocked(n>0,n);
@@ -696,7 +720,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       setPlaces(8);
       $('description').value='';$('adresse').value='';$('lien').value='';
       $('addlist').checked=true;
-      S.icoManuel=false;setReserve(false,'');
+      S.icoManuel=false;setReserve(false,'',[]);
       $('delzone').hidden=true;
     }
     $('date').min=MIN_DATE;
@@ -725,6 +749,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
     pressIco(b.getAttribute('data-ico'));setIco(b.getAttribute('data-ico'));
   });
   $('titre').addEventListener('input',autoIco);
+  $('benefs').addEventListener('change',countBenefs);
   $('reserve').addEventListener('change',function(){setReserve(this.checked);if(this.checked&&!$('reservePour').value) $('reservePour').focus();});
   $('minus').addEventListener('click',function(){
     if($('illimite').checked) return;
@@ -760,7 +785,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
 
   /* ===== Enregistrer ===== */
   function habitData(title,icon,debut,fin,limite,desc,adr,lien,now){
-    var h={anim:S.anim,title:title,icon:icon,heure:debut,fin:fin,places:limite||0,description:desc,adresse:adr,lien:lien,reserve:$('reserve').checked,reservePour:$('reserve').checked?$('reservePour').value.trim():'',updatedAt:now};
+    var h={anim:S.anim,title:title,icon:icon,heure:debut,fin:fin,places:limite||0,description:desc,adresse:adr,lien:lien,reserve:$('reserve').checked,reservePour:$('reserve').checked?$('reservePour').value.trim():'',reserveIds:$('reserve').checked?getReserveIds():[],updatedAt:now};
     if($('atelier').value==='__autre'&&$('addlist').checked) h.liste=true;
     return h;
   }
@@ -780,7 +805,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
     var desc=$('description').value.trim(),adr=$('adresse').value.trim(),lien=$('lien').value.trim();
     if(lien&&!/^https?:\/\//i.test(lien)) lien='https://'+lien;
     var now=Date.now();
-    var reserve=$('reserve').checked,reservePour=reserve?$('reservePour').value.trim():'';
+    var reserve=$('reserve').checked,reservePour=reserve?$('reservePour').value.trim():'',reserveIds=reserve?getReserveIds():[];
 
     var dates=[date];
     if(S.mode==='new'&&$('seg').querySelector('[aria-pressed=true]').getAttribute('data-rep')==='weekly'){
@@ -806,7 +831,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       if(S.mode==='edit'&&S.edit){
         var old=S.edit;
         var ref=db.collection('planning').doc(old.id);
-        var upd={ym:date.slice(0,7),date:date,time:debut,fin:fin,title:title,icon:icon,limite:limite,reserve:reserve,reservePour:reservePour,description:desc,adresse:adr,lien:lien,updatedAt:now};
+        var upd={ym:date.slice(0,7),date:date,time:debut,fin:fin,title:title,icon:icon,limite:limite,reserve:reserve,reservePour:reservePour,reserveIds:reserveIds,description:desc,adresse:adr,lien:lien,updatedAt:now};
         batch.update(ref,upd);
         var oldKey=descKey(old.title,old.date,old.time),newKey=descKey(title,date,debut);
         if(oldKey!==newKey) batch.delete(db.collection('atelier_descriptions').doc(oldKey));
@@ -815,7 +840,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       }else{
         dates.forEach(function(ds){
           var ref=db.collection('planning').doc();
-          var data={anim:S.anim,ym:ds.slice(0,7),date:ds,time:debut,fin:fin,title:title,icon:icon,limite:limite,reserve:reserve,reservePour:reservePour,description:desc,adresse:adr,lien:lien,createdAt:now,updatedAt:now};
+          var data={anim:S.anim,ym:ds.slice(0,7),date:ds,time:debut,fin:fin,title:title,icon:icon,limite:limite,reserve:reserve,reservePour:reservePour,reserveIds:reserveIds,description:desc,adresse:adr,lien:lien,createdAt:now,updatedAt:now};
           batch.set(ref,data);
           batch.set(db.collection('atelier_descriptions').doc(descKey(title,ds,debut)),{description:desc,adresse:adr,lien:lien,travelMin:0,updatedAt:now});
           var full=Object.assign({id:ref.id},data);saved.push(full);

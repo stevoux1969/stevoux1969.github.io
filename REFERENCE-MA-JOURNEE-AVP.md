@@ -94,7 +94,8 @@ Nouveau chemin de création de rappel en voix (rond bleu, maquette `maquette-nou
 - `index-planning-test.html` — copie de `index.html` avec pastille « TEST planning » (affiche ce qui est lu dans la base), cache local séparé (`avp_planning_events_T2_`) et cache de 10 s ; sert de bac à sable. Générée à partir de `index.html` par un script de patch (hors dépôt) : à régénérer si `index.html` change.
 
 **Modèle de données (Firestore)** :
-- `planning/{auto}` : `{anim:'Steve', ym:'2026-11', date, time, fin, title, icon, limite (nombre ou null = illimité), description, adresse, lien, createdAt, updatedAt}`.
+- `planning/{auto}` : `{anim:'Steve', ym:'2026-11', date, time, fin, title, icon, limite (nombre ou null = illimité), reserve (bool), reservePour (phrase affichée), reserveIds ([uid des personnes concernées]), description, adresse, lien, createdAt, updatedAt}`.
+- **Atelier réservé** (ex. Collectif rue de Paris) : seules les personnes de `reserveIds` voient « M'inscrire » (+ ligne 🔒 phrase) ; les autres voient 🔒 phrase à la place du bouton, sans compteur. L'admin peut toujours inscrire via « Inscrire au groupe » (comptés dans les stats). Repris automatiquement via `ateliers_habituels`. Page pro : ~70 icônes par thème + icône proposée d'après le titre (`ICON_WORDS`).
 - `config/planningApp` : `{publies:{Steve_2026_11:true,…}}` (clé `Animateur_AAAA_MM`).
 - `ateliers_habituels/{Steve|Titre}` : mémoire « dernière fois » `{anim,title,icon,heure,fin,places,description,adresse,lien,liste}` ; `liste:true` = atelier personnalisé ajouté au menu.
 - Écriture miroir dans `atelier_descriptions/{descKey(titre,date,heure)}` (`description, adresse, lien, travelMin:0`) : l'affichage bénéficiaire des descriptions n'a **pas changé**. `travelMin` toujours 0 pour les ateliers de l'appli (plus d'alarme « heure de partir » commune à tous).
