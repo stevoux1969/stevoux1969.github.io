@@ -3927,7 +3927,8 @@ async function adminDeleteReminder(uid,reminderId){showConfirm({icon:'🗑️',t
 // ========== PARAMÈTRES MODIFIABLES ==========
 // Délai minimum (en jours) pour qu'un bénéficiaire puisse se désinscrire seul.
 // En-dessous, il doit appeler l'animateur. Modifiable ici uniquement.
-const DELAI_DESINSCRIPTION_JOURS = 2;
+// 1 = possible jusqu'à la veille de l'atelier, impossible le jour même (choix de Steve, 27/10/2026).
+const DELAI_DESINSCRIPTION_JOURS = 1;
 // Durée de validité (en jours) des messages "à tous". Au-delà, un nouvel
 // installé ne les voit plus. Modifiable ici uniquement.
 const MESSAGES_VALIDITE_JOURS = 7;
@@ -4458,7 +4459,7 @@ async function demanderDesinscription(ev,ek,anim,content,events,onDone){
       <div style="font-size:2.625rem;margin-bottom:10px;">📵</div>
       <div style="font-size:1.125rem;font-weight:800;color:#1a2340;margin-bottom:10px;">Désinscription impossible</div>
       <div style="font-size:0.875rem;color:#48547a;line-height:1.6;margin-bottom:20px;">
-        L'atelier <strong>${esc(ev.title)}</strong> a lieu dans moins de ${DELAI_DESINSCRIPTION_JOURS} jours.<br><br>
+        L'atelier <strong>${esc(ev.title)}</strong> ${joursRestants<=0?"a lieu aujourd'hui":`a lieu dans moins de ${DELAI_DESINSCRIPTION_JOURS} jours`}.<br><br>
         Pour vous désinscrire, contactez <strong>${esc(anim)}</strong> directement :
       </div>
       <a href="tel:${phone.num}" style="display:block;background:#22a559;color:#fff;font-size:1rem;font-weight:800;padding:14px;border-radius:14px;text-decoration:none;margin-bottom:12px;">📞 Appeler ${esc(anim)} — ${phone.display}</a>

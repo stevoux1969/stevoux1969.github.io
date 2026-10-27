@@ -84,6 +84,8 @@ Nouveau chemin de création de rappel en voix (rond bleu, maquette `maquette-nou
 
 **Reste à tester** : usage avec de vrais bénéficiaires (vocabulaire varié, bruit ambiant, accents), fiabilité du micro sur plusieurs tours de conversation d'affilée, temps de chargement initial du modèle ressenti par un bénéficiaire (pas seulement par Steve), comportement si le modèle est absent sur un autre téléphone de test, et si l'IA retrouve bien les ateliers AVP spécifiques (pas encore mappés aux icônes/adresses exactes de l'app, contrairement à l'assistant tuiles).
 
+**Désinscription d'un atelier par le bénéficiaire** : possible jusqu'à la veille, bloquée le jour même (popup « appeler l'animateur ») — `DELAI_DESINSCRIPTION_JOURS = 1` (27/10/2026, avant : 2).
+
 ## Planning dans l'appli (EN LIGNE depuis le 23/10/2026, planning de Steve uniquement) — remplace peu à peu le Google Sheet
 
 **Objectif** : Steve (puis Greg, puis d'autres services comme le GEM) crée le planning dans une page pro au lieu du Google Sheet ; les bénéficiaires le voient dans l'appli **sans nouvel APK** (l'APK charge le site). Une seule base Firestore, une page pro séparée (pas un 2e APK).
