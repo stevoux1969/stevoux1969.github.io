@@ -84,6 +84,9 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
 .tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
 .tile{height:48px;border:2px solid transparent;border-radius:14px;background:#f1f3f8;font-size:24px;padding:0}
 .tile[aria-pressed=true]{border-color:#2c3e91;background:#eef1fb}
+.icobox{max-height:320px;overflow-y:auto;border:1.5px solid #e3e6ef;border-radius:12px;padding:2px 8px 10px;-webkit-overflow-scrolling:touch}
+.icogroup{font-size:12.5px;font-weight:800;color:#48547a;margin:12px 2px 6px;text-transform:uppercase;letter-spacing:.4px}
+.pill-lock{display:inline-block;margin-top:6px;background:#eef1fb;color:#2c3e91;font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:20px}
 .seg{display:flex;gap:4px;background:#eef1fb;border-radius:12px;padding:4px}
 .seg button{flex:1;height:48px;border:none;border-radius:10px;background:transparent;color:#48547a;font-size:16px;font-weight:700}
 .seg button[aria-pressed=true]{background:#2c3e91;color:#fff}
@@ -162,7 +165,8 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
         <label class="l gap14" for="titre">Titre</label>
         <input id="titre" type="text" placeholder="Ex : Atelier photo">
         <div class="l gap16">Icône</div>
-        <div class="tiles" id="tiles"></div>
+        <div class="note" style="margin-top:0;margin-bottom:6px">Une icône est proposée d'après le titre. Touche-en une autre si tu préfères.</div>
+        <div class="icobox" id="tiles"></div>
         <label class="check" for="addlist"><input id="addlist" type="checkbox" checked> Ajouter à mes ateliers habituels</label>
       </div>
     </div>
@@ -191,6 +195,17 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       </div>
     </div>
 
+    <h2 class="sec">Qui peut s'inscrire ?</h2>
+    <div class="card">
+      <label class="check" for="reserve" style="margin-top:0"><input id="reserve" type="checkbox"> Atelier réservé : personne ne peut s'inscrire</label>
+      <div id="reserve-extra" hidden>
+        <label class="l gap14" for="reservePour">Phrase affichée aux bénéficiaires</label>
+        <input id="reservePour" type="text" placeholder="Ex : Réservé aux habitants de la rue de Paris">
+        <div class="note">À la place du bouton « M'inscrire », les bénéficiaires verront 🔒 et cette phrase.</div>
+      </div>
+    </div>
+
+    <div id="places-block">
     <h2 class="sec">Combien de places ?</h2>
     <div class="card">
       <div class="stepper" id="stepper">
@@ -200,6 +215,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
         <div class="muted">places au maximum</div>
       </div>
       <label class="check" for="illimite"><input id="illimite" type="checkbox"> Sans limite de places</label>
+    </div>
     </div>
 
     <h2 class="sec">Ce que verront les bénéficiaires</h2>
@@ -259,7 +275,38 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
     {t:'Réflexion collective',i:'💬'},{t:'Sophrologie',i:'🧘'},{t:'Sortie culturelle',i:'🎭'},{t:'Sortie extérieure',i:'🚗'},
     {t:'Vélo',i:'🚲'},{t:'Visite à domicile',i:'🏠'}
   ];
-  var ICONS=['🏊','🚲','📰','📸','🛒','🎤','⚽','🌱','🎲','🎵','📖','🎬'];
+  var ICON_GROUPS=[
+    ['Sport',['⚽','🏊','🚲','🚶','🥾','🏃','🎳','🏓','🏸','🎯','🧘','💪']],
+    ['Sorties',['🚗','🚌','🚆','🌳','🏖️','🐴','🦁','🛒','🛍️','🎡']],
+    ['Culture',['🎭','🎬','🏛️','🖼️','📚','📖','📝','📰','🎵','🎤','🎸','📸']],
+    ['Création',['🎨','✂️','🔨','🧵','🧶','🌱']],
+    ['Cuisine',['🍳','🍰','🥞','🧁','☕','🍖','🍕','🍽️','🧺']],
+    ['Bien-être et groupe',['💆','🧘‍♂️','👂','🗣️','💬','👥']],
+    ['Pratique',['💻','📱','🧹','🏥','📋','🏠','🇬🇧']],
+    ['Fêtes et jeux',['🎉','🎂','🎄','🎃','🎁','🎲','🃏','🧩']]
+  ];
+  /* mot du titre -> icône proposée (le premier qui correspond gagne) */
+  var ICON_WORDS=[
+    ['bowling','🎳'],['ping','🏓'],['badminton','🏸'],['petanque','🎯'],['flechette','🎯'],['piscine','🏊'],['natation','🏊'],['nage','🏊'],
+    ['velo','🚲'],['randonnee','🥾'],['rando','🥾'],['marche','🚶'],['balade','🚶'],['promenade','🚶'],['footing','🏃'],['course a pied','🏃'],
+    ['foot','⚽'],['sport','⚽'],['gym','🧘'],['yoga','🧘'],['relax','🧘'],['sophro','🧘'],['meditation','🧘‍♂️'],['massage','💆'],['bien-etre','💆'],['bien etre','💆'],
+    ['musee','🏛️'],['expo','🖼️'],['theatre','🎭'],['spectacle','🎭'],['cinema','🎬'],['film','🎬'],['concert','🎤'],['karaoke','🎤'],['chant','🎤'],['musique','🎵'],['guitare','🎸'],
+    ['bibliotheque','📚'],['mediatheque','📚'],['lecture','📖'],['livre','📖'],['ecriture','📝'],['journal','📰'],['gazette','📰'],['photo','📸'],
+    ['peinture','🎨'],['dessin','🎨'],['creati','✂️'],['bricolage','🔨'],['couture','🧵'],['tricot','🧶'],['jardin','🌱'],
+    ['plage','🏖️'],['foret','🌳'],['parc','🌳'],['nature','🌳'],['cheval','🐴'],['equitation','🐴'],['zoo','🦁'],['fete foraine','🎡'],
+    ['courses','🛒'],['supermarche','🛒'],['shopping','🛍️'],['magasin','🛍️'],['soldes','🛍️'],
+    ['restaurant','🍽️'],['resto','🍽️'],['repas','🍽️'],['pizza','🍕'],['patisserie','🍰'],['gateau','🍰'],['crepe','🥞'],['cuisine','🍳'],
+    ['petit dej','☕'],['cafe','☕'],['gouter','🧁'],['barbecue','🍖'],['bbq','🍖'],['pique','🧺'],
+    ['jeu','🎲'],['carte','🃏'],['puzzle','🧩'],['numerique','💻'],['informatique','💻'],['ordinateur','💻'],['internet','💻'],['telephone','📱'],['smartphone','📱'],
+    ['menage','🧹'],['linge','🧺'],['parole','👂'],['ecoute','👂'],['debat','🗣️'],['info','🗣️'],['reunion','👥'],['collectif','👥'],['groupe','👥'],['anglais','🇬🇧'],
+    ['bus','🚌'],['train','🚆'],['voiture','🚗'],['sortie','🚗'],['fete','🎉'],['anniversaire','🎂'],['noel','🎄'],['halloween','🎃'],['cadeau','🎁'],
+    ['medecin','🏥'],['sante','🏥'],['administratif','📋'],['papiers','📋'],['demarche','📋'],['maison','🏠'],['domicile','🏠']
+  ];
+  function suggestIcon(title){
+    var t=' '+String(title||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ');
+    for(var i=0;i<ICON_WORDS.length;i++){ if(t.indexOf(' '+ICON_WORDS[i][0])>=0) return ICON_WORDS[i][1]; }
+    return '';
+  }
   var MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
   var MENU=[];
 
@@ -389,7 +436,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
         h+='<button class="row" type="button" data-id="'+esc(d.id)+'">'
           +'<div class="ico" aria-hidden="true">'+esc(d.icon||'📋')+'</div>'
           +'<div class="txt"><div class="t">'+esc(d.title)+'</div>'
-          +'<div class="m"><b>'+esc(fmtH(d.time)+(d.fin?' – '+fmtH(d.fin):''))+'</b> · '+(d.limite?d.limite+' places':'Sans limite')+(n?' · '+n+' inscrit'+(n>1?'s':''):'')+'</div>'
+          +'<div class="m"><b>'+esc(fmtH(d.time)+(d.fin?' – '+fmtH(d.fin):''))+'</b> · '+(d.reserve?'🔒 Réservé':(d.limite?d.limite+' places':'Sans limite'))+(n?' · '+n+' inscrit'+(n>1?'s':''):'')+'</div>'
           +(warn?'<div class="pill-warn">'+esc(warn)+'</div>':'')+'</div>'
           +'<svg viewBox="0 0 24 24" fill="none" stroke="#5b6785" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>'
           +'</button>';
@@ -471,10 +518,30 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
   }
   function buildTiles(){
     var box=$('tiles');box.innerHTML='';
-    ICONS.forEach(function(ico){
-      var b=document.createElement('button');b.type='button';b.className='tile';
-      b.setAttribute('data-ico',ico);b.setAttribute('aria-pressed','false');b.textContent=ico;box.appendChild(b);
+    ICON_GROUPS.forEach(function(g){
+      var h=document.createElement('div');h.className='icogroup';h.textContent=g[0];box.appendChild(h);
+      var grid=document.createElement('div');grid.className='tiles';
+      g[1].forEach(function(ico){
+        var b=document.createElement('button');b.type='button';b.className='tile';
+        b.setAttribute('data-ico',ico);b.setAttribute('aria-pressed','false');b.setAttribute('aria-label','Icône '+ico);b.textContent=ico;grid.appendChild(b);
+      });
+      box.appendChild(grid);
     });
+  }
+  function pressIco(ico){
+    $('tiles').querySelectorAll('.tile').forEach(function(t){t.setAttribute('aria-pressed',t.getAttribute('data-ico')===ico?'true':'false');});
+  }
+  function autoIco(){
+    if(S.icoManuel||$('atelier').value!=='__autre') return;
+    var ico=suggestIcon($('titre').value)||'📋';
+    setIco(ico);pressIco(ico);
+  }
+  /* atelier réservé */
+  function setReserve(on,txt){
+    $('reserve').checked=!!on;
+    $('reserve-extra').hidden=!on;
+    $('places-block').hidden=!!on;
+    if(txt!==undefined) $('reservePour').value=txt||'';
   }
   function setIco(ico){$('pickico').textContent=ico;}
   function pressOne(container,btn){
@@ -498,8 +565,9 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
     S.habits.forEach(function(x){if(norm(x.title)===t) h=x;});
     var last=lastUse(title);
     var src=null;
-    if(h) src={heure:h.heure,fin:h.fin,places:h.places,description:h.description,adresse:h.adresse,lien:h.lien};
-    else if(last) src={heure:last.time,fin:last.fin,places:last.limite||0,description:last.description,adresse:last.adresse,lien:last.lien};
+    if(h) src={heure:h.heure,fin:h.fin,places:h.places,description:h.description,adresse:h.adresse,lien:h.lien,reserve:h.reserve,reservePour:h.reservePour};
+    else if(last) src={heure:last.time,fin:last.fin,places:last.limite||0,description:last.description,adresse:last.adresse,lien:last.lien,reserve:last.reserve,reservePour:last.reservePour};
+    setReserve(!!(src&&src.reserve),(src&&src.reservePour)||'');
     var filled=false;
     if(src){
       if(src.heure) $('debut').value=src.heure;
@@ -601,12 +669,13 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       else{
         sel.value='__autre';$('other-block').hidden=false;$('titre').value=d.title;
         $('addlist').checked=false;
-        $('tiles').querySelectorAll('.tile').forEach(function(t){t.setAttribute('aria-pressed',t.getAttribute('data-ico')===d.icon?'true':'false');});
+        S.icoManuel=true;pressIco(d.icon);
       }
       setIco(d.icon||'📋');
       $('date').value=d.date;$('debut').value=d.time;$('fin').value=d.fin||'';
       setPlaces(d.limite||0);
       $('description').value=d.description||'';$('adresse').value=d.adresse||'';$('lien').value=d.lien||'';
+      setReserve(!!d.reserve,d.reservePour||'');
       $('savehint').textContent='Les changements sont enregistrés tout de suite.';
       var n=nbInscrits(d);
       setLocked(n>0,n);
@@ -627,6 +696,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       setPlaces(8);
       $('description').value='';$('adresse').value='';$('lien').value='';
       $('addlist').checked=true;
+      S.icoManuel=false;setReserve(false,'');
       $('delzone').hidden=true;
     }
     $('date').min=MIN_DATE;
@@ -641,7 +711,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
     else if(v==='__autre'){
       $('other-block').hidden=false;$('habitnote').hidden=true;
       var on=$('tiles').querySelector('[aria-pressed=true]');
-      setIco(on?on.getAttribute('data-ico'):'📋');
+      if(on) setIco(on.getAttribute('data-ico')); else {S.icoManuel=false;autoIco();}
     }else{
       $('other-block').hidden=true;
       var a=MENU[parseInt(v,10)];
@@ -651,8 +721,11 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
   });
   $('tiles').addEventListener('click',function(e){
     var b=e.target.closest('.tile');if(!b||b.disabled) return;
-    pressOne($('tiles'),b);setIco(b.getAttribute('data-ico'));
+    S.icoManuel=true;
+    pressIco(b.getAttribute('data-ico'));setIco(b.getAttribute('data-ico'));
   });
+  $('titre').addEventListener('input',autoIco);
+  $('reserve').addEventListener('change',function(){setReserve(this.checked);if(this.checked&&!$('reservePour').value) $('reservePour').focus();});
   $('minus').addEventListener('click',function(){
     if($('illimite').checked) return;
     var n=parseInt($('places').textContent,10);if(n>1) $('places').textContent=String(n-1);
@@ -687,7 +760,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
 
   /* ===== Enregistrer ===== */
   function habitData(title,icon,debut,fin,limite,desc,adr,lien,now){
-    var h={anim:S.anim,title:title,icon:icon,heure:debut,fin:fin,places:limite||0,description:desc,adresse:adr,lien:lien,updatedAt:now};
+    var h={anim:S.anim,title:title,icon:icon,heure:debut,fin:fin,places:limite||0,description:desc,adresse:adr,lien:lien,reserve:$('reserve').checked,reservePour:$('reserve').checked?$('reservePour').value.trim():'',updatedAt:now};
     if($('atelier').value==='__autre'&&$('addlist').checked) h.liste=true;
     return h;
   }
@@ -707,6 +780,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
     var desc=$('description').value.trim(),adr=$('adresse').value.trim(),lien=$('lien').value.trim();
     if(lien&&!/^https?:\/\//i.test(lien)) lien='https://'+lien;
     var now=Date.now();
+    var reserve=$('reserve').checked,reservePour=reserve?$('reservePour').value.trim():'';
 
     var dates=[date];
     if(S.mode==='new'&&$('seg').querySelector('[aria-pressed=true]').getAttribute('data-rep')==='weekly'){
@@ -732,7 +806,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       if(S.mode==='edit'&&S.edit){
         var old=S.edit;
         var ref=db.collection('planning').doc(old.id);
-        var upd={ym:date.slice(0,7),date:date,time:debut,fin:fin,title:title,icon:icon,limite:limite,description:desc,adresse:adr,lien:lien,updatedAt:now};
+        var upd={ym:date.slice(0,7),date:date,time:debut,fin:fin,title:title,icon:icon,limite:limite,reserve:reserve,reservePour:reservePour,description:desc,adresse:adr,lien:lien,updatedAt:now};
         batch.update(ref,upd);
         var oldKey=descKey(old.title,old.date,old.time),newKey=descKey(title,date,debut);
         if(oldKey!==newKey) batch.delete(db.collection('atelier_descriptions').doc(oldKey));
@@ -741,7 +815,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       }else{
         dates.forEach(function(ds){
           var ref=db.collection('planning').doc();
-          var data={anim:S.anim,ym:ds.slice(0,7),date:ds,time:debut,fin:fin,title:title,icon:icon,limite:limite,description:desc,adresse:adr,lien:lien,createdAt:now,updatedAt:now};
+          var data={anim:S.anim,ym:ds.slice(0,7),date:ds,time:debut,fin:fin,title:title,icon:icon,limite:limite,reserve:reserve,reservePour:reservePour,description:desc,adresse:adr,lien:lien,createdAt:now,updatedAt:now};
           batch.set(ref,data);
           batch.set(db.collection('atelier_descriptions').doc(descKey(title,ds,debut)),{description:desc,adresse:adr,lien:lien,travelMin:0,updatedAt:now});
           var full=Object.assign({id:ref.id},data);saved.push(full);

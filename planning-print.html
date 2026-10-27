@@ -227,7 +227,7 @@ function construirePlanningAppli(docs, animateur, mois) {
     const jour = { nom: noms[wd - 1], num: d, col: 0, creneaux: [], ferie: false };
     du.forEach(x => {
       jour.creneaux.push({
-        heure: fmtH(x.time) + (x.fin ? ' – ' + fmtH(x.fin) : ''),
+        heure: fmtH(x.time) + (x.fin ? ' – ' + fmtH(x.fin) : '') + (x.reserve ? ' · 🔒 réservé' : ''),
         activite: x.title,
         titre: escHtml(x.title),
         emoji: escHtml(x.icon || '📋'),
