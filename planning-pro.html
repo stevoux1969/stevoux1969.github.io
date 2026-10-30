@@ -393,6 +393,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
     });
     var out={};
     Object.keys(map).forEach(function(k){out[k]=Object.keys(map[k]).length;});
+    S.inscritsNoms={};Object.keys(map).forEach(function(k){S.inscritsNoms[k]=Object.keys(map[k]).sort();});
     benefs.sort(function(a,b){return a.prenom.localeCompare(b.prenom,'fr');});
     S.benefs=benefs;
     return out;
@@ -419,6 +420,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
     S.descs=out;return out;
   }
   function nbInscrits(d){return S.inscrits[ekOf(d.date,d.time,d.title)]||0;}
+  function nomsInscrits(d){return (S.inscritsNoms&&S.inscritsNoms[ekOf(d.date,d.time,d.title)])||[];}
 
   /* ===== Écran « mois » ===== */
   function renderMonth(){
@@ -758,9 +760,9 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       var n=nbInscrits(d);
       setLocked(n>0,n);
       $('delzone').hidden=false;
-      $('delbtn').disabled=n>0;
+      $('delbtn').disabled=false;
       var dn=$('delnote');
-      if(n>0){dn.hidden=false;dn.textContent='Suppression impossible : '+n+(n>1?' personnes sont inscrites.':' personne est inscrite.')+' Utilise « Annuler un atelier » dans l\'appli pour les prévenir.';}
+      if(n>0){dn.hidden=false;dn.textContent='Inscrits : '+nomsInscrits(d).join(', ')+'. Si tu supprimes, leur inscription est retirée, sans message. Pour les prévenir, utilise plutôt « Annuler un atelier » dans l\'appli.';}
       else dn.hidden=true;
     }else{
       $('formtitle').textContent='Nouvel atelier';
@@ -960,17 +962,40 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
   /* ===== Supprimer un atelier ===== */
   $('delbtn').addEventListener('click',async function(){
     if(S.busy||!S.edit) return;
-    var d=S.edit;
-    if(nbInscrits(d)>0){toast('Des personnes sont inscrites : suppression impossible');return;}
-    if(!window.confirm('Supprimer « '+d.title+' » du '+dayLabel(d.date).toLowerCase()+' ?')) return;
+    var d=S.edit,n=nbInscrits(d);
+    var q='Supprimer « '+d.title+' » du '+dayLabel(d.date).toLowerCase()+' ?';
+    if(n>0) q+='\n\n'+n+(n>1?' personnes sont inscrites':' personne est inscrite')+' ('+nomsInscrits(d).join(', ')+') : '+(n>1?'leur inscription sera retirée':'son inscription sera retirée')+', sans message.';
+    if(!window.confirm(q)) return;
     S.busy=true;
     try{
+      var k=ekOf(d.date,d.time,d.title),nbRetires=0;
       var batch=db.batch();
       batch.delete(db.collection('planning').doc(d.id));
       batch.delete(db.collection('atelier_descriptions').doc(descKey(d.title,d.date,d.time)));
+      if(n>0){
+        /* Retire l'inscription des bénéficiaires (lecture fraîche pour ne rien écraser).
+           FieldPath : la clé peut contenir « / » (ex. Marche / Promenade), refusé en notation pointée. */
+        var us=await db.collection('users').get();
+        us.docs.forEach(function(doc){
+          var u=doc.data(),rem=u.reminders||[];
+          var garde=rem.filter(function(r){return !(r.source==='atelier'&&ekOf(r.date,r.time,r.title)===k);});
+          if(garde.length===rem.length) return;
+          batch.update(doc.ref,'reminders',garde,new firebase.firestore.FieldPath('inscriptions',k),firebase.firestore.FieldValue.delete());
+          nbRetires++;
+        });
+      }
       await batch.commit();
+      /* Rappels « veille / 2 h avant » encore en attente pour cet atelier */
+      if(n>0){
+        try{
+          var tagKey='atelier_'+k.replace(/[^a-z0-9_]/gi,'_').slice(0,60);
+          var pend=await db.collection('notifications').where('targetTagKey','==',tagKey).where('sent','==',false).get();
+          await Promise.all(pend.docs.map(function(x){return x.ref.delete();}));
+        }catch(e){}
+        delete S.inscrits[k];if(S.inscritsNoms) delete S.inscritsNoms[k];
+      }
       S.docs=S.docs.filter(function(x){return x.id!==d.id;});
-      toast('Atelier supprimé');
+      toast('Atelier supprimé'+(nbRetires?' · '+nbRetires+' inscription'+(nbRetires>1?'s retirées':' retirée'):''));
       S.busy=false;renderMonth();show('mois');
     }catch(e){S.busy=false;toast('Erreur : '+errMsg(e));}
   });

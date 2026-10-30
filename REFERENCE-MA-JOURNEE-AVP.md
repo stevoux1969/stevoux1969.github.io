@@ -108,6 +108,10 @@ Nouveau chemin de création de rappel en voix (rond bleu, maquette `maquette-nou
 **Impression** : `planning-print.html` (A4 paysage, option « Les deux (recto-verso) » = page 1 Steve, page 2 Greg) lit le planning de l'appli pour Steve quand le mois est publié, sinon le Google Sheet (inchangé). Si un animateur n'a pas de planning pour le mois (ex. Greg en novembre), seule l'autre page est imprimée, avec un avis à l'écran non imprimé. Jours fériés français affichés « Jour férié » quand aucun atelier n'est prévu.
 Bouton admin « 🖨️ Imprimer le planning » (tous les admins) → `planning-print.html?anim=both&mois=…` (mois suivant à partir du 20). Dans l'APK, `window.print()` ne fait rien (WebView sans PrintManager) : le bouton « Imprimer (ouvre Chrome) » navigue vers `http://stevoux1969.github.io/planning-print.html?...` ; comme le schéma diffère de `server.url` (https, `capacitor.config.json` du dépôt android), Capacitor ouvre ce lien dans le navigateur du téléphone, où l'impression marche (GitHub repasse en https). **À vérifier sur le téléphone de Steve.** À prévoir : `planning-print.html` ne connaît que les mois d'avril à décembre 2026 (`ANNEE = 2026`, options du menu) → ajouter 2027 avant janvier.
 
+**Titres avec « / » (cause racine trouvée le 30/10/2026)** : Firestore refuse une clé `inscriptions.<clé>` contenant « / » en notation pointée → inscriptions/désinscriptions de « Marche / Promenade », « Infos / débat »… échouaient (sauf repli). Toutes les écritures passent par `majDocUser()` (FieldPath). Ne jamais réécrire `upd['inscriptions.'+key]` avec `.update(upd)` directement.
+
+**Suppression avec inscrits (page pro)** : possible ; retire silencieusement le rappel atelier et la clé `inscriptions` des inscrits + notifications en attente (`notifications`, `targetTagKey`). « Annuler un atelier » (appli) reste la voie pour prévenir.
+
 **Règle de protection** : un atelier qui a des inscrits n'a plus de titre/date/heure de début modifiables et ne peut pas être supprimé depuis la page pro (la clé d'inscription en dépend) — passer par « Annuler un atelier » de l'appli. À valider avec Steve.
 
 **Reste à faire** :
