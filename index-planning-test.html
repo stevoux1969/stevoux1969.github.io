@@ -1889,7 +1889,7 @@ async function loadUserData(){if(!currentUser||currentUser.isAdmin)return;try{co
       const key=r.date+'_'+r.time+'_'+(r.title||'').slice(0,20).replace(/\s/g,'_');
       if(state.inscriptions[key]!==true&&state.inscriptions[key]!=='1'){upd['inscriptions.'+key]=true;state.inscriptions[key]=true;}
     });
-    if(Object.keys(upd).length)await db.collection('users').doc(currentUser.id).update(upd);
+    if(Object.keys(upd).length)await majDocUser(db.collection('users').doc(currentUser.id),upd);
   }catch(e){}
   // Resynchro flag annule<->collection "annulations" : couvre les annulations faites avant
   // l'existence du flag par-reminder, ou si l'écriture du flag avait échoué. Recalculé à
@@ -3923,7 +3923,7 @@ async function adminAddReminder(uid, prenom) {
 
 async function adminChangePin(uid,prenom){const newCode=prompt(`Nouveau code PIN à 6 chiffres pour ${prenom} :`);if(!newCode)return;if(!/^\d{6}$/.test(newCode)){showConfirm({icon:'⚠️',title:'Code invalide',text:'Le code doit contenir exactement 6 chiffres.',okText:'OK',hideCancel:true});return;}try{await db.collection('users').doc(uid).update({code:newCode});showConfirm({icon:'✅',title:'Code modifié',text:`Le nouveau code de ${prenom} est : ${newCode}`,okText:'OK',hideCancel:true});showAdminUserDetail(uid);}catch(e){showConfirm({icon:'❌',title:'Erreur',text:"Impossible de modifier le code.",okText:'OK',hideCancel:true});}}
 function adminDeleteUser(uid,prenom){showConfirm({icon:'⚠️',title:'Supprimer ce compte ?',text:`Le compte de ${prenom} et tous ses rappels seront définitivement supprimés.`,okText:'Supprimer',danger:true,onOk:async()=>{try{await db.collection('users').doc(uid).delete();showAdminScreen();}catch(e){showConfirm({icon:'❌',title:'Erreur',text:'Impossible de supprimer.',okText:'OK',hideCancel:true});}}});}
-async function adminDeleteReminder(uid,reminderId){showConfirm({icon:'🗑️',title:'Supprimer ce rappel ?',text:'Cette action ne peut pas être annulée.',okText:'Supprimer',danger:true,onOk:async()=>{try{const snap=await db.collection('users').doc(uid).get();const u=snap.data();const del=(u.reminders||[]).find(r=>r.id===reminderId);const newReminders=(u.reminders||[]).filter(r=>r.id!==reminderId);const upd={reminders:newReminders};if(del&&del.source==='atelier'&&del.date&&del.time){const key=del.date+'_'+del.time+'_'+(del.title||'').slice(0,20).replace(/\s/g,'_');upd['inscriptions.'+key]=firebase.firestore.FieldValue.delete();}await db.collection('users').doc(uid).update(upd);showAdminUserDetail(uid);}catch(e){showConfirm({icon:'❌',title:'Erreur',text:'Impossible de supprimer.',okText:'OK',hideCancel:true});}}}); }
+async function adminDeleteReminder(uid,reminderId){showConfirm({icon:'🗑️',title:'Supprimer ce rappel ?',text:'Cette action ne peut pas être annulée.',okText:'Supprimer',danger:true,onOk:async()=>{try{const snap=await db.collection('users').doc(uid).get();const u=snap.data();const del=(u.reminders||[]).find(r=>r.id===reminderId);const newReminders=(u.reminders||[]).filter(r=>r.id!==reminderId);const upd={reminders:newReminders};if(del&&del.source==='atelier'&&del.date&&del.time){const key=del.date+'_'+del.time+'_'+(del.title||'').slice(0,20).replace(/\s/g,'_');upd['inscriptions.'+key]=firebase.firestore.FieldValue.delete();}await majDocUser(db.collection('users').doc(uid),upd);showAdminUserDetail(uid);}catch(e){showConfirm({icon:'❌',title:'Erreur',text:'Impossible de supprimer.',okText:'OK',hideCancel:true});}}}); }
 
 
 // ========== PARAMÈTRES MODIFIABLES ==========
@@ -3948,6 +3948,17 @@ function estMessageExpire(msg){
 // Firestore interdit les "/" (séparateur de sous-collection) et quelques autres
 // caractères. Sans ça, un atelier nommé "Infos / Débat" est écrit dans une
 // sous-collection imbriquée et devient invisible à la lecture.
+// Met à jour un document "users". Les clés 'inscriptions.<clé atelier>' passent par FieldPath :
+// en notation pointée, Firestore refuse une clé contenant « / » (ex. « Marche / Promenade »),
+// ce qui faisait échouer inscriptions/désinscriptions de ces ateliers (cause racine, 30/10/2026).
+function majDocUser(ref,upd){
+  const args=[];
+  Object.keys(upd).forEach(k=>{
+    if(k.indexOf('inscriptions.')===0) args.push(new firebase.firestore.FieldPath('inscriptions',k.slice(13)),upd[k]);
+    else args.push(k,upd[k]);
+  });
+  return args.length?ref.update(...args):Promise.resolve();
+}
 function cleanDocId(id){
   return String(id||'').replace(/[\/\\.#$\[\]]/g,'_');
 }
@@ -4182,7 +4193,7 @@ async function appliquerReparationInscriptions(plan,overlay,btn){
   const results=await Promise.allSettled(plan.map(async p=>{
     const updateData={};
     p.cles.forEach(key=>{updateData['inscriptions.'+key]=true;});
-    await db.collection('users').doc(p.uid).update(updateData);
+    await majDocUser(db.collection('users').doc(p.uid),updateData);
     return p.uid;
   }));
   const ok=results.filter(r=>r.status==='fulfilled').length;
@@ -4326,7 +4337,7 @@ async function validerInscriptionsGroupe(btn, atelierKey){
     const updateData={reminders};
     if(cb.checked)updateData['inscriptions.'+atelierKey]=true;
     else updateData['inscriptions.'+atelierKey]=firebase.firestore.FieldValue.delete();
-    await db.collection('users').doc(uid).update(updateData);
+    await majDocUser(db.collection('users').doc(uid),updateData);
     return uid;
   }));
   
@@ -4533,7 +4544,7 @@ async function toggleInscription(event){const key=event.date+'_'+event.time+'_'+
   try{
     const upd={reminders:state.reminders};
     upd['inscriptions.'+key]=firebase.firestore.FieldValue.delete();
-    await db.collection('users').doc(currentUser.id).update(upd);
+    await majDocUser(db.collection('users').doc(currentUser.id),upd);
     ok=true;
   }catch(e){try{await db.collection('users').doc(currentUser.id).update({reminders:state.reminders,inscriptions:state.inscriptions});ok=true;}catch(e2){}}
   if(ok){removeFromPendingQueue(key);notifyAnimateur('desinscription',event);}
@@ -4547,7 +4558,7 @@ async function toggleInscription(event){const key=event.date+'_'+event.time+'_'+
   try{
     const upd={reminders:state.reminders};
     upd['inscriptions.'+key]=state.inscriptions[key]||null;
-    await db.collection('users').doc(currentUser.id).update(upd);
+    await majDocUser(db.collection('users').doc(currentUser.id),upd);
     ok=true;
   }catch(e){try{await db.collection('users').doc(currentUser.id).update({reminders:state.reminders,inscriptions:state.inscriptions});ok=true;}catch(e2){}}
   if(ok){removeFromPendingQueue(key);notifyAnimateur('inscription',event);}
@@ -4567,7 +4578,7 @@ async function flushPendingQueue(){
     try{
       const upd={reminders:state.reminders};
       upd['inscriptions.'+item.atelierKey]=(item.action==='desinscription')?firebase.firestore.FieldValue.delete():true;
-      await db.collection('users').doc(currentUser.id).update(upd);
+      await majDocUser(db.collection('users').doc(currentUser.id),upd);
       removeFromPendingQueue(item.atelierKey);
       notifyAnimateur(item.action,item.event);
       anySuccess=true;
