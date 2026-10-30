@@ -4073,7 +4073,8 @@ async function confirmerAnnulation(ek, titre, date, heure) {
       // couper l'alarme et afficher "annulé" côté bénéficiaire, sans perdre l'historique.
       if (inscrits.some(r => !r.annule)) {
         const newReminders = reminders.map(r => (r.source === 'atelier' && r.id === 'atelier_' + ek) ? { ...r, annule: true, motif: motif } : r);
-        majReminders.push(db.collection('users').doc(doc.id).update({ reminders: newReminders }));
+        // Une erreur sur un bénéficiaire ne doit pas bloquer toute l'opération
+        try { majReminders.push(db.collection('users').doc(doc.id).update({ reminders: newReminders }).catch(err => console.warn('Rappel non mis à jour', doc.id, err))); } catch(err) { console.warn('Rappel non mis à jour', doc.id, err); }
       }
     });
     try { await Promise.all(majReminders); } catch(e) {}
@@ -4094,7 +4095,8 @@ async function confirmerAnnulation(ek, titre, date, heure) {
     });
 
   } catch(e) {
-    showConfirm({icon:'❌', title:'Erreur', text:'Impossible d\'annuler l\'atelier.', okText:'OK', hideCancel:true});
+    console.error('Annulation impossible', e);
+    showConfirm({icon:'❌', title:'Erreur', text:'Impossible d\'annuler l\'atelier. Détail : '+((e&&e.message)||e), okText:'OK', hideCancel:true});
   }
 }
 
@@ -4123,7 +4125,8 @@ async function retablirAtelier(ek) {
               }
               return r;
             });
-            majReminders.push(db.collection('users').doc(doc.id).update({ reminders: newReminders }));
+            // Une erreur sur un bénéficiaire ne doit pas bloquer toute l'opération
+        try { majReminders.push(db.collection('users').doc(doc.id).update({ reminders: newReminders }).catch(err => console.warn('Rappel non mis à jour', doc.id, err))); } catch(err) { console.warn('Rappel non mis à jour', doc.id, err); }
           }
         });
         await Promise.all(majReminders);
