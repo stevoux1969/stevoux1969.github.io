@@ -4222,8 +4222,19 @@ async function showAdminInscrireGroupe(){
   state.allInscriptions = await loadAllInscriptions();
   // Tous les ateliers chargés (mois courant + mois suivant si activé), Y COMPRIS les jours passés
   // (l'admin peut corriger des inscriptions oubliées) — filtrés par jour affiché dans renderAdminGroupeJour()
+  // + le MOIS PRÉCÉDENT (admin seulement) : en début de mois, pouvoir encore inscrire les présents
+  // des derniers ateliers du mois d'avant. Le planning des bénéficiaires n'est pas touché.
+  let evMoisPrec=[];
+  try{
+    const _p=new Date(); _p.setDate(1); _p.setMonth(_p.getMonth()-1);
+    const ymPrec=_p.getFullYear()+'-'+pad2(_p.getMonth()+1);
+    evMoisPrec=await Promise.race([
+      loadAVPMonthEvents(_p.getMonth()+1, ymPrec),
+      new Promise(res=>setTimeout(()=>res([]),8000))
+    ]) || [];
+  }catch(e){ evMoisPrec=[]; }
   state._grpUsers=users;
-  state._grpAteliers=(state.avpEvents||[]).filter(ev=>!ev.cancelled);
+  state._grpAteliers=[...evMoisPrec, ...(state.avpEvents||[])].filter(ev=>ev&&!ev.cancelled);
   state._grpOuvert=null;
 
   renderAdminGroupeJour();
@@ -4313,7 +4324,8 @@ async function validerInscriptionsGroupe(btn, atelierKey){
   btn.textContent='⏳ Enregistrement...';
   const card=btn.closest('.inscrire-atelier-card');
   const checkboxes=Array.from(card.querySelectorAll('.inscrire-checkbox'));
-  const ev=state.avpEvents.find(e=>{
+  // Chercher l'atelier dans la liste de cet écran (inclut le mois précédent), puis dans le planning courant
+  const ev=[...(state._grpAteliers||[]), ...(state.avpEvents||[])].find(e=>{
     const k=e.date+'_'+e.time+'_'+e.title.slice(0,20).replace(/\s/g,'_');
     return k===atelierKey;
   });
@@ -5485,7 +5497,7 @@ async function loadAVPMonthEvents(monthNum, ymForce){
     const r = await fetch(url+'&_='+Date.now(),{cache:'no-store'});
     if(r.ok){
       const csv = await r.text();
-      const events = parseAVPPlanning(csv, monthNum);
+      const events = parseAVPPlanning(csv, monthNum, parseInt(ym.slice(0,4),10));
       state.avpEventsByMonth[cacheKey] = events;
       return events;
     }
@@ -5506,10 +5518,11 @@ function normaliserTitreAtelier(t){
   return nettoyerEmojis(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
 }
 
-function parseAVPPlanning(csv,moisCible){
+function parseAVPPlanning(csv,moisCible,annee){
   const events=[];
   const lines=csv.replace(/\r/g,'').split('\n');
-  const year=new Date().getFullYear();
+  // annee (optionnel) : année du mois lu — utile pour le mois précédent en janvier (décembre de l'année d'avant)
+  const year=annee||new Date().getFullYear();
   // Mois du CSV en cours de lecture (mai, juin...) — pas forcément le mois courant
   const month=moisCible||(new Date().getMonth()+1);
 
