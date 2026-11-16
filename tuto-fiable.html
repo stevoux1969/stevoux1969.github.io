@@ -15,7 +15,7 @@
   h1 small{font-size:.7rem;color:var(--mut);font-weight:400}
   main{max-width:720px;margin:0 auto;padding:12px}
   .box{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px}
-  input[type=text],input[type=password],input[type=number],select{width:100%;padding:11px;font-size:1rem;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--txt)}
+  input[type=text],input[type=password],select{width:100%;padding:11px;font-size:1rem;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--txt)}
   select option{color:#111}
   button{font-size:1rem;border:0;border-radius:10px;padding:12px 16px;background:var(--acc);color:#fff;font-weight:600}
   #btnSettings{background:transparent;color:var(--txt);font-size:1.3rem;padding:4px 8px}
@@ -29,6 +29,7 @@
   details.filters{margin:10px 0;border:1px solid var(--line);border-radius:10px;padding:8px 12px}
   details.filters summary{font-weight:600;cursor:pointer}
   #status{font-size:.9rem;color:var(--mut);margin:4px 2px 10px}
+  .tip{font-size:.82rem;border-left:4px solid var(--acc)}
   .card{display:flex;gap:12px;background:var(--card);border-radius:14px;padding:10px;margin-bottom:10px}
   .thumb{flex:0 0 120px}
   .thumb img{width:120px;height:68px;object-fit:cover;border-radius:8px;background:#ccc;display:block}
@@ -61,7 +62,7 @@
 </head>
 <body>
 <header>
-  <h1>Tuto <span>Fiable</span> <small>v2</small></h1>
+  <h1>Tuto <span>Fiable</span> <small>v2.1</small></h1>
   <button id="btnSettings" aria-label="Réglages">⚙️</button>
 </header>
 <main>
@@ -80,8 +81,8 @@
     <input id="q" type="text" placeholder="Ex : activer XMP carte mère MSI B550" required>
     <div class="row">
       <label><input type="checkbox" id="sYT" checked> YouTube</label>
-      <label><input type="checkbox" id="sPT"> PeerTube</label>
-      <label><input type="checkbox" id="sOD"> Odysee</label>
+      <label><input type="checkbox" id="sPT" checked> PeerTube</label>
+      <label><input type="checkbox" id="sOD" checked> Odysee</label>
     </div>
     <details class="filters">
       <summary>Filtres</summary>
@@ -90,17 +91,14 @@
       <div class="full"><label for="mustNot">Mots interdits</label>
         <input id="mustNot" type="text" placeholder="Ex : Intel, portable"></div>
       <div class="grid">
-        <div><label for="dmin">Durée mini (min)</label><input id="dmin" type="number" min="0" inputmode="numeric"></div>
-        <div><label for="dmax">Durée maxi (min)</label><input id="dmax" type="number" min="0" inputmode="numeric"></div>
-        <div><label for="age">Ancienneté</label>
-          <select id="age"><option value="0">Toutes</option><option value="1">Moins d'1 an</option><option value="2">Moins de 2 ans</option><option value="5">Moins de 5 ans</option></select></div>
+        <div><label for="langMode">Langue</label>
+          <select id="langMode"><option value="both">Français + anglais</option><option value="fr">Français seulement</option></select></div>
         <div><label for="sort">Classer par</label>
           <select id="sort"><option value="score">Score</option><option value="date">Date</option><option value="views">Vues</option></select></div>
-        <div><label for="lang">Langue</label>
-          <select id="lang"><option value="fr">Français d'abord</option><option value="">Toutes</option></select></div>
+        <div><label for="age">Ancienneté</label>
+          <select id="age"><option value="0">Toutes</option><option value="1">Moins d'1 an</option><option value="2">Moins de 2 ans</option><option value="5">Moins de 5 ans</option></select></div>
       </div>
       <div class="row">
-        <label class="small"><input type="checkbox" id="noShort" checked> Masquer les vidéos de moins d'1 min</label>
         <label class="small"><input type="checkbox" id="showOff"> Afficher les hors-sujet</label>
       </div>
     </details>
@@ -128,14 +126,28 @@ const store = {
 let ytKey = store.get('ytKey', '');
 let trusted = store.get('trusted', {});   // { clé de chaîne : nom }
 let banned = store.get('banned', {});
+let trCache = store.get('trCache', {});   // traductions déjà faites
 
 /* ---------- Outils ---------- */
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’‘`]/g, "'");
 const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const hasWord = (text, k) => new RegExp('(^|[^a-z0-9])' + escRe(k) + '[sx]?([^a-z0-9]|$)').test(text);
 const setStatus = html => { $('status').innerHTML = html; };
 const listOf = s => [...new Set(String(s || '').split(',').map(x => norm(x).trim()).filter(Boolean))];
+
+// Un mot long est reconnu par son début : « activer » trouve aussi « activation », « activé ».
+// Un mot court ou avec un chiffre (B550) doit être exact.
+const reCache = new Map();
+function hasWord(text, k){
+  let re = reCache.get(k);
+  if(!re){
+    const exact = /\d/.test(k) || k.length <= 5;
+    re = exact ? new RegExp('(^|[^a-z0-9])' + escRe(k) + '[sx]?([^a-z0-9]|$)')
+               : new RegExp('(^|[^a-z0-9])' + escRe(k.slice(0, k.length - 2)) + '[a-z]*([^a-z0-9]|$)');
+    reCache.set(k, re);
+  }
+  return re.test(text);
+}
 
 async function getJSON(url, opts){
   const r = await fetch(url, opts);
@@ -148,17 +160,111 @@ async function getJSON(url, opts){
   return j;
 }
 
-const STOP = new Set(('le la les un une des de du d l a au aux et ou en sur pour par avec sans dans comment faire ' +
-  'mon ma mes ton ta tes son sa ses ce cette ces qui que quoi est sont tuto tutoriel ' +
-  'the an of to how in on for with my').split(' '));
+const STOP_FR = new Set(('le la les un une des de du d l a au aux et ou en sur pour par avec sans dans comment faire ' +
+  'mon ma mes ton ta tes son sa ses ce cette ces qui que quoi est sont tuto tutoriel je j il on ne pas').split(' '));
+const STOP_EN = new Set('the an of to how in on for with my your is are and do i it this that tutorial'.split(' '));
 function keywords(q){
-  return [...new Set(norm(q).split(/[^a-z0-9]+/).filter(w => w.length > 1 && !STOP.has(w)))];
+  return [...new Set(norm(q).split(/[^a-z0-9]+/).filter(w => w.length > 1 && !STOP_FR.has(w) && !STOP_EN.has(w)))];
 }
-// Mots indispensables : ceux avec un chiffre (B550) ou tapés en MAJUSCULES (XMP)
+// Mots importants : ceux avec un chiffre (B550) ou tapés en MAJUSCULES (XMP)
 function strongKeywords(q){
   return [...new Set(String(q).split(/[^A-Za-z0-9À-ÿ]+/)
     .filter(w => w.length > 1 && (/\d/.test(w) || (/[A-Z]/.test(w) && w === w.toUpperCase())))
     .map(norm))];
+}
+
+/* ---------- Petit dictionnaire français → anglais ---------- */
+const PHRASES = [
+  ['carte mere','motherboard'], ['carte graphique','graphics card'], ['mise a jour','update'], ['mettre a jour','update'],
+  ['disque dur','hard drive'], ['pate thermique','thermal paste'], ['ecran noir','black screen'], ['ecran bleu','blue screen'],
+  ['chambre a air','inner tube'], ['plaquettes de frein','brake pads'], ['roue arriere','rear wheel'], ['roue avant','front wheel'],
+  ['derailleur arriere','rear derailleur'], ['derailleur avant','front derailleur'], ['boitier de pedalier','bottom bracket'],
+  ['jeu de direction','headset'], ['courroie de distribution','timing belt'], ['boite de vitesses','gearbox'],
+  ['lave linge','washing machine'], ['lave vaisselle','dishwasher'], ['chauffe eau','water heater'], ['machine a laver','washing machine']
+];
+const DICT = {
+  activer:['enable','activate'], desactiver:['disable'], regler:['adjust','set','tune'], reglage:['adjustment','settings','setup'],
+  reglages:['settings'], parametres:['settings'], installer:['install'], installation:['install','setup'], desinstaller:['uninstall'],
+  configurer:['configure','setup'], configuration:['setup','configuration'], reparer:['repair','fix'], reparation:['repair','fix'],
+  changer:['replace','change'], remplacer:['replace'], remplacement:['replacement','replace'], demonter:['disassemble','remove','teardown'],
+  demontage:['disassembly','teardown'], monter:['assemble','install','mount'], montage:['assembly','build'], nettoyer:['clean'],
+  nettoyage:['cleaning','clean'], brancher:['connect','plug'], connecter:['connect'], reinitialiser:['reset'], reinitialisation:['reset'],
+  redemarrer:['restart','reboot'], demarrer:['start','boot'], demarrage:['startup','boot'], supprimer:['remove','delete'],
+  enlever:['remove'], retirer:['remove'], ajouter:['add'], tester:['test'], verifier:['check'], resoudre:['fix','solve'],
+  corriger:['fix'], probleme:['problem','issue'], panne:['fault','failure','broken'], erreur:['error'], bruit:['noise'],
+  fuite:['leak'], lent:['slow'], accelerer:['speed'], ameliorer:['improve','upgrade'], augmenter:['increase'], baisser:['lower','reduce'],
+  ordinateur:['computer','pc'], portable:['laptop'], ecran:['screen','display','monitor'], clavier:['keyboard'], souris:['mouse'],
+  memoire:['memory','ram'], barrette:['ram','stick','memory'], processeur:['cpu','processor'], ventilateur:['fan'],
+  alimentation:['power supply','psu'], pilote:['driver'], pilotes:['drivers'], logiciel:['software'], telephone:['phone'],
+  imprimante:['printer'], batterie:['battery'], chargeur:['charger'], telecommande:['remote'], manette:['controller'],
+  velo:['bike','bicycle'], frein:['brake'], freins:['brakes'], derailleur:['derailleur'], chaine:['chain'], pneu:['tire','tyre'],
+  pneus:['tires','tyres'], roue:['wheel'], roues:['wheels'], pedalier:['crankset','crank'], pedale:['pedal'], pedales:['pedals'],
+  selle:['saddle'], guidon:['handlebar'], fourche:['fork'], cassette:['cassette'], cable:['cable'], gaine:['housing'],
+  rayon:['spoke'], rayons:['spokes'], jante:['rim'], moyeu:['hub'], purger:['bleed'], purge:['bleed'], devoiler:['true'],
+  crevaison:['puncture','flat'], graisser:['grease','lube'], lubrifier:['lube','lubricate'], vitesses:['gears','shifting'],
+  voiture:['car'], moteur:['engine','motor'], vidange:['oil change'], huile:['oil'], filtre:['filter'], courroie:['belt'],
+  embrayage:['clutch'], bougie:['spark plug'], bougies:['spark plugs'], amortisseur:['shock absorber','shock'], climatisation:['air conditioning','ac'],
+  clim:['ac','air conditioning'], recharge:['recharge','refill'], robinet:['faucet','tap'], chaudiere:['boiler'], radiateur:['radiator'],
+  serrure:['lock'], porte:['door'], fenetre:['window'], peinture:['paint'], peindre:['paint'], percer:['drill'], souder:['solder','weld'],
+  guitare:['guitar'], accorder:['tune'], cordes:['strings'], accords:['chords'], debutant:['beginner'], facile:['easy'], rapide:['quick','fast']
+};
+function dictTranslate(q){
+  let n = norm(q).replace(/[^a-z0-9]+/g, ' ').trim();
+  PHRASES.forEach(([fr, en]) => { n = n.split(fr).join(en); });
+  return n.split(' ').filter(w => w && !STOP_FR.has(w)).map(w => DICT[w] ? DICT[w][0] : w).join(' ');
+}
+const sameWords = (a, b) => keywords(a).sort().join(' ') === keywords(b).sort().join(' ');
+
+// Traduction automatique gratuite (MyMemory) ; le dictionnaire prend le relais en cas de panne
+async function translateQuery(q){
+  const key = norm(q).trim();
+  if(trCache[key]) return { en: trCache[key], via: 'auto' };
+  let en = '', via = 'dico';
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000);
+    const j = await getJSON('https://api.mymemory.translated.net/get?' + new URLSearchParams({ q, langpair: 'fr|en' }), { signal: ctrl.signal });
+    clearTimeout(timer);
+    const txt = j && j.responseData && j.responseData.translatedText;
+    if(j && String(j.responseStatus) === '200' && txt && !/mymemory warning|invalid|query length/i.test(txt)){
+      en = String(txt).replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim();
+      via = 'auto';
+    }
+  } catch(e){}
+  if(!en || sameWords(en, q)){ en = dictTranslate(q); via = 'dico'; }
+  if(!en || sameWords(en, q)) return { en: '', via: '' };     // rien à traduire (que des termes techniques)
+  if(via === 'auto'){
+    if(Object.keys(trCache).length > 200) trCache = {};
+    trCache[key] = en; store.set('trCache', trCache);
+  }
+  return { en, via };
+}
+
+/* ---------- Contexte de la recherche (mots français, mots anglais, mots importants) ---------- */
+function buildCtx(q, en){
+  const flat = norm(q).replace(/[^a-z0-9]+/g, ' ');
+  const kwsFr = keywords(q), alts = {};
+  kwsFr.forEach(k => { alts[k] = (DICT[k] || []).slice(); });
+  PHRASES.forEach(([fr, e]) => { if(flat.includes(fr)) fr.split(' ').forEach(w => { if(alts[w]) alts[w].push(e); }); });
+  const must = listOf($('must').value);
+  const strong = strongKeywords(q).filter(k => !must.includes(k));
+  const kwsEn = en ? keywords(en) : [];
+  return { kwsFr, kwsEn, alts, strong, must, all: [...new Set(kwsFr.concat(kwsEn))] };
+}
+// Part des mots de la recherche retrouvés, en français ou en anglais (on garde le meilleur des deux)
+function coverage(text, ctx){
+  const fr = ctx.kwsFr.filter(k => hasWord(text, k) || ctx.alts[k].some(a => hasWord(text, a))).length;
+  const en = ctx.kwsEn.filter(k => hasWord(text, k)).length;
+  const rf = ctx.kwsFr.length ? fr / ctx.kwsFr.length : 0;
+  const re = ctx.kwsEn.length ? en / ctx.kwsEn.length : 0;
+  return re > rf ? { r: re, hit: en, total: ctx.kwsEn.length } : { r: rf, hit: fr, total: ctx.kwsFr.length };
+}
+const FR_W = new Set('le la les des une est pour dans avec sur comment vous votre et du au ce qui que pas plus tout faire mon'.split(' '));
+const EN_W = new Set('the and to of how your you in for with is this that it on from what why can will'.split(' '));
+function guessLang(text){
+  let f = 0, e = 0;
+  norm(text).split(/[^a-z]+/).forEach(w => { if(FR_W.has(w)) f++; if(EN_W.has(w)) e++; });
+  return e > f && e >= 2 ? 'en' : f > e ? 'fr' : '';
 }
 
 /* =====================================================================
@@ -184,8 +290,8 @@ const CATS = {
 const RULES = [
   ['danger', /((grille|crame|bousille|flingue|nique) (ma|mon|mes|le|la)|brick|ne (demarre|s'allume|boot|boote) plus|plus rien ne (marche|fonctionne|s'allume)|ecran noir|perdu (toutes? )?mes (donnees|fichiers|photos)|a (casse|plante|detruit) (ma|mon)|won'?t (boot|turn on|start)|broke my|lost (all )?my (data|files)|fried my|ne faites (surtout )?pas|don'?t do this|c'est dangereux|is dangerous)/],
   ['perime', /(ne (marche|fonctionne) plus|n'existe plus|plus (a jour|d'actualite|valable|disponible)|obsolete|perime|l'option (n'est plus|a disparu)|(menu|interface|option|bouton|ecran)s? (a|ont) change|a change depuis|depuis la (mise a jour|maj|derniere version|nouvelle version)|outdated|no longer (works|available|exists)|(doesn'?t|not) work(ing)? anymore|deprecated|out of date)/],
-  ['trompeur', /(putaclic|pute a clic|piege a clic|clickbait|click bait|titre (mensonger|trompeur|racoleur)|rien a voir avec le titre|ne parle (meme )?pas d|ne repond pas a|perte de temps|temps perdu|arnaque|mensonge|misleading|waste of (my )?time|scam|doesn'?t (answer|show|talk about))/],
-  ['echec', /((marche|fonctionne|marchait|a marche|a fonctionne) (pas|toujours pas|absolument pas)|(n'a|n'ai|n'ont) (rien|pas) (change|marche|fonctionne|resolu)|rien (n'a )?change|toujours (le meme|pareil|rien)|meme probleme|aucun (effet|resultat|changement)|pas reussi|j'y arrive pas|n'y arrive pas|(doesn'?t|didn'?t|does not|did not|don'?t|won'?t) work|not working|no luck|still (the same|not working|have the)|same (problem|issue)|nothing (changed|happened))/],
+  ['trompeur', /(putaclic|pute a clic|piege a clic|clickbait|click bait|titre (mensonger|trompeur|racoleur)|rien a voir avec le titre|ne parle (meme )?(pas|jamais) d|ne repond pas a|perte de temps|temps perdu|arnaque|mensonge|misleading|waste of (my )?time|scam|doesn'?t (answer|talk about)|nothing to do with the title)/],
+  ['echec', /((marche|fonctionne|marchait|a marche|a fonctionne) (pas|toujours pas|absolument pas)|(n'a|n'ai|n'ont) (rien|pas) (change|marche|fonctionne|resolu)|rien (n'a )?change|toujours (pas|rien|le meme|pareil)|meme probleme|aucun (effet|resultat|changement)|pas reussi|j'y arrive pas|n'y arrive pas|(apparait|apparaissent|s'affiche) (pas|plus|nulle part)|(vois|trouve|ai) (pas|aucune?) (l'option|le menu|cette option|ce menu|le bouton|d'option|option)|(doesn'?t|didn'?t|does not|did not|don'?t|won'?t) work|not working|no luck|(doesn'?t|does not|don'?t|didn'?t|isn'?t|not|won'?t) (show|showing|appear|appearing|see|there)|can'?t (find|see|get it|get this|get that)|cannot (find|see)|no such option|still (doesn'?t|don'?t|not|nothing|can'?t|cannot|no |the same|have the)|same (problem|issue)|nothing (changed|happened|happens))/],
   ['manque', /(il manque|manque (une|l'|des|la|le) |(a|as|avez) oublie|oublie de (dire|preciser|montrer|parler)|n'explique pas|ne (dit|montre|precise) pas|pas (tres |assez |du tout )?(clair|precis|complet|detaille)|trop (rapide|vite|flou|brouillon)|va trop vite|incomplet|on (ne )?(voit|comprend) rien|rien compris|missing (a )?step|skipped|you forgot|not (very )?clear|unclear|too fast|confusing|hard to follow|doesn'?t (say|mention|explain))/],
   ['erreur', /(il y a une erreur|petite erreur|grosse erreur|c'est faux|correction|en fait il faut|contrairement a ce|il ne faut (surtout )?pas|is wrong|that'?s wrong|incorrect|actually you (need|should|have)|a mistake)/],
   ['succes', /(ca (a )?(bien |tres bien )?(marche|fonctionne)|a (bien |tres bien |parfaitement )?(marche|fonctionne)|(marche|fonctionne) (nickel|parfaitement|tres bien|super|impec|du premier coup|chez moi|pour moi|sur)|probleme (resolu|regle)|resolu|regle en|(m'a|m'as|m'avez) (sauve|depanne|bien aide|beaucoup aide)|grace a (toi|vous|ce tuto|cette video|ta video|votre video)|j'ai reussi|enfin reussi|it work(s|ed)|work(s|ed) (for me|perfectly|great|like a charm|on)|fixed (it|my)|solved|saved (me|my)|life ?saver)/],
@@ -196,7 +302,8 @@ const SPAM = /(telegram|whatsapp|t\.me\/|bitcoin|crypto|contactez[- ]moi|contact
 function classify(n){
   for(const [cat, re] of RULES){
     if(re.test(n)){
-      // Une question (« est-ce que ça marche sur… ? ») n'est pas un avis positif
+      // Une question (« est-ce que ça marche sur… ? ») n'est pas un avis positif.
+      // Une question qui décrit un problème (« toujours rien ? ») reste un avis négatif.
       if(!CATS[cat].neg && n.includes('?')) return null;
       return cat;
     }
@@ -204,8 +311,9 @@ function classify(n){
   return null;
 }
 
-function analyzeComments(it, kws, strong){
+function analyzeComments(it, ctx){
   const raw = it.rawComments || [];
+  const imp = ctx.strong.concat(ctx.must);
   const seen = new Set(), counts = {}, ev = [], confirm = new Set();
   let pos = 0, neg = 0, useful = 0, total = 0;
   for(const c of raw){
@@ -220,7 +328,7 @@ function analyzeComments(it, kws, strong){
     const meta = CATS[cat];
     const words = n.split(' ').length;
     const precise = words >= 12 || /\b\d{1,2}:\d{2}\b/.test(n) ||
-      strong.some(k => hasWord(n, k)) || kws.filter(k => hasWord(n, k)).length >= 2;
+      imp.some(k => hasWord(n, k)) || ctx.all.filter(k => hasWord(n, k)).length >= 2;
     const recent = !!c.date && (Date.now() - new Date(c.date).getTime()) < 3.156e10;
     let w = (cat === 'succes' && words < 6) ? 0.5 : 1;                        // « merci ça marche » compte moitié
     if(precise) w *= 2;
@@ -230,7 +338,7 @@ function analyzeComments(it, kws, strong){
     if(meta.neg) neg += w; else pos += w;
     useful++;
     counts[cat] = (counts[cat] || 0) + 1;
-    if(cat === 'succes') strong.forEach(k => { if(hasWord(n, k)) confirm.add(k); });
+    if(cat === 'succes') imp.forEach(k => { if(hasWord(n, k)) confirm.add(k); });
     ev.push({ cat, text: c.text, w, neg: meta.neg, precise, recent });
   }
   const conf = Math.min(1, useful / 15);
@@ -249,27 +357,33 @@ function analyzeComments(it, kws, strong){
 /* ---------- Score ---------- */
 const chanKey = it => it.platform + ':' + (it.channelId || it.channel || '?');
 
-function scoreItem(it, kws, strong){
+function scoreItem(it, ctx){
   let s = 50;
   const why = [];
-  const t = norm(it.title), d = norm(it.desc), td = t + ' ' + d;
+  const t = norm(it.title), td = t + ' ' + norm(it.desc);
+  if(it.lang === undefined) it.lang = String(it.declLang || '').slice(0, 2).toLowerCase() || guessLang(it.title + ' ' + String(it.desc || '').slice(0, 300));
 
-  // Hors-sujet ?
-  it.offTopic = false;
-  if(kws.length || strong.length){
-    const found = kws.filter(k => hasWord(td, k)).length;
-    const missStrong = strong.filter(k => !hasWord(td, k));
-    if((kws.length && found / kws.length < 0.5) || missStrong.length){
-      it.offTopic = true;
-      s -= 30;
-      why.push(['-', missStrong.length ? 'ne parle pas de « ' + missStrong.join(', ') + ' »' : 'hors-sujet']);
-    }
+  // Hors-sujet : un mot obligatoire manque, OU aucun mot important n'apparaît, OU presque aucun mot de la recherche
+  const missMust = ctx.must.filter(k => !hasWord(td, k));
+  const missStrong = ctx.strong.filter(k => !hasWord(td, k));
+  const covAll = coverage(td, ctx);
+  const hasKw = ctx.kwsFr.length > 0;
+  it.offTopic = missMust.length > 0 ||
+    (ctx.strong.length > 0 && missStrong.length === ctx.strong.length) ||
+    (hasKw && covAll.r < 0.34);
+  if(it.offTopic){
+    s -= 30;
+    why.push(['-', missMust.length ? 'mot obligatoire absent : « ' + missMust.join(', ') + ' »' : 'hors-sujet']);
+  } else if(missStrong.length){
+    // Il manque un mot important : la vidéo reste visible mais descend
+    s -= Math.min(20, missStrong.length * 8);
+    why.push(['-', 'ne parle pas de « ' + missStrong.join(', ') + ' »']);
   }
-  // Le titre colle à la recherche
-  if(kws.length){
-    const hit = kws.filter(k => hasWord(t, k)).length;
-    const pts = Math.round(20 * hit / kws.length);
-    if(pts){ s += pts; why.push(['+', 'colle à ta recherche (' + hit + '/' + kws.length + ')']); }
+  // Le titre colle à la recherche (en français ou en anglais)
+  if(hasKw){
+    const c = coverage(t, ctx);
+    const pts = Math.round(20 * c.r);
+    if(pts){ s += pts; why.push(['+', 'colle à ta recherche (' + c.hit + '/' + c.total + ')']); }
   }
   // Fraîcheur
   if(it.published){
@@ -291,7 +405,7 @@ function scoreItem(it, kws, strong){
     if(it.comState === 'closed') why.push(['i', 'commentaires fermés']);
     else if(it.comState === 'error') why.push(['i', 'commentaires non lus']);
     else {
-      analyzeComments(it, kws, strong);
+      analyzeComments(it, ctx);
       const c = it.com, n = c.counts;
       s += c.delta;
       if(n.succes) why.push(['+', '✅ marche pour ' + n.succes + (n.succes > 1 ? ' personnes' : ' personne')]);
@@ -308,6 +422,7 @@ function scoreItem(it, kws, strong){
   } else {
     why.push(['i', 'commentaires non analysés sur ' + it.platform]);
   }
+  if(it.lang === 'en') why.push(['i', '🇬🇧 en anglais']);
 
   it.score = Math.max(0, Math.min(100, Math.round(s)));
   it.why = why;
@@ -320,6 +435,20 @@ function isoDur(s){
   return m ? (+(m[1] || 0)) * 86400 + (+(m[2] || 0)) * 3600 + (+(m[3] || 0)) * 60 + (+(m[4] || 0)) : null;
 }
 const YT = 'https://www.googleapis.com/youtube/v3/';
+
+// Lance une recherche par langue, garde ce qui a marché, retire les doublons
+async function multi(qs, fn, keyOf){
+  const rs = await Promise.allSettled(qs.map(fn));
+  const ok = rs.filter(r => r.status === 'fulfilled').map(r => r.value);
+  if(!ok.length) throw rs[0].reason;
+  const out = [], seen = new Set(), max = Math.max(...ok.map(l => l.length));
+  for(let i = 0; i < max; i++) ok.forEach(l => {
+    if(l[i] === undefined) return;
+    const k = keyOf(l[i]);
+    if(!seen.has(k)){ seen.add(k); out.push(l[i]); }
+  });
+  return out;
+}
 
 async function fetchComments(it){
   const get = async (order, n) => {
@@ -345,14 +474,17 @@ async function fetchComments(it){
   }
 }
 
-async function searchYouTube(q, lang){
+async function searchYouTube(qs){
   if(!ytKey) throw new Error('clé manquante (touche ⚙️)');
-  const p = { part:'snippet', type:'video', maxResults:'25', q, safeSearch:'moderate', key:ytKey };
-  if(lang) p.relevanceLanguage = lang;
-  const sr = await getJSON(YT + 'search?' + new URLSearchParams(p));
-  const ids = (sr.items || []).map(i => i.id && i.id.videoId).filter(Boolean);
+  const n = qs.length > 1 ? 20 : 25;
+  const ids = await multi(qs, async x => {
+    const sr = await getJSON(YT + 'search?' + new URLSearchParams({
+      part:'snippet', type:'video', maxResults:String(n), q:x.q, relevanceLanguage:x.lang, safeSearch:'moderate', key:ytKey
+    }));
+    return (sr.items || []).map(i => i.id && i.id.videoId).filter(Boolean);
+  }, id => id);
   if(!ids.length) return [];
-  const vr = await getJSON(YT + 'videos?' + new URLSearchParams({ part:'snippet,statistics,contentDetails', id:ids.join(','), key:ytKey }));
+  const vr = await getJSON(YT + 'videos?' + new URLSearchParams({ part:'snippet,statistics,contentDetails', id:ids.slice(0, 50).join(','), key:ytKey }));
   const items = (vr.items || []).map(v => {
     const sn = v.snippet || {}, st = v.statistics || {}, th = sn.thumbnails || {};
     return {
@@ -361,6 +493,7 @@ async function searchYouTube(q, lang){
       url:'https://www.youtube.com/watch?v=' + v.id,
       thumb:(th.medium || th.default || {}).url,
       published:sn.publishedAt,
+      declLang:sn.defaultAudioLanguage || sn.defaultLanguage || '',
       duration:isoDur(v.contentDetails && v.contentDetails.duration),
       views:+(st.viewCount || 0),
       likes:st.likeCount != null ? +st.likeCount : null
@@ -371,69 +504,86 @@ async function searchYouTube(q, lang){
   return items;
 }
 
-async function searchPeerTube(q){
-  const j = await getJSON('https://sepiasearch.org/api/v1/search/videos?' + new URLSearchParams({
-    search:q, start:'0', count:'15', sort:'-match', nsfw:'false'
-  }));
-  return (j.data || []).map(v => {
-    const host = (v.channel && v.channel.host) || (v.account && v.account.host) || '';
-    const thumb = v.thumbnailUrl || (v.thumbnailPath && host ? 'https://' + host + v.thumbnailPath : '');
-    return {
-      platform:'PeerTube', title:v.name, desc:v.description || '',
-      channel:(v.channel && v.channel.displayName) || host,
-      channelId:v.channel ? v.channel.name + '@' + host : host,
-      url:v.url, thumb, published:v.publishedAt, duration:v.duration != null ? v.duration : null,
-      views:v.views || 0, likes:v.likes != null ? v.likes : null
-    };
-  });
+function searchPeerTube(qs){
+  return multi(qs, async x => {
+    const j = await getJSON('https://sepiasearch.org/api/v1/search/videos?' + new URLSearchParams({
+      search:x.q, start:'0', count:'15', sort:'-match', nsfw:'false'
+    }));
+    return (j.data || []).map(v => {
+      const host = (v.channel && v.channel.host) || (v.account && v.account.host) || '';
+      const thumb = v.thumbnailUrl || (v.thumbnailPath && host ? 'https://' + host + v.thumbnailPath : '');
+      return {
+        platform:'PeerTube', title:v.name, desc:v.description || '',
+        channel:(v.channel && v.channel.displayName) || host,
+        channelId:v.channel ? v.channel.name + '@' + host : host,
+        url:v.url, thumb, published:v.publishedAt,
+        declLang:(v.language && v.language.id) || '',
+        duration:typeof v.duration === 'number' ? v.duration : null,
+        views:v.views || 0, likes:v.likes != null ? v.likes : null
+      };
+    });
+  }, it => it.url);
 }
 
-async function searchOdysee(q){
-  const hits = await getJSON('https://lighthouse.odysee.tv/search?' + new URLSearchParams({
-    s:q, size:'15', from:'0', nsfw:'false', mediaType:'video'
-  }));
-  const urls = (hits || []).map(h => 'lbry://' + h.name + '#' + h.claimId);
-  if(!urls.length) return [];
-  const r = await getJSON('https://api.na-backend.odysee.com/api/v1/proxy?m=resolve', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({ jsonrpc:'2.0', method:'resolve', params:{ urls } })
-  });
-  const res = r.result || {};
-  return urls.map(u => res[u]).filter(c => c && c.value && !c.error).map(c => {
-    const ch = c.signing_channel || {};
-    const ts = c.value.release_time || c.timestamp;
-    return {
-      platform:'Odysee', title:c.value.title || c.name, desc:c.value.description || '',
-      channel:(ch.value && ch.value.title) || ch.name || '', channelId:ch.claim_id || ch.name || '',
-      url:'https://odysee.com/' + c.name + ':' + c.claim_id,
-      thumb:c.value.thumbnail && c.value.thumbnail.url,
-      published:ts ? new Date(ts * 1000).toISOString() : null,
-      duration:c.value.video && c.value.video.duration != null ? +c.value.video.duration : null,
-      views:0, likes:null
-    };
-  });
+function searchOdysee(qs){
+  return multi(qs, async x => {
+    const hits = await getJSON('https://lighthouse.odysee.tv/search?' + new URLSearchParams({
+      s:x.q, size:'15', from:'0', nsfw:'false', mediaType:'video'
+    }));
+    const urls = (hits || []).map(h => 'lbry://' + h.name + '#' + h.claimId);
+    if(!urls.length) return [];
+    const r = await getJSON('https://api.na-backend.odysee.com/api/v1/proxy?m=resolve', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ jsonrpc:'2.0', method:'resolve', params:{ urls } })
+    });
+    const res = r.result || {};
+    return urls.map(u => res[u]).filter(c => c && c.value && !c.error).map(c => {
+      const ch = c.signing_channel || {};
+      const ts = c.value.release_time || c.timestamp;
+      return {
+        platform:'Odysee', title:c.value.title || c.name, desc:c.value.description || '',
+        channel:(ch.value && ch.value.title) || ch.name || '', channelId:ch.claim_id || ch.name || '',
+        url:'https://odysee.com/' + c.name + ':' + c.claim_id,
+        thumb:c.value.thumbnail && c.value.thumbnail.url,
+        published:ts ? new Date(ts * 1000).toISOString() : null,
+        declLang:(c.value.languages && c.value.languages[0]) || '',
+        duration:c.value.video && c.value.video.duration != null ? +c.value.video.duration : null,
+        views:0, likes:null
+      };
+    });
+  }, it => it.url);
 }
 
 /* ---------- Recherche ---------- */
-let lastResults = [], lastNotes = [], lastKws = [], lastStrong = [], shown = [];
+let lastResults = [], lastNotes = [], lastQ = '', lastEn = '', lastCtx = null, shown = [];
 
-function rescore(){ lastResults.forEach(it => scoreItem(it, lastKws, lastStrong)); }
+function rescore(){ lastResults.forEach(it => scoreItem(it, lastCtx)); }
 
 $('f').onsubmit = async e => {
   e.preventDefault();
   const q = $('q').value.trim();
   if(!q) return;
   savePrefs();
-  lastKws = keywords(q);
-  lastStrong = [...new Set(strongKeywords(q).concat(listOf($('must').value)))];
-  const jobs = [];
-  if($('sYT').checked) jobs.push(['YouTube', searchYouTube(q, $('lang').value)]);
-  if($('sPT').checked) jobs.push(['PeerTube', searchPeerTube(q)]);
-  if($('sOD').checked) jobs.push(['Odysee', searchOdysee(q)]);
-  if(!jobs.length){ setStatus('Coche au moins une plateforme.'); return; }
+  const jobsWanted = $('sYT').checked || $('sPT').checked || $('sOD').checked;
+  if(!jobsWanted){ setStatus('Coche au moins une plateforme.'); return; }
+  $('results').innerHTML = '';
+
+  let en = '', via = '';
+  if($('langMode').value === 'both'){
+    setStatus('Traduction de la recherche…');
+    const tr = await translateQuery(q);
+    en = tr.en; via = tr.via;
+  }
+  lastQ = q; lastEn = en;
+  lastCtx = buildCtx(q, en);
+  const qs = [{ q, lang:'fr' }];
+  if(en) qs.push({ q:en, lang:'en' });
 
   setStatus('Recherche en cours…');
-  $('results').innerHTML = '';
+  const jobs = [];
+  if($('sYT').checked) jobs.push(['YouTube', searchYouTube(qs)]);
+  if($('sPT').checked) jobs.push(['PeerTube', searchPeerTube(qs)]);
+  if($('sOD').checked) jobs.push(['Odysee', searchOdysee(qs)]);
   const settled = await Promise.allSettled(jobs.map(j => j[1]));
   let all = [];
   const notes = [];
@@ -442,7 +592,9 @@ $('f').onsubmit = async e => {
     if(r.status === 'fulfilled'){ all = all.concat(r.value); notes.push(esc(name) + ' : ' + r.value.length); }
     else notes.push(esc(name) + ' : ⚠️ ' + esc(r.reason && r.reason.message || 'erreur'));
   });
-  lastResults = all; lastNotes = notes;
+  lastNotes = [notes.join(' · ')];
+  if(en) lastNotes.push('Aussi cherché en anglais : « ' + esc(en) + ' »' + (via === 'dico' ? ' (traduction de secours)' : ''));
+  lastResults = all;
   rescore();
   render();
 };
@@ -466,21 +618,16 @@ function fmtDur(s){
 }
 
 function render(){
-  const showOff = $('showOff').checked, noShort = $('noShort').checked;
-  const dmin = parseFloat($('dmin').value), dmax = parseFloat($('dmax').value);
+  const showOff = $('showOff').checked, frOnly = $('langMode').value === 'fr';
   const age = +$('age').value, forbid = listOf($('mustNot').value), sort = $('sort').value;
-  const cnt = { ban:0, off:0, mot:0, dur:0, age:0 };
+  const cnt = { ban:0, off:0, mot:0, lang:0, age:0 };
   shown = lastResults.filter(it => {
     if(banned[chanKey(it)]){ cnt.ban++; return false; }
     if(it.offTopic && !showOff){ cnt.off++; return false; }
+    if(frOnly && it.lang === 'en'){ cnt.lang++; return false; }
     if(forbid.length){
       const td = norm(it.title) + ' ' + norm(it.desc);
       if(forbid.some(k => hasWord(td, k))){ cnt.mot++; return false; }
-    }
-    if(it.duration != null){
-      if(noShort && it.duration < 60){ cnt.dur++; return false; }
-      if(!isNaN(dmin) && it.duration < dmin * 60){ cnt.dur++; return false; }
-      if(!isNaN(dmax) && dmax > 0 && it.duration > dmax * 60){ cnt.dur++; return false; }
     }
     if(age && it.published && (Date.now() - new Date(it.published).getTime()) > age * 3.156e10){ cnt.age++; return false; }
     return true;
@@ -492,17 +639,20 @@ function render(){
 
   const hid = [];
   if(cnt.off) hid.push(cnt.off + ' hors-sujet');
+  if(cnt.lang) hid.push(cnt.lang + ' en anglais');
   if(cnt.mot) hid.push(cnt.mot + ' avec mot interdit');
-  if(cnt.dur) hid.push(cnt.dur + ' hors durée');
   if(cnt.age) hid.push(cnt.age + ' trop anciennes');
   if(cnt.ban) hid.push(cnt.ban + ' de chaînes bannies');
-  setStatus(lastNotes.join(' · ') + (hid.length ? '<br>Masquées : ' + hid.join(', ') : ''));
+  setStatus(lastNotes.join('<br>') + '<br>' + shown.length + ' affichée(s)' + (hid.length ? ' · masquées : ' + hid.join(', ') : ''));
 
   if(!shown.length){
     $('results').innerHTML = '<div class="box small">Aucun résultat avec ces filtres.</div>';
     return;
   }
-  $('results').innerHTML = shown.map((it, i) => {
+  const tip = shown.some(it => it.lang === 'en' && it.platform === 'YouTube')
+    ? '<div class="box tip">🇬🇧 Vidéo en anglais ? Une fois dans YouTube : touche la vidéo, puis ⚙️ → <b>Piste audio</b> → Français (doublage, s\'il existe). Sinon ⚙️ → <b>Sous-titres</b> → Traduire automatiquement → Français.</div>'
+    : '';
+  $('results').innerHTML = tip + shown.map((it, i) => {
     const cls = it.score >= 65 ? 's-good' : it.score >= 45 ? 's-mid' : 's-bad';
     const meta = [it.channel, fmtDate(it.published), fmtViews(it.views), fmtDur(it.duration)].filter(Boolean).map(esc).join(' · ');
     const why = it.why.map(([sign, txt]) =>
@@ -572,22 +722,27 @@ $('saveKey').onclick = () => {
   setStatus('Clé enregistrée ✅');
 };
 
-const PREF_CHECK = ['sYT', 'sPT', 'sOD', 'noShort', 'showOff'];
-const PREF_VAL = ['must', 'mustNot', 'dmin', 'dmax', 'age', 'sort', 'lang'];
+const PREF_CHECK = ['sYT', 'sPT', 'sOD', 'showOff'];
+const PREF_VAL = ['must', 'mustNot', 'age', 'sort', 'langMode'];
 function savePrefs(){
   const p = {};
   PREF_CHECK.forEach(id => { p[id] = $(id).checked; });
   PREF_VAL.forEach(id => { p[id] = $(id).value; });
-  store.set('prefs', p);
+  store.set('prefs21', p);
 }
 (function loadPrefs(){
-  const p = store.get('prefs', null);
+  const p = store.get('prefs21', null);
   if(!p || typeof p !== 'object') return;
   PREF_CHECK.forEach(id => { if(typeof p[id] === 'boolean') $(id).checked = p[id]; });
   PREF_VAL.forEach(id => { if(typeof p[id] === 'string') $(id).value = p[id]; });
 })();
 PREF_CHECK.concat(PREF_VAL).forEach(id => {
-  $(id).onchange = () => { savePrefs(); if(lastResults.length) render(); };
+  $(id).onchange = () => {
+    savePrefs();
+    if(!lastResults.length) return;
+    if(id === 'must'){ lastCtx = buildCtx(lastQ, lastEn); rescore(); }
+    render();
+  };
 });
 renderLists();
 </script>
