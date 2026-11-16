@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tuto Fiable</title>
+<style>
+  :root{--bg:#f4f5f7;--card:#fff;--txt:#1d2330;--mut:#6b7280;--acc:#2563eb;--good:#15803d;--mid:#c2410c;--bad:#b91c1c;--line:#d5d9e0}
+  @media (prefers-color-scheme:dark){:root{--bg:#111318;--card:#1b1e25;--txt:#e8eaef;--mut:#9aa1ad;--acc:#60a5fa;--line:#343944}}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+  header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--card);position:sticky;top:0;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  h1{font-size:1.25rem;margin:0}
+  h1 span{color:var(--acc)}
+  h1 small{font-size:.7rem;color:var(--mut);font-weight:400}
+  main{max-width:720px;margin:0 auto;padding:12px}
+  .box{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px}
+  input[type=text],input[type=password],input[type=number],select{width:100%;padding:11px;font-size:1rem;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--txt)}
+  select option{color:#111}
+  button{font-size:1rem;border:0;border-radius:10px;padding:12px 16px;background:var(--acc);color:#fff;font-weight:600}
+  #btnSettings{background:transparent;color:var(--txt);font-size:1.3rem;padding:4px 8px}
+  .row{display:flex;flex-wrap:wrap;gap:8px 16px;margin:12px 0}
+  .row label{display:flex;align-items:center;gap:6px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+  .grid label,.full label{display:block;font-size:.8rem;color:var(--mut);margin-bottom:3px}
+  .full{margin:10px 0}
+  .wide{width:100%}
+  .small{font-size:.85rem;color:var(--mut)}
+  details.filters{margin:10px 0;border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+  details.filters summary{font-weight:600;cursor:pointer}
+  #status{font-size:.9rem;color:var(--mut);margin:4px 2px 10px}
+  .card{display:flex;gap:12px;background:var(--card);border-radius:14px;padding:10px;margin-bottom:10px}
+  .thumb{flex:0 0 120px}
+  .thumb img{width:120px;height:68px;object-fit:cover;border-radius:8px;background:#ccc;display:block}
+  .body{flex:1;min-width:0}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:6px}
+  .badge{font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:99px;color:#fff}
+  .p-YouTube{background:#dc2626}.p-PeerTube{background:#ea580c}.p-Odysee{background:#9333ea}
+  .score{font-weight:800;font-size:.95rem;padding:2px 9px;border-radius:8px;color:#fff}
+  .s-good{background:var(--good)}.s-mid{background:var(--mid)}.s-bad{background:var(--bad)}
+  h3{font-size:.95rem;margin:6px 0 2px;line-height:1.25;overflow-wrap:anywhere}
+  h3 a{color:inherit;text-decoration:none}
+  .meta{font-size:.78rem;color:var(--mut)}
+  .why{list-style:none;padding:0;margin:6px 0 0;display:flex;flex-wrap:wrap;gap:4px}
+  .why li{font-size:.72rem;padding:2px 7px;border-radius:99px}
+  .plus{background:rgba(21,128,61,.14);color:var(--good)}
+  .minus{background:rgba(185,28,28,.13);color:var(--bad)}
+  .info{background:rgba(107,114,128,.16);color:var(--mut)}
+  .card details{margin-top:6px;font-size:.8rem}
+  .card summary{color:var(--acc);cursor:pointer}
+  .ev{list-style:none;padding:0;margin:6px 0 0}
+  .ev li{padding:5px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}
+  .act{display:flex;gap:6px;margin-top:8px}
+  .act button{font-size:.75rem;padding:5px 9px;background:transparent;color:var(--txt);border:1px solid var(--line);font-weight:500}
+  .act button.on{background:var(--good);color:#fff;border-color:var(--good)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+  .chips button{font-size:.78rem;padding:4px 9px;background:transparent;color:var(--txt);border:1px solid var(--line);font-weight:500}
+  footer{font-size:.78rem;color:var(--mut);text-align:center;padding:16px}
+  @media (max-width:420px){.thumb{flex-basis:96px}.thumb img{width:96px;height:54px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Tuto <span>Fiable</span> <small>v2</small></h1>
+  <button id="btnSettings" aria-label="Réglages">⚙️</button>
+</header>
+<main>
+  <section id="settings" class="box" hidden>
+    <label class="small" for="ytKey">Clé YouTube (API)</label>
+    <input id="ytKey" type="password" placeholder="AIza..." autocomplete="off">
+    <div class="row"><button id="saveKey" type="button">Enregistrer</button></div>
+    <p class="small">La clé est gardée sur ce téléphone uniquement (pas dans le code).</p>
+    <p class="small"><b>⭐ Chaînes de confiance</b> (touche pour retirer)</p>
+    <div id="listTrust" class="chips"></div>
+    <p class="small"><b>🚫 Chaînes bannies</b> (touche pour retirer)</p>
+    <div id="listBan" class="chips"></div>
+  </section>
+
+  <form id="f" class="box">
+    <input id="q" type="text" placeholder="Ex : activer XMP carte mère MSI B550" required>
+    <div class="row">
+      <label><input type="checkbox" id="sYT" checked> YouTube</label>
+      <label><input type="checkbox" id="sPT"> PeerTube</label>
+      <label><input type="checkbox" id="sOD"> Odysee</label>
+    </div>
+    <details class="filters">
+      <summary>Filtres</summary>
+      <div class="full"><label for="must">Mots obligatoires (séparés par des virgules)</label>
+        <input id="must" type="text" placeholder="Ex : B550, XMP"></div>
+      <div class="full"><label for="mustNot">Mots interdits</label>
+        <input id="mustNot" type="text" placeholder="Ex : Intel, portable"></div>
+      <div class="grid">
+        <div><label for="dmin">Durée mini (min)</label><input id="dmin" type="number" min="0" inputmode="numeric"></div>
+        <div><label for="dmax">Durée maxi (min)</label><input id="dmax" type="number" min="0" inputmode="numeric"></div>
+        <div><label for="age">Ancienneté</label>
+          <select id="age"><option value="0">Toutes</option><option value="1">Moins d'1 an</option><option value="2">Moins de 2 ans</option><option value="5">Moins de 5 ans</option></select></div>
+        <div><label for="sort">Classer par</label>
+          <select id="sort"><option value="score">Score</option><option value="date">Date</option><option value="views">Vues</option></select></div>
+        <div><label for="lang">Langue</label>
+          <select id="lang"><option value="fr">Français d'abord</option><option value="">Toutes</option></select></div>
+      </div>
+      <div class="row">
+        <label class="small"><input type="checkbox" id="noShort" checked> Masquer les vidéos de moins d'1 min</label>
+        <label class="small"><input type="checkbox" id="showOff"> Afficher les hors-sujet</label>
+      </div>
+    </details>
+    <button class="wide" type="submit">🔎 Chercher</button>
+  </form>
+
+  <div id="status"></div>
+  <div id="results"></div>
+</main>
+<footer>Le score vient de règles automatiques appliquées au titre et aux commentaires. L'appli ne regarde pas la vidéo : c'est un indice, pas une preuve.</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+
+/* ---------- Mémoire de l'appareil ---------- */
+const store = {
+  get(k, d){
+    let v = null;
+    try { v = localStorage.getItem(k); } catch(e){ return d; }
+    if(v == null) return d;
+    try { return JSON.parse(v); } catch(e){ return v; }
+  },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+let ytKey = store.get('ytKey', '');
+let trusted = store.get('trusted', {});   // { clé de chaîne : nom }
+let banned = store.get('banned', {});
+
+/* ---------- Outils ---------- */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’‘`]/g, "'");
+const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const hasWord = (text, k) => new RegExp('(^|[^a-z0-9])' + escRe(k) + '[sx]?([^a-z0-9]|$)').test(text);
+const setStatus = html => { $('status').innerHTML = html; };
+const listOf = s => [...new Set(String(s || '').split(',').map(x => norm(x).trim()).filter(Boolean))];
+
+async function getJSON(url, opts){
+  const r = await fetch(url, opts);
+  let j = null;
+  try { j = await r.json(); } catch(e){}
+  if(!r.ok){
+    const msg = j && j.error ? (j.error.message || JSON.stringify(j.error)) : ('erreur ' + r.status);
+    throw new Error(String(msg).replace(/<[^>]+>/g, ''));
+  }
+  return j;
+}
+
+const STOP = new Set(('le la les un une des de du d l a au aux et ou en sur pour par avec sans dans comment faire ' +
+  'mon ma mes ton ta tes son sa ses ce cette ces qui que quoi est sont tuto tutoriel ' +
+  'the an of to how in on for with my').split(' '));
+function keywords(q){
+  return [...new Set(norm(q).split(/[^a-z0-9]+/).filter(w => w.length > 1 && !STOP.has(w)))];
+}
+// Mots indispensables : ceux avec un chiffre (B550) ou tapés en MAJUSCULES (XMP)
+function strongKeywords(q){
+  return [...new Set(String(q).split(/[^A-Za-z0-9À-ÿ]+/)
+    .filter(w => w.length > 1 && (/\d/.test(w) || (/[A-Z]/.test(w) && w === w.toUpperCase())))
+    .map(norm))];
+}
+
+/* =====================================================================
+   PROTOCOLE COMMENTAIRES
+   1. On écarte : commentaires du youtubeur lui-même, doublons, spam.
+   2. On range chaque commentaire dans une case (les cases négatives passent d'abord).
+      Un commentaire qui n'entre dans aucune case (« super vidéo ! ») ne compte pas.
+   3. Un commentaire précis (cite le modèle, une minute de la vidéo, ou est long) compte double.
+      Un commentaire aimé par d'autres compte plus. Un négatif récent compte plus.
+   4. Verdict : part des avis positifs, pondérée par le nombre de commentaires utiles.
+      Un risque signalé ou un tuto périmé enlève des points en plus.
+   ===================================================================== */
+const CATS = {
+  danger:   { neg:true,  sev:3,   icon:'⚠️', label:'risque signalé' },
+  perime:   { neg:true,  sev:1.3, icon:'⏳', label:'peut-être périmé' },
+  trompeur: { neg:true,  sev:1.3, icon:'🎣', label:'titre trompeur' },
+  echec:    { neg:true,  sev:1,   icon:'❌', label:'ne marche pas' },
+  manque:   { neg:true,  sev:0.7, icon:'🧩', label:'étape manquante ou pas clair' },
+  erreur:   { neg:true,  sev:0.7, icon:'✏️', label:'erreur relevée' },
+  succes:   { neg:false, sev:1,   icon:'✅', label:'ça marche' },
+  clair:    { neg:false, sev:0.6, icon:'👍', label:'bien expliqué' }
+};
+const RULES = [
+  ['danger', /((grille|crame|bousille|flingue|nique) (ma|mon|mes|le|la)|brick|ne (demarre|s'allume|boot|boote) plus|plus rien ne (marche|fonctionne|s'allume)|ecran noir|perdu (toutes? )?mes (donnees|fichiers|photos)|a (casse|plante|detruit) (ma|mon)|won'?t (boot|turn on|start)|broke my|lost (all )?my (data|files)|fried my|ne faites (surtout )?pas|don'?t do this|c'est dangereux|is dangerous)/],
+  ['perime', /(ne (marche|fonctionne) plus|n'existe plus|plus (a jour|d'actualite|valable|disponible)|obsolete|perime|l'option (n'est plus|a disparu)|(menu|interface|option|bouton|ecran)s? (a|ont) change|a change depuis|depuis la (mise a jour|maj|derniere version|nouvelle version)|outdated|no longer (works|available|exists)|(doesn'?t|not) work(ing)? anymore|deprecated|out of date)/],
+  ['trompeur', /(putaclic|pute a clic|piege a clic|clickbait|click bait|titre (mensonger|trompeur|racoleur)|rien a voir avec le titre|ne parle (meme )?pas d|ne repond pas a|perte de temps|temps perdu|arnaque|mensonge|misleading|waste of (my )?time|scam|doesn'?t (answer|show|talk about))/],
+  ['echec', /((marche|fonctionne|marchait|a marche|a fonctionne) (pas|toujours pas|absolument pas)|(n'a|n'ai|n'ont) (rien|pas) (change|marche|fonctionne|resolu)|rien (n'a )?change|toujours (le meme|pareil|rien)|meme probleme|aucun (effet|resultat|changement)|pas reussi|j'y arrive pas|n'y arrive pas|(doesn'?t|didn'?t|does not|did not|don'?t|won'?t) work|not working|no luck|still (the same|not working|have the)|same (problem|issue)|nothing (changed|happened))/],
+  ['manque', /(il manque|manque (une|l'|des|la|le) |(a|as|avez) oublie|oublie de (dire|preciser|montrer|parler)|n'explique pas|ne (dit|montre|precise) pas|pas (tres |assez |du tout )?(clair|precis|complet|detaille)|trop (rapide|vite|flou|brouillon)|va trop vite|incomplet|on (ne )?(voit|comprend) rien|rien compris|missing (a )?step|skipped|you forgot|not (very )?clear|unclear|too fast|confusing|hard to follow|doesn'?t (say|mention|explain))/],
+  ['erreur', /(il y a une erreur|petite erreur|grosse erreur|c'est faux|correction|en fait il faut|contrairement a ce|il ne faut (surtout )?pas|is wrong|that'?s wrong|incorrect|actually you (need|should|have)|a mistake)/],
+  ['succes', /(ca (a )?(bien |tres bien )?(marche|fonctionne)|a (bien |tres bien |parfaitement )?(marche|fonctionne)|(marche|fonctionne) (nickel|parfaitement|tres bien|super|impec|du premier coup|chez moi|pour moi|sur)|probleme (resolu|regle)|resolu|regle en|(m'a|m'as|m'avez) (sauve|depanne|bien aide|beaucoup aide)|grace a (toi|vous|ce tuto|cette video|ta video|votre video)|j'ai reussi|enfin reussi|it work(s|ed)|work(s|ed) (for me|perfectly|great|like a charm|on)|fixed (it|my)|solved|saved (me|my)|life ?saver)/],
+  ['clair', /(bien explique|tres clair|clair et|super clair|limpide|precis|concis|droit au but|sans blabla|pedagog|simple et efficace|well explained|very clear|clear and|straight to the point|easy to follow|concise)/]
+];
+const SPAM = /(telegram|whatsapp|t\.me\/|bitcoin|crypto|contactez[- ]moi|contact me on|investi)/;
+
+function classify(n){
+  for(const [cat, re] of RULES){
+    if(re.test(n)){
+      // Une question (« est-ce que ça marche sur… ? ») n'est pas un avis positif
+      if(!CATS[cat].neg && n.includes('?')) return null;
+      return cat;
+    }
+  }
+  return null;
+}
+
+function analyzeComments(it, kws, strong){
+  const raw = it.rawComments || [];
+  const seen = new Set(), counts = {}, ev = [], confirm = new Set();
+  let pos = 0, neg = 0, useful = 0, total = 0;
+  for(const c of raw){
+    if(c.authorId && it.channelId && c.authorId === it.channelId) continue;   // le youtubeur lui-même
+    const n = norm(c.text).replace(/\s+/g, ' ').trim();
+    if(!n || seen.has(n)) continue;                                           // doublon
+    seen.add(n);
+    total++;
+    if(SPAM.test(n)) continue;
+    const cat = classify(n);
+    if(!cat) continue;                                                        // compliment vague, hors-sujet…
+    const meta = CATS[cat];
+    const words = n.split(' ').length;
+    const precise = words >= 12 || /\b\d{1,2}:\d{2}\b/.test(n) ||
+      strong.some(k => hasWord(n, k)) || kws.filter(k => hasWord(n, k)).length >= 2;
+    const recent = !!c.date && (Date.now() - new Date(c.date).getTime()) < 3.156e10;
+    let w = (cat === 'succes' && words < 6) ? 0.5 : 1;                        // « merci ça marche » compte moitié
+    if(precise) w *= 2;
+    w *= 1 + Math.min(1.5, Math.log10(1 + (c.likes || 0)));
+    if(meta.neg && recent) w *= 1.5;
+    w *= meta.sev;
+    if(meta.neg) neg += w; else pos += w;
+    useful++;
+    counts[cat] = (counts[cat] || 0) + 1;
+    if(cat === 'succes') strong.forEach(k => { if(hasWord(n, k)) confirm.add(k); });
+    ev.push({ cat, text: c.text, w, neg: meta.neg, precise, recent });
+  }
+  const conf = Math.min(1, useful / 15);
+  const ratio = (pos + 1) / (pos + neg + 2);
+  let delta = Math.round((ratio - 0.5) * 2 * 30 * conf);
+  const nd = counts.danger || 0;
+  const risk = nd >= 2 || ev.some(e => e.cat === 'danger' && e.precise);
+  if(risk) delta -= 15;
+  const stale = ev.filter(e => e.cat === 'perime' && e.recent).length >= 2;
+  if(stale) delta -= 10;
+  ev.sort((a, b) => (b.neg - a.neg) || (b.w - a.w));
+  it.com = { total, useful, counts, ev: ev.slice(0, 8), delta, risk, stale, confirm: [...confirm],
+             level: useful >= 15 ? 'bonne' : useful >= 5 ? 'moyenne' : 'faible' };
+}
+
+/* ---------- Score ---------- */
+const chanKey = it => it.platform + ':' + (it.channelId || it.channel || '?');
+
+function scoreItem(it, kws, strong){
+  let s = 50;
+  const why = [];
+  const t = norm(it.title), d = norm(it.desc), td = t + ' ' + d;
+
+  // Hors-sujet ?
+  it.offTopic = false;
+  if(kws.length || strong.length){
+    const found = kws.filter(k => hasWord(td, k)).length;
+    const missStrong = strong.filter(k => !hasWord(td, k));
+    if((kws.length && found / kws.length < 0.5) || missStrong.length){
+      it.offTopic = true;
+      s -= 30;
+      why.push(['-', missStrong.length ? 'ne parle pas de « ' + missStrong.join(', ') + ' »' : 'hors-sujet']);
+    }
+  }
+  // Le titre colle à la recherche
+  if(kws.length){
+    const hit = kws.filter(k => hasWord(t, k)).length;
+    const pts = Math.round(20 * hit / kws.length);
+    if(pts){ s += pts; why.push(['+', 'colle à ta recherche (' + hit + '/' + kws.length + ')']); }
+  }
+  // Fraîcheur
+  if(it.published){
+    const years = (Date.now() - new Date(it.published).getTime()) / 3.156e10;
+    if(years < 2){ s += 5; why.push(['+', 'récente']); }
+    else if(years > 6){ s -= 5; why.push(['-', 'ancienne (' + Math.floor(years) + ' ans)']); }
+  }
+  // Likes / vues
+  if(it.views > 200 && it.likes != null){
+    const r = it.likes / it.views;
+    if(r > 0.04){ s += 8; why.push(['+', 'très appréciée']); }
+    else if(r > 0.02){ s += 4; why.push(['+', 'appréciée']); }
+  }
+  // Chaîne de confiance
+  if(trusted[chanKey(it)]){ s += 10; why.push(['+', 'chaîne de confiance']); }
+
+  // Commentaires
+  if(it.platform === 'YouTube'){
+    if(it.comState === 'closed') why.push(['i', 'commentaires fermés']);
+    else if(it.comState === 'error') why.push(['i', 'commentaires non lus']);
+    else {
+      analyzeComments(it, kws, strong);
+      const c = it.com, n = c.counts;
+      s += c.delta;
+      if(n.succes) why.push(['+', '✅ marche pour ' + n.succes + (n.succes > 1 ? ' personnes' : ' personne')]);
+      if(c.confirm.length) why.push(['+', 'confirmé sur « ' + c.confirm.join(', ') + ' »']);
+      if(n.clair) why.push(['+', '👍 bien expliqué (' + n.clair + ')']);
+      if(n.danger) why.push(['-', '⚠️ risque signalé (' + n.danger + ')']);
+      if(n.perime) why.push(['-', '⏳ peut-être périmé (' + n.perime + ')']);
+      if(n.echec) why.push(['-', '❌ ne marche pas pour ' + n.echec]);
+      if(n.trompeur) why.push(['-', '🎣 titre trompeur (' + n.trompeur + ')']);
+      if(n.manque) why.push(['-', '🧩 étape manquante ou pas clair (' + n.manque + ')']);
+      if(n.erreur) why.push(['-', '✏️ erreur relevée (' + n.erreur + ')']);
+      why.push(['i', c.useful + (c.useful > 1 ? ' commentaires utiles' : ' commentaire utile') + ' sur ' + c.total + ' · fiabilité de l\'avis : ' + c.level]);
+    }
+  } else {
+    why.push(['i', 'commentaires non analysés sur ' + it.platform]);
+  }
+
+  it.score = Math.max(0, Math.min(100, Math.round(s)));
+  it.why = why;
+  return it;
+}
+
+/* ---------- Sources ---------- */
+function isoDur(s){
+  const m = /P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/.exec(s || '');
+  return m ? (+(m[1] || 0)) * 86400 + (+(m[2] || 0)) * 3600 + (+(m[3] || 0)) * 60 + (+(m[4] || 0)) : null;
+}
+const YT = 'https://www.googleapis.com/youtube/v3/';
+
+async function fetchComments(it){
+  const get = async (order, n) => {
+    const c = await getJSON(YT + 'commentThreads?' + new URLSearchParams({
+      part:'snippet', videoId:it.id, maxResults:String(n), order, textFormat:'plainText', key:ytKey
+    }));
+    return (c.items || []).map(x => {
+      const sn = x.snippet.topLevelComment.snippet;
+      return { id:x.id, text:sn.textDisplay, likes:sn.likeCount || 0, date:sn.publishedAt,
+               authorId:sn.authorChannelId && sn.authorChannelId.value };
+    });
+  };
+  try {
+    // 100 commentaires les plus pertinents + 50 plus récents (pour repérer un tuto périmé)
+    const [a, b] = await Promise.all([get('relevance', 100), get('time', 50)]);
+    const m = new Map();
+    a.concat(b).forEach(c => m.set(c.id, c));
+    it.rawComments = [...m.values()];
+    it.comState = 'ok';
+  } catch(e){
+    it.rawComments = [];
+    it.comState = /disabled/i.test(e.message) ? 'closed' : 'error';
+  }
+}
+
+async function searchYouTube(q, lang){
+  if(!ytKey) throw new Error('clé manquante (touche ⚙️)');
+  const p = { part:'snippet', type:'video', maxResults:'25', q, safeSearch:'moderate', key:ytKey };
+  if(lang) p.relevanceLanguage = lang;
+  const sr = await getJSON(YT + 'search?' + new URLSearchParams(p));
+  const ids = (sr.items || []).map(i => i.id && i.id.videoId).filter(Boolean);
+  if(!ids.length) return [];
+  const vr = await getJSON(YT + 'videos?' + new URLSearchParams({ part:'snippet,statistics,contentDetails', id:ids.join(','), key:ytKey }));
+  const items = (vr.items || []).map(v => {
+    const sn = v.snippet || {}, st = v.statistics || {}, th = sn.thumbnails || {};
+    return {
+      platform:'YouTube', id:v.id, title:sn.title, desc:sn.description || '',
+      channel:sn.channelTitle, channelId:sn.channelId,
+      url:'https://www.youtube.com/watch?v=' + v.id,
+      thumb:(th.medium || th.default || {}).url,
+      published:sn.publishedAt,
+      duration:isoDur(v.contentDetails && v.contentDetails.duration),
+      views:+(st.viewCount || 0),
+      likes:st.likeCount != null ? +st.likeCount : null
+    };
+  });
+  setStatus('Lecture des commentaires…');
+  await Promise.all(items.map(fetchComments));
+  return items;
+}
+
+async function searchPeerTube(q){
+  const j = await getJSON('https://sepiasearch.org/api/v1/search/videos?' + new URLSearchParams({
+    search:q, start:'0', count:'15', sort:'-match', nsfw:'false'
+  }));
+  return (j.data || []).map(v => {
+    const host = (v.channel && v.channel.host) || (v.account && v.account.host) || '';
+    const thumb = v.thumbnailUrl || (v.thumbnailPath && host ? 'https://' + host + v.thumbnailPath : '');
+    return {
+      platform:'PeerTube', title:v.name, desc:v.description || '',
+      channel:(v.channel && v.channel.displayName) || host,
+      channelId:v.channel ? v.channel.name + '@' + host : host,
+      url:v.url, thumb, published:v.publishedAt, duration:v.duration != null ? v.duration : null,
+      views:v.views || 0, likes:v.likes != null ? v.likes : null
+    };
+  });
+}
+
+async function searchOdysee(q){
+  const hits = await getJSON('https://lighthouse.odysee.tv/search?' + new URLSearchParams({
+    s:q, size:'15', from:'0', nsfw:'false', mediaType:'video'
+  }));
+  const urls = (hits || []).map(h => 'lbry://' + h.name + '#' + h.claimId);
+  if(!urls.length) return [];
+  const r = await getJSON('https://api.na-backend.odysee.com/api/v1/proxy?m=resolve', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ jsonrpc:'2.0', method:'resolve', params:{ urls } })
+  });
+  const res = r.result || {};
+  return urls.map(u => res[u]).filter(c => c && c.value && !c.error).map(c => {
+    const ch = c.signing_channel || {};
+    const ts = c.value.release_time || c.timestamp;
+    return {
+      platform:'Odysee', title:c.value.title || c.name, desc:c.value.description || '',
+      channel:(ch.value && ch.value.title) || ch.name || '', channelId:ch.claim_id || ch.name || '',
+      url:'https://odysee.com/' + c.name + ':' + c.claim_id,
+      thumb:c.value.thumbnail && c.value.thumbnail.url,
+      published:ts ? new Date(ts * 1000).toISOString() : null,
+      duration:c.value.video && c.value.video.duration != null ? +c.value.video.duration : null,
+      views:0, likes:null
+    };
+  });
+}
+
+/* ---------- Recherche ---------- */
+let lastResults = [], lastNotes = [], lastKws = [], lastStrong = [], shown = [];
+
+function rescore(){ lastResults.forEach(it => scoreItem(it, lastKws, lastStrong)); }
+
+$('f').onsubmit = async e => {
+  e.preventDefault();
+  const q = $('q').value.trim();
+  if(!q) return;
+  savePrefs();
+  lastKws = keywords(q);
+  lastStrong = [...new Set(strongKeywords(q).concat(listOf($('must').value)))];
+  const jobs = [];
+  if($('sYT').checked) jobs.push(['YouTube', searchYouTube(q, $('lang').value)]);
+  if($('sPT').checked) jobs.push(['PeerTube', searchPeerTube(q)]);
+  if($('sOD').checked) jobs.push(['Odysee', searchOdysee(q)]);
+  if(!jobs.length){ setStatus('Coche au moins une plateforme.'); return; }
+
+  setStatus('Recherche en cours…');
+  $('results').innerHTML = '';
+  const settled = await Promise.allSettled(jobs.map(j => j[1]));
+  let all = [];
+  const notes = [];
+  settled.forEach((r, i) => {
+    const name = jobs[i][0];
+    if(r.status === 'fulfilled'){ all = all.concat(r.value); notes.push(esc(name) + ' : ' + r.value.length); }
+    else notes.push(esc(name) + ' : ⚠️ ' + esc(r.reason && r.reason.message || 'erreur'));
+  });
+  lastResults = all; lastNotes = notes;
+  rescore();
+  render();
+};
+
+/* ---------- Affichage ---------- */
+function fmtDate(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { month:'short', year:'numeric' });
+}
+function fmtViews(n){
+  if(!n) return '';
+  if(n >= 1e6) return (n / 1e6).toFixed(1).replace('.', ',') + ' M vues';
+  if(n >= 1e3) return Math.round(n / 1e3) + ' k vues';
+  return n + ' vues';
+}
+function fmtDur(s){
+  if(s == null) return '';
+  const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = Math.floor(s % 60);
+  return (h ? h + ' h ' : '') + (h ? String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0');
+}
+
+function render(){
+  const showOff = $('showOff').checked, noShort = $('noShort').checked;
+  const dmin = parseFloat($('dmin').value), dmax = parseFloat($('dmax').value);
+  const age = +$('age').value, forbid = listOf($('mustNot').value), sort = $('sort').value;
+  const cnt = { ban:0, off:0, mot:0, dur:0, age:0 };
+  shown = lastResults.filter(it => {
+    if(banned[chanKey(it)]){ cnt.ban++; return false; }
+    if(it.offTopic && !showOff){ cnt.off++; return false; }
+    if(forbid.length){
+      const td = norm(it.title) + ' ' + norm(it.desc);
+      if(forbid.some(k => hasWord(td, k))){ cnt.mot++; return false; }
+    }
+    if(it.duration != null){
+      if(noShort && it.duration < 60){ cnt.dur++; return false; }
+      if(!isNaN(dmin) && it.duration < dmin * 60){ cnt.dur++; return false; }
+      if(!isNaN(dmax) && dmax > 0 && it.duration > dmax * 60){ cnt.dur++; return false; }
+    }
+    if(age && it.published && (Date.now() - new Date(it.published).getTime()) > age * 3.156e10){ cnt.age++; return false; }
+    return true;
+  });
+  const ts = it => it.published ? new Date(it.published).getTime() : 0;
+  if(sort === 'date') shown.sort((a, b) => ts(b) - ts(a));
+  else if(sort === 'views') shown.sort((a, b) => (b.views || 0) - (a.views || 0));
+  else shown.sort((a, b) => b.score - a.score);
+
+  const hid = [];
+  if(cnt.off) hid.push(cnt.off + ' hors-sujet');
+  if(cnt.mot) hid.push(cnt.mot + ' avec mot interdit');
+  if(cnt.dur) hid.push(cnt.dur + ' hors durée');
+  if(cnt.age) hid.push(cnt.age + ' trop anciennes');
+  if(cnt.ban) hid.push(cnt.ban + ' de chaînes bannies');
+  setStatus(lastNotes.join(' · ') + (hid.length ? '<br>Masquées : ' + hid.join(', ') : ''));
+
+  if(!shown.length){
+    $('results').innerHTML = '<div class="box small">Aucun résultat avec ces filtres.</div>';
+    return;
+  }
+  $('results').innerHTML = shown.map((it, i) => {
+    const cls = it.score >= 65 ? 's-good' : it.score >= 45 ? 's-mid' : 's-bad';
+    const meta = [it.channel, fmtDate(it.published), fmtViews(it.views), fmtDur(it.duration)].filter(Boolean).map(esc).join(' · ');
+    const why = it.why.map(([sign, txt]) =>
+      '<li class="' + (sign === '+' ? 'plus' : sign === '-' ? 'minus' : 'info') + '">' + (sign === 'i' ? '' : sign + ' ') + esc(txt) + '</li>').join('');
+    const img = it.thumb ? '<img loading="lazy" src="' + esc(it.thumb) + '" alt="">' : '<img alt="">';
+    let ev = '';
+    if(it.com && it.com.ev.length){
+      ev = '<details><summary>Voir les commentaires qui comptent (' + it.com.ev.length + ')</summary><ul class="ev">' +
+        it.com.ev.map(e => {
+          const x = String(e.text).replace(/\s+/g, ' ');
+          return '<li><b>' + CATS[e.cat].icon + ' ' + esc(CATS[e.cat].label) + '</b> — « ' +
+            esc(x.length > 200 ? x.slice(0, 200) + '…' : x) + ' »</li>';
+        }).join('') + '</ul></details>';
+    }
+    const isT = !!trusted[chanKey(it)];
+    const href = esc(it.url);
+    return '<div class="card">' +
+      '<a class="thumb" href="' + href + '" target="_blank" rel="noopener noreferrer">' + img + '</a>' +
+      '<div class="body"><div class="top"><span class="badge p-' + esc(it.platform) + '">' + esc(it.platform) + '</span>' +
+      '<span class="score ' + cls + '">' + it.score + '</span></div>' +
+      '<h3><a href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(it.title) + '</a></h3>' +
+      '<div class="meta">' + meta + '</div><ul class="why">' + why + '</ul>' + ev +
+      '<div class="act"><button type="button" data-act="trust" data-i="' + i + '" class="' + (isT ? 'on' : '') + '">⭐ ' + (isT ? 'De confiance' : 'Confiance') + '</button>' +
+      '<button type="button" data-act="ban" data-i="' + i + '">🚫 Bannir la chaîne</button></div>' +
+      '</div></div>';
+  }).join('');
+}
+
+$('results').onclick = e => {
+  const b = e.target && e.target.closest ? e.target.closest('button[data-act]') : null;
+  if(!b) return;
+  const it = shown[+b.dataset.i];
+  if(!it) return;
+  const k = chanKey(it), name = it.channel || k;
+  if(b.dataset.act === 'trust'){
+    if(trusted[k]) delete trusted[k]; else { trusted[k] = name; delete banned[k]; }
+  } else {
+    banned[k] = name; delete trusted[k];
+  }
+  store.set('trusted', trusted); store.set('banned', banned);
+  renderLists(); rescore(); render();
+};
+
+/* ---------- Réglages ---------- */
+function renderLists(){
+  const mk = (obj, kind) => Object.keys(obj).map(k =>
+    '<button type="button" data-kind="' + kind + '" data-k="' + esc(k) + '">' + esc(obj[k]) + ' ✕</button>').join('') ||
+    '<span class="small">Aucune</span>';
+  $('listTrust').innerHTML = mk(trusted, 'trusted');
+  $('listBan').innerHTML = mk(banned, 'banned');
+}
+$('settings').onclick = e => {
+  const b = e.target && e.target.closest ? e.target.closest('button[data-kind]') : null;
+  if(!b) return;
+  if(b.dataset.kind === 'trusted'){ delete trusted[b.dataset.k]; store.set('trusted', trusted); }
+  else { delete banned[b.dataset.k]; store.set('banned', banned); }
+  renderLists();
+  if(lastResults.length){ rescore(); render(); }
+};
+$('ytKey').value = ytKey;
+if(!ytKey) $('settings').hidden = false;
+$('btnSettings').onclick = () => { $('settings').hidden = !$('settings').hidden; };
+$('saveKey').onclick = () => {
+  ytKey = $('ytKey').value.trim();
+  store.set('ytKey', ytKey);
+  $('settings').hidden = true;
+  setStatus('Clé enregistrée ✅');
+};
+
+const PREF_CHECK = ['sYT', 'sPT', 'sOD', 'noShort', 'showOff'];
+const PREF_VAL = ['must', 'mustNot', 'dmin', 'dmax', 'age', 'sort', 'lang'];
+function savePrefs(){
+  const p = {};
+  PREF_CHECK.forEach(id => { p[id] = $(id).checked; });
+  PREF_VAL.forEach(id => { p[id] = $(id).value; });
+  store.set('prefs', p);
+}
+(function loadPrefs(){
+  const p = store.get('prefs', null);
+  if(!p || typeof p !== 'object') return;
+  PREF_CHECK.forEach(id => { if(typeof p[id] === 'boolean') $(id).checked = p[id]; });
+  PREF_VAL.forEach(id => { if(typeof p[id] === 'string') $(id).value = p[id]; });
+})();
+PREF_CHECK.concat(PREF_VAL).forEach(id => {
+  $(id).onchange = () => { savePrefs(); if(lastResults.length) render(); };
+});
+renderLists();
+</script>
+</body>
+</html>
