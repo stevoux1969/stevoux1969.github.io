@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Banc d'essai des sources</title>
+<style>
+  body{margin:0;padding:14px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f4f5f7;color:#1d2330;max-width:720px;margin:auto}
+  @media (prefers-color-scheme:dark){body{background:#111318;color:#e8eaef}.row,.box{background:#1b1e25!important}input{color:#e8eaef}}
+  h1{font-size:1.2rem;margin:4px 0 8px}
+  p{font-size:.9rem;margin:6px 0}
+  .box,.row{background:#fff;border-radius:12px;padding:10px 12px;margin:8px 0}
+  label{font-size:.8rem;opacity:.7;display:block;margin-top:6px}
+  input{width:100%;padding:10px;font-size:1rem;border:1px solid #c9ced8;border-radius:10px;background:transparent;box-sizing:border-box}
+  button{width:100%;margin-top:10px;font-size:1rem;border:0;border-radius:10px;padding:12px;background:#2563eb;color:#fff;font-weight:600}
+  .row b{font-size:.95rem}
+  .row div{font-size:.8rem;opacity:.8;overflow-wrap:anywhere;margin-top:2px}
+  #sum{font-weight:700}
+</style>
+</head>
+<body>
+<h1>🧪 Banc d'essai des sources</h1>
+<p>Cette page essaie chaque source depuis ton téléphone et dit si l'appli pourrait s'en servir. Rien n'est enregistré, aucune clé n'est demandée.</p>
+<div class="box">
+  <label for="q">Recherche en français</label>
+  <input id="q" value="changer chambre à air vélo">
+  <label for="en">La même en anglais</label>
+  <input id="en" value="replace bike inner tube">
+  <button id="go" type="button">Lancer les essais</button>
+</div>
+<div id="sum" class="box" hidden></div>
+<div id="out"></div>
+<p>Quand c'est fini, fais une capture d'écran et envoie-la à Claude.</p>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const qs = o => new URLSearchParams(o).toString();
+
+async function getJSON(url, opts){
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 9000);
+  try {
+    const r = await fetch(url, Object.assign({ signal: ctrl.signal }, opts || {}));
+    if(!r.ok) throw new Error('refus du site (code ' + r.status + ')');
+    return await r.json();
+  } finally { clearTimeout(timer); }
+}
+
+// Chaque essai renvoie [nombre de résultats, exemple de titre]
+const TESTS = [
+  { name: 'Stack Exchange (questions-réponses, rubrique vélo)', kind: 'Tutos écrits',
+    run: async (q, en) => { const j = await getJSON('https://api.stackexchange.com/2.3/search/advanced?' + qs({ order:'desc', sort:'relevance', q:en, site:'bicycles', pagesize:'5' })); return [j.items.length, j.items[0] && j.items[0].title]; } },
+  { name: 'iFixit (guides de réparation)', kind: 'Tutos écrits',
+    run: async (q, en) => { const j = await getJSON('https://www.ifixit.com/api/2.0/search/' + encodeURIComponent(en) + '?' + qs({ filter:'guide', limit:'5' })); const r = j.results || []; return [r.length, r[0] && r[0].title]; } },
+  { name: 'wikiHow en français', kind: 'Tutos écrits',
+    run: async (q) => { const j = await getJSON('https://fr.wikihow.com/api.php?' + qs({ action:'query', list:'search', srsearch:q, srlimit:'5', format:'json', origin:'*' })); const r = j.query.search; return [r.length, r[0] && r[0].title]; } },
+  { name: 'Internet Archive (notices et manuels)', kind: 'Notices',
+    run: async (q, en) => { const j = await getJSON('https://archive.org/advancedsearch.php?q=' + encodeURIComponent(en + ' manual') + '&fl[]=identifier&fl[]=title&rows=5&output=json'); const r = j.response.docs; return [r.length, r[0] && r[0].title]; } },
+  { name: 'Bluesky (adresse 1)', kind: 'Réseau social',
+    run: async (q) => { const j = await getJSON('https://api.bsky.app/xrpc/app.bsky.feed.searchPosts?' + qs({ q, limit:'5' })); const r = j.posts || []; return [r.length, r[0] && r[0].record && r[0].record.text]; } },
+  { name: 'Bluesky (adresse 2)', kind: 'Réseau social',
+    run: async (q) => { const j = await getJSON('https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?' + qs({ q, limit:'5' })); const r = j.posts || []; return [r.length, r[0] && r[0].record && r[0].record.text]; } },
+  { name: 'Dailymotion', kind: 'Vidéos',
+    run: async (q) => { const j = await getJSON('https://api.dailymotion.com/videos?' + qs({ search:q, fields:'id,title', limit:'5' })); const r = j.list || []; return [r.length, r[0] && r[0].title]; } },
+  { name: 'Odysee, étape 1 (recherche)', kind: 'Vidéos',
+    run: async (q, en) => { const j = await getJSON('https://lighthouse.odysee.tv/search?' + qs({ s:en, size:'5', from:'0', nsfw:'false', mediaType:'video' })); return [(j || []).length, j && j[0] && j[0].name]; } },
+  { name: 'Odysee, étape 2 (détails des vidéos)', kind: 'Vidéos',
+    run: async (q, en) => {
+      const h = await getJSON('https://lighthouse.odysee.tv/search?' + qs({ s:en, size:'3', from:'0', nsfw:'false', mediaType:'video' }));
+      const urls = (h || []).map(x => 'lbry://' + x.name + '#' + x.claimId);
+      if(!urls.length) throw new Error('étape 1 sans résultat');
+      const j = await getJSON('https://api.na-backend.odysee.com/api/v1/proxy?m=resolve', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ jsonrpc:'2.0', method:'resolve', params:{ urls } }) });
+      const r = Object.values(j.result || {}).filter(c => c && c.value);
+      return [r.length, r[0] && r[0].value.title];
+    } },
+  { name: 'PeerTube (déjà dans l\'appli, pour comparer)', kind: 'Vidéos',
+    run: async (q) => { const j = await getJSON('https://sepiasearch.org/api/v1/search/videos?' + qs({ search:q, start:'0', count:'5', sort:'-match' })); const r = j.data || []; return [r.length, r[0] && r[0].name]; } },
+  { name: 'Traduction automatique (déjà dans l\'appli)', kind: 'Outil',
+    run: async (q) => { const j = await getJSON('https://api.mymemory.translated.net/get?' + qs({ q, langpair:'fr|en' })); return [j.responseData && j.responseData.translatedText ? 1 : 0, j.responseData && j.responseData.translatedText]; } }
+];
+
+function explain(e){
+  const m = String(e && e.message || e);
+  if(e && e.name === 'AbortError') return 'pas de réponse au bout de 9 secondes';
+  if(/failed to fetch|networkerror|load failed/i.test(m)) return 'le site refuse les demandes venant d\'une page web (ou pas de réseau)';
+  return m;
+}
+
+$('go').onclick = async () => {
+  const q = $('q').value.trim(), en = $('en').value.trim() || q;
+  $('go').disabled = true; $('go').textContent = 'Essais en cours…';
+  $('sum').hidden = true;
+  $('out').innerHTML = TESTS.map((t, i) => '<div class="row" id="r' + i + '"><b>⏳ ' + esc(t.name) + '</b><div>' + esc(t.kind) + '</div></div>').join('');
+  let ok = 0;
+  await Promise.all(TESTS.map(async (t, i) => {
+    let html;
+    try {
+      const [n, sample] = await t.run(q, en);
+      if(n > 0){ ok++; html = '<b>✅ ' + esc(t.name) + '</b><div>' + n + ' résultat(s). Exemple : « ' + esc(String(sample || '').replace(/\s+/g, ' ').slice(0, 90)) + ' »</div>'; }
+      else html = '<b>🟠 ' + esc(t.name) + '</b><div>Le site répond, mais 0 résultat pour cette recherche.</div>';
+    } catch(e){
+      html = '<b>❌ ' + esc(t.name) + '</b><div>' + esc(explain(e)) + '</div>';
+    }
+    $('r' + i).innerHTML = html;
+  }));
+  $('sum').hidden = false;
+  $('sum').textContent = ok + ' source(s) sur ' + TESTS.length + ' utilisables depuis ton téléphone.';
+  $('go').disabled = false; $('go').textContent = 'Relancer les essais';
+};
+</script>
+</body>
+</html>

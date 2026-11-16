@@ -37,6 +37,7 @@
   .hrow a{color:inherit;font-weight:600;text-decoration:none;overflow-wrap:anywhere}
   .wchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
   .wchips button{font-size:.8rem;padding:5px 10px;background:transparent;color:var(--acc);border:1px solid var(--acc);font-weight:600}
+  .wchips a.exit{font-size:.8rem;padding:5px 10px;border:1px solid var(--line);border-radius:10px;color:var(--txt);text-decoration:none;font-weight:500}
   .sum{font-size:.86rem;margin:6px 0 2px;line-height:1.3}
   .keys{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 0}
   .keys a{font-size:.75rem;padding:4px 8px;border-radius:8px;background:rgba(37,99,235,.13);color:var(--acc);text-decoration:none;overflow-wrap:anywhere}
@@ -124,7 +125,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VERSION = '2.3';
+const APP_VERSION = '2.4';
 $('ver').textContent = 'v' + APP_VERSION;
 
 /* ---------- Mémoire de l'appareil ---------- */
@@ -855,7 +856,7 @@ function render(){
     top.push('<div class="box tip">🇬🇧 Vidéo en anglais ? Une fois dans YouTube : touche la vidéo, puis ⚙️ → <b>Piste audio</b> → Français (doublage, s\'il existe). Sinon ⚙️ → <b>Sous-titres</b> → Traduire automatiquement → Français.</div>');
 
   if(!shown.length){
-    $('results').innerHTML = top.join('') + '<div class="box small">Aucun résultat avec ces filtres.</div>';
+    $('results').innerHTML = top.join('') + '<div class="box small">Aucun résultat avec ces filtres.</div>' + exitsHtml();
     return;
   }
   $('results').innerHTML = top.join('') + shown.map((it, i) => {
@@ -892,7 +893,28 @@ function render(){
       '<div class="act"><button type="button" data-act="trust" data-i="' + i + '" class="' + (isT ? 'on' : '') + '">⭐ ' + (isT ? 'De confiance' : 'Confiance') + '</button>' +
       '<button type="button" data-act="ban" data-i="' + i + '">🚫 Bannir la chaîne</button></div>' +
       '</div></div>';
-  }).join('');
+  }).join('') + exitsHtml();
+}
+
+// Portes de sortie : là où l'appli ne peut pas lire, elle t'emmène avec ta recherche déjà tapée (pas de score)
+function exitsHtml(){
+  if(!lastQ) return '';
+  const fr = encodeURIComponent(lastQ), en = encodeURIComponent(lastEn || lastQ);
+  const L = [
+    ['🌐 Tutos écrits (web)', 'https://www.google.com/search?q=' + encodeURIComponent(lastQ + ' tutoriel')],
+    ['💬 Forums', 'https://www.google.com/search?q=' + encodeURIComponent(lastQ + ' forum')],
+    ['📘 wikiHow', 'https://fr.wikihow.com/wikiHowTo?search=' + fr],
+    ['🔧 iFixit', 'https://fr.ifixit.com/Search?query=' + en],
+    ['❓ Stack Exchange', 'https://stackexchange.com/search?q=' + en],
+    ['👽 Reddit', 'https://www.reddit.com/search/?q=' + en],
+    ['𝕏 X (Twitter)', 'https://x.com/search?q=' + fr],
+    ['🦋 Bluesky', 'https://bsky.app/search?q=' + fr],
+    ['🎵 TikTok', 'https://www.tiktok.com/search?q=' + fr],
+    ['▶️ Dailymotion', 'https://www.dailymotion.com/search/' + fr + '/videos'],
+    ['📚 Notices (Internet Archive)', 'https://archive.org/search?query=' + en]
+  ];
+  return '<div class="box tip">🚪 <b>Chercher ailleurs</b> avec la même recherche. Ici, pas de score : c\'est juste un raccourci.<div class="wchips">' +
+    L.map(([t, u]) => '<a class="exit" href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + t + '</a>').join('') + '</div></div>';
 }
 
 $('results').onclick = e => {
