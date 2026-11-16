@@ -47,9 +47,10 @@
   .body{flex:1;min-width:0}
   .top{display:flex;justify-content:space-between;align-items:center;gap:6px}
   .badge{font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:99px;color:#fff}
-  .p-YouTube{background:#dc2626}.p-PeerTube{background:#ea580c}.p-Odysee{background:#9333ea}
+  .p-YouTube{background:#dc2626}.p-PeerTube{background:#ea580c}.p-StackExchange{background:#2563eb}.p-iFixit{background:#0f766e}
   .score{font-weight:800;font-size:.95rem;padding:2px 9px;border-radius:8px;color:#fff}
-  .s-good{background:var(--good)}.s-mid{background:var(--mid)}.s-bad{background:var(--bad)}
+  .s-good{background:var(--good)}.s-mid{background:var(--mid)}.s-bad{background:var(--bad)}.s-none{background:#8b93a1}
+  .ph{width:120px;height:68px;border-radius:8px;background:rgba(107,114,128,.18);display:flex;align-items:center;justify-content:center;font-size:1.8rem;text-decoration:none}
   h3{font-size:.95rem;margin:6px 0 2px;line-height:1.25;overflow-wrap:anywhere}
   h3 a{color:inherit;text-decoration:none}
   .meta{font-size:.78rem;color:var(--mut)}
@@ -68,7 +69,7 @@
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
   .chips button{font-size:.78rem;padding:4px 9px;background:transparent;color:var(--txt);border:1px solid var(--line);font-weight:500}
   footer{font-size:.78rem;color:var(--mut);text-align:center;padding:16px}
-  @media (max-width:420px){.thumb{flex-basis:96px}.thumb img{width:96px;height:54px}}
+  @media (max-width:420px){.thumb{flex-basis:96px}.thumb img,.ph{width:96px;height:54px}}
 </style>
 </head>
 <body>
@@ -95,7 +96,7 @@
     <div class="row">
       <label><input type="checkbox" id="sYT" checked> YouTube</label>
       <label><input type="checkbox" id="sPT" checked> PeerTube</label>
-      <label><input type="checkbox" id="sOD"> Odysee</label>
+      <label><input type="checkbox" id="sTX" checked> 📄 Tutos écrits</label>
     </div>
     <details class="filters">
       <summary>Filtres</summary>
@@ -113,6 +114,7 @@
       </div>
       <div class="row">
         <label class="small"><input type="checkbox" id="showOff"> Afficher les hors-sujet</label>
+        <label class="small"><input type="checkbox" id="noShort"> Masquer les vidéos de moins d'1 minute</label>
       </div>
     </details>
     <button class="wide" type="submit">🔎 Chercher</button>
@@ -125,7 +127,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VERSION = '2.4';
+const APP_VERSION = '2.5';
 $('ver').textContent = 'v' + APP_VERSION;
 
 /* ---------- Mémoire de l'appareil ---------- */
@@ -374,7 +376,7 @@ function analyzeComments(it, ctx){
   const stale = ev.filter(e => e.cat === 'perime' && e.recent).length >= 2;
   if(stale) delta -= 10;
   ev.sort((a, b) => (b.neg - a.neg) || (b.w - a.w));
-  it.com = { total, useful, counts, ev: ev.slice(0, 8), delta, risk, stale, confirm: [...confirm],
+  it.com = { total, useful, counts, ev: ev.slice(0, 8), delta, risk, stale, ratio, confirm: [...confirm],
              level: useful >= 15 ? 'bonne' : useful >= 5 ? 'moyenne' : 'faible' };
 }
 
@@ -455,7 +457,7 @@ function summaryOf(it){
   if(n.manque) p.push(pl(n.manque, 'trouve', 'trouvent') + ' qu\'il manque une étape ou que ce n\'est pas clair');
   if(n.erreur) p.push(pl(n.erreur, 'relève', 'relèvent') + ' une erreur');
   if(n.clair) p.push('jugée bien expliquée par ' + pers(n.clair));
-  if(!p.length) p.push(c.total ? 'aucun avis exploitable dans les ' + c.total + ' commentaires lus' : 'aucun commentaire');
+  if(!p.length) p.push(c.total > 1 ? 'aucun avis exploitable dans les ' + c.total + ' commentaires lus' : c.total ? 'un seul commentaire, sans avis exploitable' : 'aucun commentaire');
   p.push(key);
   return fin(p) + (c.useful > 0 && c.level === 'faible' ? ' Peu d\'avis : à prendre avec prudence.' : '');
 }
@@ -495,12 +497,7 @@ function scoreItem(it, ctx){
     const pts = Math.round(20 * c.r);
     if(pts){ s += pts; why.push(['+', 'colle à ta recherche (' + c.hit + '/' + c.total + ')']); }
   }
-  // Fraîcheur
-  if(it.published){
-    const years = (Date.now() - new Date(it.published).getTime()) / 3.156e10;
-    if(years < 2){ s += 5; why.push(['+', 'récente']); }
-    else if(years > 6){ s -= 5; why.push(['-', 'ancienne (' + Math.floor(years) + ' ans)']); }
-  }
+  // L'âge de la vidéo ne compte plus : une vieille vidéo n'est pénalisée que si des commentaires disent qu'elle est périmée.
   // Likes / vues
   if(it.views > 200 && it.likes != null){
     const r = it.likes / it.views;
@@ -530,13 +527,26 @@ function scoreItem(it, ctx){
       it.tips = tipsOf(it);
       why.push(['i', c.useful + (c.useful > 1 ? ' commentaires utiles' : ' commentaire utile') + ' sur ' + c.total + ' · fiabilité de l\'avis : ' + c.level]);
     }
+  } else if(it.written){
+    // Tuto écrit : on utilise le signal de fiabilité du site lui-même (votes, réponse acceptée, guide pas à pas)
+    (it.signals || []).forEach(g => { s += g[0]; why.push([g[0] >= 0 ? '+' : '-', g[1]]); });
   } else {
     why.push(['i', 'commentaires non analysés sur ' + it.platform]);
   }
-  it.summary = summaryOf(it);
+  it.summary = it.written ? (it.note || '') : summaryOf(it);
+  if(it.duration != null && it.duration < 60) why.push(['i', '⚡ très courte (' + fmtDur(it.duration) + ')']);
   if(it.lang === 'en') why.push(['i', '🇬🇧 en anglais']);
 
-  it.score = Math.max(0, Math.min(100, Math.round(s)));
+  // Pas de preuve, pas de vert : sans assez d'avis, le score est plafonné et la pastille reste grise
+  it.confirmed = it.written ? !!it.ownOk : !!(it.com && it.com.useful >= 3);
+  it.raw = Math.max(0, Math.min(100, Math.round(s)));
+  it.score = it.confirmed ? it.raw : Math.min(it.raw, 59);
+  // La couleur suit les avis : majorité d'avis négatifs = rouge, avis partagés = orange, risque signalé = jamais vert
+  if(it.confirmed && it.com){
+    if(it.com.ratio < 0.35){ it.score = Math.min(it.score, 40); why.push(['-', 'la plupart des avis sont négatifs']); }
+    else if(it.com.ratio < 0.6 || it.com.risk){ it.score = Math.min(it.score, 64); why.push(['i', it.com.risk ? 'risque signalé : jamais en vert' : 'avis partagés']); }
+  }
+  if(!it.confirmed) why.push(['i', '⚪ non confirmé : ' + (it.written ? 'pas de réponse validée' : it.platform === 'YouTube' ? 'moins de 3 avis utiles' : 'pas d\'avis lisibles')]);
   it.why = why;
   return it;
 }
@@ -640,31 +650,51 @@ function searchPeerTube(qs){
   }, it => it.url);
 }
 
-function searchOdysee(qs){
-  return multi(qs, async x => {
-    const hits = await getJSON('https://lighthouse.odysee.tv/search?' + new URLSearchParams({
-      s:x.q, size:'15', from:'0', nsfw:'false', mediaType:'video'
-    }));
-    const urls = (hits || []).map(h => 'lbry://' + h.name + '#' + h.claimId);
-    if(!urls.length) return [];
-    const r = await getJSON('https://api.na-backend.odysee.com/api/v1/proxy?m=resolve', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ jsonrpc:'2.0', method:'resolve', params:{ urls } })
+/* ---------- Tutos écrits ---------- */
+const decodeEnt = x => String(x || '').replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n)).replace(/&#x([0-9a-f]+);/gi, (m, n) => String.fromCharCode(parseInt(n, 16)))
+  .replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+
+// Stack Exchange : questions-réponses avec votes. On interroge 4 rubriques (le site est en anglais).
+const SE_SITES = [['superuser', 'informatique'], ['bicycles', 'vélo'], ['diy', 'bricolage'], ['mechanics', 'auto']];
+async function searchStackExchange(en){
+  const rs = await Promise.allSettled(SE_SITES.map(async ([site, label]) => {
+    const j = await getJSON('https://api.stackexchange.com/2.3/search/advanced?' + new URLSearchParams({ order:'desc', sort:'relevance', q:en, site, pagesize:'5' }));
+    return (j.items || []).map(x => {
+      const acc = !!x.accepted_answer_id, votes = x.score || 0, na = x.answer_count || 0, sig = [];
+      if(acc) sig.push([15, '✅ réponse acceptée']);
+      else if(x.is_answered) sig.push([8, 'réponse bien notée']);
+      else if(!na) sig.push([-15, 'aucune réponse']);
+      if(votes >= 10) sig.push([10, votes + ' votes']);
+      else if(votes >= 3) sig.push([5, votes + ' votes']);
+      else if(votes < 0) sig.push([-10, 'question mal notée']);
+      const note = (acc ? 'Question avec une réponse acceptée' : x.is_answered ? 'Question avec une réponse bien notée' : na ? 'Question sans réponse validée' : 'Question restée sans réponse') +
+        ', ' + na + (na > 1 ? ' réponses' : ' réponse') + ', ' + votes + (Math.abs(votes) > 1 ? ' votes' : ' vote') + '.';
+      return { platform:'StackExchange', label:'Stack Exchange', written:true, title:decodeEnt(x.title), desc:(x.tags || []).join(' '),
+        channel:'rubrique ' + label, channelId:site, url:x.link, thumb:'', declLang:'en', duration:null,
+        published:x.creation_date ? new Date(x.creation_date * 1000).toISOString() : null,
+        views:x.view_count || 0, likes:null, signals:sig, note, ownOk:acc || !!x.is_answered };
     });
-    const res = r.result || {};
-    return urls.map(u => res[u]).filter(c => c && c.value && !c.error).map(c => {
-      const ch = c.signing_channel || {};
-      const ts = c.value.release_time || c.timestamp;
-      return {
-        platform:'Odysee', title:c.value.title || c.name, desc:c.value.description || '',
-        channel:(ch.value && ch.value.title) || ch.name || '', channelId:ch.claim_id || ch.name || '',
-        url:'https://odysee.com/' + c.name + ':' + c.claim_id,
-        thumb:c.value.thumbnail && c.value.thumbnail.url,
-        published:ts ? new Date(ts * 1000).toISOString() : null,
-        declLang:(c.value.languages && c.value.languages[0]) || '',
-        duration:c.value.video && c.value.video.duration != null ? +c.value.video.duration : null,
-        views:0, likes:null
-      };
+  }));
+  const ok = rs.filter(r => r.status === 'fulfilled');
+  if(!ok.length) throw rs[0].reason;
+  return [].concat(...ok.map(r => r.value));
+}
+
+// iFixit : guides de réparation pas à pas avec photos
+const DIFF = { 'very easy':'très facile', easy:'facile', moderate:'moyenne', difficult:'difficile', 'very difficult':'très difficile' };
+function searchIFixit(qs){
+  return multi(qs, async x => {
+    const j = await getJSON('https://www.ifixit.com/api/2.0/search/' + encodeURIComponent(x.q) + '?filter=guide&limit=8');
+    return (j.results || []).filter(g => g && g.title && (g.url || g.guideid)).map(g => {
+      const url = !g.url ? 'https://www.ifixit.com/Guide/x/' + g.guideid : /^https?:/.test(g.url) ? g.url : 'https://www.ifixit.com' + g.url;
+      const d = g.difficulty ? (DIFF[String(g.difficulty).toLowerCase()] || String(g.difficulty)) : '';
+      const t = g.time_required ? String(g.time_required) : '';
+      const img = g.image && (g.image.thumbnail || g.image.standard || g.image.medium);
+      return { platform:'iFixit', written:true, title:String(g.title), desc:[g.summary, g.category, g.subject].filter(Boolean).join(' '),
+        channel:g.category ? String(g.category) : 'iFixit', channelId:'ifixit', url, thumb:img || '', declLang:g.locale || '', duration:null,
+        published:g.modified_date ? new Date(g.modified_date * 1000).toISOString() : null, views:0, likes:null,
+        signals:[[8, '📘 guide pas à pas avec photos']], ownOk:true,
+        note:'Guide pas à pas avec photos' + (d ? ', difficulté ' + d : '') + (t ? ', durée ' + t : '') + '.' };
     });
   }, it => it.url);
 }
@@ -748,7 +778,7 @@ async function runSearch(){
   const q = $('q').value.trim();
   if(!q) return;
   savePrefs();
-  if(!($('sYT').checked || $('sPT').checked || $('sOD').checked)){ setStatus('Coche au moins une plateforme.'); return; }
+  if(!($('sYT').checked || $('sPT').checked || $('sTX').checked)){ setStatus('Coche au moins une source.'); return; }
   $('results').innerHTML = '';
 
   let en = '', via = '';
@@ -766,7 +796,11 @@ async function runSearch(){
   const jobs = [];
   if($('sYT').checked) jobs.push(['YouTube', searchYouTube(qs)]);
   if($('sPT').checked) jobs.push(['PeerTube', searchPeerTube(qs)]);
-  if($('sOD').checked) jobs.push(['Odysee', searchOdysee(qs)]);
+  if($('sTX').checked){
+    jobs.push(['iFixit', searchIFixit(qs)]);
+    const seQ = en || ($('langMode').value === 'both' ? q : '');      // Stack Exchange est en anglais
+    if(seQ) jobs.push(['Stack Exchange', searchStackExchange(seQ)]);
+  }
   const settled = await Promise.allSettled(jobs.map(j => j[1]));
   let all = [];
   const notes = [];
@@ -805,15 +839,16 @@ function fmtDur(s){
 function render(){
   const ctx = lastCtx;
   const showOff = $('showOff').checked, frOnly = $('langMode').value === 'fr';
-  const age = +$('age').value, forbid = listOf($('mustNot').value), sort = $('sort').value;
+  const age = +$('age').value, forbid = listOf($('mustNot').value), sort = $('sort').value, noShort = $('noShort').checked;
   // Filet de sécurité : s'il ne reste presque rien, on montre aussi les vidéos YouTube moins proches
   const onTopic = lastResults.filter(it => !it.offTopic && !banned[chanKey(it)]).length;
   const relaxed = !showOff && onTopic < 3 && lastResults.length >= 10;
-  const cnt = { ban:0, off:0, mot:0, lang:0, age:0 };
+  const cnt = { ban:0, off:0, mot:0, lang:0, age:0, court:0 };
   shown = lastResults.filter(it => {
     if(banned[chanKey(it)]){ cnt.ban++; return false; }
     if(it.offTopic && !showOff && !(relaxed && it.platform === 'YouTube' && !it.mustMiss)){ cnt.off++; return false; }
     if(frOnly && it.lang === 'en'){ cnt.lang++; return false; }
+    if(noShort && it.duration != null && it.duration < 60){ cnt.court++; return false; }
     if(forbid.length){
       const td = norm(it.title) + ' ' + norm(it.desc);
       if(forbid.some(k => hasWord(td, k))){ cnt.mot++; return false; }
@@ -824,13 +859,14 @@ function render(){
   const ts = it => it.published ? new Date(it.published).getTime() : 0;
   if(sort === 'date') shown.sort((a, b) => ts(b) - ts(a));
   else if(sort === 'views') shown.sort((a, b) => (b.views || 0) - (a.views || 0));
-  else shown.sort((a, b) => b.score - a.score);
+  else shown.sort((a, b) => (b.score - a.score) || (b.confirmed - a.confirmed) || (b.raw - a.raw));
 
   const hid = [];
   if(cnt.off) hid.push(cnt.off + ' hors-sujet');
   if(cnt.lang) hid.push(cnt.lang + ' en anglais');
   if(cnt.mot) hid.push(cnt.mot + ' avec mot interdit');
-  if(cnt.age) hid.push(cnt.age + ' trop anciennes');
+  if(cnt.court) hid.push(cnt.court + ' de moins d\'1 minute');
+  if(cnt.age) hid.push(cnt.age + ' trop anciennes (filtre Ancienneté)');
   if(cnt.ban) hid.push(cnt.ban + ' de chaînes bannies');
   setStatus(lastNotes.join('<br>') + '<br>' + shown.length + ' affichée(s)' + (hid.length ? ' · masquées : ' + hid.join(', ') : ''));
 
@@ -843,28 +879,31 @@ function render(){
   // Verdict sur la recherche entière
   const noticeLink = '<a href="https://www.google.com/search?q=' + encodeURIComponent(lastQ + ' notice officielle manuel pdf') +
     '" target="_blank" rel="noopener noreferrer">📄 Chercher la notice officielle</a>';
-  const solid = shown.filter(it => it.platform === 'YouTube' && !it.offTopic && it.score >= 65 && it.com && it.com.useful >= 5 && !it.com.risk).length;
-  const decent = shown.filter(it => !it.offTopic && it.score >= 60).length;
+  const solid = shown.filter(it => !it.offTopic && it.confirmed && it.score >= 65 && (it.written || (it.com && it.com.useful >= 5 && !it.com.risk))).length;
+  const decent = shown.filter(it => !it.offTopic && it.score >= 50).length;
   const verdict = solid ? '✅ <b>' + solid + (solid > 1 ? ' tutos solides' : ' tuto solide') + '</b> : bon score et assez d\'avis pour s\'y fier.'
-    : decent ? '🟠 <b>Aucun tuto vraiment confirmé.</b> Les mieux notés ont trop peu d\'avis : à vérifier avant de suivre.'
+    : decent ? '🟠 <b>Aucun tuto vraiment confirmé.</b> Les mieux placés ont trop peu d\'avis : à vérifier avant de suivre.'
     : '🔴 <b>Aucun tuto sûr trouvé.</b> Regarde plutôt la notice officielle.';
   top.push('<div class="box tip">' + verdict + '<br>' + noticeLink + '</div>');
   const nbs = lastNeighbors.filter(w => !lastSuggest || norm(w) !== norm(lastSuggest.show));
   if(nbs.length) top.push('<div class="box tip">🔤 Mots qui reviennent dans les résultats. Touche-en un pour relancer la recherche avec :<div class="wchips">' +
     nbs.map(w => '<button type="button" data-act="addword" data-w="' + esc(w) + '">' + esc(w) + '</button>').join('') + '</div></div>');
-  if(shown.some(it => it.lang === 'en' && it.platform === 'YouTube'))
-    top.push('<div class="box tip">🇬🇧 Vidéo en anglais ? Une fois dans YouTube : touche la vidéo, puis ⚙️ → <b>Piste audio</b> → Français (doublage, s\'il existe). Sinon ⚙️ → <b>Sous-titres</b> → Traduire automatiquement → Français.</div>');
+  const enVid = shown.some(it => it.lang === 'en' && it.platform === 'YouTube'), enTxt = shown.some(it => it.lang === 'en' && it.written);
+  if(enVid || enTxt) top.push('<div class="box tip">' +
+    (enVid ? '🇬🇧 Vidéo en anglais ? Une fois dans YouTube : touche la vidéo, puis ⚙️ → <b>Piste audio</b> → Français (doublage, s\'il existe). Sinon ⚙️ → <b>Sous-titres</b> → Traduire automatiquement → Français.' : '') +
+    (enVid && enTxt ? '<br>' : '') +
+    (enTxt ? '📄 Page en anglais ? Dans Chrome : menu ⋮ → <b>Traduire</b>.' : '') + '</div>');
 
   if(!shown.length){
     $('results').innerHTML = top.join('') + '<div class="box small">Aucun résultat avec ces filtres.</div>' + exitsHtml();
     return;
   }
   $('results').innerHTML = top.join('') + shown.map((it, i) => {
-    const cls = it.score >= 65 ? 's-good' : it.score >= 45 ? 's-mid' : 's-bad';
+    const cls = !it.confirmed ? 's-none' : it.score >= 65 ? 's-good' : it.score >= 45 ? 's-mid' : 's-bad';
     const meta = [it.channel, fmtDate(it.published), fmtViews(it.views), fmtDur(it.duration)].filter(Boolean).map(esc).join(' · ');
     const why = it.why.map(([sign, txt]) =>
       '<li class="' + (sign === '+' ? 'plus' : sign === '-' ? 'minus' : 'info') + '">' + (sign === 'i' ? '' : sign + ' ') + esc(txt) + '</li>').join('');
-    const img = it.thumb ? '<img loading="lazy" src="' + esc(it.thumb) + '" alt="">' : '<img alt="">';
+    const img = it.thumb ? '<img loading="lazy" src="' + esc(it.thumb) + '" alt="">' : it.written ? '<span class="ph">📄</span>' : '<img alt="">';
     const sum = it.summary ? '<p class="sum">' + esc(it.summary) + '</p>' : '';
     const keys = it.moments.length ? '<div class="keys">' + it.moments.map(m =>
       '<a data-open="' + i + '" href="' + esc(it.url + '&t=' + m.t + 's') + '" target="_blank" rel="noopener noreferrer">▶ ' + fmtDur(m.t) +
@@ -886,12 +925,12 @@ function render(){
       '<button type="button" data-act="reason" data-r="' + r + '" data-i="' + i + '" class="' + (h.reason === r ? 'on' : '') + '">' + REASONS[r] + '</button>').join('') + '</div>' : '';
     return '<div class="card">' +
       '<a class="thumb" data-open="' + i + '" href="' + href + '" target="_blank" rel="noopener noreferrer">' + img + '</a>' +
-      '<div class="body"><div class="top"><span class="badge p-' + esc(it.platform) + '">' + esc(it.platform) + '</span>' +
+      '<div class="body"><div class="top"><span class="badge p-' + esc(it.platform) + '">' + esc(it.label || it.platform) + '</span>' +
       '<span class="score ' + cls + '">' + it.score + '</span></div>' +
       '<h3><a data-open="' + i + '" href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(it.title) + '</a></h3>' +
       '<div class="meta">' + meta + '</div>' + sum + keys + '<ul class="why">' + why + seen + '</ul>' + tips + ev + verdictRow + reasons +
-      '<div class="act"><button type="button" data-act="trust" data-i="' + i + '" class="' + (isT ? 'on' : '') + '">⭐ ' + (isT ? 'De confiance' : 'Confiance') + '</button>' +
-      '<button type="button" data-act="ban" data-i="' + i + '">🚫 Bannir la chaîne</button></div>' +
+      (it.written ? '' : '<div class="act"><button type="button" data-act="trust" data-i="' + i + '" class="' + (isT ? 'on' : '') + '">⭐ ' + (isT ? 'De confiance' : 'Confiance') + '</button>' +
+      '<button type="button" data-act="ban" data-i="' + i + '">🚫 Bannir la chaîne</button></div>') +
       '</div></div>';
   }).join('') + exitsHtml();
 }
@@ -1067,16 +1106,16 @@ $('saveKey').onclick = () => {
   setStatus('Clé enregistrée ✅');
 };
 
-const PREF_CHECK = ['sYT', 'sPT', 'sOD', 'showOff'];
+const PREF_CHECK = ['sYT', 'sPT', 'sTX', 'showOff', 'noShort'];
 const PREF_VAL = ['must', 'mustNot', 'age', 'sort', 'langMode'];
 function savePrefs(){
   const p = {};
   PREF_CHECK.forEach(id => { p[id] = $(id).checked; });
   PREF_VAL.forEach(id => { p[id] = $(id).value; });
-  store.set('prefs22', p);
+  store.set('prefs25', p);
 }
 (function loadPrefs(){
-  const p = store.get('prefs22', null);
+  const p = store.get('prefs25', null);
   if(!p || typeof p !== 'object') return;
   PREF_CHECK.forEach(id => { if(typeof p[id] === 'boolean') $(id).checked = p[id]; });
   PREF_VAL.forEach(id => { if(typeof p[id] === 'string') $(id).value = p[id]; });
