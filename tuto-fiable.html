@@ -18,7 +18,7 @@
   input[type=text],input[type=password],select{width:100%;padding:11px;font-size:1rem;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--txt)}
   select option{color:#111}
   button{font-size:1rem;border:0;border-radius:10px;padding:12px 16px;background:var(--acc);color:#fff;font-weight:600}
-  #btnSettings{background:transparent;color:var(--txt);font-size:1.3rem;padding:4px 8px}
+  #btnSettings,#btnHist{background:transparent;color:var(--txt);font-size:1.3rem;padding:4px 8px}
   .row{display:flex;flex-wrap:wrap;gap:8px 16px;margin:12px 0}
   .row label{display:flex;align-items:center;gap:6px}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
@@ -32,6 +32,11 @@
   .tip{font-size:.82rem;border-left:4px solid var(--acc)}
   .tip a{color:var(--acc);font-weight:600}
   .mini{font-size:.8rem;padding:6px 10px;margin-top:6px;display:block}
+  .act button.ko.on{background:var(--bad);border-color:var(--bad)}
+  .hrow{padding:8px 0;border-top:1px solid var(--line)}
+  .hrow a{color:inherit;font-weight:600;text-decoration:none;overflow-wrap:anywhere}
+  .wchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .wchips button{font-size:.8rem;padding:5px 10px;background:transparent;color:var(--acc);border:1px solid var(--acc);font-weight:600}
   .sum{font-size:.86rem;margin:6px 0 2px;line-height:1.3}
   .keys{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 0}
   .keys a{font-size:.75rem;padding:4px 8px;border-radius:8px;background:rgba(37,99,235,.13);color:var(--acc);text-decoration:none;overflow-wrap:anywhere}
@@ -68,7 +73,7 @@
 <body>
 <header>
   <h1>Tuto <span>Fiable</span> <small id="ver"></small></h1>
-  <button id="btnSettings" aria-label="Réglages">⚙️</button>
+  <div><button id="btnHist" aria-label="Mon historique">🕘</button><button id="btnSettings" aria-label="Réglages">⚙️</button></div>
 </header>
 <main>
   <div id="update" class="box tip" hidden></div>
@@ -82,6 +87,7 @@
     <p class="small"><b>🚫 Chaînes bannies</b> (touche pour retirer)</p>
     <div id="listBan" class="chips"></div>
   </section>
+  <section id="hist" class="box" hidden></section>
 
   <form id="f" class="box">
     <input id="q" type="text" placeholder="Ex : activer XMP carte mère MSI B550" required>
@@ -118,7 +124,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VERSION = '2.2';
+const APP_VERSION = '2.3';
 $('ver').textContent = 'v' + APP_VERSION;
 
 /* ---------- Mémoire de l'appareil ---------- */
@@ -135,6 +141,8 @@ let ytKey = store.get('ytKey', '');
 let trusted = store.get('trusted', {});   // { clé de chaîne : nom }
 let banned = store.get('banned', {});
 let trCache = store.get('trCache', {});   // traductions déjà faites
+let hist = store.get('hist', []);         // mon historique : vidéos ouvertes + mon verdict
+if(!Array.isArray(hist)) hist = [];
 
 /* ---------- Outils ---------- */
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -171,6 +179,9 @@ async function getJSON(url, opts){
 const STOP_FR = new Set(('le la les un une des de du d l a au aux et ou en sur pour par avec sans dans comment faire ' +
   'mon ma mes ton ta tes son sa ses ce cette ces qui que quoi est sont tuto tutoriel je j il on ne pas').split(' '));
 const STOP_EN = new Set('the an of to how in on for with my your is are and do i it this that tutorial'.split(' '));
+const FILLER = new Set(('guide tutorial tuto tutoriel video videos how comment easy facile simple best meilleur meilleure new nouveau full complet complete ' +
+  'step steps etape etapes part partie fix quick rapide your with avec pour dans tout faire explained explique setup using without sans what why when where ' +
+  'every need know avant apres before after more plus very tres from this that have make cette votre notre').split(' '));
 function keywords(q){
   return [...new Set(norm(q).split(/[^a-z0-9]+/).filter(w => w.length > 1 && !STOP_FR.has(w) && !STOP_EN.has(w)))];
 }
@@ -658,7 +669,7 @@ function searchOdysee(qs){
 }
 
 /* ---------- Recherche ---------- */
-let lastResults = [], lastNotes = [], lastQ = '', lastEn = '', lastCtx = null, lastSuggest = null, shown = [];
+let lastResults = [], lastNotes = [], lastQ = '', lastEn = '', lastCtx = null, lastSuggest = null, lastNeighbors = [], shown = [];
 
 function rescore(){ lastResults.forEach(it => scoreItem(it, lastCtx)); }
 
@@ -677,7 +688,7 @@ function dist(a, b){
 // Après la recherche : repère un mot introuvable dans les résultats (faute de frappe ?) et cherche le mot voisin
 function calibrate(){
   const ctx = lastCtx;
-  ctx.suspect = new Set(); lastSuggest = null;
+  ctx.suspect = new Set(); lastSuggest = null; lastNeighbors = [];
   const yt = lastResults.filter(it => it.platform === 'YouTube');
   const pool = yt.length >= 8 ? yt : lastResults;
   if(pool.length < 8) return;
@@ -686,6 +697,33 @@ function calibrate(){
   ctx.strong.forEach(k => { if(ratio(k) < 0.1) ctx.suspect.add(k); });
   const freq = new Map();
   pool.forEach(it => new Set(norm(it.title).split(/[^a-z0-9]+/)).forEach(w => { if(w.length >= 3) freq.set(w, (freq.get(w) || 0) + 1); }));
+  // Mots voisins : termes (surtout techniques) qui reviennent dans les titres et que tu n'as pas tapés
+  const altWords = new Set([].concat(...Object.values(ctx.alts)));
+  const known = x => ctx.all.includes(x) || altWords.has(x) || ctx.all.some(k => k.length > 5 && x.startsWith(k.slice(0, k.length - 2)));
+  const nb = new Map();
+  pool.forEach(it => {
+    const title = String(it.title || ''), letters = title.replace(/[^A-Za-zÀ-ÿ]/g, '');
+    const shouty = letters.length > 0 && letters.replace(/[^A-Z]/g, '').length / letters.length > 0.6;
+    const seen = new Set();
+    (title.match(/[A-Za-z0-9À-ÿ]+(?:-[A-Za-z0-9À-ÿ]+)*/g) || []).forEach(tok => {
+      const n = norm(tok);
+      if(seen.has(n) || n.length < 2 || /^\d+$/.test(n) || /^\d+(k|p|hz|fps|go|gb|mo|mb|tb|to|min|h|x)$/.test(n)) return;
+      if(STOP_FR.has(n) || STOP_EN.has(n) || n.split('-').every(known)) return;
+      const tech = /\d/.test(tok) || (!shouty && /[A-Z]/.test(tok) && tok === tok.toUpperCase());
+      if(!tech && (n.length < 4 || FILLER.has(n))) return;
+      seen.add(n);
+      const e = nb.get(n) || { n: 0, tech: 0, forms: {} };
+      e.n++; if(tech) e.tech++; e.forms[tok] = (e.forms[tok] || 0) + 1;
+      nb.set(n, e);
+    });
+  });
+  const isTech = e => e.tech * 2 >= e.n;
+  const minTech = Math.max(2, Math.ceil(pool.length * 0.1)), minAny = Math.max(3, Math.ceil(pool.length * 0.25));
+  lastNeighbors = [...nb.values()]
+    .filter(e => e.n >= (isTech(e) ? minTech : minAny))
+    .sort((a, b) => (isTech(b) - isTech(a)) || (b.n - a.n))
+    .slice(0, 6)
+    .map(e => Object.keys(e.forms).sort((x, y) => e.forms[y] - e.forms[x])[0]);
   const minF = Math.max(3, Math.ceil(pool.length * 0.15));
   for(const k of ctx.kwsFr){
     if(k.length < 3 || DICT[k] || (ctx.alts[k] || []).length || ratio(k) >= 0.1) continue;
@@ -801,8 +839,18 @@ function render(){
     ' » ? Ce mot n\'apparaît presque dans aucun résultat.<button type="button" class="mini" data-act="suggest">🔁 Relancer avec ' + esc(lastSuggest.show) + '</button></div>');
   else if(ctx.suspect.size) top.push('<div class="box tip">« ' + esc([...ctx.suspect].join(', ')) + ' » n\'apparaît presque dans aucun résultat : je ne m\'en sers pas pour masquer des vidéos.</div>');
   if(relaxed && shown.length) top.push('<div class="box tip">Peu de vidéos collent vraiment à ta recherche : j\'affiche aussi les moins proches.</div>');
-  top.push('<div class="box tip">📄 <a href="https://www.google.com/search?q=' + encodeURIComponent(lastQ + ' notice officielle manuel pdf') +
-    '" target="_blank" rel="noopener noreferrer">Chercher la notice officielle</a> (recherche web)</div>');
+  // Verdict sur la recherche entière
+  const noticeLink = '<a href="https://www.google.com/search?q=' + encodeURIComponent(lastQ + ' notice officielle manuel pdf') +
+    '" target="_blank" rel="noopener noreferrer">📄 Chercher la notice officielle</a>';
+  const solid = shown.filter(it => it.platform === 'YouTube' && !it.offTopic && it.score >= 65 && it.com && it.com.useful >= 5 && !it.com.risk).length;
+  const decent = shown.filter(it => !it.offTopic && it.score >= 60).length;
+  const verdict = solid ? '✅ <b>' + solid + (solid > 1 ? ' tutos solides' : ' tuto solide') + '</b> : bon score et assez d\'avis pour s\'y fier.'
+    : decent ? '🟠 <b>Aucun tuto vraiment confirmé.</b> Les mieux notés ont trop peu d\'avis : à vérifier avant de suivre.'
+    : '🔴 <b>Aucun tuto sûr trouvé.</b> Regarde plutôt la notice officielle.';
+  top.push('<div class="box tip">' + verdict + '<br>' + noticeLink + '</div>');
+  const nbs = lastNeighbors.filter(w => !lastSuggest || norm(w) !== norm(lastSuggest.show));
+  if(nbs.length) top.push('<div class="box tip">🔤 Mots qui reviennent dans les résultats. Touche-en un pour relancer la recherche avec :<div class="wchips">' +
+    nbs.map(w => '<button type="button" data-act="addword" data-w="' + esc(w) + '">' + esc(w) + '</button>').join('') + '</div></div>');
   if(shown.some(it => it.lang === 'en' && it.platform === 'YouTube'))
     top.push('<div class="box tip">🇬🇧 Vidéo en anglais ? Une fois dans YouTube : touche la vidéo, puis ⚙️ → <b>Piste audio</b> → Français (doublage, s\'il existe). Sinon ⚙️ → <b>Sous-titres</b> → Traduire automatiquement → Français.</div>');
 
@@ -818,7 +866,7 @@ function render(){
     const img = it.thumb ? '<img loading="lazy" src="' + esc(it.thumb) + '" alt="">' : '<img alt="">';
     const sum = it.summary ? '<p class="sum">' + esc(it.summary) + '</p>' : '';
     const keys = it.moments.length ? '<div class="keys">' + it.moments.map(m =>
-      '<a href="' + esc(it.url + '&t=' + m.t + 's') + '" target="_blank" rel="noopener noreferrer">▶ ' + fmtDur(m.t) +
+      '<a data-open="' + i + '" href="' + esc(it.url + '&t=' + m.t + 's') + '" target="_blank" rel="noopener noreferrer">▶ ' + fmtDur(m.t) +
       (m.label ? ' · ' + esc(cut(m.label, 42)) : '') + '</a>').join('') + '</div>' : '';
     const tips = it.tips.length ? '<details><summary>💡 Astuces des spectateurs (' + it.tips.length + ')</summary><ul class="ev">' +
       it.tips.map(t => '<li>' + (t.own ? '<b>Le youtubeur :</b> ' : '') + '« ' + esc(cut(t.text, 260)) + ' »</li>').join('') + '</ul></details>' : '';
@@ -829,12 +877,18 @@ function render(){
     }
     const isT = !!trusted[chanKey(it)];
     const href = esc(it.url);
+    const h = histGet(it.url), vd = h ? h.verdict : null;
+    const seen = h ? '<li class="info">🕘 déjà ouverte le ' + esc(fmtDay(h.when)) + '</li>' : '';
+    const verdictRow = '<div class="act"><button type="button" data-act="ok" data-i="' + i + '" class="ok' + (vd === 'ok' ? ' on' : '') + '">👍 Ça a marché</button>' +
+      '<button type="button" data-act="ko" data-i="' + i + '" class="ko' + (vd === 'ko' ? ' on' : '') + '">👎 Pas bon</button></div>';
+    const reasons = vd === 'ko' ? '<div class="act">' + Object.keys(REASONS).map(r =>
+      '<button type="button" data-act="reason" data-r="' + r + '" data-i="' + i + '" class="' + (h.reason === r ? 'on' : '') + '">' + REASONS[r] + '</button>').join('') + '</div>' : '';
     return '<div class="card">' +
-      '<a class="thumb" href="' + href + '" target="_blank" rel="noopener noreferrer">' + img + '</a>' +
+      '<a class="thumb" data-open="' + i + '" href="' + href + '" target="_blank" rel="noopener noreferrer">' + img + '</a>' +
       '<div class="body"><div class="top"><span class="badge p-' + esc(it.platform) + '">' + esc(it.platform) + '</span>' +
       '<span class="score ' + cls + '">' + it.score + '</span></div>' +
-      '<h3><a href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(it.title) + '</a></h3>' +
-      '<div class="meta">' + meta + '</div>' + sum + keys + '<ul class="why">' + why + '</ul>' + tips + ev +
+      '<h3><a data-open="' + i + '" href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(it.title) + '</a></h3>' +
+      '<div class="meta">' + meta + '</div>' + sum + keys + '<ul class="why">' + why + seen + '</ul>' + tips + ev + verdictRow + reasons +
       '<div class="act"><button type="button" data-act="trust" data-i="' + i + '" class="' + (isT ? 'on' : '') + '">⭐ ' + (isT ? 'De confiance' : 'Confiance') + '</button>' +
       '<button type="button" data-act="ban" data-i="' + i + '">🚫 Bannir la chaîne</button></div>' +
       '</div></div>';
@@ -842,25 +896,127 @@ function render(){
 }
 
 $('results').onclick = e => {
-  const b = e.target && e.target.closest ? e.target.closest('button[data-act]') : null;
+  const t = e.target && e.target.closest ? e.target : null;
+  if(!t) return;
+  // Une vidéo ouverte entre dans l'historique (le lien s'ouvre normalement)
+  const a = t.closest('a[data-open]');
+  if(a){
+    const it = shown[+a.dataset.open];
+    if(it){ histTouch(it); if(!$('hist').hidden) renderHist(); }
+    return;
+  }
+  const b = t.closest('button[data-act]');
   if(!b) return;
-  if(b.dataset.act === 'suggest'){
+  const act = b.dataset.act;
+  if(act === 'suggest'){
     if(!lastSuggest) return;
     const sg = lastSuggest;
     $('q').value = lastQ.replace(/[A-Za-z0-9À-ÿ]+/g, w => norm(w) === sg.from ? sg.show : w);
     runSearch();
     return;
   }
+  if(act === 'addword'){ $('q').value = lastQ + ' ' + b.dataset.w; runSearch(); return; }
   const it = shown[+b.dataset.i];
   if(!it) return;
-  const k = chanKey(it), name = it.channel || k;
-  if(b.dataset.act === 'trust'){
-    if(trusted[k]) delete trusted[k]; else { trusted[k] = name; delete banned[k]; }
-  } else {
-    banned[k] = name; delete trusted[k];
+  if(act === 'ok' || act === 'ko'){
+    const msg = setVerdict(histTouch(it), act);
+    rescore(); render();
+    if(msg) setStatus($('status').innerHTML + '<br>⭐ ' + esc(msg));
+    if(!$('hist').hidden) renderHist();
+    return;
   }
+  if(act === 'reason'){
+    const h = histTouch(it);
+    h.reason = h.reason === b.dataset.r ? '' : b.dataset.r;
+    store.set('hist', hist);
+    render();
+    if(!$('hist').hidden) renderHist();
+    return;
+  }
+  const k = chanKey(it), name = it.channel || k;
+  if(act === 'trust'){
+    if(trusted[k]) delete trusted[k]; else { trusted[k] = name; delete banned[k]; }
+  } else if(act === 'ban'){
+    banned[k] = name; delete trusted[k];
+  } else return;
   store.set('trusted', trusted); store.set('banned', banned);
   renderLists(); rescore(); render();
+};
+
+/* ---------- Mon historique et mes verdicts (gardés sur l'appareil, ne changent jamais le classement) ---------- */
+const REASONS = { perime: 'Périmé', flou: 'Pas clair', hs: 'Hors-sujet', echec: 'Ne marche pas' };
+const fmtDay = ms => new Date(ms).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+const histGet = url => hist.find(h => h.url === url);
+function histTouch(it){
+  let h = histGet(it.url);
+  if(!h){
+    h = { url: it.url, title: it.title, channel: it.channel || '', chan: chanKey(it), platform: it.platform, q: lastQ, score: it.score, when: Date.now(), verdict: null, reason: '' };
+  } else {
+    h.when = Date.now(); h.score = it.score; if(lastQ) h.q = lastQ;
+    hist = hist.filter(x => x !== h);
+  }
+  hist.unshift(h);
+  if(hist.length > 300) hist.length = 300;
+  store.set('hist', hist);
+  return h;
+}
+// Deux 👍 sur la même chaîne : elle rejoint les chaînes de confiance (c'est ton avis, pas ton historique, qui compte)
+function setVerdict(h, v){
+  h.verdict = h.verdict === v ? null : v;
+  if(h.verdict !== 'ko') h.reason = '';
+  store.set('hist', hist);
+  if(h.verdict === 'ok' && !trusted[h.chan] && !banned[h.chan] && hist.filter(x => x.chan === h.chan && x.verdict === 'ok').length >= 2){
+    trusted[h.chan] = h.channel || h.chan;
+    store.set('trusted', trusted);
+    renderLists();
+    return 'Deux 👍 pour « ' + (h.channel || h.chan) + ' » : ajoutée à tes chaînes de confiance.';
+  }
+  return '';
+}
+let clearArmed = false;
+function renderHist(){
+  const box = $('hist');
+  if(!hist.length){
+    box.innerHTML = '<b>🕘 Mon historique</b><p class="small">Rien pour l\'instant. Une vidéo que tu ouvres depuis l\'appli se range ici, avec ton avis 👍 ou 👎.</p>';
+    return;
+  }
+  box.innerHTML = '<b>🕘 Mon historique</b> <span class="small">(gardé sur ce téléphone, ne change jamais le classement)</span>' +
+    hist.map((h, i) => {
+      const gap = (h.verdict === 'ko' && h.score >= 65) || (h.verdict === 'ok' && h.score < 45);
+      const meta = [h.channel, fmtDay(h.when), h.q ? 'recherche « ' + h.q + ' »' : '', 'score ' + h.score, h.reason ? REASONS[h.reason] : ''].filter(Boolean).map(esc).join(' · ');
+      return '<div class="hrow"><a href="' + esc(h.url) + '" target="_blank" rel="noopener noreferrer">' + esc(h.title) + '</a>' +
+        '<div class="meta">' + meta + '</div>' +
+        (gap ? '<div class="small">⚠️ Ton avis et le score ne sont pas d\'accord : c\'est utile pour améliorer les règles.</div>' : '') +
+        '<div class="act"><button type="button" data-hact="ok" data-i="' + i + '" class="ok' + (h.verdict === 'ok' ? ' on' : '') + '">👍</button>' +
+        '<button type="button" data-hact="ko" data-i="' + i + '" class="ko' + (h.verdict === 'ko' ? ' on' : '') + '">👎</button>' +
+        '<button type="button" data-hact="del" data-i="' + i + '">🗑️ Retirer</button></div></div>';
+    }).join('') +
+    '<div class="row"><button type="button" class="mini" data-hact="clear">' + (clearArmed ? 'Touche encore pour confirmer' : 'Tout effacer') + '</button></div>';
+}
+$('btnHist').onclick = () => {
+  const box = $('hist');
+  box.hidden = !box.hidden; clearArmed = false;
+  if(!box.hidden) renderHist();
+};
+$('hist').onclick = e => {
+  const b = e.target && e.target.closest ? e.target.closest('button[data-hact]') : null;
+  if(!b) return;
+  const act = b.dataset.hact;
+  if(act === 'clear'){
+    if(!clearArmed) clearArmed = true; else { hist = []; clearArmed = false; store.set('hist', hist); }
+    renderHist();
+    if(lastResults.length) render();
+    return;
+  }
+  clearArmed = false;
+  const h = hist[+b.dataset.i];
+  if(!h) return;
+  let msg = '';
+  if(act === 'del'){ hist.splice(+b.dataset.i, 1); store.set('hist', hist); }
+  else msg = setVerdict(h, act);
+  renderHist();
+  if(lastResults.length){ rescore(); render(); }
+  if(msg) setStatus($('status').innerHTML + '<br>⭐ ' + esc(msg));
 };
 
 /* ---------- Réglages ---------- */
