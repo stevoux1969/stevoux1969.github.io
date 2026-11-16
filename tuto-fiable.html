@@ -30,6 +30,11 @@
   details.filters summary{font-weight:600;cursor:pointer}
   #status{font-size:.9rem;color:var(--mut);margin:4px 2px 10px}
   .tip{font-size:.82rem;border-left:4px solid var(--acc)}
+  .tip a{color:var(--acc);font-weight:600}
+  .mini{font-size:.8rem;padding:6px 10px;margin-top:6px;display:block}
+  .sum{font-size:.86rem;margin:6px 0 2px;line-height:1.3}
+  .keys{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 0}
+  .keys a{font-size:.75rem;padding:4px 8px;border-radius:8px;background:rgba(37,99,235,.13);color:var(--acc);text-decoration:none;overflow-wrap:anywhere}
   .card{display:flex;gap:12px;background:var(--card);border-radius:14px;padding:10px;margin-bottom:10px}
   .thumb{flex:0 0 120px}
   .thumb img{width:120px;height:68px;object-fit:cover;border-radius:8px;background:#ccc;display:block}
@@ -62,10 +67,11 @@
 </head>
 <body>
 <header>
-  <h1>Tuto <span>Fiable</span> <small>v2.1</small></h1>
+  <h1>Tuto <span>Fiable</span> <small id="ver"></small></h1>
   <button id="btnSettings" aria-label="Réglages">⚙️</button>
 </header>
 <main>
+  <div id="update" class="box tip" hidden></div>
   <section id="settings" class="box" hidden>
     <label class="small" for="ytKey">Clé YouTube (API)</label>
     <input id="ytKey" type="password" placeholder="AIza..." autocomplete="off">
@@ -82,7 +88,7 @@
     <div class="row">
       <label><input type="checkbox" id="sYT" checked> YouTube</label>
       <label><input type="checkbox" id="sPT" checked> PeerTube</label>
-      <label><input type="checkbox" id="sOD" checked> Odysee</label>
+      <label><input type="checkbox" id="sOD"> Odysee</label>
     </div>
     <details class="filters">
       <summary>Filtres</summary>
@@ -112,6 +118,8 @@
 
 <script>
 const $ = id => document.getElementById(id);
+const APP_VERSION = '2.2';
+$('ver').textContent = 'v' + APP_VERSION;
 
 /* ---------- Mémoire de l'appareil ---------- */
 const store = {
@@ -249,15 +257,17 @@ function buildCtx(q, en){
   const must = listOf($('must').value);
   const strong = strongKeywords(q).filter(k => !must.includes(k));
   const kwsEn = en ? keywords(en) : [];
-  return { kwsFr, kwsEn, alts, strong, must, all: [...new Set(kwsFr.concat(kwsEn))] };
+  return { kwsFr, kwsEn, alts, strong, must, suspect: new Set(), all: [...new Set(kwsFr.concat(kwsEn))] };
 }
 // Part des mots de la recherche retrouvés, en français ou en anglais (on garde le meilleur des deux)
 function coverage(text, ctx){
-  const fr = ctx.kwsFr.filter(k => hasWord(text, k) || ctx.alts[k].some(a => hasWord(text, a))).length;
-  const en = ctx.kwsEn.filter(k => hasWord(text, k)).length;
-  const rf = ctx.kwsFr.length ? fr / ctx.kwsFr.length : 0;
-  const re = ctx.kwsEn.length ? en / ctx.kwsEn.length : 0;
-  return re > rf ? { r: re, hit: en, total: ctx.kwsEn.length } : { r: rf, hit: fr, total: ctx.kwsFr.length };
+  // Les mots mis de côté (introuvables partout, faute de frappe probable) ne comptent pas
+  const kf = ctx.kwsFr.filter(k => !ctx.suspect.has(k)), ke = ctx.kwsEn.filter(k => !ctx.suspect.has(k));
+  const fr = kf.filter(k => hasWord(text, k) || ctx.alts[k].some(a => hasWord(text, a))).length;
+  const en = ke.filter(k => hasWord(text, k)).length;
+  const rf = kf.length ? fr / kf.length : 0;
+  const re = ke.length ? en / ke.length : 0;
+  return re > rf ? { r: re, hit: en, total: ke.length } : { r: rf, hit: fr, total: kf.length };
 }
 const FR_W = new Set('le la les des une est pour dans avec sur comment vous votre et du au ce qui que pas plus tout faire mon'.split(' '));
 const EN_W = new Set('the and to of how your you in for with is this that it on from what why can will'.split(' '));
@@ -327,6 +337,8 @@ function analyzeComments(it, ctx){
     if(!cat) continue;                                                        // compliment vague, hors-sujet…
     const meta = CATS[cat];
     const words = n.split(' ').length;
+    // Un conseil (« pour ceux chez qui ça ne marche pas, faites… ») n'est pas un avis négatif : il va dans les astuces
+    if(meta.neg && cat !== 'danger' && TIP.test(n) && words >= 8 && !/\?\s*$/.test(n)) continue;
     const precise = words >= 12 || /\b\d{1,2}:\d{2}\b/.test(n) ||
       imp.some(k => hasWord(n, k)) || ctx.all.filter(k => hasWord(n, k)).length >= 2;
     const recent = !!c.date && (Date.now() - new Date(c.date).getTime()) < 3.156e10;
@@ -354,6 +366,88 @@ function analyzeComments(it, ctx){
              level: useful >= 15 ? 'bonne' : useful >= 5 ? 'moyenne' : 'faible' };
 }
 
+/* ---------- Passages clés, astuces des spectateurs, résumé ---------- */
+const TS = /(?<![\d:.])(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?![\d:])/;
+const TS_G = new RegExp(TS.source, 'g');
+const toSec = m => (+m[3] >= 60 || (m[1] && +m[2] >= 60)) ? null : (+(m[1] || 0)) * 3600 + (+m[2]) * 60 + (+m[3]);
+const cut = (x, n) => { x = String(x).replace(/\s+/g, ' ').trim(); return x.length > n ? x.slice(0, n) + '…' : x; };
+const labelOf = line => String(line).replace(TS_G, ' ').replace(/^[\s\-–—:|()\[\]•.,]+|[\s\-–—:|()\[\]•.,]+$/g, '').replace(/\s+/g, ' ').trim();
+
+// Chapitres : lignes du type « 3:20 Réglage du BIOS » (dans la description ou dans un commentaire)
+function chaptersOf(text){
+  const out = [];
+  String(text || '').split(/\r?\n/).forEach(line => {
+    const m = TS.exec(line);
+    if(!m) return;
+    const t = toSec(m), label = labelOf(line);
+    if(t != null && label.length >= 2 && label.length <= 90) out.push({ t, label });
+  });
+  return out.length >= 2 ? out : [];
+}
+
+// Passages clés : chapitres + minutes citées dans les commentaires. Ceux qui parlent de ta recherche passent devant.
+function keyMoments(it, ctx){
+  const dur = it.duration || Infinity, map = new Map();
+  const rel = txt => { const n = norm(txt); return ctx.all.filter(k => hasWord(n, k)).length; };
+  const add = (t, label, w) => {
+    if(!(t > 0) || t >= dur) return;
+    const key = Math.round(t / 5), cur = map.get(key);
+    if(!cur) map.set(key, { t, label, w, best: w });
+    else { cur.w += w; if(w > cur.best){ cur.best = w; cur.label = label; } }
+  };
+  chaptersOf(it.desc).forEach(c => add(c.t, c.label, 2 + rel(c.label) * 4));
+  (it.rawComments || []).forEach(c => {
+    if(SPAM.test(norm(c.text))) return;
+    const ms = [...String(c.text).matchAll(TS_G)];
+    if(!ms.length) return;
+    if(ms.length > 3){ chaptersOf(c.text).forEach(x => add(x.t, x.label, 2 + rel(x.label) * 4)); return; }
+    const label = labelOf(c.text), w = 1 + 2 * Math.log10(1 + (c.likes || 0)) + rel(label) * 2;
+    ms.forEach(m => { const t = toSec(m); if(t != null) add(t, label, w); });
+  });
+  const all = [...map.values()].sort((a, b) => b.w - a.w).slice(0, 4);
+  return { best: all[0] || null, list: all.slice().sort((a, b) => a.t - b.t) };
+}
+
+// Astuces : commentaires du type « si ça ne marche pas, faites d'abord… », et réponses du youtubeur à un problème
+const TIP = /(pour ceux (qui|chez qui|dont)|si (ca|cela) (ne )?(marche|fonctionne) pas|si vous (n'avez|ne voyez|ne trouvez|avez|etes)|il faut (d'abord|aussi|avant|egalement)|pensez a|n'oubliez pas|astuce|petite precision|a noter|sinon (il faut|vous pouvez|essayez)|j'ai du (aussi|d'abord|mettre|faire|changer|activer|desactiver|passer|redemarrer|reinstaller)|la solution|for (those|anyone|people) (who|having|with)|if (it|this|that) (doesn'?t|does not|didn'?t|won'?t) work|if you (don'?t|can'?t|cannot|have|are|still)|make sure|you (need|have) to (first|also)|don'?t forget|pro tip|tip:|note:|heads up|the (fix|solution|trick)|what worked for me|i had to|try (this|updating|resetting|clearing|to ))/;
+function tipsOf(it){
+  const out = [], seen = new Set();
+  const push = (text, w, own) => { const k = norm(text).slice(0, 80); if(!seen.has(k)){ seen.add(k); out.push({ text, w, own }); } };
+  (it.rawComments || []).forEach(c => {
+    const n = norm(c.text).replace(/\s+/g, ' ').trim();
+    if(SPAM.test(n)) return;
+    const own = !!c.authorId && c.authorId === it.channelId;
+    if(TIP.test(n) && n.split(' ').length >= 8 && !/\?\s*$/.test(n)) push(c.text, 1 + (c.likes || 0) + (own ? 5 : 0), own);
+    const cat = classify(n);
+    if((cat && CATS[cat].neg) || n.includes('?'))
+      (c.ownerReplies || []).forEach(r => { if(norm(r).split(/\s+/).length >= 6) push(r, 3, true); });
+  });
+  return out.sort((a, b) => b.w - a.w).slice(0, 4);
+}
+
+// Résumé en une phrase
+function summaryOf(it){
+  if(it.platform !== 'YouTube') return '';
+  const key = it.bestMoment ? 'passage clé à ' + fmtDur(it.bestMoment.t) : '';
+  const fin = p => { const x = p.filter(Boolean).join(', '); return x ? x.charAt(0).toUpperCase() + x.slice(1) + '.' : ''; };
+  if(it.comState === 'closed') return fin(['commentaires fermés, impossible de juger par les avis', key]);
+  if(it.comState === 'error') return fin(['commentaires non lus', key]);
+  const c = it.com, n = c.counts, p = [];
+  const pers = x => x + (x > 1 ? ' personnes' : ' personne');
+  const pl = (x, un, plusieurs) => x + ' ' + (x > 1 ? plusieurs : un);
+  if(n.danger) p.push('⚠️ ' + pl(n.danger, 'signale', 'signalent') + ' un risque');
+  if(n.succes) p.push('marche pour ' + pers(n.succes) + (c.confirm.length ? ' (confirmé sur ' + c.confirm.join(', ').toUpperCase() + ')' : ''));
+  if(n.echec) p.push('ne marche pas pour ' + pers(n.echec));
+  if(n.perime) p.push(pl(n.perime, 'dit', 'disent') + ' que ça a changé depuis');
+  if(n.trompeur) p.push(pl(n.trompeur, 'trouve', 'trouvent') + ' le titre trompeur');
+  if(n.manque) p.push(pl(n.manque, 'trouve', 'trouvent') + ' qu\'il manque une étape ou que ce n\'est pas clair');
+  if(n.erreur) p.push(pl(n.erreur, 'relève', 'relèvent') + ' une erreur');
+  if(n.clair) p.push('jugée bien expliquée par ' + pers(n.clair));
+  if(!p.length) p.push(c.total ? 'aucun avis exploitable dans les ' + c.total + ' commentaires lus' : 'aucun commentaire');
+  p.push(key);
+  return fin(p) + (c.useful > 0 && c.level === 'faible' ? ' Peu d\'avis : à prendre avec prudence.' : '');
+}
+
 /* ---------- Score ---------- */
 const chanKey = it => it.platform + ':' + (it.channelId || it.channel || '?');
 
@@ -363,13 +457,16 @@ function scoreItem(it, ctx){
   const t = norm(it.title), td = t + ' ' + norm(it.desc);
   if(it.lang === undefined) it.lang = String(it.declLang || '').slice(0, 2).toLowerCase() || guessLang(it.title + ' ' + String(it.desc || '').slice(0, 300));
 
-  // Hors-sujet : un mot obligatoire manque, OU aucun mot important n'apparaît, OU presque aucun mot de la recherche
+  // Hors-sujet : un mot obligatoire manque, OU aucun mot important n'apparaît, OU presque aucun mot de la recherche.
+  // Un mot important introuvable partout (faute de frappe ?) est mis de côté : il ne sert plus à masquer.
+  const strongOk = ctx.strong.filter(k => !ctx.suspect.has(k));
   const missMust = ctx.must.filter(k => !hasWord(td, k));
-  const missStrong = ctx.strong.filter(k => !hasWord(td, k));
+  const missStrong = strongOk.filter(k => !hasWord(td, k));
   const covAll = coverage(td, ctx);
-  const hasKw = ctx.kwsFr.length > 0;
-  it.offTopic = missMust.length > 0 ||
-    (ctx.strong.length > 0 && missStrong.length === ctx.strong.length) ||
+  const hasKw = ctx.kwsFr.some(k => !ctx.suspect.has(k));
+  it.mustMiss = missMust.length > 0;
+  it.offTopic = it.mustMiss ||
+    (strongOk.length > 0 && missStrong.length === strongOk.length) ||
     (hasKw && covAll.r < 0.34);
   if(it.offTopic){
     s -= 30;
@@ -379,6 +476,7 @@ function scoreItem(it, ctx){
     s -= Math.min(20, missStrong.length * 8);
     why.push(['-', 'ne parle pas de « ' + missStrong.join(', ') + ' »']);
   }
+  ctx.strong.forEach(k => { if(ctx.suspect.has(k) && hasWord(td, k)){ s += 6; why.push(['+', 'parle de « ' + k + ' »']); } });
   // Le titre colle à la recherche (en français ou en anglais)
   if(hasKw){
     const c = coverage(t, ctx);
@@ -400,28 +498,30 @@ function scoreItem(it, ctx){
   // Chaîne de confiance
   if(trusted[chanKey(it)]){ s += 10; why.push(['+', 'chaîne de confiance']); }
 
-  // Commentaires
+  // Commentaires, passages clés, astuces
+  it.moments = []; it.bestMoment = null; it.tips = []; it.com = null;
   if(it.platform === 'YouTube'){
+    const km = keyMoments(it, ctx);
+    it.moments = km.list; it.bestMoment = km.best;
     if(it.comState === 'closed') why.push(['i', 'commentaires fermés']);
     else if(it.comState === 'error') why.push(['i', 'commentaires non lus']);
     else {
       analyzeComments(it, ctx);
-      const c = it.com, n = c.counts;
+      const c = it.com;
       s += c.delta;
-      if(n.succes) why.push(['+', '✅ marche pour ' + n.succes + (n.succes > 1 ? ' personnes' : ' personne')]);
-      if(c.confirm.length) why.push(['+', 'confirmé sur « ' + c.confirm.join(', ') + ' »']);
-      if(n.clair) why.push(['+', '👍 bien expliqué (' + n.clair + ')']);
-      if(n.danger) why.push(['-', '⚠️ risque signalé (' + n.danger + ')']);
-      if(n.perime) why.push(['-', '⏳ peut-être périmé (' + n.perime + ')']);
-      if(n.echec) why.push(['-', '❌ ne marche pas pour ' + n.echec]);
-      if(n.trompeur) why.push(['-', '🎣 titre trompeur (' + n.trompeur + ')']);
-      if(n.manque) why.push(['-', '🧩 étape manquante ou pas clair (' + n.manque + ')']);
-      if(n.erreur) why.push(['-', '✏️ erreur relevée (' + n.erreur + ')']);
+      const pts = Math.abs(c.delta) > 1 ? ' points' : ' point';
+      if(c.delta > 0) why.push(['+', 'avis des commentaires : +' + c.delta + pts]);
+      else if(c.delta < 0) why.push(['-', 'avis des commentaires : ' + c.delta + pts]);
+      // Petit bonus si le youtubeur répond aux questions. Jamais de pénalité s'il ne répond pas.
+      const nb = (it.rawComments || []).filter(x => x.ownerReplies && x.ownerReplies.length).length;
+      if(nb){ s += nb >= 3 ? 5 : 3; why.push(['+', '💬 le youtubeur répond (' + nb + ')']); }
+      it.tips = tipsOf(it);
       why.push(['i', c.useful + (c.useful > 1 ? ' commentaires utiles' : ' commentaire utile') + ' sur ' + c.total + ' · fiabilité de l\'avis : ' + c.level]);
     }
   } else {
     why.push(['i', 'commentaires non analysés sur ' + it.platform]);
   }
+  it.summary = summaryOf(it);
   if(it.lang === 'en') why.push(['i', '🇬🇧 en anglais']);
 
   it.score = Math.max(0, Math.min(100, Math.round(s)));
@@ -453,12 +553,15 @@ async function multi(qs, fn, keyOf){
 async function fetchComments(it){
   const get = async (order, n) => {
     const c = await getJSON(YT + 'commentThreads?' + new URLSearchParams({
-      part:'snippet', videoId:it.id, maxResults:String(n), order, textFormat:'plainText', key:ytKey
+      part:'snippet,replies', videoId:it.id, maxResults:String(n), order, textFormat:'plainText', key:ytKey
     }));
     return (c.items || []).map(x => {
       const sn = x.snippet.topLevelComment.snippet;
+      const ownerReplies = ((x.replies && x.replies.comments) || [])
+        .filter(r => r.snippet && r.snippet.authorChannelId && r.snippet.authorChannelId.value === it.channelId)
+        .map(r => r.snippet.textDisplay);
       return { id:x.id, text:sn.textDisplay, likes:sn.likeCount || 0, date:sn.publishedAt,
-               authorId:sn.authorChannelId && sn.authorChannelId.value };
+               authorId:sn.authorChannelId && sn.authorChannelId.value, ownerReplies };
     });
   };
   try {
@@ -555,17 +658,58 @@ function searchOdysee(qs){
 }
 
 /* ---------- Recherche ---------- */
-let lastResults = [], lastNotes = [], lastQ = '', lastEn = '', lastCtx = null, shown = [];
+let lastResults = [], lastNotes = [], lastQ = '', lastEn = '', lastCtx = null, lastSuggest = null, shown = [];
 
 function rescore(){ lastResults.forEach(it => scoreItem(it, lastCtx)); }
 
-$('f').onsubmit = async e => {
-  e.preventDefault();
+// Distance entre deux mots (deux lettres inversées comptent pour 1)
+function dist(a, b){
+  const m = a.length, n = b.length, d = [];
+  for(let i = 0; i <= m; i++) d[i] = [i];
+  for(let j = 1; j <= n; j++) d[0][j] = j;
+  for(let i = 1; i <= m; i++) for(let j = 1; j <= n; j++){
+    d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+    if(i > 1 && j > 1 && a[i-1] === b[j-2] && a[i-2] === b[j-1]) d[i][j] = Math.min(d[i][j], d[i-2][j-2] + 1);
+  }
+  return d[m][n];
+}
+
+// Après la recherche : repère un mot introuvable dans les résultats (faute de frappe ?) et cherche le mot voisin
+function calibrate(){
+  const ctx = lastCtx;
+  ctx.suspect = new Set(); lastSuggest = null;
+  const yt = lastResults.filter(it => it.platform === 'YouTube');
+  const pool = yt.length >= 8 ? yt : lastResults;
+  if(pool.length < 8) return;
+  const texts = pool.map(it => norm(it.title) + ' ' + norm(it.desc));
+  const ratio = k => texts.filter(t => hasWord(t, k) || (ctx.alts[k] || []).some(a => hasWord(t, a))).length / pool.length;
+  ctx.strong.forEach(k => { if(ratio(k) < 0.1) ctx.suspect.add(k); });
+  const freq = new Map();
+  pool.forEach(it => new Set(norm(it.title).split(/[^a-z0-9]+/)).forEach(w => { if(w.length >= 3) freq.set(w, (freq.get(w) || 0) + 1); }));
+  const minF = Math.max(3, Math.ceil(pool.length * 0.15));
+  for(const k of ctx.kwsFr){
+    if(k.length < 3 || DICT[k] || (ctx.alts[k] || []).length || ratio(k) >= 0.1) continue;
+    let best = null;
+    freq.forEach((f, w) => {
+      if(f < minF || ctx.all.includes(w) || STOP_FR.has(w) || STOP_EN.has(w)) return;
+      const d = dist(k, w);
+      if(d >= 1 && d <= (k.length <= 4 ? 1 : 2) && (!best || f > best.f)) best = { w, f };
+    });
+    if(best){
+      const orig = (lastQ.match(/[A-Za-z0-9À-ÿ]+/g) || []).find(w => norm(w) === k) || k;
+      const caps = /[A-Z]/.test(orig) && orig === orig.toUpperCase();
+      lastSuggest = { from: k, orig, show: caps ? best.w.toUpperCase() : best.w };
+      ctx.suspect.add(k);
+      break;
+    }
+  }
+}
+
+async function runSearch(){
   const q = $('q').value.trim();
   if(!q) return;
   savePrefs();
-  const jobsWanted = $('sYT').checked || $('sPT').checked || $('sOD').checked;
-  if(!jobsWanted){ setStatus('Coche au moins une plateforme.'); return; }
+  if(!($('sYT').checked || $('sPT').checked || $('sOD').checked)){ setStatus('Coche au moins une plateforme.'); return; }
   $('results').innerHTML = '';
 
   let en = '', via = '';
@@ -595,9 +739,11 @@ $('f').onsubmit = async e => {
   lastNotes = [notes.join(' · ')];
   if(en) lastNotes.push('Aussi cherché en anglais : « ' + esc(en) + ' »' + (via === 'dico' ? ' (traduction de secours)' : ''));
   lastResults = all;
+  calibrate();
   rescore();
   render();
-};
+}
+$('f').onsubmit = e => { e.preventDefault(); runSearch(); };
 
 /* ---------- Affichage ---------- */
 function fmtDate(iso){
@@ -618,12 +764,16 @@ function fmtDur(s){
 }
 
 function render(){
+  const ctx = lastCtx;
   const showOff = $('showOff').checked, frOnly = $('langMode').value === 'fr';
   const age = +$('age').value, forbid = listOf($('mustNot').value), sort = $('sort').value;
+  // Filet de sécurité : s'il ne reste presque rien, on montre aussi les vidéos YouTube moins proches
+  const onTopic = lastResults.filter(it => !it.offTopic && !banned[chanKey(it)]).length;
+  const relaxed = !showOff && onTopic < 3 && lastResults.length >= 10;
   const cnt = { ban:0, off:0, mot:0, lang:0, age:0 };
   shown = lastResults.filter(it => {
     if(banned[chanKey(it)]){ cnt.ban++; return false; }
-    if(it.offTopic && !showOff){ cnt.off++; return false; }
+    if(it.offTopic && !showOff && !(relaxed && it.platform === 'YouTube' && !it.mustMiss)){ cnt.off++; return false; }
     if(frOnly && it.lang === 'en'){ cnt.lang++; return false; }
     if(forbid.length){
       const td = norm(it.title) + ' ' + norm(it.desc);
@@ -645,27 +795,37 @@ function render(){
   if(cnt.ban) hid.push(cnt.ban + ' de chaînes bannies');
   setStatus(lastNotes.join('<br>') + '<br>' + shown.length + ' affichée(s)' + (hid.length ? ' · masquées : ' + hid.join(', ') : ''));
 
+  // Bandeaux d'aide
+  const top = [];
+  if(lastSuggest) top.push('<div class="box tip">Voulais-tu dire « <b>' + esc(lastSuggest.show) + '</b> » au lieu de « ' + esc(lastSuggest.orig) +
+    ' » ? Ce mot n\'apparaît presque dans aucun résultat.<button type="button" class="mini" data-act="suggest">🔁 Relancer avec ' + esc(lastSuggest.show) + '</button></div>');
+  else if(ctx.suspect.size) top.push('<div class="box tip">« ' + esc([...ctx.suspect].join(', ')) + ' » n\'apparaît presque dans aucun résultat : je ne m\'en sers pas pour masquer des vidéos.</div>');
+  if(relaxed && shown.length) top.push('<div class="box tip">Peu de vidéos collent vraiment à ta recherche : j\'affiche aussi les moins proches.</div>');
+  top.push('<div class="box tip">📄 <a href="https://www.google.com/search?q=' + encodeURIComponent(lastQ + ' notice officielle manuel pdf') +
+    '" target="_blank" rel="noopener noreferrer">Chercher la notice officielle</a> (recherche web)</div>');
+  if(shown.some(it => it.lang === 'en' && it.platform === 'YouTube'))
+    top.push('<div class="box tip">🇬🇧 Vidéo en anglais ? Une fois dans YouTube : touche la vidéo, puis ⚙️ → <b>Piste audio</b> → Français (doublage, s\'il existe). Sinon ⚙️ → <b>Sous-titres</b> → Traduire automatiquement → Français.</div>');
+
   if(!shown.length){
-    $('results').innerHTML = '<div class="box small">Aucun résultat avec ces filtres.</div>';
+    $('results').innerHTML = top.join('') + '<div class="box small">Aucun résultat avec ces filtres.</div>';
     return;
   }
-  const tip = shown.some(it => it.lang === 'en' && it.platform === 'YouTube')
-    ? '<div class="box tip">🇬🇧 Vidéo en anglais ? Une fois dans YouTube : touche la vidéo, puis ⚙️ → <b>Piste audio</b> → Français (doublage, s\'il existe). Sinon ⚙️ → <b>Sous-titres</b> → Traduire automatiquement → Français.</div>'
-    : '';
-  $('results').innerHTML = tip + shown.map((it, i) => {
+  $('results').innerHTML = top.join('') + shown.map((it, i) => {
     const cls = it.score >= 65 ? 's-good' : it.score >= 45 ? 's-mid' : 's-bad';
     const meta = [it.channel, fmtDate(it.published), fmtViews(it.views), fmtDur(it.duration)].filter(Boolean).map(esc).join(' · ');
     const why = it.why.map(([sign, txt]) =>
       '<li class="' + (sign === '+' ? 'plus' : sign === '-' ? 'minus' : 'info') + '">' + (sign === 'i' ? '' : sign + ' ') + esc(txt) + '</li>').join('');
     const img = it.thumb ? '<img loading="lazy" src="' + esc(it.thumb) + '" alt="">' : '<img alt="">';
+    const sum = it.summary ? '<p class="sum">' + esc(it.summary) + '</p>' : '';
+    const keys = it.moments.length ? '<div class="keys">' + it.moments.map(m =>
+      '<a href="' + esc(it.url + '&t=' + m.t + 's') + '" target="_blank" rel="noopener noreferrer">▶ ' + fmtDur(m.t) +
+      (m.label ? ' · ' + esc(cut(m.label, 42)) : '') + '</a>').join('') + '</div>' : '';
+    const tips = it.tips.length ? '<details><summary>💡 Astuces des spectateurs (' + it.tips.length + ')</summary><ul class="ev">' +
+      it.tips.map(t => '<li>' + (t.own ? '<b>Le youtubeur :</b> ' : '') + '« ' + esc(cut(t.text, 260)) + ' »</li>').join('') + '</ul></details>' : '';
     let ev = '';
     if(it.com && it.com.ev.length){
       ev = '<details><summary>Voir les commentaires qui comptent (' + it.com.ev.length + ')</summary><ul class="ev">' +
-        it.com.ev.map(e => {
-          const x = String(e.text).replace(/\s+/g, ' ');
-          return '<li><b>' + CATS[e.cat].icon + ' ' + esc(CATS[e.cat].label) + '</b> — « ' +
-            esc(x.length > 200 ? x.slice(0, 200) + '…' : x) + ' »</li>';
-        }).join('') + '</ul></details>';
+        it.com.ev.map(e => '<li><b>' + CATS[e.cat].icon + ' ' + esc(CATS[e.cat].label) + '</b> — « ' + esc(cut(e.text, 200)) + ' »</li>').join('') + '</ul></details>';
     }
     const isT = !!trusted[chanKey(it)];
     const href = esc(it.url);
@@ -674,7 +834,7 @@ function render(){
       '<div class="body"><div class="top"><span class="badge p-' + esc(it.platform) + '">' + esc(it.platform) + '</span>' +
       '<span class="score ' + cls + '">' + it.score + '</span></div>' +
       '<h3><a href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(it.title) + '</a></h3>' +
-      '<div class="meta">' + meta + '</div><ul class="why">' + why + '</ul>' + ev +
+      '<div class="meta">' + meta + '</div>' + sum + keys + '<ul class="why">' + why + '</ul>' + tips + ev +
       '<div class="act"><button type="button" data-act="trust" data-i="' + i + '" class="' + (isT ? 'on' : '') + '">⭐ ' + (isT ? 'De confiance' : 'Confiance') + '</button>' +
       '<button type="button" data-act="ban" data-i="' + i + '">🚫 Bannir la chaîne</button></div>' +
       '</div></div>';
@@ -684,6 +844,13 @@ function render(){
 $('results').onclick = e => {
   const b = e.target && e.target.closest ? e.target.closest('button[data-act]') : null;
   if(!b) return;
+  if(b.dataset.act === 'suggest'){
+    if(!lastSuggest) return;
+    const sg = lastSuggest;
+    $('q').value = lastQ.replace(/[A-Za-z0-9À-ÿ]+/g, w => norm(w) === sg.from ? sg.show : w);
+    runSearch();
+    return;
+  }
   const it = shown[+b.dataset.i];
   if(!it) return;
   const k = chanKey(it), name = it.channel || k;
@@ -728,10 +895,10 @@ function savePrefs(){
   const p = {};
   PREF_CHECK.forEach(id => { p[id] = $(id).checked; });
   PREF_VAL.forEach(id => { p[id] = $(id).value; });
-  store.set('prefs21', p);
+  store.set('prefs22', p);
 }
 (function loadPrefs(){
-  const p = store.get('prefs21', null);
+  const p = store.get('prefs22', null);
   if(!p || typeof p !== 'object') return;
   PREF_CHECK.forEach(id => { if(typeof p[id] === 'boolean') $(id).checked = p[id]; });
   PREF_VAL.forEach(id => { if(typeof p[id] === 'string') $(id).value = p[id]; });
@@ -740,11 +907,28 @@ PREF_CHECK.concat(PREF_VAL).forEach(id => {
   $(id).onchange = () => {
     savePrefs();
     if(!lastResults.length) return;
-    if(id === 'must'){ lastCtx = buildCtx(lastQ, lastEn); rescore(); }
+    if(id === 'must'){ lastCtx = buildCtx(lastQ, lastEn); calibrate(); rescore(); }
     render();
   };
 });
 renderLists();
+
+/* ---------- Mise à jour : la page regarde toute seule si une version plus récente existe ---------- */
+async function checkUpdate(){
+  if(!/^https?:$/.test(location.protocol)) return;
+  try {
+    const r = await fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' });
+    const m = /APP_VERSION = '([0-9.]+)'/.exec(await r.text());
+    if(m && m[1] !== APP_VERSION){
+      const box = $('update');
+      box.hidden = false;
+      box.innerHTML = '🆕 Nouvelle version disponible (v' + esc(m[1]) + ').<button type="button" class="mini" id="doUpdate">Mettre à jour</button>';
+      $('doUpdate').onclick = () => { location.replace(location.pathname + '?v=' + encodeURIComponent(m[1]) + '-' + Date.now()); };
+    }
+  } catch(e){}
+}
+checkUpdate();
+document.addEventListener('visibilitychange', () => { if(!document.hidden) checkUpdate(); });
 </script>
 </body>
 </html>
