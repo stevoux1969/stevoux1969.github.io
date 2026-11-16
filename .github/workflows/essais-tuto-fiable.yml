@@ -1,0 +1,48 @@
+# Robot testeur de Tuto Fiable.
+# Il se lance quand la branche « labo » change, ouvre l'appli dans un navigateur,
+# fait les recherches listées dans tests/essais.json et range ses résultats dans la branche « essais ».
+# Il ne touche jamais à la branche principale (le site en ligne).
+name: Essais Tuto Fiable
+on:
+  push:
+    branches: [labo]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: essais-tuto-fiable
+  cancel-in-progress: true
+jobs:
+  essais:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Lancer les essais
+        env:
+          YT_KEY: ${{ secrets.YT_KEY }}
+        run: |
+          mkdir -p resultats
+          set +e
+          {
+            npm init -y > /dev/null 2>&1
+            npm install --no-audit --no-fund playwright@1 2>&1 | tail -3
+            npx playwright install --with-deps chromium 2>&1 | tail -3
+            node tests/essai.mjs
+            echo "code de sortie : $?"
+          } > resultats/journal.txt 2>&1
+          exit 0
+      - name: Ranger les résultats dans la branche essais
+        if: always()
+        run: |
+          mkdir -p resultats
+          cd resultats
+          echo "commit testé : $GITHUB_SHA" > LISEZMOI.txt
+          date -u >> LISEZMOI.txt
+          git init -q -b essais
+          git add -A
+          git -c user.name="robot-essais" -c user.email="robot-essais@users.noreply.github.com" commit -q -m "Résultats des essais pour ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" essais
