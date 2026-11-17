@@ -43,7 +43,7 @@ jobs:
           mkdir -p resultats
           set +e
           {
-            npm install --no-audit --no-fund @huggingface/transformers@3 2>&1 | tail -3
+            npm install --no-audit --no-fund --onnxruntime-node-install-cuda=skip @huggingface/transformers@3 2>&1 | tail -3
             node tests/ia.mjs
             echo "code de sortie : $?"
           } > resultats/journal-ia.txt 2>&1
