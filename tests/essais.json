@@ -1,11 +1,10 @@
 {
   "recherches": [
-    { "q": "vidange Clio 5" },
-    { "q": "Réparation crevaison velo" },
+    { "q": "changer un robinet de cuisine" },
     { "q": "activer XMP carte mère MSI B550" },
-    { "q": "Activer XPM carte-mère", "youtube": false },
+    { "q": "changer un robinet de cuisine" },
+    { "q": "vidange Clio 5", "youtube": false },
     { "q": "changer plaquettes de frein vélo", "youtube": false },
-    { "q": "remplacer batterie iPhone 11", "youtube": false },
-    { "q": "changer un robinet de cuisine", "youtube": false }
+    { "q": "remplacer batterie iPhone 11", "youtube": false }
   ]
 }

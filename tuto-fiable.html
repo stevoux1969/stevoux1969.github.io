@@ -106,7 +106,7 @@
         <input id="mustNot" type="text" placeholder="Ex : Intel, portable"></div>
       <div class="grid">
         <div><label for="langMode">Langue</label>
-          <select id="langMode"><option value="both">Français + anglais</option><option value="fr">Français seulement</option></select></div>
+          <select id="langMode"><option value="auto">Français, anglais si besoin</option><option value="both">Français + anglais</option><option value="fr">Français seulement</option></select></div>
         <div><label for="sort">Classer par</label>
           <select id="sort"><option value="score">Score</option><option value="date">Date</option><option value="views">Vues</option></select></div>
         <div><label for="age">Ancienneté</label>
@@ -128,7 +128,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VERSION = '2.7';
+const APP_VERSION = '2.8';
 $('ver').textContent = 'v' + APP_VERSION;
 
 /* ---------- Mémoire de l'appareil ---------- */
@@ -668,18 +668,102 @@ async function fetchComments(it){
   }
 }
 
-async function searchYouTube(qs){
-  if(!ytKey) throw new Error('clé manquante (touche ⚙️)');
-  const n = qs.length > 1 ? 20 : 25;
-  const ids = await multi(qs, async x => {
-    const sr = await getJSON(YT + 'search?' + new URLSearchParams({
+/* ---------- Quota YouTube : compteur et mémoire ---------- */
+// YouTube donne 100 recherches par jour. Le compteur repart à zéro à minuit heure du Pacifique (vers 9 h en France).
+const YT_SEARCH_DAY = 100;
+function pacificDay(){
+  try { return new Date().toLocaleDateString('en-CA', { timeZone:'America/Los_Angeles' }); }
+  catch(e){ return new Date(Date.now() - 8 * 3600e3).toISOString().slice(0, 10); }
+}
+function quotaGet(){
+  const qd = store.get('ytQuota', null);
+  return qd && qd.day === pacificDay() ? qd : { day: pacificDay(), searches: 0, full: false };
+}
+function quotaAdd(n){ const qd = quotaGet(); qd.searches += n; store.set('ytQuota', qd); }
+function quotaFull(){ const qd = quotaGet(); qd.full = true; qd.searches = Math.max(qd.searches, YT_SEARCH_DAY); store.set('ytQuota', qd); }
+// Recherches YouTube restantes pour l'utilisateur (1 recherche = 1 ou 2 appels selon la langue)
+function quotaLeft(){ const qd = quotaGet(); return qd.full ? 0 : Math.max(0, YT_SEARCH_DAY - qd.searches); }
+function quotaNote(){
+  const left = quotaLeft();
+  if(!left) return '⛔ Quota YouTube du jour épuisé : YouTube revient vers 9 h. Les autres sources marchent.';
+  return '🎟️ YouTube : il te reste environ ' + left + ' recherche' + (left > 1 ? 's' : '') + ' aujourd\'hui' +
+    (left < 20 ? ' (remise à zéro vers 9 h)' : '') + '.';
+}
+function isQuotaError(e){ return /quota/i.test(e && e.message || ''); }
+
+// Mémoire : une recherche déjà faite est réutilisée pendant 24 h, sans rien dépenser.
+// Rangée dans le téléphone (IndexedDB), 20 recherches maximum.
+const ytMem = new Map();
+const MEM_TTL = 24 * 3600e3, MEM_MAX = 20;
+function memDb(){
+  if(memDb.p) return memDb.p;
+  memDb.p = new Promise(res => {
+    try {
+      const r = indexedDB.open('tutoFiable', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('yt');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => res(null);
+    } catch(e){ res(null); }
+  });
+  return memDb.p;
+}
+async function memGet(k){
+  const m = ytMem.get(k);
+  if(m) return Date.now() - m.t < MEM_TTL ? m.items : null;
+  const db = await memDb();
+  if(!db) return null;
+  return new Promise(res => {
+    try {
+      const rq = db.transaction('yt').objectStore('yt').get(k);
+      rq.onsuccess = () => { const v = rq.result; if(v && Date.now() - v.t < MEM_TTL){ ytMem.set(k, v); res(v.items); } else res(null); };
+      rq.onerror = () => res(null);
+    } catch(e){ res(null); }
+  });
+}
+async function memSet(k, items){
+  const keep = ['platform','id','title','desc','channel','channelId','url','thumb','published','declLang','duration','views','likes','rawComments','comState'];
+  const clean = items.map(it => { const o = {}; keep.forEach(f => { o[f] = it[f]; }); return o; });
+  const v = { t: Date.now(), items: clean };
+  ytMem.set(k, v);
+  const db = await memDb();
+  if(!db) return;
+  try {
+    const st = db.transaction('yt', 'readwrite').objectStore('yt');
+    st.put(v, k);
+    const all = st.getAllKeys ? st.getAllKeys() : null;
+    if(all) all.onsuccess = () => {
+      const ks = all.result;
+      if(ks.length <= MEM_MAX) return;
+      const rg = st.getAll();
+      rg.onsuccess = () => {
+        const old = ks.map((key, i) => [key, rg.result[i].t]).sort((a, b) => a[1] - b[1]).slice(0, ks.length - MEM_MAX);
+        old.forEach(([key]) => st.delete(key));
+      };
+    };
+  } catch(e){}
+}
+const memKey = (q, lang) => 'v1|' + lang + '|' + norm(q).replace(/[^a-z0-9]+/g, ' ').trim();
+
+// Une langue : recherche + détails + commentaires (ou mémoire si déjà fait)
+let ytInfo = {};
+async function ytOneLang(x, n){
+  const k = memKey(x.q, x.lang);
+  const cached = await memGet(k);
+  if(cached){ ytInfo.memo = (ytInfo.memo || 0) + 1; return cached.map(o => Object.assign({}, o)); }
+  if(!quotaLeft()) throw new Error('quota du jour épuisé, retour vers 9 h');
+  let sr;
+  try {
+    sr = await getJSON(YT + 'search?' + new URLSearchParams({
       part:'snippet', type:'video', maxResults:String(n), q:x.q, relevanceLanguage:x.lang, safeSearch:'moderate', key:ytKey
     }));
-    return (sr.items || []).map(i => i.id && i.id.videoId).filter(Boolean);
-  }, id => id);
-  if(!ids.length) return [];
+  } catch(e){ if(isQuotaError(e)){ quotaFull(); throw new Error('quota du jour épuisé, retour vers 9 h'); } throw e; }
+  quotaAdd(1);
+  ytInfo.spent = (ytInfo.spent || 0) + 1;
+  const ids = (sr.items || []).map(i => i.id && i.id.videoId).filter(Boolean);
+  if(!ids.length){ memSet(k, []); return []; }
   const vr = await getJSON(YT + 'videos?' + new URLSearchParams({ part:'snippet,statistics,contentDetails', id:ids.slice(0, 50).join(','), key:ytKey }));
-  const items = (vr.items || []).map(v => {
+  const byId = new Map((vr.items || []).map(v => [v.id, v]));
+  const items = ids.map(id => byId.get(id)).filter(Boolean).map(v => {
     const sn = v.snippet || {}, st = v.statistics || {}, th = sn.thumbnails || {};
     return {
       platform:'YouTube', id:v.id, title:sn.title, desc:sn.description || '',
@@ -695,7 +779,35 @@ async function searchYouTube(qs){
   });
   setStatus('Lecture des commentaires…');
   await Promise.all(items.map(fetchComments));
+  memSet(k, items);
   return items;
+}
+// Mélange deux listes en alternant, sans doublon
+function interleave(lists){
+  const out = [], seen = new Set(), max = Math.max(0, ...lists.map(l => l.length));
+  for(let i = 0; i < max; i++) lists.forEach(l => { const it = l[i]; if(it && !seen.has(it.id)){ seen.add(it.id); out.push(it); } });
+  return out;
+}
+
+async function searchYouTube(qs){
+  if(!ytKey) throw new Error('clé manquante (touche ⚙️)');
+  ytInfo = {};
+  const mode = $('langMode').value;
+  // « Anglais si besoin » : on cherche d'abord en français ; l'anglais seulement s'il y a moins de 3 bons tutos
+  if(mode === 'auto' && qs.length > 1){
+    const fr = await ytOneLang(qs[0], 25);
+    const good = fr.filter(it => { const c = Object.assign({}, it); scoreItem(c, lastCtx); return !c.offTopic && c.confirmed && c.score >= 65; }).length;
+    if(good >= 3){ ytInfo.skipEn = true; return fr; }
+    ytInfo.addedEn = true;
+    let en = [];
+    try { en = await ytOneLang(qs[1], 20); } catch(e){ ytInfo.enErr = e.message; }
+    return interleave([fr, en]);
+  }
+  const n = qs.length > 1 ? 20 : 25;
+  const rs = await Promise.allSettled(qs.map(x => ytOneLang(x, n)));
+  const ok = rs.filter(r => r.status === 'fulfilled').map(r => r.value);
+  if(!ok.length) throw rs[0].reason;
+  return interleave(ok);
 }
 
 function searchPeerTube(qs){
@@ -868,10 +980,11 @@ async function runSearch(){
   if(!q) return;
   savePrefs();
   if(!($('sYT').checked || $('sPT').checked || $('sTX').checked)){ setStatus('Coche au moins une source.'); return; }
+  ytInfo = {};
   $('results').innerHTML = '';
 
   let en = '', via = '';
-  if($('langMode').value === 'both'){
+  if($('langMode').value !== 'fr'){
     setStatus('Traduction de la recherche…');
     const tr = await translateQuery(q);
     en = tr.en; via = tr.via;
@@ -889,7 +1002,7 @@ async function runSearch(){
   if($('sTX').checked){
     const subj = enSubjects(lastCtx);
     jobs.push(['iFixit', searchIFixit(qs, subj.slice(0, 3).join(' '))]);
-    const seBase = en || ($('langMode').value === 'both' ? q : '');      // Stack Exchange est en anglais
+    const seBase = en || ($('langMode').value !== 'fr' ? q : '');      // Stack Exchange est en anglais
     if(seBase){
       const tries = [keywords(seBase).slice(0, 5).join(' '), subj.slice(0, 3).join(' ')];
       jobs.push(['Stack Exchange', searchStackExchange([...new Set(tries.filter(Boolean))], q + ' ' + seBase)]);
@@ -904,7 +1017,12 @@ async function runSearch(){
     else notes.push(esc(name) + ' : ⚠️ ' + esc(r.reason && r.reason.message || 'erreur'));
   });
   lastNotes = [notes.join(' · ')];
-  if(en) lastNotes.push('Aussi cherché en anglais : « ' + esc(en) + ' »' + (via === 'dico' ? ' (traduction de secours)' : ''));
+  if(en) lastNotes.push('Aussi cherché en anglais : « ' + esc(en) + ' »' + (via === 'dico' ? ' (traduction de secours)' : '') +
+    (ytInfo.skipEn ? ' (sauf sur YouTube : assez de bons tutos en français)' : ytInfo.addedEn ? ' (YouTube aussi : peu de bons tutos en français)' : ''));
+  if($('sYT').checked && ytKey){
+    if(ytInfo.memo && !ytInfo.spent) lastNotes.push('♻️ YouTube : résultats déjà en mémoire, rien dépensé.');
+    lastNotes.push(quotaNote());
+  }
   lastResults = all;
   calibrate();
   rescore();
@@ -1228,6 +1346,7 @@ function savePrefs(){
   if(!p || typeof p !== 'object') return;
   PREF_CHECK.forEach(id => { if(typeof p[id] === 'boolean') $(id).checked = p[id]; });
   PREF_VAL.forEach(id => { if(typeof p[id] === 'string') $(id).value = p[id]; });
+  if(!store.get('langAuto28', false)){ if($('langMode').value === 'both') $('langMode').value = 'auto'; store.set('langAuto28', true); }
 })();
 PREF_CHECK.concat(PREF_VAL).forEach(id => {
   $(id).onchange = () => {

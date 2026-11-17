@@ -64,6 +64,7 @@ async function main(){
       r.secondes = Math.round((Date.now() - t0) / 100) / 10;
       Object.assign(r, await page.evaluate(() => ({
         version: APP_VERSION,
+        quota: (typeof quotaGet === 'function') ? quotaGet() : null, infoYT: (typeof ytInfo !== 'undefined') ? ytInfo : null, langue: document.getElementById('langMode').value,
         statut: document.getElementById('status').innerText,
         anglais: lastEn, suggestion: lastSuggest, voisins: lastNeighbors,
         suspects: lastCtx ? [...lastCtx.suspect] : [],
