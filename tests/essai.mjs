@@ -70,7 +70,7 @@ async function main(){
         bandeaux: [...document.querySelectorAll('#results .tip')].map(e => e.innerText.replace(/\s+/g, ' ').slice(0, 260)),
         resultats: lastResults.map(it => ({
           affiche: shown.includes(it), rang: shown.indexOf(it) + 1,
-          source: it.label || it.platform, titre: it.title, url: it.url, score: it.score, brut: it.raw, confirme: it.confirmed,
+          source: it.label || it.platform, image: it.thumb || '', titre: it.title, url: it.url, score: it.score, brut: it.raw, confirme: it.confirmed,
           horsSujet: it.offTopic, langue: it.lang, duree: it.duration, chaine: it.channel,
           resume: it.summary, pourquoi: it.why.map(w => (w[0] === 'i' ? '' : w[0] + ' ') + w[1]),
           astuces: (it.tips || []).map(x => String(x.text).slice(0, 160)), passages: (it.moments || []).map(m => m.t + ' ' + String(m.label).slice(0, 50)),
@@ -79,6 +79,10 @@ async function main(){
         })).sort((a, b) => (a.rang || 999) - (b.rang || 999)),
         liens: [...document.querySelectorAll('a.exit')].map(a => [a.innerText, a.href])
       })));
+      // Laisse le temps aux images de se charger, puis compte celles qui sont cassées
+      await page.evaluate(() => document.querySelectorAll('.thumb img').forEach(i => i.loading = 'eager'));
+      await page.waitForTimeout(2500);
+      r.images = await page.evaluate(() => { const im = [...document.querySelectorAll('.thumb img')]; return { total: im.length, chargees: im.filter(i => i.complete && i.naturalWidth > 0).length, cassees: im.filter(i => !(i.complete && i.naturalWidth > 0)).slice(0, 4).map(i => i.getAttribute('src')) }; });
       r.captures = await shots(page, 'recherche' + i);
       if(i === 1) rapport.liensAVerifier = r.liens;
       delete r.liens;
