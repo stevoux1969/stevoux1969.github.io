@@ -1,10 +1,6 @@
 {
   "recherches": [
-    { "q": "changer un robinet de cuisine" },
-    { "q": "activer XMP carte mère MSI B550" },
-    { "q": "changer un robinet de cuisine" },
-    { "q": "vidange Clio 5", "youtube": false },
-    { "q": "changer plaquettes de frein vélo", "youtube": false },
+    { "q": "changer un robinet de cuisine", "youtube": false },
     { "q": "remplacer batterie iPhone 11", "youtube": false }
   ]
 }
