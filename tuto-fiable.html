@@ -285,17 +285,30 @@ function buildCtx(q, en){
   const kwsEn = en ? keywords(en) : [];
   return { kwsFr, kwsEn, alts, strong, must, suspect: new Set(), all: [...new Set(kwsFr.concat(kwsEn))] };
 }
-// Mots « sujet » : ceux qui disent de quoi on parle (XMP, vélo, frein), pas ce qu'on veut faire (activer, changer)
+// Mots « sujet » : ceux qui disent de quoi on parle (XMP, vélo, frein), pas ce qu'on veut faire (activer, changer).
+// Un nombre tout seul (« 11 », « 5 ») ne suffit pas à reconnaître un sujet.
+function subjWords(list, ctx){
+  const ok = list.filter(k => !isAction(k) && !ctx.suspect.has(k));
+  const noNum = ok.filter(k => !/^\d+$/.test(k));
+  return noNum.length ? noNum : ok;
+}
 function subjectsOf(ctx){
-  const out = ctx.strong.concat(ctx.must, ctx.kwsEn.filter(k => !isAction(k)), ctx.kwsFr.filter(k => !isAction(k)));
-  return [...new Set(out)].filter(k => !ctx.suspect.has(k));
+  return [...new Set(subjWords(ctx.strong.concat(ctx.must), ctx).concat(subjWords(ctx.kwsEn, ctx), subjWords(ctx.kwsFr, ctx)))];
 }
-// Un résultat parle-t-il du sujet ? Il doit contenir au moins un mot « sujet », en français ou en anglais.
-function hasSubject(text, ctx){
-  const subj = subjectsOf(ctx);
-  if(!subj.length) return true;
-  return subj.some(k => hasWord(text, k) || (ctx.alts[k] || []).some(a => hasWord(text, a)));
+// Combien de mots « sujet » le résultat contient-il ? On compte en français et en anglais, on garde le meilleur.
+function subjectMatch(text, ctx){
+  const frHit = k => hasWord(text, k) || (ctx.alts[k] || []).some(a => hasWord(text, a));
+  const fr = subjWords(ctx.kwsFr, ctx), en = subjWords(ctx.kwsEn, ctx);
+  const enHit = k => hasWord(text, k) || ctx.kwsFr.some(f => (ctx.alts[f] || []).includes(k) && hasWord(text, f));
+  const side = (list, hit) => { const miss = list.filter(k => !hit(k)); return { n: list.length, hits: list.length - miss.length, miss }; };
+  const a = side(fr, frHit), b = side(en, enHit);
+  if(!a.n && !b.n) return { n: 0, hits: 0, miss: [] };
+  if(!b.n) return a;
+  if(!a.n) return b;
+  return (b.hits / b.n > a.hits / a.n) ? b : a;
 }
+// Mots « sujet » en anglais, pour interroger les sites anglais
+function enSubjects(ctx){ return subjWords(ctx.kwsEn.length ? ctx.kwsEn : ctx.kwsFr, ctx); }
 // La traduction automatique oublie parfois un mot (« vélo ») : on le rajoute
 function completeEn(q, en){
   if(!en) return en;
@@ -501,7 +514,7 @@ function scoreItem(it, ctx){
   // Le nom de la chaîne recopié dans le titre ne compte pas (« … - Bosque Mobile Bicycle Repair »)
   let t = norm(it.title);
   const chn = norm(it.channel || '');
-  if(chn.length >= 6 && t.includes(chn)) t = t.split(chn).join(' ');
+  if(!it.written && chn.length >= 6 && t.includes(chn)) t = t.split(chn).join(' ');
   const td = t + ' ' + norm(it.desc);
   if(it.lang === undefined) it.lang = String(it.declLang || '').slice(0, 2).toLowerCase() || guessLang(it.title + ' ' + String(it.desc || '').slice(0, 300));
 
@@ -512,10 +525,13 @@ function scoreItem(it, ctx){
   const missStrong = strongOk.filter(k => !hasWord(td, k));
   const covAll = coverage(td, ctx);
   const hasKw = ctx.kwsFr.some(k => !ctx.suspect.has(k));
+  // Mots « sujet » : YouTube trie déjà bien, un seul suffit. Ailleurs (PeerTube, tutos écrits) il en faut au moins la moitié, et 2 dès qu'il y en a 2.
+  const sm = subjectMatch(td + (it.written ? ' ' + chn : ''), ctx);
+  const need = it.platform === 'YouTube' ? 1 : Math.max(Math.ceil(sm.n / 2), Math.min(2, sm.n));
   it.mustMiss = missMust.length > 0;
   it.offTopic = it.mustMiss ||
     (strongOk.length > 0 && missStrong.length === strongOk.length) ||
-    (hasKw && covAll.r < 0.34) || !hasSubject(td, ctx);
+    (hasKw && covAll.r < 0.34) || (sm.n > 0 && sm.hits < need);
   if(it.offTopic){
     s -= 30;
     why.push(['-', missMust.length ? 'mot obligatoire absent : « ' + missMust.join(', ') + ' »' : 'hors-sujet']);
@@ -579,6 +595,12 @@ function scoreItem(it, ctx){
   if(it.confirmed && it.com){
     if(it.com.ratio < 0.35){ it.score = Math.min(it.score, 40); why.push(['-', 'la plupart des avis sont négatifs']); }
     else if(it.com.ratio < 0.6 || it.com.risk){ it.score = Math.min(it.score, 64); why.push(['i', it.com.risk ? 'risque signalé : jamais en vert' : 'avis partagés']); }
+  }
+  // Tuto écrit qui ne parle pas de tout le sujet (frein de voiture pour une recherche vélo) : jamais en vert
+  if(it.written && !it.offTopic && sm.miss.length){
+    it.score = Math.min(it.score, 64);
+    const extra = sm.miss.filter(k => !missStrong.includes(k));
+    if(extra.length) why.push(['-', 'ne parle pas de : ' + extra.join(', ')]);
   }
   if(!it.confirmed) why.push(['i', '⚪ non confirmé : ' + (it.written ? 'pas de réponse validée' : it.platform === 'YouTube' ? 'moins de 3 avis utiles' : 'pas d\'avis lisibles')]);
   it.why = why;
@@ -852,11 +874,11 @@ async function runSearch(){
   if($('sYT').checked) jobs.push(['YouTube', searchYouTube(qs)]);
   if($('sPT').checked) jobs.push(['PeerTube', searchPeerTube(qs)]);
   if($('sTX').checked){
-    const subj = subjectsOf(lastCtx);
-    jobs.push(['iFixit', searchIFixit(qs, subj.slice(0, 2).join(' '))]);
+    const subj = enSubjects(lastCtx);
+    jobs.push(['iFixit', searchIFixit(qs, subj.slice(0, 3).join(' '))]);
     const seBase = en || ($('langMode').value === 'both' ? q : '');      // Stack Exchange est en anglais
     if(seBase){
-      const tries = [keywords(seBase).slice(0, 5).join(' '), subj.slice(0, 3).join(' '), subj.slice(0, 2).join(' ')];
+      const tries = [keywords(seBase).slice(0, 5).join(' '), subj.slice(0, 3).join(' ')];
       jobs.push(['Stack Exchange', searchStackExchange([...new Set(tries.filter(Boolean))], q + ' ' + seBase)]);
     }
   }
@@ -955,7 +977,7 @@ function render(){
   const decent = shown.filter(it => !it.offTopic && it.score >= 50).length;
   const qaTxt = qaOk + (qaOk > 1 ? ' questions-réponses validées' : ' question-réponse validée');
   const verdict = solid ? '✅ <b>' + solid + (solid > 1 ? ' tutos solides' : ' tuto solide') + '</b>' + (qaOk ? ' et ' + qaTxt : '') + '.'
-    : qaOk ? '🟠 <b>Pas de tuto confirmé.</b> Mais ' + qaTxt + ' peuvent aider.'
+    : qaOk ? '🟠 <b>Pas de tuto confirmé.</b> Mais ' + qaTxt + (qaOk > 1 ? ' peuvent aider.' : ' peut aider.')
     : decent ? '🟠 <b>Aucun tuto vraiment confirmé.</b> Les mieux placés ont trop peu d\'avis : à vérifier avant de suivre.'
     : '🔴 <b>Aucun tuto sûr trouvé.</b> Regarde plutôt la notice officielle.';
   top.push('<div class="box tip">' + verdict + '<br>' + noticeLink + '</div>');
