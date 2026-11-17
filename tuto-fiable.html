@@ -128,7 +128,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VERSION = '2.6';
+const APP_VERSION = '2.7';
 $('ver').textContent = 'v' + APP_VERSION;
 
 /* ---------- Mémoire de l'appareil ---------- */
@@ -283,8 +283,15 @@ function buildCtx(q, en){
   const must = listOf($('must').value);
   const strong = strongKeywords(q).filter(k => !must.includes(k));
   const kwsEn = en ? keywords(en) : [];
-  return { kwsFr, kwsEn, alts, strong, must, suspect: new Set(), all: [...new Set(kwsFr.concat(kwsEn))] };
+  return { kwsFr, kwsEn, alts, strong, must, suspect: new Set(), all: [...new Set(kwsFr.concat(kwsEn))], qn: ' ' + norm(q + ' ' + (en || '')).replace(/[^a-z0-9]+/g, ' ') + ' ' };
 }
+// Étapes liées et sujets voisins (comptés seulement si ta recherche n'en parle pas)
+const SIDE_STEPS = [
+  [/ (remise a zero|remettre a zero|raz|reset|reinitialis[a-z]*|voyant[a-z]*|temoin|compteur|indicateur|indicator|service light|maintenance light)( |$)/, 'étape liée : remise à zéro / voyant'],
+  [/ (unboxing|deballage)( |$)/, 'sujet voisin : déballage'],
+  [/ (review|avis|comparatif|comparison|vs|versus)( |$)/, 'sujet voisin : avis ou comparatif'],
+  [/ (teardown)( |$)/, 'sujet voisin : démontage pour voir l\'intérieur']
+];
 // Mots « sujet » : ceux qui disent de quoi on parle (XMP, vélo, frein), pas ce qu'on veut faire (activer, changer).
 // Un nombre tout seul (« 11 », « 5 ») ne suffit pas à reconnaître un sujet.
 function subjWords(list, ctx){
@@ -588,9 +595,15 @@ function scoreItem(it, ctx){
   if(it.lang === 'en') why.push(['i', '🇬🇧 en anglais']);
 
   // Pas de preuve, pas de vert : sans assez d'avis, le score est plafonné et la pastille reste grise
+  // Étape liée ou sujet voisin : le résultat parle d'autre chose autour du sujet (remise à zéro du compteur, avis sur le produit…).
+  // Il reste visible, mais passe après les vrais tutos et ne peut pas être vert.
+  const tt = ' ' + t.replace(/[^a-z0-9]+/g, ' ') + ' ';
+  const side = SIDE_STEPS.find(([re]) => re.test(tt) && !re.test(ctx.qn || ''));
+  it.side = side ? side[1] : null;
   it.confirmed = it.written ? !!it.ownOk : !!(it.com && it.com.useful >= 3);
   it.raw = Math.max(0, Math.min(100, Math.round(s)));
   it.score = it.confirmed ? it.raw : Math.min(it.raw, 59);
+  if(it.side && !it.offTopic){ it.score = Math.min(it.score, 55); why.push(['i', '🔁 ' + it.side]); }
   // La couleur suit les avis : majorité d'avis négatifs = rouge, avis partagés = orange, risque signalé = jamais vert
   if(it.confirmed && it.com){
     if(it.com.ratio < 0.35){ it.score = Math.min(it.score, 40); why.push(['-', 'la plupart des avis sont négatifs']); }

@@ -1,11 +1,11 @@
 {
   "recherches": [
+    { "q": "vidange Clio 5" },
     { "q": "Réparation crevaison velo" },
     { "q": "activer XMP carte mère MSI B550" },
-    { "q": "Activer XPM carte-mère" },
-    { "q": "changer plaquettes de frein vélo" },
-    { "q": "remplacer batterie iPhone 11" },
-    { "q": "vidange Clio 5" },
-    { "q": "changer un robinet de cuisine" }
+    { "q": "Activer XPM carte-mère", "youtube": false },
+    { "q": "changer plaquettes de frein vélo", "youtube": false },
+    { "q": "remplacer batterie iPhone 11", "youtube": false },
+    { "q": "changer un robinet de cuisine", "youtube": false }
   ]
 }
