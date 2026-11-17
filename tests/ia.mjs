@@ -92,7 +92,7 @@ async function main(){
   // 4. IA n° 2 : « de quoi parle ce commentaire ? » (classement libre, multilingue), sur un échantillon
   try {
     let t0 = Date.now();
-    const zs = await pipeline('zero-shot-classification', 'Xenova/mDeBERTa-v3-base-xnli-multilingual-nli', { dtype: 'q8' });
+    const zs = await pipeline('zero-shot-classification', 'Xenova/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7', { dtype: 'q8' });
     const load = Date.now() - t0;
     rapport.modeles.sujet = { nom: 'mDeBERTa-v3-base-xnli-multilingual-nli (q8)', chargement_s: load / 1000, cache: sizeOf() };
     const LABELS = {
