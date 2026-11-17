@@ -115,6 +115,7 @@
       <div class="row">
         <label class="small"><input type="checkbox" id="showOff"> Afficher les hors-sujet</label>
         <label class="small"><input type="checkbox" id="noShort"> Masquer les vidéos de moins d'1 minute</label>
+        <label class="small"><input type="checkbox" id="capChan" checked> Pas plus de 2 vidéos par chaîne</label>
       </div>
     </details>
     <button class="wide" type="submit">🔎 Chercher</button>
@@ -127,7 +128,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VERSION = '2.5';
+const APP_VERSION = '2.6';
 $('ver').textContent = 'v' + APP_VERSION;
 
 /* ---------- Mémoire de l'appareil ---------- */
@@ -185,6 +186,17 @@ const STOP_EN = new Set('the an of to how in on for with my your is are and do i
 const FILLER = new Set(('guide tutorial tuto tutoriel video videos how comment easy facile simple best meilleur meilleure new nouveau full complet complete ' +
   'step steps etape etapes part partie fix quick rapide your with avec pour dans tout faire explained explique setup using without sans what why when where ' +
   'every need know avant apres before after more plus very tres from this that have make cette votre notre').split(' '));
+const ACTIONS = ('activer desactiver regler reglage reglages installer installation desinstaller configurer configuration reparer reparation changer changement remplacer remplacement ' +
+  'demonter demontage monter montage nettoyer nettoyage brancher connecter reinitialiser reinitialisation redemarrer demarrer demarrage supprimer enlever retirer ajouter tester verifier ' +
+  'resoudre corriger ameliorer augmenter baisser accelerer probleme panne erreur debutant facile rapide utiliser mettre ' +
+  'enable enabling activate disable adjust adjusting set tune adjustment settings setup install installing uninstall configure repair repairing fix fixing replace replacing replacement change changing ' +
+  'disassemble remove removing teardown assemble mount assembly build clean cleaning connect plug reset restart reboot start boot startup delete add test check solve problem issue error ' +
+  'improve upgrade increase lower reduce beginner easy quick fast use using make').split(' ');
+const actionCache = new Map();
+function isAction(k){
+  if(!actionCache.has(k)) actionCache.set(k, ACTIONS.includes(k) || (k.length > 5 && ACTIONS.some(a => a.length > 5 && a.slice(0, a.length - 2) === k.slice(0, a.length - 2))));
+  return actionCache.get(k);
+}
 function keywords(q){
   return [...new Set(norm(q).split(/[^a-z0-9]+/).filter(w => w.length > 1 && !STOP_FR.has(w) && !STOP_EN.has(w)))];
 }
@@ -272,6 +284,37 @@ function buildCtx(q, en){
   const strong = strongKeywords(q).filter(k => !must.includes(k));
   const kwsEn = en ? keywords(en) : [];
   return { kwsFr, kwsEn, alts, strong, must, suspect: new Set(), all: [...new Set(kwsFr.concat(kwsEn))] };
+}
+// Mots « sujet » : ceux qui disent de quoi on parle (XMP, vélo, frein), pas ce qu'on veut faire (activer, changer).
+// Un nombre tout seul (« 11 », « 5 ») ne suffit pas à reconnaître un sujet.
+function subjWords(list, ctx){
+  const ok = list.filter(k => !isAction(k) && !ctx.suspect.has(k));
+  const noNum = ok.filter(k => !/^\d+$/.test(k));
+  return noNum.length ? noNum : ok;
+}
+function subjectsOf(ctx){
+  return [...new Set(subjWords(ctx.strong.concat(ctx.must), ctx).concat(subjWords(ctx.kwsEn, ctx), subjWords(ctx.kwsFr, ctx)))];
+}
+// Combien de mots « sujet » le résultat contient-il ? On compte en français et en anglais, on garde le meilleur.
+function subjectMatch(text, ctx){
+  const frHit = k => hasWord(text, k) || (ctx.alts[k] || []).some(a => hasWord(text, a));
+  const fr = subjWords(ctx.kwsFr, ctx), en = subjWords(ctx.kwsEn, ctx);
+  const enHit = k => hasWord(text, k) || ctx.kwsFr.some(f => (ctx.alts[f] || []).includes(k) && hasWord(text, f));
+  const side = (list, hit) => { const miss = list.filter(k => !hit(k)); return { n: list.length, hits: list.length - miss.length, miss }; };
+  const a = side(fr, frHit), b = side(en, enHit);
+  if(!a.n && !b.n) return { n: 0, hits: 0, miss: [] };
+  if(!b.n) return a;
+  if(!a.n) return b;
+  return (b.hits / b.n > a.hits / a.n) ? b : a;
+}
+// Mots « sujet » en anglais, pour interroger les sites anglais
+function enSubjects(ctx){ return subjWords(ctx.kwsEn.length ? ctx.kwsEn : ctx.kwsFr, ctx); }
+// La traduction automatique oublie parfois un mot (« vélo ») : on le rajoute
+function completeEn(q, en){
+  if(!en) return en;
+  const c = buildCtx(q, en), n = norm(en);
+  const miss = c.kwsFr.filter(k => c.alts[k].length && !hasWord(n, k) && !c.alts[k].some(a => hasWord(n, a))).map(k => c.alts[k][0]);
+  return miss.length ? en + ' ' + [...new Set(miss)].join(' ') : en;
 }
 // Part des mots de la recherche retrouvés, en français ou en anglais (on garde le meilleur des deux)
 function coverage(text, ctx){
@@ -468,7 +511,11 @@ const chanKey = it => it.platform + ':' + (it.channelId || it.channel || '?');
 function scoreItem(it, ctx){
   let s = 50;
   const why = [];
-  const t = norm(it.title), td = t + ' ' + norm(it.desc);
+  // Le nom de la chaîne recopié dans le titre ne compte pas (« … - Bosque Mobile Bicycle Repair »)
+  let t = norm(it.title);
+  const chn = norm(it.channel || '');
+  if(!it.written && chn.length >= 6 && t.includes(chn)) t = t.split(chn).join(' ');
+  const td = t + ' ' + norm(it.desc);
   if(it.lang === undefined) it.lang = String(it.declLang || '').slice(0, 2).toLowerCase() || guessLang(it.title + ' ' + String(it.desc || '').slice(0, 300));
 
   // Hors-sujet : un mot obligatoire manque, OU aucun mot important n'apparaît, OU presque aucun mot de la recherche.
@@ -478,10 +525,13 @@ function scoreItem(it, ctx){
   const missStrong = strongOk.filter(k => !hasWord(td, k));
   const covAll = coverage(td, ctx);
   const hasKw = ctx.kwsFr.some(k => !ctx.suspect.has(k));
+  // Mots « sujet » : YouTube trie déjà bien, un seul suffit. Ailleurs (PeerTube, tutos écrits) il en faut au moins la moitié, et 2 dès qu'il y en a 2.
+  const sm = subjectMatch(td + (it.written ? ' ' + chn : ''), ctx);
+  const need = it.platform === 'YouTube' ? 1 : Math.max(Math.ceil(sm.n / 2), Math.min(2, sm.n));
   it.mustMiss = missMust.length > 0;
   it.offTopic = it.mustMiss ||
     (strongOk.length > 0 && missStrong.length === strongOk.length) ||
-    (hasKw && covAll.r < 0.34);
+    (hasKw && covAll.r < 0.34) || (sm.n > 0 && sm.hits < need);
   if(it.offTopic){
     s -= 30;
     why.push(['-', missMust.length ? 'mot obligatoire absent : « ' + missMust.join(', ') + ' »' : 'hors-sujet']);
@@ -545,6 +595,12 @@ function scoreItem(it, ctx){
   if(it.confirmed && it.com){
     if(it.com.ratio < 0.35){ it.score = Math.min(it.score, 40); why.push(['-', 'la plupart des avis sont négatifs']); }
     else if(it.com.ratio < 0.6 || it.com.risk){ it.score = Math.min(it.score, 64); why.push(['i', it.com.risk ? 'risque signalé : jamais en vert' : 'avis partagés']); }
+  }
+  // Tuto écrit qui ne parle pas de tout le sujet (frein de voiture pour une recherche vélo) : jamais en vert
+  if(it.written && !it.offTopic && sm.miss.length){
+    it.score = Math.min(it.score, 64);
+    const extra = sm.miss.filter(k => !missStrong.includes(k));
+    if(extra.length) why.push(['-', 'ne parle pas de : ' + extra.join(', ')]);
   }
   if(!it.confirmed) why.push(['i', '⚪ non confirmé : ' + (it.written ? 'pas de réponse validée' : it.platform === 'YouTube' ? 'moins de 3 avis utiles' : 'pas d\'avis lisibles')]);
   it.why = why;
@@ -654,35 +710,48 @@ function searchPeerTube(qs){
 const decodeEnt = x => String(x || '').replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n)).replace(/&#x([0-9a-f]+);/gi, (m, n) => String.fromCharCode(parseInt(n, 16)))
   .replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 
-// Stack Exchange : questions-réponses avec votes. On interroge 4 rubriques (le site est en anglais).
-const SE_SITES = [['superuser', 'informatique'], ['bicycles', 'vélo'], ['diy', 'bricolage'], ['mechanics', 'auto']];
-async function searchStackExchange(en){
-  const rs = await Promise.allSettled(SE_SITES.map(async ([site, label]) => {
-    const j = await getJSON('https://api.stackexchange.com/2.3/search/advanced?' + new URLSearchParams({ order:'desc', sort:'relevance', q:en, site, pagesize:'5' }));
-    return (j.items || []).map(x => {
-      const acc = !!x.accepted_answer_id, votes = x.score || 0, na = x.answer_count || 0, sig = [];
-      if(acc) sig.push([15, '✅ réponse acceptée']);
-      else if(x.is_answered) sig.push([8, 'réponse bien notée']);
-      else if(!na) sig.push([-15, 'aucune réponse']);
-      if(votes >= 10) sig.push([10, votes + ' votes']);
-      else if(votes >= 3) sig.push([5, votes + ' votes']);
-      else if(votes < 0) sig.push([-10, 'question mal notée']);
-      const note = (acc ? 'Question avec une réponse acceptée' : x.is_answered ? 'Question avec une réponse bien notée' : na ? 'Question sans réponse validée' : 'Question restée sans réponse') +
-        ', ' + na + (na > 1 ? ' réponses' : ' réponse') + ', ' + votes + (Math.abs(votes) > 1 ? ' votes' : ' vote') + '.';
-      return { platform:'StackExchange', label:'Stack Exchange', written:true, title:decodeEnt(x.title), desc:(x.tags || []).join(' '),
-        channel:'rubrique ' + label, channelId:site, url:x.link, thumb:'', declLang:'en', duration:null,
-        published:x.creation_date ? new Date(x.creation_date * 1000).toISOString() : null,
-        views:x.view_count || 0, likes:null, signals:sig, note, ownOk:acc || !!x.is_answered };
-    });
-  }));
-  const ok = rs.filter(r => r.status === 'fulfilled');
-  if(!ok.length) throw rs[0].reason;
-  return [].concat(...ok.map(r => r.value));
+// Stack Exchange : questions-réponses avec votes (site en anglais).
+// On choisit la rubrique selon le sujet, et on réessaie avec moins de mots si rien ne sort.
+const SE_SITES = [
+  ['superuser', 'informatique', /(^| )(pc|ordinateur|computer|windows|bios|motherboard|ram|xmp|ssd|usb|wifi|pilote|driver|logiciel|software|linux|laptop|imprimante|printer|gpu|cpu|clavier|ecran)( |$)|carte mere|carte graphique/],
+  ['bicycles', 'vélo', /velo|bike|bicycle|vtt|derailleur|pedalier|chambre a air|inner tube|guidon|cassette|shimano|sram|cyclis/],
+  ['diy', 'bricolage', /maison|peinture|plomberie|robinet|chaudiere|radiateur|electricite|interrupteur|carrelage|parquet|perceuse|fenetre|isolation|plumbing|faucet|drywall|(^| )(mur|porte|toit|wall|paint|tile|door)( |$)/],
+  ['mechanics', 'auto', /voiture|moteur|vidange|embrayage|courroie|bougie|amortisseur|climatisation|engine|clutch|(^| )(auto|car|clio|renault|peugeot|fiat|citroen)( |$)/]
+];
+async function searchStackExchange(queries, hintText){
+  const flat = norm(hintText).replace(/[^a-z0-9]+/g, ' ');
+  let sites = SE_SITES.filter(x => x[2].test(flat));
+  if(!sites.length) sites = SE_SITES;
+  for(const q of queries){
+    const rs = await Promise.allSettled(sites.map(async ([site, label]) => {
+      const j = await getJSON('https://api.stackexchange.com/2.3/search/advanced?' + new URLSearchParams({ order:'desc', sort:'relevance', q, site, pagesize:'5' }));
+      return (j.items || []).map(x => {
+        const acc = !!x.accepted_answer_id, votes = x.score || 0, na = x.answer_count || 0, sig = [];
+        if(acc) sig.push([15, '✅ réponse acceptée']);
+        else if(x.is_answered) sig.push([8, 'réponse bien notée']);
+        else if(!na) sig.push([-15, 'aucune réponse']);
+        if(votes >= 10) sig.push([10, votes + ' votes']);
+        else if(votes >= 3) sig.push([5, votes + ' votes']);
+        else if(votes < 0) sig.push([-10, 'question mal notée']);
+        const note = (acc ? 'Question avec une réponse acceptée' : x.is_answered ? 'Question avec une réponse bien notée' : na ? 'Question sans réponse validée' : 'Question restée sans réponse') +
+          ', ' + na + (na > 1 ? ' réponses' : ' réponse') + ', ' + votes + (Math.abs(votes) > 1 ? ' votes' : ' vote') + '.';
+        return { platform:'StackExchange', label:'Stack Exchange', written:true, qa:true, title:decodeEnt(x.title), desc:(x.tags || []).join(' '),
+          channel:'question-réponse, rubrique ' + label, channelId:site, url:x.link, thumb:'', declLang:'en', duration:null,
+          published:x.creation_date ? new Date(x.creation_date * 1000).toISOString() : null,
+          views:x.view_count || 0, likes:null, signals:sig, note, ownOk:acc || !!x.is_answered };
+      });
+    }));
+    const ok = rs.filter(r => r.status === 'fulfilled');
+    if(!ok.length) throw rs[0].reason;
+    const all = [].concat(...ok.map(r => r.value));
+    if(all.length) return all;
+  }
+  return [];
 }
 
 // iFixit : guides de réparation pas à pas avec photos
 const DIFF = { 'very easy':'très facile', easy:'facile', moderate:'moyenne', difficult:'difficile', 'very difficult':'très difficile' };
-function searchIFixit(qs){
+function ifixitOnce(qs){
   return multi(qs, async x => {
     const j = await getJSON('https://www.ifixit.com/api/2.0/search/' + encodeURIComponent(x.q) + '?filter=guide&limit=8');
     return (j.results || []).filter(g => g && g.title && (g.url || g.guideid)).map(g => {
@@ -697,6 +766,12 @@ function searchIFixit(qs){
         note:'Guide pas à pas avec photos' + (d ? ', difficulté ' + d : '') + (t ? ', durée ' + t : '') + '.' };
     });
   }, it => it.url);
+}
+
+// Si rien ne sort, on réessaie avec seulement les mots « sujet »
+async function searchIFixit(qs, fallback){
+  const r = await ifixitOnce(qs);
+  return r.length || !fallback ? r : ifixitOnce([{ q: fallback }]);
 }
 
 /* ---------- Recherche ---------- */
@@ -721,11 +796,12 @@ function calibrate(){
   const ctx = lastCtx;
   ctx.suspect = new Set(); lastSuggest = null; lastNeighbors = [];
   const yt = lastResults.filter(it => it.platform === 'YouTube');
-  const pool = yt.length >= 8 ? yt : lastResults;
-  if(pool.length < 8) return;
+  if(yt.length < 8) return;          // sans YouTube, les autres sources sont trop bruitées pour juger un mot
+  const pool = yt;
   const texts = pool.map(it => norm(it.title) + ' ' + norm(it.desc));
   const ratio = k => texts.filter(t => hasWord(t, k) || (ctx.alts[k] || []).some(a => hasWord(t, a))).length / pool.length;
   ctx.strong.forEach(k => { if(ratio(k) < 0.1) ctx.suspect.add(k); });
+  if(ctx.strong.length >= 2 && ctx.suspect.size === ctx.strong.length) ctx.suspect.clear();   // une faute de frappe touche un mot, pas tous
   const freq = new Map();
   pool.forEach(it => new Set(norm(it.title).split(/[^a-z0-9]+/)).forEach(w => { if(w.length >= 3) freq.set(w, (freq.get(w) || 0) + 1); }));
   // Mots voisins : termes (surtout techniques) qui reviennent dans les titres et que tu n'as pas tapés
@@ -787,6 +863,7 @@ async function runSearch(){
     const tr = await translateQuery(q);
     en = tr.en; via = tr.via;
   }
+  en = completeEn(q, en);
   lastQ = q; lastEn = en;
   lastCtx = buildCtx(q, en);
   const qs = [{ q, lang:'fr' }];
@@ -797,9 +874,13 @@ async function runSearch(){
   if($('sYT').checked) jobs.push(['YouTube', searchYouTube(qs)]);
   if($('sPT').checked) jobs.push(['PeerTube', searchPeerTube(qs)]);
   if($('sTX').checked){
-    jobs.push(['iFixit', searchIFixit(qs)]);
-    const seQ = en || ($('langMode').value === 'both' ? q : '');      // Stack Exchange est en anglais
-    if(seQ) jobs.push(['Stack Exchange', searchStackExchange(seQ)]);
+    const subj = enSubjects(lastCtx);
+    jobs.push(['iFixit', searchIFixit(qs, subj.slice(0, 3).join(' '))]);
+    const seBase = en || ($('langMode').value === 'both' ? q : '');      // Stack Exchange est en anglais
+    if(seBase){
+      const tries = [keywords(seBase).slice(0, 5).join(' '), subj.slice(0, 3).join(' ')];
+      jobs.push(['Stack Exchange', searchStackExchange([...new Set(tries.filter(Boolean))], q + ' ' + seBase)]);
+    }
   }
   const settled = await Promise.allSettled(jobs.map(j => j[1]));
   let all = [];
@@ -839,11 +920,11 @@ function fmtDur(s){
 function render(){
   const ctx = lastCtx;
   const showOff = $('showOff').checked, frOnly = $('langMode').value === 'fr';
-  const age = +$('age').value, forbid = listOf($('mustNot').value), sort = $('sort').value, noShort = $('noShort').checked;
+  const age = +$('age').value, forbid = listOf($('mustNot').value), sort = $('sort').value, noShort = $('noShort').checked, capChan = $('capChan').checked;
   // Filet de sécurité : s'il ne reste presque rien, on montre aussi les vidéos YouTube moins proches
   const onTopic = lastResults.filter(it => !it.offTopic && !banned[chanKey(it)]).length;
   const relaxed = !showOff && onTopic < 3 && lastResults.length >= 10;
-  const cnt = { ban:0, off:0, mot:0, lang:0, age:0, court:0 };
+  const cnt = { ban:0, off:0, mot:0, lang:0, age:0, court:0, chaine:0 };
   shown = lastResults.filter(it => {
     if(banned[chanKey(it)]){ cnt.ban++; return false; }
     if(it.offTopic && !showOff && !(relaxed && it.platform === 'YouTube' && !it.mustMiss)){ cnt.off++; return false; }
@@ -860,11 +941,23 @@ function render(){
   if(sort === 'date') shown.sort((a, b) => ts(b) - ts(a));
   else if(sort === 'views') shown.sort((a, b) => (b.views || 0) - (a.views || 0));
   else shown.sort((a, b) => (b.score - a.score) || (b.confirmed - a.confirmed) || (b.raw - a.raw));
+  // Pas plus de 2 vidéos par chaîne (sauf chaînes de confiance), pour laisser la place à d'autres voix
+  if(capChan){
+    const seenChan = {};
+    shown = shown.filter(it => {
+      if(it.written || trusted[chanKey(it)]) return true;
+      const k = chanKey(it);
+      seenChan[k] = (seenChan[k] || 0) + 1;
+      if(seenChan[k] > 2){ cnt.chaine++; return false; }
+      return true;
+    });
+  }
 
   const hid = [];
   if(cnt.off) hid.push(cnt.off + ' hors-sujet');
   if(cnt.lang) hid.push(cnt.lang + ' en anglais');
   if(cnt.mot) hid.push(cnt.mot + ' avec mot interdit');
+  if(cnt.chaine) hid.push(cnt.chaine + ' en trop de la même chaîne');
   if(cnt.court) hid.push(cnt.court + ' de moins d\'1 minute');
   if(cnt.age) hid.push(cnt.age + ' trop anciennes (filtre Ancienneté)');
   if(cnt.ban) hid.push(cnt.ban + ' de chaînes bannies');
@@ -879,9 +972,12 @@ function render(){
   // Verdict sur la recherche entière
   const noticeLink = '<a href="https://www.google.com/search?q=' + encodeURIComponent(lastQ + ' notice officielle manuel pdf') +
     '" target="_blank" rel="noopener noreferrer">📄 Chercher la notice officielle</a>';
-  const solid = shown.filter(it => !it.offTopic && it.confirmed && it.score >= 65 && (it.written || (it.com && it.com.useful >= 5 && !it.com.risk))).length;
+  const okItem = it => !it.offTopic && it.confirmed && it.score >= 65 && (it.written || (it.com && it.com.useful >= 5 && !it.com.risk));
+  const solid = shown.filter(it => okItem(it) && !it.qa).length, qaOk = shown.filter(it => okItem(it) && it.qa).length;
   const decent = shown.filter(it => !it.offTopic && it.score >= 50).length;
-  const verdict = solid ? '✅ <b>' + solid + (solid > 1 ? ' tutos solides' : ' tuto solide') + '</b> : bon score et assez d\'avis pour s\'y fier.'
+  const qaTxt = qaOk + (qaOk > 1 ? ' questions-réponses validées' : ' question-réponse validée');
+  const verdict = solid ? '✅ <b>' + solid + (solid > 1 ? ' tutos solides' : ' tuto solide') + '</b>' + (qaOk ? ' et ' + qaTxt : '') + '.'
+    : qaOk ? '🟠 <b>Pas de tuto confirmé.</b> Mais ' + qaTxt + (qaOk > 1 ? ' peuvent aider.' : ' peut aider.')
     : decent ? '🟠 <b>Aucun tuto vraiment confirmé.</b> Les mieux placés ont trop peu d\'avis : à vérifier avant de suivre.'
     : '🔴 <b>Aucun tuto sûr trouvé.</b> Regarde plutôt la notice officielle.';
   top.push('<div class="box tip">' + verdict + '<br>' + noticeLink + '</div>');
@@ -926,7 +1022,7 @@ function render(){
     return '<div class="card">' +
       '<a class="thumb" data-open="' + i + '" href="' + href + '" target="_blank" rel="noopener noreferrer">' + img + '</a>' +
       '<div class="body"><div class="top"><span class="badge p-' + esc(it.platform) + '">' + esc(it.label || it.platform) + '</span>' +
-      '<span class="score ' + cls + '">' + it.score + '</span></div>' +
+      '<span class="score ' + cls + '">' + (it.confirmed ? it.score : '?') + '</span></div>' +
       '<h3><a data-open="' + i + '" href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(it.title) + '</a></h3>' +
       '<div class="meta">' + meta + '</div>' + sum + keys + '<ul class="why">' + why + seen + '</ul>' + tips + ev + verdictRow + reasons +
       (it.written ? '' : '<div class="act"><button type="button" data-act="trust" data-i="' + i + '" class="' + (isT ? 'on' : '') + '">⭐ ' + (isT ? 'De confiance' : 'Confiance') + '</button>' +
@@ -1106,7 +1202,7 @@ $('saveKey').onclick = () => {
   setStatus('Clé enregistrée ✅');
 };
 
-const PREF_CHECK = ['sYT', 'sPT', 'sTX', 'showOff', 'noShort'];
+const PREF_CHECK = ['sYT', 'sPT', 'sTX', 'showOff', 'noShort', 'capChan'];
 const PREF_VAL = ['must', 'mustNot', 'age', 'sort', 'langMode'];
 function savePrefs(){
   const p = {};
