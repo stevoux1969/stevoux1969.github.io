@@ -75,7 +75,7 @@ async function main(){
           horsSujet: it.offTopic, langue: it.lang, duree: it.duration, chaine: it.channel,
           resume: it.summary, pourquoi: it.why.map(w => (w[0] === 'i' ? '' : w[0] + ' ') + w[1]),
           astuces: (it.tips || []).map(x => String(x.text).slice(0, 160)), passages: (it.moments || []).map(m => m.t + ' ' + String(m.label).slice(0, 50)),
-          avis: it.com ? { lus: it.com.total, utiles: it.com.useful, cases: it.com.counts, exemples: it.com.ev.slice(0, 4).map(e => e.cat + ' : ' + String(e.text).slice(0, 140)) } : null,
+          avis: it.com ? { lus: it.com.total, utiles: it.com.useful, cases: it.com.counts, bloquent: it.com.nBlocks, typeBlocage: it.com.blockKind, exBlocage: (it.com.blocks || []).slice(0, 2).map(b => String(b.text).slice(0, 120)), exemples: it.com.ev.slice(0, 4).map(e => e.cat + ' : ' + String(e.text).slice(0, 140)) } : null,
           etatCommentaires: it.comState || null
         })).sort((a, b) => (a.rang || 999) - (b.rang || 999)),
         liens: [...document.querySelectorAll('a.exit')].map(a => [a.innerText, a.href])

@@ -1,6 +1,7 @@
 {
   "recherches": [
-    { "q": "changer un robinet de cuisine", "youtube": false },
-    { "q": "remplacer batterie iPhone 11", "youtube": false }
+    { "q": "activer XMP carte mère MSI B550" },
+    { "q": "changer un robinet de cuisine" },
+    { "q": "changer plaquettes de frein vélo", "youtube": false }
   ]
 }
