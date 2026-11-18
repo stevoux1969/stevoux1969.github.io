@@ -648,7 +648,8 @@ function scoreItem(it, ctx){
   // La couleur suit les avis : majorité d'avis négatifs = rouge, avis partagés = orange, risque signalé = jamais vert
   if(it.confirmed && it.com){
     if(it.com.ratio < 0.35){ it.score = Math.min(it.score, 40); why.push(['-', 'la plupart des avis sont négatifs']); }
-    else if(it.com.ratio < 0.6 || it.com.risk){ it.score = Math.min(it.score, 64); why.push(['i', it.com.risk ? 'risque signalé : jamais en vert' : 'avis partagés']); }
+    // Une vidéo bien construite (chapitres, chaîne pro) compte déjà un peu comme une preuve : « avis partagés » seulement sous 50 % de positifs
+    else if(it.com.ratio < (it.built ? 0.5 : 0.6) || it.com.risk){ it.score = Math.min(it.score, 64); why.push(['i', it.com.risk ? 'risque signalé : jamais en vert' : 'avis partagés']); }
   }
   // Tuto écrit qui ne parle pas de tout le sujet (frein de voiture pour une recherche vélo) : jamais en vert
   if(it.written && !it.offTopic && sm.miss.length){
