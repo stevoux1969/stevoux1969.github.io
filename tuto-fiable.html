@@ -49,7 +49,7 @@
   .badge{font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:99px;color:#fff}
   .p-YouTube{background:#dc2626}.p-PeerTube{background:#ea580c}.p-StackExchange{background:#2563eb}.p-iFixit{background:#0f766e}
   .score{font-weight:800;font-size:.95rem;padding:2px 9px;border-radius:8px;color:#fff}
-  .s-good{background:var(--good)}.s-mid{background:var(--mid)}.s-bad{background:var(--bad)}.s-none{background:#8b93a1}
+  .s-good{background:var(--good)}.s-mid{background:var(--mid)}.s-bad{background:var(--bad)}.s-none{background:#8b93a1}.s-built{background:#2563eb}
   .ph{width:120px;height:68px;border-radius:8px;background:rgba(107,114,128,.18);display:flex;align-items:center;justify-content:center;font-size:1.8rem;text-decoration:none}
   h3{font-size:.95rem;margin:6px 0 2px;line-height:1.25;overflow-wrap:anywhere}
   h3 a{color:inherit;text-decoration:none}
@@ -128,7 +128,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VERSION = '2.9';
+const APP_VERSION = '3.0';
 $('ver').textContent = 'v' + APP_VERSION;
 
 /* ---------- Mémoire de l'appareil ---------- */
@@ -454,6 +454,10 @@ const cut = (x, n) => { x = String(x).replace(/\s+/g, ' ').trim(); return x.leng
 const labelOf = line => String(line).replace(TS_G, ' ').replace(/^[\s\-–—:|()\[\]•.,]+|[\s\-–—:|()\[\]•.,]+$/g, '').replace(/\s+/g, ' ').trim();
 
 // Chapitres : lignes du type « 3:20 Réglage du BIOS » (dans la description ou dans un commentaire)
+// Lignes d'étapes dans une description : « 1. », « 2) », « Étape 3 », « Step 4 »
+const STEP_LINE = /^\s*((etape|step|stage|passo|paso)\s*\d+|\d{1,2}\s*[.)/-]\s+\S)/i;
+// Chaînes de marques, magasins et ateliers reconnus (liste courte, à compléter)
+const PRO_CHANNELS = / (decathlon|btwin|rockrider|ifixit|leroy merlin|castorama|brico ?depot|bricomarche|mr\.? ?bricolage|manomano|bosch|makita|park tool|global cycling network|gcn|global mountain bike network|gmbn|shimano|sram|alltricks|probikeshop|velo ?& ?oxygen|norauto|feu vert|oscaro|mister auto|autodoc|midas|speedy|msi|asus|gigabyte|aorus|asrock|corsair|kingston|crucial|apple support|samsung|philips|dyson|grohe|hansgrohe|legrand|schneider|somfy|sfr|orange|free|bouygues|ikea|this old house|bob vila) /;
 function chaptersOf(text){
   const out = [];
   String(text || '').split(/\r?\n/).forEach(line => {
@@ -578,6 +582,26 @@ function scoreItem(it, ctx){
     if(r > 0.04){ s += 8; why.push(['+', 'très appréciée']); }
     else if(r > 0.02){ s += 4; why.push(['+', 'appréciée']); }
   }
+  // Vues par an : une vidéo très regardée a souvent « un truc ». Petit bonus seulement (jamais assez pour être verte seule).
+  it.ageYears = it.published ? (Date.now() - new Date(it.published)) / (365.25 * 864e5) : null;
+  if(it.platform === 'YouTube' && it.views && it.ageYears != null){
+    const vpy = it.views / Math.max(0.5, it.ageYears);
+    if(vpy >= 100000){ s += 6; why.push(['+', 'très regardée (≈ ' + fmtViews(Math.round(vpy)) + ' par an)']); }
+    else if(vpy >= 20000){ s += 3; why.push(['+', 'bien regardée (≈ ' + fmtViews(Math.round(vpy)) + ' par an)']); }
+  }
+  // Bien construit : chapitres, étapes listées, chaîne de marque ou professionnelle. Signe de sérieux, pas une preuve.
+  it.built = null;
+  if(it.platform === 'YouTube'){
+    const nChap = chaptersOf(it.desc).length;
+    const nSteps = String(it.desc || '').split(/\r?\n/).filter(l => STEP_LINE.test(l)).length;
+    const pro = PRO_CHANNELS.test(' ' + norm(it.channel || '') + ' ');
+    const longEnough = it.duration == null || it.duration >= 60;
+    const why2 = [];
+    if(nChap >= 3){ s += 8; why2.push(nChap + ' chapitres'); }
+    else if(nSteps >= 3){ s += 6; why2.push(nSteps + ' étapes décrites'); }
+    if(pro && longEnough){ s += 6; why2.push('chaîne de marque ou pro'); }
+    if(why2.length && longEnough){ it.built = why2.join(', '); why.push(['+', '🔵 bien construit : ' + it.built]); }
+  }
   // Chaîne de confiance
   if(trusted[chanKey(it)]){ s += 10; why.push(['+', 'chaîne de confiance']); }
 
@@ -619,12 +643,13 @@ function scoreItem(it, ctx){
   it.side = side ? side[1] : null;
   it.confirmed = it.written ? !!it.ownOk : !!(it.com && it.com.useful >= 3);
   it.raw = Math.max(0, Math.min(100, Math.round(s)));
-  it.score = it.confirmed ? it.raw : Math.min(it.raw, 59);
+  it.score = it.confirmed ? it.raw : Math.min(it.raw, it.built ? 62 : 59);
   if(it.side && !it.offTopic){ it.score = Math.min(it.score, 55); why.push(['i', '🔁 ' + it.side]); }
   // La couleur suit les avis : majorité d'avis négatifs = rouge, avis partagés = orange, risque signalé = jamais vert
   if(it.confirmed && it.com){
     if(it.com.ratio < 0.35){ it.score = Math.min(it.score, 40); why.push(['-', 'la plupart des avis sont négatifs']); }
-    else if(it.com.ratio < 0.6 || it.com.risk){ it.score = Math.min(it.score, 64); why.push(['i', it.com.risk ? 'risque signalé : jamais en vert' : 'avis partagés']); }
+    // Une vidéo bien construite (chapitres, chaîne pro) compte déjà un peu comme une preuve : « avis partagés » seulement sous 50 % de positifs
+    else if(it.com.ratio < (it.built ? 0.5 : 0.6) || it.com.risk){ it.score = Math.min(it.score, 64); why.push(['i', it.com.risk ? 'risque signalé : jamais en vert' : 'avis partagés']); }
   }
   // Tuto écrit qui ne parle pas de tout le sujet (frein de voiture pour une recherche vélo) : jamais en vert
   if(it.written && !it.offTopic && sm.miss.length){
@@ -632,7 +657,7 @@ function scoreItem(it, ctx){
     const extra = sm.miss.filter(k => !missStrong.includes(k));
     if(extra.length) why.push(['-', 'ne parle pas de : ' + extra.join(', ')]);
   }
-  if(!it.confirmed) why.push(['i', '⚪ non confirmé : ' + (it.written ? 'pas de réponse validée' : it.platform === 'YouTube' ? 'moins de 3 avis utiles' : 'pas d\'avis lisibles')]);
+  if(!it.confirmed) why.push(['i', (it.built ? '🔵' : '⚪') + ' non confirmé : ' + (it.written ? 'pas de réponse validée' : it.platform === 'YouTube' ? 'moins de 3 avis utiles' : 'pas d\'avis lisibles')]);
   it.why = why;
   return it;
 }
@@ -1088,7 +1113,7 @@ function render(){
   const ts = it => it.published ? new Date(it.published).getTime() : 0;
   if(sort === 'date') shown.sort((a, b) => ts(b) - ts(a));
   else if(sort === 'views') shown.sort((a, b) => (b.views || 0) - (a.views || 0));
-  else shown.sort((a, b) => (b.score - a.score) || (b.confirmed - a.confirmed) || (b.raw - a.raw));
+  else shown.sort((a, b) => (b.score - a.score) || (b.confirmed - a.confirmed) || (b.raw - a.raw) || ((Date.parse(b.published) || 0) - (Date.parse(a.published) || 0)));
   // Pas plus de 2 vidéos par chaîne (sauf chaînes de confiance), pour laisser la place à d'autres voix
   if(capChan){
     const seenChan = {};
@@ -1123,9 +1148,12 @@ function render(){
   const okItem = it => !it.offTopic && it.confirmed && it.score >= 65 && (it.written || (it.com && it.com.useful >= 5 && !it.com.risk));
   const solid = shown.filter(it => okItem(it) && !it.qa).length, qaOk = shown.filter(it => okItem(it) && it.qa).length;
   const decent = shown.filter(it => !it.offTopic && it.score >= 50).length;
+  const builtN = shown.filter(it => !it.offTopic && !it.confirmed && it.built).length;
   const qaTxt = qaOk + (qaOk > 1 ? ' questions-réponses validées' : ' question-réponse validée');
-  const verdict = solid ? '✅ <b>' + solid + (solid > 1 ? ' tutos solides' : ' tuto solide') + '</b>' + (qaOk ? ' et ' + qaTxt : '') + '.'
+  const builtTxt = builtN ? ' Plus ' + builtN + (builtN > 1 ? ' vidéos bien construites 🔵 pas encore confirmées.' : ' vidéo bien construite 🔵 pas encore confirmée.') : '';
+  const verdict = solid ? '✅ <b>' + solid + (solid > 1 ? ' tutos solides' : ' tuto solide') + '</b>' + (qaOk ? ' et ' + qaTxt : '') + '.' + builtTxt
     : qaOk ? '🟠 <b>Pas de tuto confirmé.</b> Mais ' + qaTxt + (qaOk > 1 ? ' peuvent aider.' : ' peut aider.')
+    : builtN ? '🔵 <b>Aucun tuto confirmé par les commentaires</b>, mais ' + builtN + (builtN > 1 ? ' vidéos bien construites' : ' vidéo bien construite') + ' (chapitres, étapes ou chaîne pro). À vérifier, mais bon point de départ.'
     : decent ? '🟠 <b>Aucun tuto vraiment confirmé.</b> Les mieux placés ont trop peu d\'avis : à vérifier avant de suivre.'
     : '🔴 <b>Aucun tuto sûr trouvé.</b> Regarde plutôt la notice officielle.';
   top.push('<div class="box tip">' + verdict + '<br>' + noticeLink + '</div>');
@@ -1143,8 +1171,8 @@ function render(){
     return;
   }
   $('results').innerHTML = top.join('') + shown.map((it, i) => {
-    const cls = !it.confirmed ? 's-none' : it.score >= 65 ? 's-good' : it.score >= 45 ? 's-mid' : 's-bad';
-    const meta = [it.channel, fmtDate(it.published), fmtViews(it.views), fmtDur(it.duration)].filter(Boolean).map(esc).join(' · ');
+    const cls = !it.confirmed ? (it.built && !it.offTopic ? 's-built' : 's-none') : it.score >= 65 ? 's-good' : it.score >= 45 ? 's-mid' : 's-bad';
+    const meta = [it.channel, fmtDate(it.published) + (it.ageYears >= 3 ? ' (⏳ ' + Math.floor(it.ageYears) + ' ans)' : ''), fmtViews(it.views), fmtDur(it.duration)].filter(Boolean).map(esc).join(' · ');
     const why = it.why.map(([sign, txt]) =>
       '<li class="' + (sign === '+' ? 'plus' : sign === '-' ? 'minus' : 'info') + '">' + (sign === 'i' ? '' : sign + ' ') + esc(txt) + '</li>').join('');
     const img = it.thumb ? '<img loading="lazy" src="' + esc(it.thumb) + '" alt="">' : it.written ? '<span class="ph">📄</span>' : '<img alt="">';
