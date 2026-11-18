@@ -93,8 +93,9 @@ async function main(){
         for(const vid of targets){
           const g = { video: vid };
           try {
-            const sel = vid ? '[data-card="' + vid + '"] .gembtn' : 'article.card .gembtn';
-            const btn = await page.$(sel);
+            const done = r.gemini.map(x => x.video).filter(Boolean);
+            const btn = vid ? await page.$('[data-card="' + vid + '"] .gembtn')
+              : await page.evaluateHandle(d => [...document.querySelectorAll('article.card')].filter(c => !d.includes(c.dataset.card)).map(c => c.querySelector('.gembtn')).find(Boolean) || null, done).then(h => h.asElement());
             if(!btn){ g.erreur = 'bouton introuvable'; r.gemini.push(g); continue; }
             const card = await btn.evaluateHandle(b => b.closest('article'));
             const id = await card.evaluate(c => c.dataset.card);
