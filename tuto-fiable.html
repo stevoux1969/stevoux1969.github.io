@@ -1366,7 +1366,11 @@ async function gemModel(){
 }
 function gemErr(j, code){
   const m = (j && j.error && j.error.message) || ('erreur ' + code);
-  if(code === 429 || /quota|exhaust/i.test(m)) return 'limite gratuite de Gemini atteinte pour le moment. Réessaie plus tard (ou demain).';
+  if(code === 429 || /quota|exhaust/i.test(m)){
+    if(/per ?day|perday|daily/i.test(m)) return 'limite gratuite de Gemini atteinte pour aujourd\'hui. Ça revient demain (vers 9 h).';
+    if(/per ?minute|perminute/i.test(m)) return 'trop de vidéos d\'affilée pour la formule gratuite. Attends 1 ou 2 minutes, puis réessaie.';
+    return 'limite gratuite de Gemini atteinte pour le moment. Attends quelques minutes, puis réessaie.';
+  }
   if(code === 400 && /api key/i.test(m)) return 'clé Gemini refusée. Vérifie-la dans ⚙️.';
   return m.slice(0, 160);
 }
