@@ -15,7 +15,7 @@ concurrency:
 jobs:
   essais:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,6 +24,7 @@ jobs:
       - name: Lancer les essais
         env:
           YT_KEY: ${{ secrets.YT_KEY }}
+          GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
         run: |
           mkdir -p resultats
           set +e
