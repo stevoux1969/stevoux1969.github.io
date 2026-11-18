@@ -8,7 +8,8 @@ import path from 'node:path';
 const OUT = 'resultats';
 fs.mkdirSync(OUT, { recursive: true });
 const KEY = (process.env.YT_KEY || '').trim();
-const redact = s => { s = String(s).replace(/key=[A-Za-z0-9_\-]+/g, 'key=***'); return KEY ? s.split(KEY).join('***') : s; };
+const GKEY = (process.env.GEMINI_KEY || '').trim();
+const redact = s => { s = String(s).replace(/key=[A-Za-z0-9_.\-]+/g, 'key=***'); if(KEY) s = s.split(KEY).join('***'); if(GKEY) s = s.split(GKEY).join('***'); return s; };
 const log = (...a) => console.log(redact(a.join(' ')));
 const save = (name, obj) => fs.writeFileSync(path.join(OUT, name), redact(typeof obj === 'string' ? obj : JSON.stringify(obj, null, 1)));
 const conf = JSON.parse(fs.readFileSync('tests/essais.json', 'utf8'));
@@ -49,7 +50,7 @@ async function main(){
     const r = { q: t.q, erreursConsole: consoleErr };
     try {
       await page.goto(BASE + 'tuto-fiable.html', { waitUntil: 'load' });
-      if(KEY){ await page.evaluate(k => localStorage.setItem('ytKey', JSON.stringify(k)), KEY); await page.reload({ waitUntil: 'load' }); }
+      if(KEY || GKEY){ await page.evaluate(([k, g]) => { if(k) localStorage.setItem('ytKey', JSON.stringify(k)); if(g) localStorage.setItem('gemKey', JSON.stringify(g)); }, [KEY, GKEY]); await page.reload({ waitUntil: 'load' }); }
       await page.evaluate(yt => {
         document.getElementById('settings').hidden = true;
         document.getElementById('sYT').checked = yt;
@@ -85,6 +86,33 @@ async function main(){
       await page.waitForTimeout(2500);
       r.images = await page.evaluate(() => { const im = [...document.querySelectorAll('.thumb img')]; return { total: im.length, chargees: im.filter(i => i.complete && i.naturalWidth > 0).length, cassees: im.filter(i => !(i.complete && i.naturalWidth > 0)).slice(0, 4).map(i => i.getAttribute('src')) }; });
       r.captures = await shots(page, 'recherche' + i);
+      // Gemini : on fait regarder les vidéos demandées (ou la 1re), puis on photographie la fiche
+      if(GKEY && t.gemini){
+        r.gemini = [];
+        const targets = Array.isArray(t.gemini) ? t.gemini : [null];
+        for(const vid of targets){
+          const g = { video: vid };
+          try {
+            const sel = vid ? '[data-card="' + vid + '"] .gembtn' : '.gembtn';
+            const btn = await page.$(sel);
+            if(!btn){ g.erreur = 'bouton introuvable'; r.gemini.push(g); continue; }
+            const card = await btn.evaluateHandle(b => b.closest('article'));
+            const id = await card.evaluate(c => c.dataset.card);
+            g.video = id;
+            const t1 = Date.now();
+            await btn.click();
+            await page.waitForFunction(id => { const c = document.querySelector('[data-card="' + id + '"]'); return c && !c.querySelector('.gem.loading') && (c.querySelector('.gem') || c.querySelector('.gwarn')); }, id, { timeout: 330000, polling: 2000 });
+            g.secondes = Math.round((Date.now() - t1) / 1000);
+            const c2 = await page.$('[data-card="' + id + '"]');
+            g.texte = (await c2.evaluate(c => (c.querySelector('.gem') || {}).innerText || '')).slice(0, 900);
+            g.tampon = await c2.evaluate(c => (c.querySelector('.stamp') || {}).innerText || '');
+            g.rang = await page.evaluate(id => [...document.querySelectorAll('article.card')].findIndex(c => c.dataset.card === id) + 1, id);
+            await c2.scrollIntoViewIfNeeded();
+            await c2.screenshot({ path: path.join(OUT, 'gemini-' + i + '-' + id + '.jpg'), type: 'jpeg', quality: 70 });
+          } catch(e){ g.erreur = redact(e.message).slice(0, 300); }
+          r.gemini.push(g);
+        }
+      }
       if(i === 1) rapport.liensAVerifier = r.liens;
       delete r.liens;
     } catch(e){ r.erreur = redact(e.message).slice(0, 400); }

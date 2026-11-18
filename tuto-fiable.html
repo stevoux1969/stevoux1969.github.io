@@ -4,72 +4,116 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Tuto Fiable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#f4f5f7;--card:#fff;--txt:#1d2330;--mut:#6b7280;--acc:#2563eb;--good:#15803d;--mid:#c2410c;--bad:#b91c1c;--line:#d5d9e0}
-  @media (prefers-color-scheme:dark){:root{--bg:#111318;--card:#1b1e25;--txt:#e8eaef;--mut:#9aa1ad;--acc:#60a5fa;--line:#343944}}
+  /* Atelier : fond acier, encre graphite, jaune outillage pour les actions, une couleur par verdict */
+  :root{--bg:#e8ecef;--card:#fff;--txt:#16212b;--mut:#5b6976;--line:#d3d9de;--ink:#16212b;--yel:#f5c400;--yel-ink:#1a1400;
+    --acc:#2c6bd8;--good:#1f8a4c;--mid:#d97a12;--bad:#c23b2e;--built:#2c6bd8;--none:#8a95a0;--soft:#f3f5f7;
+    --f-head:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;--f-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  @media (prefers-color-scheme:dark){:root{--bg:#10161c;--card:#19222b;--txt:#e5eaee;--mut:#9aa7b2;--line:#2e3a45;--soft:#212c36;--acc:#6ea2ff;--built:#5b93f5;--none:#77828d}}
   *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt)}
-  header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--card);position:sticky;top:0;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-  h1{font-size:1.25rem;margin:0}
-  h1 span{color:var(--acc)}
-  h1 small{font-size:.7rem;color:var(--mut);font-weight:400}
+  body{margin:0;font-family:var(--f-body);font-size:16px;line-height:1.45;background:var(--bg);color:var(--txt)}
+  a{color:var(--acc)}
+  :focus-visible{outline:3px solid var(--yel);outline-offset:2px}
+  header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--ink);color:#fff;position:sticky;top:0;z-index:3;border-bottom:4px solid var(--yel)}
+  h1{font-family:var(--f-head);font-weight:800;font-size:1.65rem;letter-spacing:.01em;margin:0;line-height:1}
+  h1 span{color:var(--yel)}
+  h1 small{font-family:var(--f-body);font-size:.7rem;color:#9fb0bf;font-weight:500;margin-left:4px}
+  #btnSettings,#btnHist{background:transparent;color:#fff;font-size:1.35rem;padding:6px 8px}
   main{max-width:720px;margin:0 auto;padding:12px}
-  .box{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px}
-  input[type=text],input[type=password],select{width:100%;padding:11px;font-size:1rem;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--txt)}
+  .box{background:var(--card);border-radius:12px;padding:14px;margin-bottom:12px}
+  input[type=text],input[type=password],select{width:100%;padding:12px;font:inherit;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--txt)}
   select option{color:#111}
-  button{font-size:1rem;border:0;border-radius:10px;padding:12px 16px;background:var(--acc);color:#fff;font-weight:600}
-  #btnSettings,#btnHist{background:transparent;color:var(--txt);font-size:1.3rem;padding:4px 8px}
+  button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:12px 16px;background:var(--acc);color:#fff;cursor:pointer}
   .row{display:flex;flex-wrap:wrap;gap:8px 16px;margin:12px 0}
   .row label{display:flex;align-items:center;gap:6px}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
   .grid label,.full label{display:block;font-size:.8rem;color:var(--mut);margin-bottom:3px}
   .full{margin:10px 0}
-  .wide{width:100%}
   .small{font-size:.85rem;color:var(--mut)}
-  details.filters{margin:10px 0;border:1px solid var(--line);border-radius:10px;padding:8px 12px}
-  details.filters summary{font-weight:600;cursor:pointer}
-  #status{font-size:.9rem;color:var(--mut);margin:4px 2px 10px}
-  .tip{font-size:.82rem;border-left:4px solid var(--acc)}
+  /* Recherche */
+  #f{padding:12px}
+  .qrow{display:flex;gap:8px}
+  .qrow input{flex:1;font-size:1.05rem;border-width:2px;border-color:var(--ink)}
+  @media (prefers-color-scheme:dark){.qrow input{border-color:#5b6976}}
+  .go{background:var(--yel);color:var(--yel-ink);font-family:var(--f-head);font-weight:800;font-size:1.15rem;padding:0 18px;white-space:nowrap}
+  .srcs{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+  .srcs label{display:flex;align-items:center;gap:6px;font-size:.88rem;padding:5px 10px;border:1.5px solid var(--line);border-radius:99px}
+  .srcs label:has(input:checked){border-color:var(--ink);background:var(--soft)}
+  details.filters{margin:10px 0 0;font-size:.92rem}
+  details.filters summary{font-weight:600;cursor:pointer;color:var(--mut)}
+  #status{font-size:.85rem;color:var(--mut);margin:2px 4px 12px}
+  /* Bandeaux */
+  .tip{font-size:.88rem;border-left:5px solid var(--line)}
   .tip a{color:var(--acc);font-weight:600}
-  .mini{font-size:.8rem;padding:6px 10px;margin-top:6px;display:block}
+  .mini{font-size:.85rem;padding:8px 12px;margin-top:8px;display:block}
+  .verdict{border-left:0;padding:14px 16px;color:#fff;font-size:.95rem}
+  .verdict b{display:block;font-family:var(--f-head);font-size:1.45rem;font-weight:800;line-height:1.1;margin-bottom:4px}
+  .verdict a{color:#fff;text-decoration:underline}
+  .v-good{background:var(--good)}.v-mid{background:var(--mid)}.v-bad{background:var(--bad)}.v-built{background:var(--built)}
+  .wchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .wchips button{font-size:.85rem;padding:6px 11px;background:transparent;color:var(--acc);border:1.5px solid var(--acc)}
+  .wchips a.exit{font-size:.85rem;padding:6px 11px;border:1.5px solid var(--line);border-radius:10px;color:var(--txt);text-decoration:none}
+  /* Fiche résultat : une étiquette de contrôle */
+  .card{background:var(--card);border-radius:12px;margin-bottom:14px;overflow:hidden;border-top:6px solid var(--none)}
+  .card.c-good{border-top-color:var(--good)}.card.c-mid{border-top-color:var(--mid)}.card.c-bad{border-top-color:var(--bad)}.card.c-built{border-top-color:var(--built)}
+  .media{position:relative;display:block;aspect-ratio:16/9;background:var(--soft)}
+  .media img{width:100%;height:100%;object-fit:cover;display:block}
+  .media .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.6rem}
+  .pill{position:absolute;left:10px;top:10px;font-size:.75rem;font-weight:600;padding:3px 9px;border-radius:99px;color:#fff;background:rgba(0,0,0,.72)}
+  .dur{position:absolute;right:10px;bottom:10px;font-size:.8rem;font-weight:600;padding:2px 7px;border-radius:6px;color:#fff;background:rgba(0,0,0,.78)}
+  .written-head{display:flex;align-items:center;gap:8px;padding:12px 14px 0}
+  .written-head .pill{position:static}
+  .p-YouTube{background:#c4161c}.p-PeerTube{background:#d5560b}.p-StackExchange{background:#2c6bd8}.p-iFixit{background:#0f766e}
+  /* Le tampon : verdict en mots + score */
+  .stamp{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;align-items:center;min-width:76px;padding:5px 8px 4px;border-radius:10px;color:#fff;background:var(--none);box-shadow:0 2px 8px rgba(0,0,0,.25);font-family:var(--f-head);line-height:1}
+  .written-head .stamp{position:static;margin-left:auto;box-shadow:none}
+  .stamp strong{font-size:1.6rem;font-weight:800}
+  .stamp span{font-size:.78rem;font-weight:700;letter-spacing:.02em}
+  .s-good{background:var(--good)}.s-mid{background:var(--mid)}.s-bad{background:var(--bad)}.s-built{background:var(--built)}.s-none{background:var(--none)}
+  .cbody{padding:10px 14px 12px}
+  h3{font-family:var(--f-head);font-size:1.3rem;font-weight:700;margin:0 0 4px;line-height:1.15;overflow-wrap:anywhere}
+  h3 a{color:inherit;text-decoration:none}
+  .meta{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:.82rem;color:var(--mut)}
+  .sum{font-size:.95rem;margin:8px 0 0}
+  .keys{display:flex;gap:6px;margin:10px -14px 0;padding:0 14px 2px;overflow-x:auto;scrollbar-width:none}
+  .keys a{flex:0 0 auto;max-width:78%;font-size:.82rem;padding:6px 10px;border-radius:8px;background:var(--soft);color:var(--txt);text-decoration:none;border:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .keys a b{color:var(--acc)}
+  /* Avis de Gemini */
+  .gembtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:12px;background:var(--ink);color:#fff}
+  @media (prefers-color-scheme:dark){.gembtn{background:#2e3a45}}
+  .gem{margin-top:12px;padding:12px;border-radius:10px;background:var(--soft);border:1.5px solid var(--line);font-size:.92rem}
+  .gem .gtop{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px}
+  .gem .gtop b{font-family:var(--f-head);font-size:1.15rem}
+  .stars{font-size:1.15rem;letter-spacing:2px;color:var(--yel);-webkit-text-stroke:.5px #8a6d00;white-space:nowrap}
+  .gem ul{margin:6px 0 0;padding-left:18px}
+  .gem .gwarn{color:var(--bad);font-weight:600}
+  .gem.loading{border-style:dashed}
+  .bar{height:5px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:8px}
+  .bar i{display:block;height:100%;width:35%;background:var(--yel);animation:slide 1.4s ease-in-out infinite}
+  @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+  @media (prefers-reduced-motion:reduce){.bar i{animation:none;width:100%;opacity:.5}}
+  /* Détails repliés */
+  .card details{margin-top:10px;font-size:.88rem;border-top:1px solid var(--line);padding-top:8px}
+  .card summary{color:var(--txt);font-weight:600;cursor:pointer}
+  .why{list-style:none;padding:0;margin:8px 0 0;display:flex;flex-wrap:wrap;gap:5px}
+  .why li{font-size:.78rem;padding:3px 8px;border-radius:99px}
+  .plus{background:rgba(31,138,76,.13);color:var(--good)}
+  .minus{background:rgba(194,59,46,.12);color:var(--bad)}
+  .info{background:var(--soft);color:var(--mut)}
+  .ev{list-style:none;padding:0;margin:6px 0 0}
+  .ev li{padding:6px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}
+  .act{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .act button{font-size:.82rem;padding:7px 10px;background:transparent;color:var(--txt);border:1.5px solid var(--line);font-weight:500}
+  .act button.on{background:var(--good);color:#fff;border-color:var(--good)}
   .act button.ko.on{background:var(--bad);border-color:var(--bad)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+  .chips button{font-size:.8rem;padding:5px 10px;background:transparent;color:var(--txt);border:1px solid var(--line);font-weight:500}
   .hrow{padding:8px 0;border-top:1px solid var(--line)}
   .hrow a{color:inherit;font-weight:600;text-decoration:none;overflow-wrap:anywhere}
-  .wchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-  .wchips button{font-size:.8rem;padding:5px 10px;background:transparent;color:var(--acc);border:1px solid var(--acc);font-weight:600}
-  .wchips a.exit{font-size:.8rem;padding:5px 10px;border:1px solid var(--line);border-radius:10px;color:var(--txt);text-decoration:none;font-weight:500}
-  .sum{font-size:.86rem;margin:6px 0 2px;line-height:1.3}
-  .keys{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 0}
-  .keys a{font-size:.75rem;padding:4px 8px;border-radius:8px;background:rgba(37,99,235,.13);color:var(--acc);text-decoration:none;overflow-wrap:anywhere}
-  .card{display:flex;gap:12px;background:var(--card);border-radius:14px;padding:10px;margin-bottom:10px}
-  .thumb{flex:0 0 120px}
-  .thumb img{width:120px;height:68px;object-fit:cover;border-radius:8px;background:#ccc;display:block}
-  .body{flex:1;min-width:0}
-  .top{display:flex;justify-content:space-between;align-items:center;gap:6px}
-  .badge{font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:99px;color:#fff}
-  .p-YouTube{background:#dc2626}.p-PeerTube{background:#ea580c}.p-StackExchange{background:#2563eb}.p-iFixit{background:#0f766e}
-  .score{font-weight:800;font-size:.95rem;padding:2px 9px;border-radius:8px;color:#fff}
-  .s-good{background:var(--good)}.s-mid{background:var(--mid)}.s-bad{background:var(--bad)}.s-none{background:#8b93a1}.s-built{background:#2563eb}
-  .ph{width:120px;height:68px;border-radius:8px;background:rgba(107,114,128,.18);display:flex;align-items:center;justify-content:center;font-size:1.8rem;text-decoration:none}
-  h3{font-size:.95rem;margin:6px 0 2px;line-height:1.25;overflow-wrap:anywhere}
-  h3 a{color:inherit;text-decoration:none}
-  .meta{font-size:.78rem;color:var(--mut)}
-  .why{list-style:none;padding:0;margin:6px 0 0;display:flex;flex-wrap:wrap;gap:4px}
-  .why li{font-size:.72rem;padding:2px 7px;border-radius:99px}
-  .plus{background:rgba(21,128,61,.14);color:var(--good)}
-  .minus{background:rgba(185,28,28,.13);color:var(--bad)}
-  .info{background:rgba(107,114,128,.16);color:var(--mut)}
-  .card details{margin-top:6px;font-size:.8rem}
-  .card summary{color:var(--acc);cursor:pointer}
-  .ev{list-style:none;padding:0;margin:6px 0 0}
-  .ev li{padding:5px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}
-  .act{display:flex;gap:6px;margin-top:8px}
-  .act button{font-size:.75rem;padding:5px 9px;background:transparent;color:var(--txt);border:1px solid var(--line);font-weight:500}
-  .act button.on{background:var(--good);color:#fff;border-color:var(--good)}
-  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
-  .chips button{font-size:.78rem;padding:4px 9px;background:transparent;color:var(--txt);border:1px solid var(--line);font-weight:500}
-  footer{font-size:.78rem;color:var(--mut);text-align:center;padding:16px}
-  @media (max-width:420px){.thumb{flex-basis:96px}.thumb img,.ph{width:96px;height:54px}}
+  footer{font-size:.8rem;color:var(--mut);text-align:center;padding:16px 20px 28px}
 </style>
 </head>
 <body>
@@ -82,8 +126,10 @@
   <section id="settings" class="box" hidden>
     <label class="small" for="ytKey">Clé YouTube (API)</label>
     <input id="ytKey" type="password" placeholder="AIza..." autocomplete="off">
+    <label class="small" for="gemKey" style="display:block;margin-top:10px">Clé Gemini (pour « Faire regarder la vidéo »)</label>
+    <input id="gemKey" type="password" placeholder="Clé de aistudio.google.com" autocomplete="off">
     <div class="row"><button id="saveKey" type="button">Enregistrer</button></div>
-    <p class="small">La clé est gardée sur ce téléphone uniquement (pas dans le code).</p>
+    <p class="small">Les clés sont gardées sur ce téléphone uniquement (pas dans le code).</p>
     <p class="small"><b>⭐ Chaînes de confiance</b> (touche pour retirer)</p>
     <div id="listTrust" class="chips"></div>
     <p class="small"><b>🚫 Chaînes bannies</b> (touche pour retirer)</p>
@@ -92,11 +138,12 @@
   <section id="hist" class="box" hidden></section>
 
   <form id="f" class="box">
-    <input id="q" type="text" placeholder="Ex : activer XMP carte mère MSI B550" required>
-    <div class="row">
+    <div class="qrow"><input id="q" type="text" placeholder="Ex : changer une chambre à air" required aria-label="Ta recherche">
+      <button class="go" type="submit">Chercher</button></div>
+    <div class="srcs">
       <label><input type="checkbox" id="sYT" checked> YouTube</label>
       <label><input type="checkbox" id="sPT" checked> PeerTube</label>
-      <label><input type="checkbox" id="sTX" checked> 📄 Tutos écrits</label>
+      <label><input type="checkbox" id="sTX" checked> Tutos écrits</label>
     </div>
     <details class="filters">
       <summary>Filtres</summary>
@@ -118,17 +165,16 @@
         <label class="small"><input type="checkbox" id="capChan" checked> Pas plus de 2 vidéos par chaîne</label>
       </div>
     </details>
-    <button class="wide" type="submit">🔎 Chercher</button>
   </form>
 
   <div id="status"></div>
   <div id="results"></div>
 </main>
-<footer>Le score vient de règles automatiques appliquées au titre et aux commentaires. L'appli ne regarde pas la vidéo : c'est un indice, pas une preuve.</footer>
+<footer>Le score vient de règles appliquées au titre, à la description et aux commentaires. Avec « Faire regarder », Gemini regarde vraiment la vidéo. Dans les deux cas, c'est un avis, pas une garantie.</footer>
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VERSION = '3.0';
+const APP_VERSION = '3.1';
 $('ver').textContent = 'v' + APP_VERSION;
 
 /* ---------- Mémoire de l'appareil ---------- */
@@ -642,9 +688,21 @@ function scoreItem(it, ctx){
   const side = SIDE_STEPS.find(([re]) => re.test(tt) && !re.test(ctx.qn || ''));
   it.side = side ? side[1] : null;
   it.confirmed = it.written ? !!it.ownOk : !!(it.com && it.com.useful >= 3);
+  // Avis de Gemini (vidéo regardée pour de vrai) : une bonne note vaut preuve, une mauvaise empêche le vert
+  it.gem = it.platform === 'YouTube' ? (gemCache[it.id] || null) : null;
+  let gemCap = 100;
+  if(it.gem && it.gem.avis){
+    const g = it.gem.avis, n = +g.note || 0;
+    if(g.sujet_ok === false){ s -= 30; gemCap = 30; why.push(['-', '🎬 Gemini : ne traite pas vraiment le sujet']); }
+    else if(n >= 4){ s += n === 5 ? 14 : 10; it.confirmed = true; why.push(['+', '🎬 Gemini : ' + n + '/5']); }
+    else if(n === 3){ gemCap = 64; why.push(['i', '🎬 Gemini : 3/5, moyen']); }
+    else if(n){ s -= 15; gemCap = 44; why.push(['-', '🎬 Gemini : ' + n + '/5, mauvais tuto']); }
+    if((g.erreurs_ou_dangers || []).length && n < 5){ gemCap = Math.min(gemCap, 64); }
+  }
   it.raw = Math.max(0, Math.min(100, Math.round(s)));
   it.score = it.confirmed ? it.raw : Math.min(it.raw, it.built ? 62 : 59);
   if(it.side && !it.offTopic){ it.score = Math.min(it.score, 55); why.push(['i', '🔁 ' + it.side]); }
+  it.score = Math.min(it.score, gemCap);
   // La couleur suit les avis : majorité d'avis négatifs = rouge, avis partagés = orange, risque signalé = jamais vert
   if(it.confirmed && it.com){
     if(it.com.ratio < 0.35){ it.score = Math.min(it.score, 40); why.push(['-', 'la plupart des avis sont négatifs']); }
@@ -1156,7 +1214,8 @@ function render(){
     : builtN ? '🔵 <b>Aucun tuto confirmé par les commentaires</b>, mais ' + builtN + (builtN > 1 ? ' vidéos bien construites' : ' vidéo bien construite') + ' (chapitres, étapes ou chaîne pro). À vérifier, mais bon point de départ.'
     : decent ? '🟠 <b>Aucun tuto vraiment confirmé.</b> Les mieux placés ont trop peu d\'avis : à vérifier avant de suivre.'
     : '🔴 <b>Aucun tuto sûr trouvé.</b> Regarde plutôt la notice officielle.';
-  top.push('<div class="box tip">' + verdict + '<br>' + noticeLink + '</div>');
+  const vcls = solid ? 'v-good' : (qaOk || decent) && !builtN ? 'v-mid' : builtN ? 'v-built' : 'v-bad';
+  top.push('<div class="box verdict ' + vcls + '">' + verdict.replace(/^[✅🟠🔵🔴]\s*/u, '') + '<br>' + noticeLink + '</div>');
   const nbs = lastNeighbors.filter(w => !lastSuggest || norm(w) !== norm(lastSuggest.show));
   if(nbs.length) top.push('<div class="box tip">🔤 Mots qui reviennent dans les résultats. Touche-en un pour relancer la recherche avec :<div class="wchips">' +
     nbs.map(w => '<button type="button" data-act="addword" data-w="' + esc(w) + '">' + esc(w) + '</button>').join('') + '</div></div>');
@@ -1170,44 +1229,49 @@ function render(){
     $('results').innerHTML = top.join('') + '<div class="box small">Aucun résultat avec ces filtres.</div>' + exitsHtml();
     return;
   }
+  const LABEL = { 's-good': 'Fiable', 's-mid': 'Mitigé', 's-bad': 'Douteux', 's-built': 'Bien fait', 's-none': 'À vérifier' };
   $('results').innerHTML = top.join('') + shown.map((it, i) => {
     const cls = !it.confirmed ? (it.built && !it.offTopic ? 's-built' : 's-none') : it.score >= 65 ? 's-good' : it.score >= 45 ? 's-mid' : 's-bad';
-    const meta = [it.channel, fmtDate(it.published) + (it.ageYears >= 3 ? ' (⏳ ' + Math.floor(it.ageYears) + ' ans)' : ''), fmtViews(it.views), fmtDur(it.duration)].filter(Boolean).map(esc).join(' · ');
+    const stamp = '<div class="stamp ' + cls + '"><strong>' + (it.confirmed ? it.score : '?') + '</strong><span>' + LABEL[cls] + '</span></div>';
+    const meta = [it.written ? '' : it.channel, fmtDate(it.published) + (it.ageYears >= 3 ? ' (⏳ ' + Math.floor(it.ageYears) + ' ans)' : ''), fmtViews(it.views)]
+      .filter(Boolean).map(x => '<span>' + esc(x) + '</span>').join('');
     const why = it.why.map(([sign, txt]) =>
       '<li class="' + (sign === '+' ? 'plus' : sign === '-' ? 'minus' : 'info') + '">' + (sign === 'i' ? '' : sign + ' ') + esc(txt) + '</li>').join('');
-    const img = it.thumb ? '<img loading="lazy" src="' + esc(it.thumb) + '" alt="">' : it.written ? '<span class="ph">📄</span>' : '<img alt="">';
+    const href = esc(it.url);
+    const pill = '<span class="pill p-' + esc(it.platform) + '">' + esc(it.label || it.platform) + (it.lang === 'en' ? ' · EN' : '') + '</span>';
+    const head = it.thumb
+      ? '<a class="media" data-open="' + i + '" href="' + href + '" target="_blank" rel="noopener noreferrer"><img loading="lazy" src="' + esc(it.thumb.replace(/\/(default|mqdefault)\.jpg$/, '/hqdefault.jpg')) + '" alt="">' +
+        pill + stamp + (it.duration ? '<span class="dur">' + esc(fmtDur(it.duration)) + '</span>' : '') + '</a>'
+      : '<div class="written-head">' + pill + (it.written ? '' : '') + stamp + '</div>';
     const sum = it.summary ? '<p class="sum">' + esc(it.summary) + '</p>' : '';
     const keys = it.moments.length ? '<div class="keys">' + it.moments.map(m =>
-      '<a data-open="' + i + '" href="' + esc(it.url + '&t=' + m.t + 's') + '" target="_blank" rel="noopener noreferrer">▶ ' + fmtDur(m.t) +
-      (m.label ? ' · ' + esc(cut(m.label, 42)) : '') + '</a>').join('') + '</div>' : '';
+      '<a data-open="' + i + '" href="' + esc(it.url + '&t=' + m.t + 's') + '" target="_blank" rel="noopener noreferrer"><b>▶ ' + fmtDur(m.t) + '</b>' +
+      (m.label ? ' ' + esc(cut(m.label, 48)) : '') + '</a>').join('') + '</div>' : '';
     const tips = it.tips.length ? '<details><summary>💡 Astuces des spectateurs (' + it.tips.length + ')</summary><ul class="ev">' +
       it.tips.map(t => '<li>' + (t.own ? '<b>Le youtubeur :</b> ' : '') + '« ' + esc(cut(t.text, 260)) + ' »</li>').join('') + '</ul></details>' : '';
     let ev = '';
     if(it.com && it.com.ev.length){
-      ev = '<details><summary>Voir les commentaires qui comptent (' + it.com.ev.length + ')</summary><ul class="ev">' +
-        it.com.ev.map(e => '<li><b>' + CATS[e.cat].icon + ' ' + esc(CATS[e.cat].label) + '</b> — « ' + esc(cut(e.text, 200)) + ' »</li>').join('') + '</ul></details>';
+      ev = '<details><summary>💬 Commentaires qui comptent (' + it.com.ev.length + ')</summary><ul class="ev">' +
+        it.com.ev.map(e => '<li><b>' + CATS[e.cat].icon + ' ' + esc(CATS[e.cat].label) + '</b> : « ' + esc(cut(e.text, 200)) + ' »</li>').join('') + '</ul></details>';
     }
     if(it.com && it.com.nBlocks >= 2){
       ev += '<details><summary>❓ Où les gens bloquent (' + it.com.nBlocks + ')</summary><ul class="ev">' +
         it.com.blocks.map(b => '<li>« ' + esc(cut(b.text, 200)) + ' »</li>').join('') + '</ul></details>';
     }
     const isT = !!trusted[chanKey(it)];
-    const href = esc(it.url);
     const h = histGet(it.url), vd = h ? h.verdict : null;
     const seen = h ? '<li class="info">🕘 déjà ouverte le ' + esc(fmtDay(h.when)) + '</li>' : '';
+    const whyBox = '<details><summary>Pourquoi ce score</summary><ul class="why">' + why + seen + '</ul></details>';
     const verdictRow = '<div class="act"><button type="button" data-act="ok" data-i="' + i + '" class="ok' + (vd === 'ok' ? ' on' : '') + '">👍 Ça a marché</button>' +
-      '<button type="button" data-act="ko" data-i="' + i + '" class="ko' + (vd === 'ko' ? ' on' : '') + '">👎 Pas bon</button></div>';
+      '<button type="button" data-act="ko" data-i="' + i + '" class="ko' + (vd === 'ko' ? ' on' : '') + '">👎 Pas bon</button>' +
+      (it.written ? '' : '<button type="button" data-act="trust" data-i="' + i + '" class="' + (isT ? 'on' : '') + '">⭐ ' + (isT ? 'De confiance' : 'Confiance') + '</button>' +
+      '<button type="button" data-act="ban" data-i="' + i + '">🚫 Bannir</button>') + '</div>';
     const reasons = vd === 'ko' ? '<div class="act">' + Object.keys(REASONS).map(r =>
       '<button type="button" data-act="reason" data-r="' + r + '" data-i="' + i + '" class="' + (h.reason === r ? 'on' : '') + '">' + REASONS[r] + '</button>').join('') + '</div>' : '';
-    return '<div class="card">' +
-      '<a class="thumb" data-open="' + i + '" href="' + href + '" target="_blank" rel="noopener noreferrer">' + img + '</a>' +
-      '<div class="body"><div class="top"><span class="badge p-' + esc(it.platform) + '">' + esc(it.label || it.platform) + '</span>' +
-      '<span class="score ' + cls + '">' + (it.confirmed ? it.score : '?') + '</span></div>' +
-      '<h3><a data-open="' + i + '" href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(it.title) + '</a></h3>' +
-      '<div class="meta">' + meta + '</div>' + sum + keys + '<ul class="why">' + why + seen + '</ul>' + tips + ev + verdictRow + reasons +
-      (it.written ? '' : '<div class="act"><button type="button" data-act="trust" data-i="' + i + '" class="' + (isT ? 'on' : '') + '">⭐ ' + (isT ? 'De confiance' : 'Confiance') + '</button>' +
-      '<button type="button" data-act="ban" data-i="' + i + '">🚫 Bannir la chaîne</button></div>') +
-      '</div></div>';
+    return '<article class="card c-' + cls.slice(2) + '" data-card="' + esc(it.id || it.url) + '">' + head +
+      '<div class="cbody"><h3><a data-open="' + i + '" href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(it.title) + '</a></h3>' +
+      '<div class="meta">' + meta + '</div>' + sum + keys + gemHtml(it, i) + whyBox + ev + tips + verdictRow + reasons +
+      '</div></article>';
   }).join('') + exitsHtml();
 }
 
@@ -1255,6 +1319,7 @@ $('results').onclick = e => {
   if(act === 'addword'){ $('q').value = lastQ + ' ' + b.dataset.w; runSearch(); return; }
   const it = shown[+b.dataset.i];
   if(!it) return;
+  if(act === 'gem'){ gemRun(it); return; }
   if(act === 'ok' || act === 'ko'){
     const msg = setVerdict(histTouch(it), act);
     rescore(); render();
@@ -1279,6 +1344,101 @@ $('results').onclick = e => {
   store.set('trusted', trusted); store.set('banned', banned);
   renderLists(); rescore(); render();
 };
+
+/* ---------- Gemini regarde la vidéo (à la demande, avec ta clé gratuite) ---------- */
+let gemKey = store.get('gemKey', '');
+const gemCache = store.get('gem', {});          // avis déjà obtenus, par vidéo : on ne repaie jamais deux fois
+const gemBusy = {};
+const GEM_BASE = 'https://generativelanguage.googleapis.com/v1beta/';
+async function gemModel(){
+  const c = store.get('gemModel', null);
+  if(c && Date.now() - c.t < 7 * 864e5) return c.list;
+  const r = await fetch(GEM_BASE + 'models?pageSize=200', { headers: { 'x-goog-api-key': gemKey } });
+  const j = await r.json().catch(() => ({}));
+  if(!r.ok) throw new Error(gemErr(j, r.status));
+  const names = (j.models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent')).map(m => m.name.replace('models/', ''));
+  const list = [];
+  [/^gemini-\d\.\d-flash$/, /^gemini-\d-flash$/, /^gemini-flash-latest$/, /flash(?!.*(lite|image|tts|audio|live|omni))/].forEach(re =>
+    names.filter(n => re.test(n)).sort().reverse().forEach(n => { if(!list.includes(n)) list.push(n); }));
+  if(!list.length) throw new Error('aucun modèle Gemini « flash » disponible avec cette clé');
+  store.set('gemModel', { t: Date.now(), list: list.slice(0, 3) });
+  return list.slice(0, 3);
+}
+function gemErr(j, code){
+  const m = (j && j.error && j.error.message) || ('erreur ' + code);
+  if(code === 429 || /quota|exhaust/i.test(m)) return 'limite gratuite de Gemini atteinte pour le moment. Réessaie plus tard (ou demain).';
+  if(code === 400 && /api key/i.test(m)) return 'clé Gemini refusée. Vérifie-la dans ⚙️.';
+  return m.slice(0, 160);
+}
+function gemPrompt(it){
+  return 'Tu aides quelqu\'un qui cherche un tutoriel pour : « ' + lastQ + ' ».\n' +
+    'Regarde la vidéo (image ET son) et juge-la honnêtement, comme un professionnel exigeant du domaine.\n' +
+    'Réponds UNIQUEMENT en JSON, en français, avec exactement ces champs :\n' +
+    '{"sujet_ok": true/false, "explique_oralement": true/false, "texte_a_l_ecran": true/false, ' +
+    '"etapes_montrees": ["..."], "etapes_manquantes": ["..."], "erreurs_ou_dangers": ["..."], ' +
+    '"note": 1 à 5 (5 = excellent tuto qu\'un débutant peut suivre seul), "verdict": "une phrase simple"}\n' +
+    'Étapes très courtes. Listes vides si rien à signaler.';
+}
+async function gemWatch(it){
+  const models = await gemModel();
+  let last = null;
+  for(const model of models){
+    for(const low of [true, false]){
+      try {
+        const r = await fetch(GEM_BASE + 'models/' + model + ':generateContent', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': gemKey },
+          body: JSON.stringify({ contents: [{ parts: [{ file_data: { file_uri: 'https://www.youtube.com/watch?v=' + it.id } }, { text: gemPrompt(it) }] }],
+            generationConfig: Object.assign({ responseMimeType: 'application/json', temperature: 0.2 }, low ? { mediaResolution: 'MEDIA_RESOLUTION_LOW' } : {}) })
+        });
+        const j = await r.json().catch(() => ({}));
+        if(!r.ok){ last = gemErr(j, r.status); if(r.status === 429) throw new Error(last); continue; }
+        const txt = ((j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) || []).map(x => x.text || '').join('');
+        const avis = JSON.parse(txt.replace(/^\s*```(json)?|```\s*$/g, ''));
+        return { avis, when: Date.now(), model };
+      } catch(e){ last = e.message; if(/limite gratuite/.test(last)) throw e; }
+    }
+  }
+  throw new Error(last || 'Gemini n\'a pas répondu');
+}
+async function gemRun(it){
+  if(!gemKey){ $('settings').hidden = false; $('gemKey').focus(); setStatus('Colle d\'abord ta clé Gemini dans ⚙️, puis réessaie.'); return; }
+  if(gemBusy[it.id]) return;
+  gemBusy[it.id] = { start: Date.now() };
+  render();
+  try {
+    gemCache[it.id] = await gemWatch(it);
+    const ids = Object.keys(gemCache);
+    if(ids.length > 300) ids.sort((a, b) => gemCache[a].when - gemCache[b].when).slice(0, ids.length - 300).forEach(k => delete gemCache[k]);
+    store.set('gem', gemCache);
+    delete gemBusy[it.id];
+  } catch(e){
+    gemBusy[it.id] = { error: e.message };
+  }
+  rescore(); render();
+  const el = document.querySelector('[data-card="' + it.id + '"]');
+  if(el) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+}
+function gemHtml(it, i){
+  if(it.platform !== 'YouTube') return '';
+  const b = gemBusy[it.id];
+  if(b && !b.error) return '<div class="gem loading" aria-live="polite"><b>🎬 Gemini regarde la vidéo…</b><br>' +
+    '<span class="small">Ça peut prendre de 20 secondes à 3 minutes. Tu peux continuer à parcourir les résultats.</span><div class="bar"><i></i></div></div>';
+  const g = it.gem && it.gem.avis;
+  if(!g){
+    return (b && b.error ? '<div class="gem"><span class="gwarn">Gemini n\'a pas pu regarder : ' + esc(b.error) + '</span></div>' : '') +
+      '<button type="button" class="gembtn" data-act="gem" data-i="' + i + '">🎬 Faire regarder par Gemini</button>';
+  }
+  const n = Math.max(0, Math.min(5, +g.note || 0));
+  const list = (arr, cls) => (arr || []).length ? '<ul' + (cls ? ' class="' + cls + '"' : '') + '>' + arr.slice(0, 6).map(x => '<li>' + esc(cut(x, 140)) + '</li>').join('') + '</ul>' : '';
+  const voice = g.explique_oralement ? 'explique à voix haute' : (g.texte_a_l_ecran ? 'pas de voix, mais du texte à l\'écran' : 'pas d\'explication orale ni écrite');
+  return '<div class="gem"><div class="gtop"><b>🎬 Avis de Gemini</b><span class="stars" aria-label="' + n + ' sur 5">' + '★'.repeat(n) + '☆'.repeat(5 - n) + '</span></div>' +
+    '<div>' + esc(g.verdict || '') + '</div>' +
+    '<div class="small" style="margin-top:4px">' + esc(voice) + (g.sujet_ok === false ? ' · ne traite pas vraiment ta recherche' : '') + '</div>' +
+    ((g.etapes_manquantes || []).length ? '<div style="margin-top:6px"><b>Il manque :</b>' + list(g.etapes_manquantes) + '</div>' : '<div style="margin-top:6px">Aucune étape importante ne manque.</div>') +
+    ((g.erreurs_ou_dangers || []).length ? '<div style="margin-top:6px" class="gwarn">⚠️ Attention :' + list(g.erreurs_ou_dangers, 'gwarn') + '</div>' : '') +
+    ((g.etapes_montrees || []).length ? '<details><summary>Étapes montrées (' + g.etapes_montrees.length + ')</summary><ol>' + g.etapes_montrees.slice(0, 15).map(x => '<li>' + esc(cut(x, 140)) + '</li>').join('') + '</ol></details>' : '') +
+    '</div>';
+}
 
 /* ---------- Mon historique et mes verdicts (gardés sur l'appareil, ne changent jamais le classement) ---------- */
 const REASONS = { perime: 'Périmé', flou: 'Pas clair', hs: 'Hors-sujet', echec: 'Ne marche pas' };
@@ -1373,11 +1533,14 @@ $('settings').onclick = e => {
   if(lastResults.length){ rescore(); render(); }
 };
 $('ytKey').value = ytKey;
+$('gemKey').value = gemKey;
 if(!ytKey) $('settings').hidden = false;
 $('btnSettings').onclick = () => { $('settings').hidden = !$('settings').hidden; };
 $('saveKey').onclick = () => {
   ytKey = $('ytKey').value.trim();
   store.set('ytKey', ytKey);
+  const gk = $('gemKey').value.trim();
+  if(gk !== gemKey){ gemKey = gk; store.set('gemKey', gemKey); store.set('gemModel', null); }
   $('settings').hidden = true;
   setStatus('Clé enregistrée ✅');
 };
