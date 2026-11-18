@@ -1,6 +1,1 @@
-{
-  "recherches": [
-    { "q": "changer chambre à air vélo" },
-    { "q": "changer une chambre à air" }
-  ]
-}
+{ "recherches": [ { "q": "changer chambre à air vélo", "youtube": false } ] }

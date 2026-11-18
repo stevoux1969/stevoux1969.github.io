@@ -48,6 +48,13 @@ jobs:
             echo "code de sortie : $?"
           } > resultats/journal-ia.txt 2>&1
           exit 0
+      - name: Essai Gemini (seulement si tests/gemini.mjs existe)
+        if: hashFiles('tests/gemini.mjs') != ''
+        env:
+          GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
+        run: |
+          mkdir -p resultats
+          node tests/gemini.mjs > resultats/journal-gemini.txt 2>&1 || true
       - name: Ranger les résultats dans la branche essais
         if: always()
         run: |
