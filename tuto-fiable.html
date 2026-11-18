@@ -1208,8 +1208,8 @@ function render(){
   const decent = shown.filter(it => !it.offTopic && it.score >= 50).length;
   const builtN = shown.filter(it => !it.offTopic && !it.confirmed && it.built).length;
   const qaTxt = qaOk + (qaOk > 1 ? ' questions-réponses validées' : ' question-réponse validée');
-  const builtTxt = builtN ? ' Plus ' + builtN + (builtN > 1 ? ' vidéos bien construites 🔵 pas encore confirmées.' : ' vidéo bien construite 🔵 pas encore confirmée.') : '';
-  const verdict = solid ? '✅ <b>' + solid + (solid > 1 ? ' tutos solides' : ' tuto solide') + '</b>' + (qaOk ? ' et ' + qaTxt : '') + '.' + builtTxt
+  const builtTxt = builtN ? 'Plus ' + builtN + (builtN > 1 ? ' vidéos bien construites, pas encore confirmées.' : ' vidéo bien construite, pas encore confirmée.') : '';
+  const verdict = solid ? '✅ <b>' + solid + (solid > 1 ? ' tutos solides' : ' tuto solide') + (qaOk ? ' et ' + qaTxt : '') + '.</b>' + builtTxt
     : qaOk ? '🟠 <b>Pas de tuto confirmé.</b> Mais ' + qaTxt + (qaOk > 1 ? ' peuvent aider.' : ' peut aider.')
     : builtN ? '🔵 <b>Aucun tuto confirmé par les commentaires</b>, mais ' + builtN + (builtN > 1 ? ' vidéos bien construites' : ' vidéo bien construite') + ' (chapitres, étapes ou chaîne pro). À vérifier, mais bon point de départ.'
     : decent ? '🟠 <b>Aucun tuto vraiment confirmé.</b> Les mieux placés ont trop peu d\'avis : à vérifier avant de suivre.'
