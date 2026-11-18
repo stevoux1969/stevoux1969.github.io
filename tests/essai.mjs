@@ -93,7 +93,7 @@ async function main(){
         for(const vid of targets){
           const g = { video: vid };
           try {
-            const sel = vid ? '[data-card="' + vid + '"] .gembtn' : '.gembtn';
+            const sel = vid ? '[data-card="' + vid + '"] .gembtn' : 'article.card .gembtn';
             const btn = await page.$(sel);
             if(!btn){ g.erreur = 'bouton introuvable'; r.gemini.push(g); continue; }
             const card = await btn.evaluateHandle(b => b.closest('article'));

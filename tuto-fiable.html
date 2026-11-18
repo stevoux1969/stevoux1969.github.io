@@ -174,7 +174,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VERSION = '3.1';
+const APP_VERSION = '3.2';
 $('ver').textContent = 'v' + APP_VERSION;
 
 /* ---------- Mémoire de l'appareil ---------- */
@@ -1373,33 +1373,54 @@ function gemErr(j, code){
 function gemPrompt(it){
   return 'Tu aides quelqu\'un qui cherche un tutoriel pour : « ' + lastQ + ' ».\n' +
     'Regarde la vidéo (image ET son) et juge-la honnêtement, comme un professionnel exigeant du domaine.\n' +
+    'Méfie-toi des promesses exagérées (« gagne tous tes matchs », « cheaté », « 100 % garanti ») : signale-les dans erreurs_ou_dangers et baisse la note. ' +
+    'Une bonne vidéo explique POURQUOI on fait chaque réglage ou geste, et admet ses limites.\n' +
     'Réponds UNIQUEMENT en JSON, en français, avec exactement ces champs :\n' +
     '{"sujet_ok": true/false, "explique_oralement": true/false, "texte_a_l_ecran": true/false, ' +
     '"etapes_montrees": ["..."], "etapes_manquantes": ["..."], "erreurs_ou_dangers": ["..."], ' +
     '"note": 1 à 5 (5 = excellent tuto qu\'un débutant peut suivre seul), "verdict": "une phrase simple"}\n' +
     'Étapes très courtes. Listes vides si rien à signaler.';
 }
+// Une vidéo longue est regardée sur ses 12 premières minutes seulement (sinon trop lent et gourmand pour la formule gratuite)
+const GEM_MAX_SEC = 720, GEM_TIMEOUT = 240000;
 async function gemWatch(it){
   const models = await gemModel();
+  const long = it.duration && it.duration > GEM_MAX_SEC;
+  const deadline = Date.now() + 300000;                 // jamais plus de 5 minutes au total
   let last = null;
   for(const model of models){
     for(const low of [true, false]){
+      if(Date.now() > deadline) break;
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), Math.min(GEM_TIMEOUT, deadline - Date.now()));
       try {
+        const video = { file_data: { file_uri: 'https://www.youtube.com/watch?v=' + it.id } };
+        if(long) video.video_metadata = { start_offset: '0s', end_offset: GEM_MAX_SEC + 's' };
         const r = await fetch(GEM_BASE + 'models/' + model + ':generateContent', {
-          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': gemKey },
-          body: JSON.stringify({ contents: [{ parts: [{ file_data: { file_uri: 'https://www.youtube.com/watch?v=' + it.id } }, { text: gemPrompt(it) }] }],
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': gemKey }, signal: ctrl.signal,
+          body: JSON.stringify({ contents: [{ parts: [video, { text: gemPrompt(it) + (long ? '\nNote : tu ne vois que les 12 premières minutes de la vidéo. Juge sur cette partie et dis-le dans le verdict si c\'est important.' : '') }] }],
             generationConfig: Object.assign({ responseMimeType: 'application/json', temperature: 0.2 }, low ? { mediaResolution: 'MEDIA_RESOLUTION_LOW' } : {}) })
         });
         const j = await r.json().catch(() => ({}));
         if(!r.ok){ last = gemErr(j, r.status); if(r.status === 429) throw new Error(last); continue; }
         const txt = ((j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) || []).map(x => x.text || '').join('');
         const avis = JSON.parse(txt.replace(/^\s*```(json)?|```\s*$/g, ''));
-        return { avis, when: Date.now(), model };
-      } catch(e){ last = e.message; if(/limite gratuite/.test(last)) throw e; }
+        return { avis, when: Date.now(), model, partial: long };
+      } catch(e){
+        if(e.name === 'AbortError'){ throw new Error('Gemini met trop de temps (plus de ' + Math.round(GEM_TIMEOUT / 60000) + ' minutes). Réessaie plus tard, ou sur une vidéo plus courte.'); }
+        last = e.message; if(/limite gratuite/.test(last)) throw e;
+      } finally { clearTimeout(timer); }
     }
   }
   throw new Error(last || 'Gemini n\'a pas répondu');
 }
+// Compteur de secondes pendant que Gemini regarde
+setInterval(() => {
+  document.querySelectorAll('[data-gemtime]').forEach(el => {
+    const t = Math.round((Date.now() - +el.dataset.gemtime) / 1000);
+    el.textContent = Math.floor(t / 60) + ' min ' + String(t % 60).padStart(2, '0') + ' s';
+  });
+}, 1000);
 async function gemRun(it){
   if(!gemKey){ $('settings').hidden = false; $('gemKey').focus(); setStatus('Colle d\'abord ta clé Gemini dans ⚙️, puis réessaie.'); return; }
   if(gemBusy[it.id]) return;
@@ -1421,8 +1442,9 @@ async function gemRun(it){
 function gemHtml(it, i){
   if(it.platform !== 'YouTube') return '';
   const b = gemBusy[it.id];
-  if(b && !b.error) return '<div class="gem loading" aria-live="polite"><b>🎬 Gemini regarde la vidéo…</b><br>' +
-    '<span class="small">Ça peut prendre de 20 secondes à 3 minutes. Tu peux continuer à parcourir les résultats.</span><div class="bar"><i></i></div></div>';
+  if(b && !b.error) return '<div class="gem loading" aria-live="polite"><div class="gtop"><b>🎬 Gemini regarde la vidéo…</b><span class="small" data-gemtime="' + b.start + '">0 min 00 s</span></div>' +
+    '<span class="small">En général de 20 secondes à 3 minutes' + (it.duration > GEM_MAX_SEC ? ' (vidéo longue : il regarde les 12 premières minutes)' : '') +
+    '. Garde l\'appli ouverte : si tu changes d\'appli, le téléphone peut couper la connexion. Arrêt automatique après 4 minutes.</span><div class="bar"><i></i></div></div>';
   const g = it.gem && it.gem.avis;
   if(!g){
     return (b && b.error ? '<div class="gem"><span class="gwarn">Gemini n\'a pas pu regarder : ' + esc(b.error) + '</span></div>' : '') +
@@ -1432,7 +1454,7 @@ function gemHtml(it, i){
   const list = (arr, cls) => (arr || []).length ? '<ul' + (cls ? ' class="' + cls + '"' : '') + '>' + arr.slice(0, 6).map(x => '<li>' + esc(cut(x, 140)) + '</li>').join('') + '</ul>' : '';
   const voice = g.explique_oralement ? 'explique à voix haute' : (g.texte_a_l_ecran ? 'pas de voix, mais du texte à l\'écran' : 'pas d\'explication orale ni écrite');
   return '<div class="gem"><div class="gtop"><b>🎬 Avis de Gemini</b><span class="stars" aria-label="' + n + ' sur 5">' + '★'.repeat(n) + '☆'.repeat(5 - n) + '</span></div>' +
-    '<div>' + esc(g.verdict || '') + '</div>' +
+    '<div>' + esc(g.verdict || '') + '</div>' + (it.gem.partial ? '<div class="small">Jugé sur les 12 premières minutes.</div>' : '') +
     '<div class="small" style="margin-top:4px">' + esc(voice) + (g.sujet_ok === false ? ' · ne traite pas vraiment ta recherche' : '') + '</div>' +
     ((g.etapes_manquantes || []).length ? '<div style="margin-top:6px"><b>Il manque :</b>' + list(g.etapes_manquantes) + '</div>' : '<div style="margin-top:6px">Aucune étape importante ne manque.</div>') +
     ((g.erreurs_ou_dangers || []).length ? '<div style="margin-top:6px" class="gwarn">⚠️ Attention :' + list(g.erreurs_ou_dangers, 'gwarn') + '</div>' : '') +
