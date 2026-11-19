@@ -47,7 +47,9 @@ async function main(){
     const consoleErr = [];
     page.on('console', m => { if(m.type() === 'error') consoleErr.push(redact(m.text()).slice(0, 300)); });
     page.on('pageerror', e => consoleErr.push('ERREUR PAGE : ' + redact(e.message).slice(0, 300)));
-    const r = { q: t.q, erreursConsole: consoleErr };
+    const ratees = [];
+    page.on('response', resp => { if(resp.status() >= 400 && ratees.length < 15) ratees.push(resp.status() + ' ' + redact(resp.url()).slice(0, 140)); });
+    const r = { q: t.q, erreursConsole: consoleErr, ressourcesRatees: ratees };
     try {
       await page.goto(BASE + 'tuto-fiable.html', { waitUntil: 'load' });
       if(KEY || GKEY){ await page.evaluate(([k, g]) => { if(k) localStorage.setItem('ytKey', JSON.stringify(k)); if(g) localStorage.setItem('gemKey', JSON.stringify(g)); }, [KEY, GKEY]); await page.reload({ waitUntil: 'load' }); }
@@ -88,9 +90,9 @@ async function main(){
         liens: [...document.querySelectorAll('a.exit')].map(a => [a.innerText, a.href])
       })));
       // Laisse le temps aux images de se charger, puis compte celles qui sont cassées
-      await page.evaluate(() => document.querySelectorAll('.thumb img').forEach(i => i.loading = 'eager'));
-      await page.waitForTimeout(2500);
-      r.images = await page.evaluate(() => { const im = [...document.querySelectorAll('.thumb img')]; return { total: im.length, chargees: im.filter(i => i.complete && i.naturalWidth > 0).length, cassees: im.filter(i => !(i.complete && i.naturalWidth > 0)).slice(0, 4).map(i => i.getAttribute('src')) }; });
+      await page.evaluate(() => document.querySelectorAll('.media img, .thumb img').forEach(i => i.loading = 'eager'));
+      await page.waitForTimeout(4000);
+      r.images = await page.evaluate(() => { const im = [...document.querySelectorAll('.media img, .thumb img')]; return { total: im.length, chargees: im.filter(i => i.complete && i.naturalWidth > 0).length, cassees: im.filter(i => !(i.complete && i.naturalWidth > 0)).slice(0, 4).map(i => i.getAttribute('src')) }; });
       r.captures = await shots(page, 'recherche' + i);
       // Avis : le robot appuie sur 👎, coche deux raisons, écrit un mot, et on regarde ce qui part vers le tableau
       if(t.avis){

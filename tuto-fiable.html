@@ -617,7 +617,13 @@ function scoreItem(it, ctx){
   const chn = norm(it.channel || '');
   if(!it.written && chn.length >= 6 && t.includes(chn)) t = t.split(chn).join(' ');
   const td = t + ' ' + norm(it.desc);
-  if(it.lang === undefined) it.lang = String(it.declLang || '').slice(0, 2).toLowerCase() || guessLang(it.title + ' ' + String(it.desc || '').slice(0, 300));
+  // Langue : celle déclarée par la chaîne si c'est français ou anglais. Sinon on vérifie sur le texte,
+  // car la langue déclarée est parfois fausse (« espagnol » ou « finnois » pour une vidéo en anglais).
+  if(it.lang === undefined){
+    const d = String(it.declLang || '').slice(0, 2).toLowerCase();
+    if(d === 'fr' || d === 'en') it.lang = d;
+    else it.lang = guessLang(it.title + ' ' + String(it.desc || '').slice(0, 300)) || (d && d !== 'zx' && d !== 'un' ? d : '');
+  }
 
   // Hors-sujet : un mot obligatoire manque, OU aucun mot important n'apparaît, OU presque aucun mot de la recherche.
   // Un mot important introuvable partout (faute de frappe ?) est mis de côté : il ne sert plus à masquer.
@@ -629,13 +635,15 @@ function scoreItem(it, ctx){
   // Mots « sujet » : YouTube trie déjà bien, un seul suffit. Ailleurs (PeerTube, tutos écrits) il en faut au moins la moitié, et 2 dès qu'il y en a 2.
   const sm = subjectMatch(td + (it.written ? ' ' + chn : ''), ctx);
   const need = it.platform === 'YouTube' ? 1 : Math.max(Math.ceil(sm.n / 2), Math.min(2, sm.n));
+  // La 2e recherche (vidéos de 4 à 20 min) est plus large : on demande en plus que le titre nomme le sujet
+  const titleMiss = it.via === '420' && sm.n > 0 && subjectMatch(t, ctx).hits === 0;
   it.mustMiss = missMust.length > 0;
   it.offTopic = it.mustMiss ||
     (strongOk.length > 0 && missStrong.length === strongOk.length) ||
-    (hasKw && covAll.r < 0.34) || (sm.n > 0 && sm.hits < need);
+    (hasKw && covAll.r < 0.34) || (sm.n > 0 && sm.hits < need) || titleMiss;
   if(it.offTopic){
     s -= 30;
-    why.push(['-', missMust.length ? 'mot obligatoire absent : « ' + missMust.join(', ') + ' »' : 'hors-sujet']);
+    why.push(['-', missMust.length ? 'mot obligatoire absent : « ' + missMust.join(', ') + ' »' : titleMiss ? 'hors-sujet : le titre ne parle pas de ta recherche' : 'hors-sujet']);
   } else if(missStrong.length){
     // Il manque un mot important : la vidéo reste visible mais descend
     s -= Math.min(20, missStrong.length * 8);
@@ -1074,9 +1082,11 @@ async function wbSearch(q){
   const j = await getJSON(WB + 'w/api.php?' + new URLSearchParams({ action:'query', list:'search', srsearch:q, srnamespace:'0', srlimit:'8', srprop:'snippet|wordcount|timestamp', format:'json', origin:'*' }));
   return (j.query && j.query.search) || [];
 }
+const WB_SKIP = /^(version imprimable|imprimable|version pdf|sommaire|table des mati[eè]res|index|bibliographie|auteurs?|licence|gfdl|glossaire|pr[ée]face|introduction)$/i;
 async function searchWikibooks(q, fallback){
-  let rs = await wbSearch(q);
-  if(!rs.length && fallback && norm(fallback) !== norm(q)) rs = await wbSearch(fallback);
+  const ok = list => list.filter(r => !WB_SKIP.test(String(r.title).split('/').pop().trim()));
+  let rs = ok(await wbSearch(q));
+  if(!rs.length && fallback && norm(fallback) !== norm(q)) rs = ok(await wbSearch(fallback));
   if(!rs.length) return [];
   const imgs = {};
   try {   // image de la page, si elle en a une
@@ -1088,11 +1098,12 @@ async function searchWikibooks(q, fallback){
     const sig = [];
     if(words >= 400 && !book) sig.push([4, 'page détaillée (' + words + ' mots)']);
     else if(words < 150) sig.push([-6, 'page très courte (' + words + ' mots)']);
-    return { platform:'Wikibooks', written:true, title:parts.join(' › '), desc:decodeEnt(String(r.snippet || '').replace(/<[^>]*>/g, '')),
+    const ex = decodeEnt(String(r.snippet || '').replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
+    return { platform:'Wikibooks', written:true, title:parts.join(' › '), desc:'',
       channel:book || 'Wikibooks', channelId:'wikibooks', url:WB + 'wiki/' + parts.map(x => encodeURIComponent(x.replace(/ /g, '_'))).join('/'),
       thumb:imgs[r.pageid] || '', declLang:'fr', duration:null, published:r.timestamp || null, dateWord:'modifiée en ', views:0, likes:null,
       signals:sig, ownOk:false, builtW:words >= 400 && book ? 'chapitre détaillé d\'un livre (' + words + ' mots)' : null,
-      note:'Page de Wikibooks, des livres pratiques écrits par des bénévoles' + (book ? ' (livre « ' + book + ' »)' : '') + ', ' + words + ' mots. Pas de votes ni de commentaires : à vérifier.' };
+      note:(ex ? 'Extrait : « ' + cut(ex, 140) + ' » ' : '') + 'Page de Wikibooks, des livres pratiques écrits par des bénévoles' + (book ? ' (livre « ' + book + ' »)' : '') + ', ' + words + ' mots. Pas de votes ni de commentaires : à vérifier.' };
   });
 }
 // Mots « sujet » de la recherche, tels que tu les as tapés (avec les accents), pour les sites français
@@ -1335,9 +1346,10 @@ function render(){
   // Filet de sécurité : s'il ne reste presque rien, on montre aussi les vidéos YouTube moins proches
   const onTopic = lastResults.filter(it => !it.offTopic && !banned[chanKey(it)]).length;
   const relaxed = !showOff && onTopic < 3 && lastResults.length >= 10;
-  const cnt = { ban:0, off:0, mot:0, lang:0, age:0, court:0, chaine:0, precis:0 };
+  const cnt = { ban:0, off:0, mot:0, lang:0, autre:0, age:0, court:0, chaine:0, precis:0 };
   shown = lastResults.filter(it => {
     if(banned[chanKey(it)]){ cnt.ban++; return false; }
+    if(it.lang && it.lang !== 'fr' && it.lang !== 'en' && !trusted[chanKey(it)]){ cnt.autre++; return false; }
     if(it.offTopic && !showOff && !(relaxed && it.platform === 'YouTube' && !it.mustMiss)){ cnt.off++; return false; }
     if(lastPrecise && it.fit && it.fit.r === 'non' && !showOff){ cnt.precis++; return false; }
     if(frOnly && it.lang === 'en'){ cnt.lang++; return false; }
@@ -1368,6 +1380,7 @@ function render(){
   const hid = [];
   if(cnt.off) hid.push(cnt.off + ' hors-sujet');
   if(cnt.lang) hid.push(cnt.lang + ' en anglais');
+  if(cnt.autre) hid.push(cnt.autre + ' dans une autre langue');
   if(cnt.mot) hid.push(cnt.mot + ' avec mot interdit');
   if(cnt.precis) hid.push(cnt.precis + ' ne correspondent pas à ta précision');
   if(cnt.chaine) hid.push(cnt.chaine + ' en trop de la même chaîne');
