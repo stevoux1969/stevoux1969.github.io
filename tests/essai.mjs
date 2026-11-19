@@ -161,6 +161,12 @@ async function main(){
     await page.close();
   }
 
+  // 1 ter. YouTube : que rapporte une 2e formulation de la recherche ? (mesure faite par le robot, hors appli)
+  if(KEY && conf.ytVariantes){
+    try { save('variantes.json', await mesureVariantes(conf.ytVariantes)); }
+    catch(e){ rapport.erreurs.push('variantes : ' + redact(e.message).slice(0, 300)); }
+  }
+
   // 2. Le banc d'essai des sources, vu depuis un navigateur
   try {
     const page = await ctx.newPage();
@@ -201,6 +207,53 @@ async function main(){
     } catch(e){ rapport.liens.push({ nom, erreur: String(e.message).slice(0, 120) }); }
   }
   delete rapport.liensAVerifier;
+}
+
+// Pour chaque recherche : 50 vidéos par formulation, combien sont nouvelles par rapport à la recherche de base,
+// et à quel point elles parlent du sujet (part des mots de la recherche présents dans le titre et la description).
+async function mesureVariantes(v){
+  const YTB = 'https://www.googleapis.com/youtube/v3/';
+  const nrm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const STOP = new Set('a au aux de des du la le les un une et en pour sur avec sans comment tuto the of to for and in on with how'.split(' '));
+  const out = [];
+  for(const q of v.requetes){
+    const mots = [...new Set(nrm(q).split(/[^a-z0-9]+/).filter(w => w.length > 1 && !STOP.has(w)))];
+    const r = { q, mots, variantes: {} }, ids = {};
+    for(const va of v.variantes){
+      if(va.seulement && !va.seulement.includes(q)) continue;
+      const qq = (va.avant || '') + q + (va.apres || '');
+      const p = new URLSearchParams(Object.assign({ part: 'snippet', type: 'video', maxResults: '50', q: qq, relevanceLanguage: 'fr', safeSearch: 'moderate', key: KEY }, va.params || {}));
+      try {
+        const res = await fetch(YTB + 'search?' + p, { signal: AbortSignal.timeout(20000) });
+        const j = await res.json();
+        if(!res.ok){ r.variantes[va.nom] = { requete: qq, erreur: String((j.error && j.error.message) || res.status) }; continue; }
+        ids[va.nom] = (j.items || []).map(x => x.id && x.id.videoId).filter(Boolean);
+        r.variantes[va.nom] = { requete: qq, params: va.params || null, nombre: ids[va.nom].length };
+      } catch(e){ r.variantes[va.nom] = { requete: qq, erreur: String(e.message).slice(0, 150) }; }
+    }
+    const all = [...new Set([].concat(...Object.values(ids)))], info = {};
+    for(let k = 0; k < all.length; k += 50){
+      try {
+        const res = await fetch(YTB + 'videos?' + new URLSearchParams({ part: 'snippet,statistics,contentDetails', id: all.slice(k, k + 50).join(','), key: KEY }), { signal: AbortSignal.timeout(20000) });
+        const j = await res.json();
+        (j.items || []).forEach(x => { info[x.id] = { titre: x.snippet.title, chaine: x.snippet.channelTitle, vues: +((x.statistics || {}).viewCount || 0), duree: (x.contentDetails || {}).duration || '', desc: String(x.snippet.description || '').slice(0, 400) }; });
+      } catch(e){}
+    }
+    const base = new Set(ids.base || []);
+    const sujet = id => { const t = nrm(((info[id] || {}).titre || '') + ' ' + ((info[id] || {}).desc || '')); return mots.length ? mots.filter(m => t.includes(m)).length / mots.length : 0; };
+    const moy = list => list.length ? Math.round(100 * list.reduce((a, id) => a + sujet(id), 0) / list.length) : null;
+    for(const [nom, list] of Object.entries(ids)){
+      const nouv = nom === 'base' ? [] : list.filter(id => !base.has(id));
+      Object.assign(r.variantes[nom], {
+        communesAvecBase: nom === 'base' ? null : list.length - nouv.length, nouvelles: nom === 'base' ? null : nouv.length,
+        surSujet: moy(list), surSujet1a25: moy(list.slice(0, 25)), surSujet26a50: moy(list.slice(25)), nouvellesSurSujet: nom === 'base' ? null : moy(nouv),
+        titres: list.map((id, k) => (k + 1) + '. ' + (nom !== 'base' && !base.has(id) ? '🆕 ' : '') + ((info[id] || {}).titre || id) + ' — ' + ((info[id] || {}).chaine || '') + ' — ' + ((info[id] || {}).vues || 0) + ' vues — ' + ((info[id] || {}).duree || '') + ' — sujet ' + Math.round(100 * sujet(id)) + ' %')
+      });
+    }
+    r.totalUniques = all.length;
+    out.push(r);
+  }
+  return out;
 }
 
 async function lireAvis(){
