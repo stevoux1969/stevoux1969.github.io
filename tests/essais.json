@@ -1,1 +1,4 @@
-{ "recherches": [ { "q": "FC 26 tactique personnalisée mode saisons", "precise": "je joue en mode Saisons en ligne avec un vrai club, pas Ultimate Team ; je suis joueur occasionnel", "gemini": [null, null, null], "geminiPause": 90 } ] }
+{ "recherches": [
+  { "q": "FC 26 tactique personnalisée mode saisons", "precise": "je joue en mode Saisons en ligne avec un vrai club, pas Ultimate Team ni Carrière ; je suis joueur occasionnel", "gemini": [null, null], "geminiPause": 90 },
+  { "q": "changer chambre à air vélo" }
+] }

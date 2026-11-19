@@ -183,7 +183,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VERSION = '3.3';
+const APP_VERSION = '3.4';
 $('ver').textContent = 'v' + APP_VERSION;
 
 /* ---------- Mémoire de l'appareil ---------- */
@@ -513,6 +513,24 @@ const labelOf = line => String(line).replace(TS_G, ' ').replace(/^[\s\-–—:|(
 const STEP_LINE = /^\s*((etape|step|stage|passo|paso)\s*\d+|\d{1,2}\s*[.)/-]\s+\S)/i;
 // Chaînes de marques, magasins et ateliers reconnus (liste courte, à compléter)
 const PRO_CHANNELS = / (decathlon|btwin|rockrider|ifixit|leroy merlin|castorama|brico ?depot|bricomarche|mr\.? ?bricolage|manomano|bosch|makita|park tool|global cycling network|gcn|global mountain bike network|gmbn|shimano|sram|alltricks|probikeshop|velo ?& ?oxygen|norauto|feu vert|oscaro|mister auto|autodoc|midas|speedy|msi|asus|gigabyte|aorus|asrock|corsair|kingston|crucial|apple support|samsung|philips|dyson|grohe|hansgrohe|legrand|schneider|somfy|sfr|orange|free|bouygues|ikea|this old house|bob vila) /;
+// Titres racoleurs : promesses et superlatifs qui servent à faire cliquer, quel que soit le sujet
+const HYPE = [
+  /\b(insane|broken|crazy|disgusting|overpowered|unbeatable|unstoppable|invincible|game ?changer|you won'?t believe|nobody tells you|never lose|win every)\b/,
+  /\b(cheate?e?s?|cheat code|op)\b/,
+  /\b(1st|first|number one|no ?1|#1) in the world\b/,
+  /\b(imbattable|invincible|terrifiante?|hallucinante?|choquante?|incroyable|ultra efficace|personne ne (te )?(le )?dit|ne (plus )?jamais perdre|gagne(r)? (tous|toutes) (tes|vos|les)|impossible a (percer|battre|arreter|contrer))\b/,
+  /\b100 ?% (garanti|efficace|reussite|win|de victoires)\b/
+];
+function hypeOf(title){
+  const t = norm(title), hits = [];
+  HYPE.forEach(re => { const m = t.match(re); if(m) hits.push(m[0]); });
+  const letters = String(title).replace(/[^A-Za-zÀ-ÿ]/g, '');
+  const caps = letters.length >= 20 && letters.replace(/[^A-ZÀ-Þ]/g, '').length / letters.length > 0.7;
+  const emojis = (String(title).match(/[\u{1F525}\u{1F631}\u{1F624}\u{1F92F}\u{1F633}\u{203C}\u{26A0}\u{274C}]/gu) || []).length;
+  if(caps && hits.length) hits.push('tout en majuscules');
+  if(emojis >= 2 && hits.length) hits.push('émojis');
+  return hits;
+}
 function chaptersOf(text){
   const out = [];
   String(text || '').split(/\r?\n/).forEach(line => {
@@ -703,6 +721,9 @@ function scoreItem(it, ctx){
     else if(it.fit.r === 'non') why.push(['-', '🎯 ne correspond pas à ta précision' + (it.fit.why ? ' : ' + it.fit.why : '')]);
     else why.push(['i', '🎯 impossible de savoir s\'il correspond à ta précision']);
   }
+  // Titre racoleur : petite pénalité, jamais cachée
+  it.hype = hypeOf(it.title);
+  if(it.hype.length){ s -= it.hype.length > 1 ? 10 : 6; why.push(['-', '🎣 titre racoleur (' + it.hype.slice(0, 3).join(', ') + ')']); }
   // Avis de Gemini (vidéo regardée pour de vrai) : une bonne note vaut preuve, une mauvaise empêche le vert
   it.gem = it.platform === 'YouTube' ? (gemCache[it.id] || null) : null;
   let gemCap = 100;
@@ -718,6 +739,11 @@ function scoreItem(it, ctx){
   it.score = it.confirmed ? it.raw : Math.min(it.raw, it.built ? 62 : 59);
   if(it.side && !it.offTopic){ it.score = Math.min(it.score, 55); why.push(['i', '🔁 ' + it.side]); }
   it.score = Math.min(it.score, gemCap);
+  // Le vert demande au moins 5 commentaires utiles (ou une bonne note de Gemini) : 3 ou 4 avis, c'est trop peu
+  const gemOk = it.gem && it.gem.avis && (+it.gem.avis.note || 0) >= 4;
+  if(it.confirmed && !it.written && !gemOk && it.com && it.com.useful < 5 && it.score >= 65){
+    it.score = 64; why.push(['i', 'seulement ' + it.com.useful + ' avis utiles : pas assez pour du vert']);
+  }
   // La couleur suit les avis : majorité d'avis négatifs = rouge, avis partagés = orange, risque signalé = jamais vert
   if(it.confirmed && it.com){
     if(it.com.ratio < 0.35){ it.score = Math.min(it.score, 40); why.push(['-', 'la plupart des avis sont négatifs']); }
@@ -1160,6 +1186,7 @@ async function runSearch(){
 async function gemText(prompt){
   const models = await gemModel();
   const deadline = Date.now() + 120000;
+  let busyWaited = false;
   // Réflexion courte : on veut un tri rapide, pas une dissertation (le réglage diffère selon la génération de modèle)
   const thinks = [{ thinkingConfig: { thinkingLevel: 'low' } }, { thinkingConfig: { thinkingBudget: 0 } }, {}];
   let last = null;
@@ -1178,12 +1205,13 @@ async function gemText(prompt){
           last = gemErr(j, r.status);
           if(r.status === 429) throw new Error(last);
           if(r.status === 400 && /think/i.test(JSON.stringify(j))) continue;   // ce réglage n'existe pas pour ce modèle : on essaie le suivant
+          if(isBusy(r.status, j) && !busyWaited && Date.now() + 40000 < deadline){ busyWaited = true; await sleep(20000); }
           break;
         }
         const txt = ((j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) || []).filter(x => !x.thought).map(x => x.text || '').join('');
         return JSON.parse(txt.replace(/^\s*```(json)?|```\s*$/g, ''));
       } catch(e){
-        if(e.name === 'AbortError'){ last = 'Gemini met trop de temps'; break; }
+        if(e.name === 'AbortError'){ last = 'Gemini met trop de temps (Google est peut-être surchargé)'; break; }
         last = e.message; if(/limite/.test(last)) throw e;
       } finally { clearTimeout(timer); }
     }
@@ -1456,9 +1484,11 @@ let gemKey = store.get('gemKey', '');
 const gemCache = store.get('gem', {});          // avis déjà obtenus, par vidéo : on ne repaie jamais deux fois
 const gemBusy = {};
 const GEM_BASE = 'https://generativelanguage.googleapis.com/v1beta/';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const isBusy = (code, j) => code === 503 || /high demand|overload|unavailable/i.test(JSON.stringify(j || {}));
 async function gemModel(){
   const c = store.get('gemModel', null);
-  if(c && Date.now() - c.t < 7 * 864e5) return c.list;
+  if(c && c.v === 2 && Date.now() - c.t < 7 * 864e5) return c.list;
   const r = await fetch(GEM_BASE + 'models?pageSize=200', { headers: { 'x-goog-api-key': gemKey } });
   const j = await r.json().catch(() => ({}));
   if(!r.ok) throw new Error(gemErr(j, r.status));
@@ -1467,8 +1497,10 @@ async function gemModel(){
   [/^gemini-\d\.\d-flash$/, /^gemini-\d-flash$/, /^gemini-flash-latest$/, /flash(?!.*(lite|image|tts|audio|live|omni))/].forEach(re =>
     names.filter(n => re.test(n)).sort().reverse().forEach(n => { if(!list.includes(n)) list.push(n); }));
   if(!list.length) throw new Error('aucun modèle Gemini « flash » disponible avec cette clé');
-  store.set('gemModel', { t: Date.now(), list: list.slice(0, 3) });
-  return list.slice(0, 3);
+  const lite = names.filter(n => /flash-lite$|flash-lite-latest$/.test(n)).sort().reverse()[0];
+  const out = list.slice(0, 3).concat(lite && !list.slice(0, 3).includes(lite) ? [lite] : []);
+  store.set('gemModel', { t: Date.now(), list: out, v: 2 });
+  return out;
 }
 function gemErr(j, code){
   const m = (j && j.error && j.error.message) || ('erreur ' + code);
@@ -1478,7 +1510,9 @@ function gemErr(j, code){
     return 'limite gratuite de Gemini atteinte pour le moment. Attends quelques minutes, puis réessaie.';
   }
   if(code === 400 && /api key/i.test(m)) return 'clé Gemini refusée. Vérifie-la dans ⚙️.';
-  return m.slice(0, 160);
+  if(code === 503 || /high demand|overload|unavailable|try again later/i.test(m)) return 'Google est surchargé en ce moment. Réessaie dans quelques minutes.';
+  if(code >= 500) return 'Gemini a un problème de son côté (erreur ' + code + '). Réessaie plus tard.';
+  return 'erreur de Gemini : ' + m.slice(0, 140);
 }
 function gemPrompt(it){
   return 'Tu aides quelqu\'un qui cherche un tutoriel pour : « ' + lastQ + ' ».\n' +
@@ -1497,7 +1531,7 @@ async function gemWatch(it){
   const models = await gemModel();
   const long = it.duration && it.duration > GEM_MAX_SEC;
   const deadline = Date.now() + 300000;                 // jamais plus de 5 minutes au total
-  let last = null;
+  let last = null, busyWaited = false;
   for(const model of models){
     for(const low of [true, false]){
       if(Date.now() > deadline) break;
@@ -1513,7 +1547,12 @@ async function gemWatch(it){
             generationConfig: Object.assign({ responseMimeType: 'application/json', temperature: 0.2 }, low ? { mediaResolution: 'MEDIA_RESOLUTION_LOW' } : {}) })
         });
         const j = await r.json().catch(() => ({}));
-        if(!r.ok){ last = gemErr(j, r.status); if(r.status === 429) throw new Error(last); continue; }
+        if(!r.ok){
+          last = gemErr(j, r.status);
+          if(r.status === 429) throw new Error(last);
+          if(isBusy(r.status, j)){ if(!busyWaited && Date.now() + 60000 < deadline){ busyWaited = true; await sleep(30000); } break; }   // surchargé : petite pause, puis modèle suivant
+          continue;
+        }
         const txt = ((j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) || []).map(x => x.text || '').join('');
         const avis = JSON.parse(txt.replace(/^\s*```(json)?|```\s*$/g, ''));
         return { avis, when: Date.now(), model, partial: long };
