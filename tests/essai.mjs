@@ -110,7 +110,8 @@ async function main(){
       if(GKEY && t.gemini){
         r.gemini = [];
         const targets = Array.isArray(t.gemini) ? t.gemini : [null];
-        for(const vid of targets){
+        for(const [gi, vid] of targets.entries()){
+          if(gi > 0) await page.waitForTimeout((t.geminiPause || 90) * 1000);   // la formule gratuite limite le nombre de vidéos par minute
           const g = { video: vid };
           try {
             const done = r.gemini.map(x => x.video).filter(Boolean);
