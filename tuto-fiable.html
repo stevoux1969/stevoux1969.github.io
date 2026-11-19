@@ -1159,23 +1159,34 @@ async function runSearch(){
 // Gemini lit les titres et descriptions, et dit si chaque résultat correspond à ce que tu as précisé (un seul appel texte)
 async function gemText(prompt){
   const models = await gemModel();
+  const deadline = Date.now() + 120000;
+  // Réflexion courte : on veut un tri rapide, pas une dissertation (le réglage diffère selon la génération de modèle)
+  const thinks = [{ thinkingConfig: { thinkingLevel: 'low' } }, { thinkingConfig: { thinkingBudget: 0 } }, {}];
   let last = null;
   for(const model of models){
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 90000);
-    try {
-      const r = await fetch(GEM_BASE + 'models/' + model + ':generateContent', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': gemKey }, signal: ctrl.signal,
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.1 } })
-      });
-      const j = await r.json().catch(() => ({}));
-      if(!r.ok){ last = gemErr(j, r.status); if(r.status === 429) throw new Error(last); continue; }
-      const txt = ((j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) || []).map(x => x.text || '').join('');
-      return JSON.parse(txt.replace(/^\s*```(json)?|```\s*$/g, ''));
-    } catch(e){
-      if(e.name === 'AbortError') throw new Error('Gemini met trop de temps');
-      last = e.message; if(/limite/.test(last)) throw e;
-    } finally { clearTimeout(timer); }
+    for(const th of thinks){
+      if(Date.now() > deadline) break;
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), Math.min(60000, deadline - Date.now()));
+      try {
+        const r = await fetch(GEM_BASE + 'models/' + model + ':generateContent', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': gemKey }, signal: ctrl.signal,
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: Object.assign({ responseMimeType: 'application/json', temperature: 0.1 }, th) })
+        });
+        const j = await r.json().catch(() => ({}));
+        if(!r.ok){
+          last = gemErr(j, r.status);
+          if(r.status === 429) throw new Error(last);
+          if(r.status === 400 && /think/i.test(JSON.stringify(j))) continue;   // ce réglage n'existe pas pour ce modèle : on essaie le suivant
+          break;
+        }
+        const txt = ((j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) || []).filter(x => !x.thought).map(x => x.text || '').join('');
+        return JSON.parse(txt.replace(/^\s*```(json)?|```\s*$/g, ''));
+      } catch(e){
+        if(e.name === 'AbortError'){ last = 'Gemini met trop de temps'; break; }
+        last = e.message; if(/limite/.test(last)) throw e;
+      } finally { clearTimeout(timer); }
+    }
   }
   throw new Error(last || 'Gemini n\'a pas répondu');
 }
