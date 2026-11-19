@@ -183,7 +183,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VERSION = '3.4';
+const APP_VERSION = '3.5';
 $('ver').textContent = 'v' + APP_VERSION;
 
 /* ---------- Mémoire de l'appareil ---------- */
@@ -1404,6 +1404,7 @@ function exitsHtml(){
   if(!lastQ) return '';
   const fr = encodeURIComponent(lastQ), en = encodeURIComponent(lastEn || lastQ);
   const L = [
+    ['🎞️ Google Vidéos', 'https://www.google.com/search?tbm=vid&q=' + fr],
     ['🌐 Tutos écrits (web)', 'https://www.google.com/search?q=' + encodeURIComponent(lastQ + ' tutoriel')],
     ['💬 Forums', 'https://www.google.com/search?q=' + encodeURIComponent(lastQ + ' forum')],
     ['📘 wikiHow', 'https://fr.wikihow.com/wikiHowTo?search=' + fr],
