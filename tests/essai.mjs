@@ -94,6 +94,12 @@ async function main(){
       await page.waitForTimeout(4000);
       r.images = await page.evaluate(() => { const im = [...document.querySelectorAll('.media img, .thumb img')]; return { total: im.length, chargees: im.filter(i => i.complete && i.naturalWidth > 0).length, cassees: im.filter(i => !(i.complete && i.naturalWidth > 0)).slice(0, 4).map(i => i.getAttribute('src')) }; });
       r.captures = await shots(page, 'recherche' + i);
+      // Une fiche d'une source écrite (Wikibooks en priorité), pour voir à quoi elle ressemble
+      try {
+        const h = await page.evaluateHandle(() => { const p = document.querySelector('article.card .p-Wikibooks') || document.querySelector('article.card .p-iFixit'); return p ? p.closest('article') : null; });
+        const el = h.asElement();
+        if(el){ await el.scrollIntoViewIfNeeded(); await page.waitForTimeout(800); await el.screenshot({ path: path.join(OUT, 'ecrit-' + i + '.jpg'), type: 'jpeg', quality: 70 }); }
+      } catch(e){}
       // Avis : le robot appuie sur 👎, coche deux raisons, écrit un mot, et on regarde ce qui part vers le tableau
       if(t.avis){
         try {

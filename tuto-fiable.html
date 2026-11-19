@@ -609,6 +609,11 @@ function summaryOf(it){
 /* ---------- Score ---------- */
 const chanKey = it => it.platform + ':' + (it.channelId || it.channel || '?');
 
+function glueVariants(x){
+  const a = x.replace(/([a-z])(\d)/g, '$1 $2').replace(/(\d)([a-z])/g, '$1 $2');
+  const b = x.replace(/(^|[^a-z0-9])([a-z]{1,4}) (\d{1,4})(?=[^a-z0-9]|$)/g, '$1$2$3');
+  return (a !== x ? ' ' + a : '') + (b !== x ? ' ' + b : '');
+}
 function scoreItem(it, ctx){
   let s = 50;
   const why = [];
@@ -616,13 +621,20 @@ function scoreItem(it, ctx){
   let t = norm(it.title);
   const chn = norm(it.channel || '');
   if(!it.written && chn.length >= 6 && t.includes(chn)) t = t.split(chn).join(' ');
-  const td = t + ' ' + norm(it.desc);
+  // « FC26 » doit compter comme « FC 26 », et l'inverse (« PS 5 » / « PS5 ») : on ajoute ces variantes au texte
+  t += glueVariants(t);
+  const dn = norm(it.desc);
+  const td = t + ' ' + dn + glueVariants(dn);
   // Langue : celle déclarée par la chaîne si c'est français ou anglais. Sinon on vérifie sur le texte,
   // car la langue déclarée est parfois fausse (« espagnol » ou « finnois » pour une vidéo en anglais).
   if(it.lang === undefined){
     const d = String(it.declLang || '').slice(0, 2).toLowerCase();
+    const g = guessLang(it.title + ' ' + String(it.desc || '').slice(0, 300));
+    // Une langue déclarée autre (portugais…) n'est corrigée que si le texte est clairement anglais :
+    // le portugais ou l'espagnol ressemblent trop au français pour ce petit test.
     if(d === 'fr' || d === 'en') it.lang = d;
-    else it.lang = guessLang(it.title + ' ' + String(it.desc || '').slice(0, 300)) || (d && d !== 'zx' && d !== 'un' ? d : '');
+    else if(d && d !== 'zx' && d !== 'un') it.lang = g === 'en' ? 'en' : d;
+    else it.lang = g;
   }
 
   // Hors-sujet : un mot obligatoire manque, OU aucun mot important n'apparaît, OU presque aucun mot de la recherche.
@@ -1098,12 +1110,11 @@ async function searchWikibooks(q, fallback){
     const sig = [];
     if(words >= 400 && !book) sig.push([4, 'page détaillée (' + words + ' mots)']);
     else if(words < 150) sig.push([-6, 'page très courte (' + words + ' mots)']);
-    const ex = decodeEnt(String(r.snippet || '').replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
     return { platform:'Wikibooks', written:true, title:parts.join(' › '), desc:'',
       channel:book || 'Wikibooks', channelId:'wikibooks', url:WB + 'wiki/' + parts.map(x => encodeURIComponent(x.replace(/ /g, '_'))).join('/'),
       thumb:imgs[r.pageid] || '', declLang:'fr', duration:null, published:r.timestamp || null, dateWord:'modifiée en ', views:0, likes:null,
       signals:sig, ownOk:false, builtW:words >= 400 && book ? 'chapitre détaillé d\'un livre (' + words + ' mots)' : null,
-      note:(ex ? 'Extrait : « ' + cut(ex, 140) + ' » ' : '') + 'Page de Wikibooks, des livres pratiques écrits par des bénévoles' + (book ? ' (livre « ' + book + ' »)' : '') + ', ' + words + ' mots. Pas de votes ni de commentaires : à vérifier.' };
+      note:'Page de Wikibooks, des livres pratiques écrits par des bénévoles' + (book ? ' (livre « ' + book + ' »)' : '') + ', ' + words + ' mots. Pas de votes ni de commentaires : à vérifier.' };
   });
 }
 // Mots « sujet » de la recherche, tels que tu les as tapés (avec les accents), pour les sites français
@@ -1145,7 +1156,9 @@ function calibrate(){
   pool.forEach(it => new Set(norm(it.title).split(/[^a-z0-9]+/)).forEach(w => { if(w.length >= 3) freq.set(w, (freq.get(w) || 0) + 1); }));
   // Mots voisins : termes (surtout techniques) qui reviennent dans les titres et que tu n'as pas tapés
   const altWords = new Set([].concat(...Object.values(ctx.alts)));
-  const known = x => ctx.all.includes(x) || altWords.has(x) || ctx.all.some(k => k.length > 5 && x.startsWith(k.slice(0, k.length - 2)));
+  // « FC26 » n'est pas un mot nouveau quand tu as tapé « FC 26 »
+  const qt = norm(lastQ).split(/[^a-z0-9]+/).filter(Boolean), glued = new Set(qt.slice(1).map((w, i) => qt[i] + w));
+  const known = x => ctx.all.includes(x) || altWords.has(x) || glued.has(x) || ctx.all.some(k => k.length > 5 && x.startsWith(k.slice(0, k.length - 2)));
   const nb = new Map();
   pool.forEach(it => {
     const title = String(it.title || ''), letters = title.replace(/[^A-Za-zÀ-ÿ]/g, '');
