@@ -72,7 +72,7 @@
   .dur{position:absolute;right:10px;bottom:10px;font-size:.8rem;font-weight:600;padding:2px 7px;border-radius:6px;color:#fff;background:rgba(0,0,0,.78)}
   .written-head{display:flex;align-items:center;gap:8px;padding:12px 14px 0}
   .written-head .pill{position:static}
-  .p-YouTube{background:#c4161c}.p-PeerTube{background:#d5560b}.p-StackExchange{background:#2c6bd8}.p-iFixit{background:#0f766e}
+  .p-YouTube{background:#c4161c}.p-PeerTube{background:#d5560b}.p-StackExchange{background:#2c6bd8}.p-iFixit{background:#0f766e}.p-Wikibooks{background:#5b4bb7}
   /* Le tampon : verdict en mots + score */
   .stamp{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;align-items:center;min-width:76px;padding:5px 8px 4px;border-radius:10px;color:#fff;background:var(--none);box-shadow:0 2px 8px rgba(0,0,0,.25);font-family:var(--f-head);line-height:1}
   .written-head .stamp{position:static;margin-left:auto;box-shadow:none}
@@ -183,7 +183,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VERSION = '3.5';
+const APP_VERSION = '3.6';
 $('ver').textContent = 'v' + APP_VERSION;
 
 /* ---------- Mémoire de l'appareil ---------- */
@@ -609,6 +609,11 @@ function summaryOf(it){
 /* ---------- Score ---------- */
 const chanKey = it => it.platform + ':' + (it.channelId || it.channel || '?');
 
+function glueVariants(x){
+  const a = x.replace(/([a-z])(\d)/g, '$1 $2').replace(/(\d)([a-z])/g, '$1 $2');
+  const b = x.replace(/(^|[^a-z0-9])([a-z]{1,4}) (\d{1,4})(?=[^a-z0-9]|$)/g, '$1$2$3');
+  return (a !== x ? ' ' + a : '') + (b !== x ? ' ' + b : '');
+}
 function scoreItem(it, ctx){
   let s = 50;
   const why = [];
@@ -616,8 +621,21 @@ function scoreItem(it, ctx){
   let t = norm(it.title);
   const chn = norm(it.channel || '');
   if(!it.written && chn.length >= 6 && t.includes(chn)) t = t.split(chn).join(' ');
-  const td = t + ' ' + norm(it.desc);
-  if(it.lang === undefined) it.lang = String(it.declLang || '').slice(0, 2).toLowerCase() || guessLang(it.title + ' ' + String(it.desc || '').slice(0, 300));
+  // « FC26 » doit compter comme « FC 26 », et l'inverse (« PS 5 » / « PS5 ») : on ajoute ces variantes au texte
+  t += glueVariants(t);
+  const dn = norm(it.desc);
+  const td = t + ' ' + dn + glueVariants(dn);
+  // Langue : celle déclarée par la chaîne si c'est français ou anglais. Sinon on vérifie sur le texte,
+  // car la langue déclarée est parfois fausse (« espagnol » ou « finnois » pour une vidéo en anglais).
+  if(it.lang === undefined){
+    const d = String(it.declLang || '').slice(0, 2).toLowerCase();
+    const g = guessLang(it.title + ' ' + String(it.desc || '').slice(0, 300));
+    // Une langue déclarée autre (portugais…) n'est corrigée que si le texte est clairement anglais :
+    // le portugais ou l'espagnol ressemblent trop au français pour ce petit test.
+    if(d === 'fr' || d === 'en') it.lang = d;
+    else if(d && d !== 'zx' && d !== 'un') it.lang = g === 'en' ? 'en' : d;
+    else it.lang = g;
+  }
 
   // Hors-sujet : un mot obligatoire manque, OU aucun mot important n'apparaît, OU presque aucun mot de la recherche.
   // Un mot important introuvable partout (faute de frappe ?) est mis de côté : il ne sert plus à masquer.
@@ -629,13 +647,15 @@ function scoreItem(it, ctx){
   // Mots « sujet » : YouTube trie déjà bien, un seul suffit. Ailleurs (PeerTube, tutos écrits) il en faut au moins la moitié, et 2 dès qu'il y en a 2.
   const sm = subjectMatch(td + (it.written ? ' ' + chn : ''), ctx);
   const need = it.platform === 'YouTube' ? 1 : Math.max(Math.ceil(sm.n / 2), Math.min(2, sm.n));
+  // La 2e recherche (vidéos de 4 à 20 min) est plus large : on demande en plus que le titre nomme le sujet
+  const titleMiss = it.via === '420' && sm.n > 0 && subjectMatch(t, ctx).hits === 0;
   it.mustMiss = missMust.length > 0;
   it.offTopic = it.mustMiss ||
     (strongOk.length > 0 && missStrong.length === strongOk.length) ||
-    (hasKw && covAll.r < 0.34) || (sm.n > 0 && sm.hits < need);
+    (hasKw && covAll.r < 0.34) || (sm.n > 0 && sm.hits < need) || titleMiss;
   if(it.offTopic){
     s -= 30;
-    why.push(['-', missMust.length ? 'mot obligatoire absent : « ' + missMust.join(', ') + ' »' : 'hors-sujet']);
+    why.push(['-', missMust.length ? 'mot obligatoire absent : « ' + missMust.join(', ') + ' »' : titleMiss ? 'hors-sujet : le titre ne parle pas de ta recherche' : 'hors-sujet']);
   } else if(missStrong.length){
     // Il manque un mot important : la vidéo reste visible mais descend
     s -= Math.min(20, missStrong.length * 8);
@@ -674,9 +694,13 @@ function scoreItem(it, ctx){
     else if(nSteps >= 3){ s += 6; why2.push(nSteps + ' étapes décrites'); }
     if(pro && longEnough){ s += 6; why2.push('chaîne de marque ou pro'); }
     if(why2.length && longEnough){ it.built = why2.join(', '); why.push(['+', '🔵 bien construit : ' + it.built]); }
+  } else if(it.builtW){
+    // Page écrite longue et rangée dans un livre (Wikibooks) : signe de sérieux, pas une preuve
+    s += 6; it.built = it.builtW; why.push(['+', '🔵 bien construit : ' + it.built]);
   }
   // Chaîne de confiance
   if(trusted[chanKey(it)]){ s += 10; why.push(['+', 'chaîne de confiance']); }
+  if(it.via === '420') why.push(['i', '🔎 trouvée par la 2e recherche (vidéos de 4 à 20 min)']);
 
   // Commentaires, passages clés, astuces
   it.moments = []; it.bestMoment = null; it.tips = []; it.com = null;
@@ -756,7 +780,7 @@ function scoreItem(it, ctx){
     const extra = sm.miss.filter(k => !missStrong.includes(k));
     if(extra.length) why.push(['-', 'ne parle pas de : ' + extra.join(', ')]);
   }
-  if(!it.confirmed) why.push(['i', (it.built ? '🔵' : '⚪') + ' non confirmé : ' + (it.written ? 'pas de réponse validée' : it.platform === 'YouTube' ? 'moins de 3 avis utiles' : 'pas d\'avis lisibles')]);
+  if(!it.confirmed) why.push(['i', (it.built ? '🔵' : '⚪') + ' non confirmé : ' + (it.written ? (it.qa ? 'pas de réponse validée' : 'ni votes ni commentaires') : it.platform === 'YouTube' ? 'moins de 3 avis utiles' : 'pas d\'avis lisibles')]);
   it.why = why;
   return it;
 }
@@ -822,13 +846,16 @@ function quotaGet(){
 }
 function quotaAdd(n){ const qd = quotaGet(); qd.searches += n; store.set('ytQuota', qd); }
 function quotaFull(){ const qd = quotaGet(); qd.full = true; qd.searches = Math.max(qd.searches, YT_SEARCH_DAY); store.set('ytQuota', qd); }
-// Recherches YouTube restantes pour l'utilisateur (1 recherche = 1 ou 2 appels selon la langue)
+// Appels de recherche YouTube restants aujourd'hui
 function quotaLeft(){ const qd = quotaGet(); return qd.full ? 0 : Math.max(0, YT_SEARCH_DAY - qd.searches); }
+// Une recherche dans l'appli = 2 appels en français (50 vidéos + celles de 4 à 20 min), 3 quand l'anglais s'ajoute
 function quotaNote(){
   const left = quotaLeft();
   if(!left) return '⛔ Quota YouTube du jour épuisé : YouTube revient vers 9 h. Les autres sources marchent.';
-  return '🎟️ YouTube : il te reste environ ' + left + ' recherche' + (left > 1 ? 's' : '') + ' aujourd\'hui' +
-    (left < 20 ? ' (remise à zéro vers 9 h)' : '') + '.';
+  const mode = $('langMode').value, per = mode === 'both' ? 3 : mode === 'fr' ? 2 : 2.5;
+  const n = Math.max(1, Math.floor(left / per));
+  return '🎟️ YouTube : il te reste environ ' + n + ' recherche' + (n > 1 ? 's' : '') + ' aujourd\'hui' +
+    (n < 10 ? ' (remise à zéro vers 9 h)' : '') + '.';
 }
 function isQuotaError(e){ return /quota/i.test(e && e.message || ''); }
 
@@ -862,7 +889,7 @@ async function memGet(k){
   });
 }
 async function memSet(k, items){
-  const keep = ['platform','id','title','desc','channel','channelId','url','thumb','published','declLang','duration','views','likes','rawComments','comState'];
+  const keep = ['platform','id','title','desc','channel','channelId','url','thumb','published','declLang','duration','views','likes','rawComments','comState','via'];
   const clean = items.map(it => { const o = {}; keep.forEach(f => { o[f] = it[f]; }); return o; });
   const v = { t: Date.now(), items: clean };
   ytMem.set(k, v);
@@ -883,27 +910,46 @@ async function memSet(k, items){
     };
   } catch(e){}
 }
-const memKey = (q, lang) => 'v1|' + lang + '|' + norm(q).replace(/[^a-z0-9]+/g, ' ').trim();
+const memKey = (q, lang) => 'v2|' + lang + '|' + norm(q).replace(/[^a-z0-9]+/g, ' ').trim();
 
-// Une langue : recherche + détails + commentaires (ou mémoire si déjà fait)
+// Une langue : recherche + détails + commentaires (ou mémoire si déjà fait).
+// x.plus : on fait aussi une 2e recherche limitée aux vidéos de 4 à 20 minutes. YouTube les classe autrement :
+// mesuré le 19/11/2026, elle apporte 26 à 42 vidéos absentes des 50 premières, surtout de vrais tutos (et pas de Shorts).
 let ytInfo = {};
-async function ytOneLang(x, n){
-  const k = memKey(x.q, x.lang);
-  const cached = await memGet(k);
-  if(cached){ ytInfo.memo = (ytInfo.memo || 0) + 1; return cached.map(o => Object.assign({}, o)); }
-  if(!quotaLeft()) throw new Error('quota du jour épuisé, retour vers 9 h');
+async function ytCall(x, n, extra){
   let sr;
   try {
-    sr = await getJSON(YT + 'search?' + new URLSearchParams({
+    sr = await getJSON(YT + 'search?' + new URLSearchParams(Object.assign({
       part:'snippet', type:'video', maxResults:String(n), q:x.q, relevanceLanguage:x.lang, safeSearch:'moderate', key:ytKey
-    }));
+    }, extra)));
   } catch(e){ if(isQuotaError(e)){ quotaFull(); throw new Error('quota du jour épuisé, retour vers 9 h'); } throw e; }
   quotaAdd(1);
   ytInfo.spent = (ytInfo.spent || 0) + 1;
-  const ids = (sr.items || []).map(i => i.id && i.id.videoId).filter(Boolean);
+  return (sr.items || []).map(i => i.id && i.id.videoId).filter(Boolean);
+}
+async function ytOneLang(x, n){
+  const k = memKey(x.q, x.lang + (x.plus ? '+420' : ''));
+  const cached = await memGet(k);
+  if(cached){ ytInfo.memo = (ytInfo.memo || 0) + 1; return cached.map(o => Object.assign({}, o)); }
+  if(!quotaLeft()) throw new Error('quota du jour épuisé, retour vers 9 h');
+  const calls = [ytCall(x, n, {})];
+  if(x.plus && quotaLeft() >= 2) calls.push(ytCall(x, n, { videoDuration:'medium' }));
+  const rs = await Promise.allSettled(calls);
+  if(rs[0].status === 'rejected') throw rs[0].reason;
+  const ids = rs[0].value.slice();
+  if(rs[1]){
+    if(rs[1].status === 'fulfilled'){ const seen = new Set(ids); rs[1].value.forEach(id => { if(!seen.has(id)){ seen.add(id); ids.push(id); } }); ytInfo.extra = (ytInfo.extra || 0) + ids.length - rs[0].value.length; }
+    else ytInfo.extraErr = rs[1].reason && rs[1].reason.message;
+  }
   if(!ids.length){ memSet(k, []); return []; }
-  const vr = await getJSON(YT + 'videos?' + new URLSearchParams({ part:'snippet,statistics,contentDetails', id:ids.slice(0, 50).join(','), key:ytKey }));
-  const byId = new Map((vr.items || []).map(v => [v.id, v]));
+  // Détails des vidéos, par paquets de 50 (1 unité chacun, hors compteur des recherches)
+  const vids = [];
+  for(let i = 0; i < ids.length; i += 50){
+    const vr = await getJSON(YT + 'videos?' + new URLSearchParams({ part:'snippet,statistics,contentDetails', id:ids.slice(i, i + 50).join(','), key:ytKey }));
+    vids.push(...(vr.items || []));
+  }
+  const byId = new Map(vids.map(v => [v.id, v]));
+  const only420 = new Set(ids.slice(rs[0].value.length));
   const items = ids.map(id => byId.get(id)).filter(Boolean).map(v => {
     const sn = v.snippet || {}, st = v.statistics || {}, th = sn.thumbnails || {};
     return {
@@ -915,7 +961,8 @@ async function ytOneLang(x, n){
       declLang:sn.defaultAudioLanguage || sn.defaultLanguage || '',
       duration:isoDur(v.contentDetails && v.contentDetails.duration),
       views:+(st.viewCount || 0),
-      likes:st.likeCount != null ? +st.likeCount : null
+      likes:st.likeCount != null ? +st.likeCount : null,
+      via:only420.has(v.id) ? '420' : ''
     };
   });
   setStatus('Lecture des commentaires…');
@@ -934,18 +981,18 @@ async function searchYouTube(qs){
   if(!ytKey) throw new Error('clé manquante (touche ⚙️)');
   ytInfo = {};
   const mode = $('langMode').value;
-  // « Anglais si besoin » : on cherche d'abord en français ; l'anglais seulement s'il y a moins de 3 bons tutos
+  // « Anglais si besoin » : on cherche d'abord en français ; l'anglais seulement s'il y a moins de 5 bons tutos
+  // En français : 50 vidéos + la 2e recherche (4 à 20 min). En anglais : 50 vidéos seulement, pour garder du quota.
   if(mode === 'auto' && qs.length > 1){
-    const fr = await ytOneLang(qs[0], 25);
+    const fr = await ytOneLang(Object.assign({ plus:true }, qs[0]), 50);
     const good = fr.filter(it => { const c = Object.assign({}, it); scoreItem(c, lastCtx); return !c.offTopic && c.confirmed && c.score >= 65; }).length;
-    if(good >= 3){ ytInfo.skipEn = true; return fr; }
+    if(good >= 5){ ytInfo.skipEn = true; return fr; }   // 5 sur environ 75 vidéos (avant : 3 sur 25)
     ytInfo.addedEn = true;
     let en = [];
-    try { en = await ytOneLang(qs[1], 20); } catch(e){ ytInfo.enErr = e.message; }
+    try { en = await ytOneLang(qs[1], 50); } catch(e){ ytInfo.enErr = e.message; }
     return interleave([fr, en]);
   }
-  const n = qs.length > 1 ? 20 : 25;
-  const rs = await Promise.allSettled(qs.map(x => ytOneLang(x, n)));
+  const rs = await Promise.allSettled(qs.map(x => ytOneLang(x.lang === 'fr' ? Object.assign({ plus:true }, x) : x, 50)));
   const ok = rs.filter(r => r.status === 'fulfilled').map(r => r.value);
   if(!ok.length) throw rs[0].reason;
   return interleave(ok);
@@ -1040,6 +1087,42 @@ async function searchIFixit(qs, fallback){
   return r.length || !fallback ? r : ifixitOnce([{ q: fallback }]);
 }
 
+// Wikibooks : livres pratiques écrits par des bénévoles, en français. Gratuit, sans clé.
+// Pas de votes ni de commentaires : jamais « confirmé ». Une page longue rangée dans un livre compte comme « bien construite » (bleu).
+const WB = 'https://fr.wikibooks.org/';
+async function wbSearch(q){
+  const j = await getJSON(WB + 'w/api.php?' + new URLSearchParams({ action:'query', list:'search', srsearch:q, srnamespace:'0', srlimit:'8', srprop:'snippet|wordcount|timestamp', format:'json', origin:'*' }));
+  return (j.query && j.query.search) || [];
+}
+const WB_SKIP = /^(version imprimable|imprimable|version pdf|sommaire|table des mati[eè]res|index|bibliographie|auteurs?|licence|gfdl|glossaire|pr[ée]face|introduction)$/i;
+async function searchWikibooks(q, fallback){
+  const ok = list => list.filter(r => !WB_SKIP.test(String(r.title).split('/').pop().trim()));
+  let rs = ok(await wbSearch(q));
+  if(!rs.length && fallback && norm(fallback) !== norm(q)) rs = ok(await wbSearch(fallback));
+  if(!rs.length) return [];
+  const imgs = {};
+  try {   // image de la page, si elle en a une
+    const j = await getJSON(WB + 'w/api.php?' + new URLSearchParams({ action:'query', pageids:rs.map(r => r.pageid).join('|'), prop:'pageimages', piprop:'thumbnail', pithumbsize:'480', format:'json', origin:'*' }));
+    Object.values((j.query && j.query.pages) || {}).forEach(p => { if(p.thumbnail && p.thumbnail.source) imgs[p.pageid] = p.thumbnail.source; });
+  } catch(e){}
+  return rs.map(r => {
+    const parts = String(r.title).split('/'), book = parts.length > 1 ? parts[0] : '', words = +r.wordcount || 0;
+    const sig = [];
+    if(words >= 400 && !book) sig.push([4, 'page détaillée (' + words + ' mots)']);
+    else if(words < 150) sig.push([-6, 'page très courte (' + words + ' mots)']);
+    return { platform:'Wikibooks', written:true, title:parts.join(' › '), desc:'',
+      channel:book || 'Wikibooks', channelId:'wikibooks', url:WB + 'wiki/' + parts.map(x => encodeURIComponent(x.replace(/ /g, '_'))).join('/'),
+      thumb:imgs[r.pageid] || '', declLang:'fr', duration:null, published:r.timestamp || null, dateWord:'modifiée en ', views:0, likes:null,
+      signals:sig, ownOk:false, builtW:words >= 400 && book ? 'chapitre détaillé d\'un livre (' + words + ' mots)' : null,
+      note:'Page de Wikibooks, des livres pratiques écrits par des bénévoles' + (book ? ' (livre « ' + book + ' »)' : '') + ', ' + words + ' mots. Pas de votes ni de commentaires : à vérifier.' };
+  });
+}
+// Mots « sujet » de la recherche, tels que tu les as tapés (avec les accents), pour les sites français
+function frSubjectQuery(q, ctx){
+  const subj = new Set(subjWords(ctx.kwsFr, ctx));
+  return [...new Set((String(q).match(/[A-Za-z0-9À-ÿ]+/g) || []).filter(w => subj.has(norm(w))))].join(' ');
+}
+
 /* ---------- Recherche ---------- */
 let lastPrecise = '', fitCache = new Map();
 let lastResults = [], lastNotes = [], lastQ = '', lastEn = '', lastCtx = null, lastSuggest = null, lastNeighbors = [], shown = [];
@@ -1073,7 +1156,9 @@ function calibrate(){
   pool.forEach(it => new Set(norm(it.title).split(/[^a-z0-9]+/)).forEach(w => { if(w.length >= 3) freq.set(w, (freq.get(w) || 0) + 1); }));
   // Mots voisins : termes (surtout techniques) qui reviennent dans les titres et que tu n'as pas tapés
   const altWords = new Set([].concat(...Object.values(ctx.alts)));
-  const known = x => ctx.all.includes(x) || altWords.has(x) || ctx.all.some(k => k.length > 5 && x.startsWith(k.slice(0, k.length - 2)));
+  // « FC26 » n'est pas un mot nouveau quand tu as tapé « FC 26 »
+  const qt = norm(lastQ).split(/[^a-z0-9]+/).filter(Boolean), glued = new Set(qt.slice(1).map((w, i) => qt[i] + w));
+  const known = x => ctx.all.includes(x) || altWords.has(x) || glued.has(x) || ctx.all.some(k => k.length > 5 && x.startsWith(k.slice(0, k.length - 2)));
   const nb = new Map();
   pool.forEach(it => {
     const title = String(it.title || ''), letters = title.replace(/[^A-Za-zÀ-ÿ]/g, '');
@@ -1144,6 +1229,7 @@ async function runSearch(){
   if($('sTX').checked){
     const subj = enSubjects(lastCtx);
     jobs.push(['iFixit', searchIFixit(qs, subj.slice(0, 3).join(' '))]);
+    jobs.push(['Wikibooks', searchWikibooks(q, frSubjectQuery(q, lastCtx))]);
     const seBase = en || ($('langMode').value !== 'fr' ? q : '');      // Stack Exchange est en anglais
     if(seBase){
       const tries = [keywords(seBase).slice(0, 5).join(' '), subj.slice(0, 3).join(' ')];
@@ -1155,7 +1241,7 @@ async function runSearch(){
   const notes = [];
   settled.forEach((r, i) => {
     const name = jobs[i][0];
-    if(r.status === 'fulfilled'){ all = all.concat(r.value); notes.push(esc(name) + ' : ' + r.value.length); }
+    if(r.status === 'fulfilled'){ all = all.concat(r.value); notes.push(esc(name) + ' : ' + r.value.length + (name === 'YouTube' && ytInfo.extra ? ' (dont ' + ytInfo.extra + ' en plus, de 4 à 20 min)' : '')); }
     else notes.push(esc(name) + ' : ⚠️ ' + esc(r.reason && r.reason.message || 'erreur'));
   });
   lastNotes = [notes.join(' · ')];
@@ -1219,7 +1305,8 @@ async function gemText(prompt){
   throw new Error(last || 'Gemini n\'a pas répondu');
 }
 async function gemFit(prec){
-  const cand = lastResults.filter(it => !it.offTopic).slice(0, 70);
+  // Les 80 mieux notés (avec 50 vidéos + celles de 4 à 20 min, il y a souvent plus de candidats)
+  const cand = lastResults.filter(it => !it.offTopic).sort((a, b) => b.score - a.score).slice(0, 80);
   const key = norm(lastQ) + '|' + norm(prec);
   let res = fitCache.get(key);
   if(!res){
@@ -1272,9 +1359,10 @@ function render(){
   // Filet de sécurité : s'il ne reste presque rien, on montre aussi les vidéos YouTube moins proches
   const onTopic = lastResults.filter(it => !it.offTopic && !banned[chanKey(it)]).length;
   const relaxed = !showOff && onTopic < 3 && lastResults.length >= 10;
-  const cnt = { ban:0, off:0, mot:0, lang:0, age:0, court:0, chaine:0, precis:0 };
+  const cnt = { ban:0, off:0, mot:0, lang:0, autre:0, age:0, court:0, chaine:0, precis:0 };
   shown = lastResults.filter(it => {
     if(banned[chanKey(it)]){ cnt.ban++; return false; }
+    if(it.lang && it.lang !== 'fr' && it.lang !== 'en' && !trusted[chanKey(it)]){ cnt.autre++; return false; }
     if(it.offTopic && !showOff && !(relaxed && it.platform === 'YouTube' && !it.mustMiss)){ cnt.off++; return false; }
     if(lastPrecise && it.fit && it.fit.r === 'non' && !showOff){ cnt.precis++; return false; }
     if(frOnly && it.lang === 'en'){ cnt.lang++; return false; }
@@ -1305,6 +1393,7 @@ function render(){
   const hid = [];
   if(cnt.off) hid.push(cnt.off + ' hors-sujet');
   if(cnt.lang) hid.push(cnt.lang + ' en anglais');
+  if(cnt.autre) hid.push(cnt.autre + ' dans une autre langue');
   if(cnt.mot) hid.push(cnt.mot + ' avec mot interdit');
   if(cnt.precis) hid.push(cnt.precis + ' ne correspondent pas à ta précision');
   if(cnt.chaine) hid.push(cnt.chaine + ' en trop de la même chaîne');
@@ -1325,7 +1414,7 @@ function render(){
   const okItem = it => !it.offTopic && it.confirmed && it.score >= 65 && (it.written || (it.com && it.com.useful >= 5 && !it.com.risk));
   const solid = shown.filter(it => okItem(it) && !it.qa).length, qaOk = shown.filter(it => okItem(it) && it.qa).length;
   const decent = shown.filter(it => !it.offTopic && it.score >= 50).length;
-  const builtN = shown.filter(it => !it.offTopic && !it.confirmed && it.built).length;
+  const builtN = shown.filter(it => !it.offTopic && !it.confirmed && it.built && !it.written).length;
   const qaTxt = qaOk + (qaOk > 1 ? ' questions-réponses validées' : ' question-réponse validée');
   const builtTxt = builtN ? 'Plus ' + builtN + (builtN > 1 ? ' vidéos bien construites, pas encore confirmées.' : ' vidéo bien construite, pas encore confirmée.') : '';
   const verdict = solid ? '✅ <b>' + solid + (solid > 1 ? ' tutos solides' : ' tuto solide') + (qaOk ? ' et ' + qaTxt : '') + '.</b>' + builtTxt
@@ -1352,7 +1441,7 @@ function render(){
   $('results').innerHTML = top.join('') + shown.map((it, i) => {
     const cls = !it.confirmed ? (it.built && !it.offTopic ? 's-built' : 's-none') : it.score >= 65 ? 's-good' : it.score >= 45 ? 's-mid' : 's-bad';
     const stamp = '<div class="stamp ' + cls + '"><strong>' + (it.confirmed ? it.score : '?') + '</strong><span>' + LABEL[cls] + '</span></div>';
-    const meta = [it.written ? '' : it.channel, fmtDate(it.published) + (it.ageYears >= 3 ? ' (⏳ ' + Math.floor(it.ageYears) + ' ans)' : ''), fmtViews(it.views)]
+    const meta = [it.written ? '' : it.channel, (it.published && it.dateWord ? it.dateWord : '') + fmtDate(it.published) + (it.ageYears >= 3 ? ' (⏳ ' + Math.floor(it.ageYears) + ' ans)' : ''), fmtViews(it.views)]
       .filter(Boolean).map(x => '<span>' + esc(x) + '</span>').join('');
     const why = it.why.map(([sign, txt]) =>
       '<li class="' + (sign === '+' ? 'plus' : sign === '-' ? 'minus' : 'info') + '">' + (sign === 'i' ? '' : sign + ' ') + esc(txt) + '</li>').join('');
@@ -1410,7 +1499,8 @@ function exitsHtml(){
     ['📘 wikiHow', 'https://fr.wikihow.com/wikiHowTo?search=' + fr],
     ['🔧 iFixit', 'https://fr.ifixit.com/Search?query=' + en],
     ['❓ Stack Exchange', 'https://stackexchange.com/search?q=' + en],
-    ['👽 Reddit', 'https://www.reddit.com/search/?q=' + en],
+    // Reddit ne laisse plus les applis lire ses discussions (fermé en 2026) : on passe par Google, qui les indexe
+    ['👽 Reddit (via Google)', 'https://www.google.com/search?q=' + encodeURIComponent((lastEn || lastQ) + ' site:reddit.com')],
     ['𝕏 X (Twitter)', 'https://x.com/search?q=' + fr],
     ['🦋 Bluesky', 'https://bsky.app/search?q=' + fr],
     ['🎵 TikTok', 'https://www.tiktok.com/search?q=' + fr],
