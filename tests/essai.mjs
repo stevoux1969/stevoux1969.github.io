@@ -94,6 +94,12 @@ async function main(){
       await page.waitForTimeout(4000);
       r.images = await page.evaluate(() => { const im = [...document.querySelectorAll('.media img, .thumb img')]; return { total: im.length, chargees: im.filter(i => i.complete && i.naturalWidth > 0).length, cassees: im.filter(i => !(i.complete && i.naturalWidth > 0)).slice(0, 4).map(i => i.getAttribute('src')) }; });
       r.captures = await shots(page, 'recherche' + i);
+      // La première fiche incertaine (orange, bleue ou grise), pour voir le bouton Gemini
+      try {
+        const h2 = await page.evaluateHandle(() => { const s = document.querySelector('article.card .stamp.s-mid, article.card .stamp.s-built, article.card .stamp.s-none'); return s ? s.closest('article') : null; });
+        const el2 = h2.asElement();
+        if(el2){ await el2.scrollIntoViewIfNeeded(); await page.waitForTimeout(800); await el2.screenshot({ path: path.join(OUT, 'incertain-' + i + '.jpg'), type: 'jpeg', quality: 70 }); }
+      } catch(e){}
       // Une fiche d'une source écrite (Wikibooks en priorité), pour voir à quoi elle ressemble
       try {
         const h = await page.evaluateHandle(() => { const p = document.querySelector('article.card .p-Wikibooks') || document.querySelector('article.card .p-iFixit'); return p ? p.closest('article') : null; });
