@@ -78,6 +78,7 @@
   .written-head .stamp{position:static;margin-left:auto;box-shadow:none}
   .stamp strong{font-size:1.6rem;font-weight:800}
   .stamp span{font-size:.78rem;font-weight:700;letter-spacing:.02em}
+  .stamp em{font-style:normal;font-size:.7rem;font-weight:600;margin-top:3px;opacity:.95;white-space:nowrap}
   .s-good{background:var(--good)}.s-mid{background:var(--mid)}.s-bad{background:var(--bad)}.s-built{background:var(--built)}.s-none{background:var(--none)}
   .cbody{padding:10px 14px 12px}
   h3{font-family:var(--f-head);font-size:1.3rem;font-weight:700;margin:0 0 4px;line-height:1.15;overflow-wrap:anywhere}
@@ -89,6 +90,8 @@
   .keys a b{color:var(--acc)}
   /* Avis de Gemini */
   .gembtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:12px;background:var(--ink);color:#fff}
+  .gembtn.utile{background:var(--yel);color:#16212b}
+  .gembtn.discret{background:transparent;color:inherit;border:1px dashed currentColor;font-weight:600;font-size:.9rem;opacity:.7}
   @media (prefers-color-scheme:dark){.gembtn{background:#2e3a45}}
   .gem{margin-top:12px;padding:12px;border-radius:10px;background:var(--soft);border:1.5px solid var(--line);font-size:.92rem}
   .gem .gtop{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px}
@@ -183,7 +186,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VERSION = '3.6';
+const APP_VERSION = '3.7';
 $('ver').textContent = 'v' + APP_VERSION;
 
 /* ---------- Mémoire de l'appareil ---------- */
@@ -422,6 +425,8 @@ const RULES = [
   ['perime', /(ne (marche|fonctionne) plus|n'existe plus|plus (a jour|d'actualite|valable|disponible)|obsolete|perime|l'option (n'est plus|a disparu)|(menu|interface|option|bouton|ecran)s? (a|ont) change|a change depuis|depuis la (mise a jour|maj|derniere version|nouvelle version)|outdated|no longer (works|available|exists)|(doesn'?t|not) work(ing)? anymore|deprecated|out of date)/],
   ['trompeur', /(putaclic|pute a clic|piege a clic|clickbait|click bait|titre (mensonger|trompeur|racoleur)|rien a voir avec le titre|ne parle (meme )?(pas|jamais) d|ne repond pas a|perte de temps|temps perdu|arnaque|mensonge|misleading|waste of (my )?time|scam|doesn'?t (answer|talk about)|nothing to do with the title)/],
   ['echec', /((marche|fonctionne|marchait|a marche|a fonctionne) (pas|toujours pas|absolument pas)|(n'a|n'ai|n'ont) (rien|pas) (change|marche|fonctionne|resolu)|rien (n'a )?change|toujours (pas|rien|le meme|pareil)|meme probleme|aucun (effet|resultat|changement)|pas reussi|j'y arrive pas|n'y arrive pas|(doesn'?t|didn'?t|does not|did not|don'?t|won'?t) work|not working|no luck|still (doesn'?t|don'?t|not|nothing|can'?t|cannot|no |the same|have the|says|shows|stuck|at \d|on \d|running at)|same (problem|issue)|nothing (changed|happened|happens)|nao (funciona|funcionou|deu certo|consegui|estou conseguindo|to conseguindo|tô conseguindo)|nao esta funcionando|nao da (video|imagem)|no (funciona|me funciono|sirve|me sirvio)|ecran bleu|blue ?screen|bsod|no display|pas d'affichage|n'affiche (plus )?rien|(a|as|j'ai) crashe?|tela azul|boot ?loop|boucle infinie|loop infinito|memory (clock )?fail|(pc|ecran|bios) (fige|freeze|trava)|freezes?|ne (boot|demarre) pas|won'?t post)/],
+  // Échecs que la règle du dessus ratait : « n'a jamais marché », « never worked », « a marché au début puis plus rien »…
+  ['echec', /((n'a|n'ont|ne m'a|ne m'ont) jamais (marche|fonctionne|servi|aide)|jamais (reussi|marche|fonctionne)|never (worked|works|work)\b|(aucun|sans) succes|no success|without success|unsuccessful|(marche|fonctionne|marchait|worked|works) (au debut|un moment|un temps|quelques (jours|heures|minutes|semaines)|at first|for a (day|while|few))|puis plus rien|mais plus rien|then nothing|stopped working|a arrete de (marcher|fonctionner)|(didn'?t|did not|doesn'?t|does not) help|ne m'a (pas|rien|jamais) (aide|servi))/],
   ['manque', /(il manque|manque (une|l'|des|la|le) |(a|as|avez) oublie|oublie de (dire|preciser|montrer|parler)|n'explique pas|ne (dit|montre|precise) pas|pas (tres |assez |du tout )?(clair|precis|complet|detaille)|trop (rapide|vite|flou|brouillon)|va trop vite|incomplet|on (ne )?(voit|comprend) rien|rien compris|missing (a )?step|skipped|you forgot|not (very )?clear|unclear|too fast|confusing|hard to follow|doesn'?t (say|mention|explain))/],
   ['erreur', /(il y a une erreur|petite erreur|grosse erreur|c'est faux|correction|en fait il faut|contrairement a ce|il ne faut (surtout )?pas|is wrong|that'?s wrong|incorrect|actually you (need|should|have)|a mistake)/],
   ['blocage', /(\bgrisee?s?\b|(tout|en|reste|est) gris\b|grayed|greyed|not clickable|can'?t (click|select|change|enable)|cannot (click|select|change|enable)|(peux|peut|arrive) pas (cliquer|selectionner|mettre|activer|changer)|nao (consigo|da pra|da para) (clicar|selecionar|ativar|mudar)|(n'apparai[st]|apparai[st] pas|s'affiche pas|vois pas|trouve pas|ai pas|ai aucune?) (l'option|le menu|cette option|ce menu|le bouton|d'option|option|l'onglet|cet onglet)|(option|menu|onglet|bouton)s? (n'apparai|n'existe pas|absent|introuvable)|je (ne )?(vois|trouve) pas|(doesn'?t|does not|don'?t|do not|didn'?t) (show|appear)|i (don'?t|do not|dont) have|(mine|it) (doesn'?t|does not) have|(isn'?t|not) (there|showing|available)|there is no (option|setting|menu|tab|button|profile|such|[a-z.-]*xmp)|i (only )?have no|i only have|i dont have|mine (doesn'?t|does not|only|is different)|can'?t (find|see)|cannot (find|see)|no such option|nao (aparece|tem|acho|encontro)|nem aparece|no (me )?aparece|no (tengo|encuentro)|how (do|can) i (fix|get|enable|do)|any (fix|solution|idea)|what (do|should|can) i do|que (dois|faut)[- ]je faire|que faire|comment (je )?(peux|dois|fait|faire) ?(pour|si)?.*\?|o ?que eu fac|alguem sabe|someone (help|know)|can (u|you|anyone|someone) help|(please|pls|plz) help|help me (please|pls|plz|fix|with|out)|besoin d'aide|aidez[- ]moi|preciso de ajuda|necesito ayuda|me ajuda)/],
@@ -430,9 +435,13 @@ const RULES = [
 ];
 const SPAM = /(telegram|whatsapp|t\.me\/|bitcoin|crypto|contactez[- ]moi|contact me on|investi)/;
 
+// Une expression positive niée juste avant (« pas marché pour moi », « never worked for me », « not really helpful ») ne compte pas comme positive
+const NEG_BEFORE = /(n'|(^|[^a-z'])(pas|jamais|never|not|nao|nunca)\s+((vraiment|trop|tres|bien|super|toujours|really|quite|ever|always|even)\s+)?)$/;
 function classify(n){
   for(const [cat, re] of RULES){
-    if(re.test(n)){
+    const m = re.exec(n);
+    if(m){
+      if((cat === 'succes' || cat === 'clair') && NEG_BEFORE.test(n.slice(Math.max(0, m.index - 30), m.index))) return cat === 'succes' ? 'echec' : null;
       // Une question (« est-ce que ça marche sur… ? ») n'est pas un avis positif.
       // Une question qui décrit un problème (« toujours rien ? ») reste un avis négatif.
       if(!CATS[cat].neg && !CATS[cat].info && n.includes('?')) return null;
@@ -609,6 +618,7 @@ function summaryOf(it){
 /* ---------- Score ---------- */
 const chanKey = it => it.platform + ':' + (it.channelId || it.channel || '?');
 
+const HELP_CATS = new Set(['echec', 'blocage', 'manque', 'erreur', 'perime', 'danger']);
 function glueVariants(x){
   const a = x.replace(/([a-z])(\d)/g, '$1 $2').replace(/(\d)([a-z])/g, '$1 $2');
   const b = x.replace(/(^|[^a-z0-9])([a-z]{1,4}) (\d{1,4})(?=[^a-z0-9]|$)/g, '$1$2$3');
@@ -716,9 +726,13 @@ function scoreItem(it, ctx){
       const pts = Math.abs(c.delta) > 1 ? ' points' : ' point';
       if(c.delta > 0) why.push(['+', 'avis des commentaires : +' + c.delta + pts]);
       else if(c.delta < 0) why.push(['-', 'avis des commentaires : ' + c.delta + pts]);
-      // Petit bonus si le youtubeur répond aux questions. Jamais de pénalité s'il ne répond pas.
-      const nb = (it.rawComments || []).filter(x => x.ownerReplies && x.ownerReplies.length).length;
-      if(nb){ s += nb >= 3 ? 5 : 3; why.push(['+', '💬 le youtubeur répond (' + nb + ')']); }
+      // Petit bonus si le youtubeur aide ceux qui bloquent ou posent une question (pas pour des « merci » aux compliments).
+      // Jamais de pénalité s'il ne répond pas.
+      const withRep = (it.rawComments || []).filter(x => x.ownerReplies && x.ownerReplies.length && x.authorId !== it.channelId);
+      const helps = withRep.filter(x => (String(x.text || '').includes('?') || HELP_CATS.has(classify(norm(x.text)))) &&
+        x.ownerReplies.some(r => norm(r).split(/\s+/).length >= 4)).length;
+      if(helps){ s += helps >= 3 ? 5 : 3; why.push(['+', '💬 le youtubeur aide ceux qui bloquent (' + helps + ')']); }
+      else if(withRep.length) why.push(['i', '💬 le youtubeur répond (' + withRep.length + '), mais pas à des questions ni à des problèmes']);
       it.tips = tipsOf(it);
       why.push(['i', c.useful + (c.useful > 1 ? ' commentaires utiles' : ' commentaire utile') + ' sur ' + c.total + ' · fiabilité de l\'avis : ' + c.level]);
     }
@@ -1440,7 +1454,11 @@ function render(){
   const LABEL = { 's-good': 'Fiable', 's-mid': 'Mitigé', 's-bad': 'Douteux', 's-built': 'Bien fait', 's-none': 'À vérifier' };
   $('results').innerHTML = top.join('') + shown.map((it, i) => {
     const cls = !it.confirmed ? (it.built && !it.offTopic ? 's-built' : 's-none') : it.score >= 65 ? 's-good' : it.score >= 45 ? 's-mid' : 's-bad';
-    const stamp = '<div class="stamp ' + cls + '"><strong>' + (it.confirmed ? it.score : '?') + '</strong><span>' + LABEL[cls] + '</span></div>';
+    // Sur combien d'avis repose la couleur (commentaires utiles), visible sans ouvrir « Pourquoi ce score »
+    const nAvis = it.comState === 'closed' ? 'comm. fermés' : it.com ? it.com.useful + ' avis' : '';
+    const nGem = it.gem && it.gem.avis ? (nAvis ? ' · ' : '') + 'Gemini' : '';
+    const stamp = '<div class="stamp ' + cls + '"><strong>' + (it.confirmed ? it.score : '?') + '</strong><span>' + LABEL[cls] + '</span>' +
+      (nAvis || nGem ? '<em>' + esc(nAvis + nGem) + '</em>' : '') + '</div>';
     const meta = [it.written ? '' : it.channel, (it.published && it.dateWord ? it.dateWord : '') + fmtDate(it.published) + (it.ageYears >= 3 ? ' (⏳ ' + Math.floor(it.ageYears) + ' ans)' : ''), fmtViews(it.views)]
       .filter(Boolean).map(x => '<span>' + esc(x) + '</span>').join('');
     const why = it.why.map(([sign, txt]) =>
@@ -1483,7 +1501,7 @@ function render(){
       (avisUrl ? '' : '<div class="small">Avis gardé sur ce téléphone. Pour que Claude le lise, colle l\'adresse du tableau dans ⚙️.</div>') : '';
     return '<article class="card c-' + cls.slice(2) + '" data-card="' + esc(it.id || it.url) + '">' + head +
       '<div class="cbody"><h3><a data-open="' + i + '" href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(it.title) + '</a></h3>' +
-      '<div class="meta">' + meta + '</div>' + sum + keys + gemHtml(it, i) + whyBox + ev + tips + verdictRow + reasons +
+      '<div class="meta">' + meta + '</div>' + sum + keys + gemHtml(it, i, cls) + whyBox + ev + tips + verdictRow + reasons +
       '</div></article>';
   }).join('') + exitsHtml();
 }
@@ -1680,7 +1698,7 @@ async function gemRun(it){
   const el = document.querySelector('[data-card="' + it.id + '"]');
   if(el) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
-function gemHtml(it, i){
+function gemHtml(it, i, cls){
   if(it.platform !== 'YouTube') return '';
   const b = gemBusy[it.id];
   if(b && !b.error) return '<div class="gem loading" aria-live="polite"><div class="gtop"><b>🎬 Gemini regarde la vidéo…</b><span class="small" data-gemtime="' + b.start + '">0 min 00 s</span></div>' +
@@ -1688,8 +1706,13 @@ function gemHtml(it, i){
     '. Garde l\'appli ouverte : si tu changes d\'appli, le téléphone peut couper la connexion. Arrêt automatique après 4 minutes.</span><div class="bar"><i></i></div></div>';
   const g = it.gem && it.gem.avis;
   if(!g){
-    return (b && b.error ? '<div class="gem"><span class="gwarn">Gemini n\'a pas pu regarder : ' + esc(b.error) + '</span></div>' : '') +
-      '<button type="button" class="gembtn" data-act="gem" data-i="' + i + '">🎬 Faire regarder par Gemini</button>';
+    // Le quota gratuit (environ 6 vidéos par jour) sert d'abord là où il peut changer le verdict :
+    // bouton jaune sur les fiches orange, bleues et grises ; discret sur les vertes, déjà prouvées par les commentaires.
+    const err = b && b.error ? '<div class="gem"><span class="gwarn">Gemini n\'a pas pu regarder : ' + esc(b.error) + '</span></div>' : '';
+    if(cls === 's-good') return err + '<button type="button" class="gembtn discret" data-act="gem" data-i="' + i + '">🎬 Faire regarder quand même</button>';
+    const unsure = cls === 's-mid' || cls === 's-built' || cls === 's-none';
+    return err + '<button type="button" class="gembtn' + (unsure ? ' utile' : '') + '" data-act="gem" data-i="' + i + '">🎬 ' +
+      (unsure ? 'Faire vérifier par Gemini' : 'Faire regarder par Gemini') + '</button>';
   }
   const n = Math.max(0, Math.min(5, +g.note || 0));
   const list = (arr, cls) => (arr || []).length ? '<ul' + (cls ? ' class="' + cls + '"' : '') + '>' + arr.slice(0, 6).map(x => '<li>' + esc(cut(x, 140)) + '</li>').join('') + '</ul>' : '';
