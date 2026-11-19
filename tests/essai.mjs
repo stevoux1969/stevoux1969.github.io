@@ -175,6 +175,12 @@ async function main(){
     catch(e){ rapport.erreurs.push('variantes : ' + redact(e.message).slice(0, 300)); }
   }
 
+  // 1 quater. Version réellement en ligne (GitHub Pages)
+  try {
+    const live = await (await fetch('https://stevoux1969.github.io/tuto-fiable.html?robot=' + Date.now(), { signal: AbortSignal.timeout(20000) })).text();
+    rapport.versionEnLigne = (live.match(/APP_VERSION = '([0-9.]+)'/) || [])[1] || 'introuvable';
+  } catch(e){ rapport.versionEnLigne = 'erreur : ' + String(e.message).slice(0, 100); }
+
   // 2. Le banc d'essai des sources, vu depuis un navigateur
   try {
     const page = await ctx.newPage();
