@@ -57,6 +57,13 @@ jobs:
         run: |
           mkdir -p resultats
           node tests/gemini.mjs > resultats/journal-gemini.txt 2>&1 || true
+      - name: Essai recherche Google par Gemini (seulement si tests/gemini-recherche.mjs existe)
+        if: hashFiles('tests/gemini-recherche.mjs') != ''
+        env:
+          GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
+        run: |
+          mkdir -p resultats
+          node tests/gemini-recherche.mjs > resultats/journal-gemini-recherche.txt 2>&1 || true
       - name: Ranger les résultats dans la branche essais
         if: always()
         run: |
