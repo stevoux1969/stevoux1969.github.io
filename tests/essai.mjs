@@ -79,7 +79,7 @@ async function main(){
         resultats: lastResults.map(it => ({
           affiche: shown.includes(it), rang: shown.indexOf(it) + 1,
           source: it.label || it.platform, image: it.thumb || '', titre: it.title, url: it.url, score: it.score, brut: it.raw, confirme: it.confirmed,
-          horsSujet: it.offTopic, precision: it.fit || null, bienConstruit: it.built || null, vues: it.views, publie: it.published, langue: it.lang, duree: it.duration, chaine: it.channel,
+          horsSujet: it.offTopic, precision: it.fit || null, bienConstruit: it.built || null, via420: it.via === '420', vues: it.views, publie: it.published, langue: it.lang, duree: it.duration, chaine: it.channel,
           resume: it.summary, pourquoi: it.why.map(w => (w[0] === 'i' ? '' : w[0] + ' ') + w[1]),
           astuces: (it.tips || []).map(x => String(x.text).slice(0, 160)), passages: (it.moments || []).map(m => m.t + ' ' + String(m.label).slice(0, 50)),
           avis: it.com ? { lus: it.com.total, utiles: it.com.useful, cases: it.com.counts, bloquent: it.com.nBlocks, typeBlocage: it.com.blockKind, exBlocage: (it.com.blocks || []).slice(0, 2).map(b => String(b.text).slice(0, 120)), exemples: it.com.ev.slice(0, 4).map(e => e.cat + ' : ' + String(e.text).slice(0, 140)) } : null,
