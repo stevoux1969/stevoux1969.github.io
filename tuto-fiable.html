@@ -981,12 +981,12 @@ async function searchYouTube(qs){
   if(!ytKey) throw new Error('clé manquante (touche ⚙️)');
   ytInfo = {};
   const mode = $('langMode').value;
-  // « Anglais si besoin » : on cherche d'abord en français ; l'anglais seulement s'il y a moins de 3 bons tutos
+  // « Anglais si besoin » : on cherche d'abord en français ; l'anglais seulement s'il y a moins de 5 bons tutos
   // En français : 50 vidéos + la 2e recherche (4 à 20 min). En anglais : 50 vidéos seulement, pour garder du quota.
   if(mode === 'auto' && qs.length > 1){
     const fr = await ytOneLang(Object.assign({ plus:true }, qs[0]), 50);
     const good = fr.filter(it => { const c = Object.assign({}, it); scoreItem(c, lastCtx); return !c.offTopic && c.confirmed && c.score >= 65; }).length;
-    if(good >= 3){ ytInfo.skipEn = true; return fr; }
+    if(good >= 5){ ytInfo.skipEn = true; return fr; }   // 5 sur environ 75 vidéos (avant : 3 sur 25)
     ytInfo.addedEn = true;
     let en = [];
     try { en = await ytOneLang(qs[1], 50); } catch(e){ ytInfo.enErr = e.message; }
