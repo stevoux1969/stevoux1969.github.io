@@ -1,1 +1,6 @@
-{ "recherches": [ { "q": "remplacer batterie iPhone 11", "youtube": false } ] }
+{
+  "recherches": [
+    { "q": "FC 26 meilleure tactique", "precise": "je joue en mode Saisons en ligne, pas Ultimate Team", "avis": true },
+    { "q": "FC 26 meilleure tactique", "youtube": true }
+  ]
+}

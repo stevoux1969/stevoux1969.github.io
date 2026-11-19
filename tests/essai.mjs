@@ -58,9 +58,15 @@ async function main(){
         document.getElementById('sTX').checked = true;
       }, !!KEY && t.youtube !== false);
       await page.fill('#q', t.q);
+      if(t.precise) await page.fill('#precise', t.precise);
+      const avisRecus = [];
+      if(t.avis){
+        await page.evaluate(() => { avisUrl = 'https://script.google.com/macros/s/TEST-ROBOT/exec'; });
+        await page.route('https://script.google.com/**', async route => { avisRecus.push(route.request().postData()); await route.fulfill({ status: 200, body: 'ok' }); });
+      }
       const t0 = Date.now();
       await page.click('#f button[type=submit]');
-      await page.waitForFunction(() => /affichée\(s\)|Coche au moins/.test(document.getElementById('status').innerHTML), null, { timeout: 70000 })
+      await page.waitForFunction(() => /affichée\(s\)|Coche au moins/.test(document.getElementById('status').innerHTML), null, { timeout: 150000 })
         .catch(() => { r.delaiDepasse = true; });
       r.secondes = Math.round((Date.now() - t0) / 100) / 10;
       Object.assign(r, await page.evaluate(() => ({
@@ -73,7 +79,7 @@ async function main(){
         resultats: lastResults.map(it => ({
           affiche: shown.includes(it), rang: shown.indexOf(it) + 1,
           source: it.label || it.platform, image: it.thumb || '', titre: it.title, url: it.url, score: it.score, brut: it.raw, confirme: it.confirmed,
-          horsSujet: it.offTopic, bienConstruit: it.built || null, vues: it.views, publie: it.published, langue: it.lang, duree: it.duration, chaine: it.channel,
+          horsSujet: it.offTopic, precision: it.fit || null, bienConstruit: it.built || null, vues: it.views, publie: it.published, langue: it.lang, duree: it.duration, chaine: it.channel,
           resume: it.summary, pourquoi: it.why.map(w => (w[0] === 'i' ? '' : w[0] + ' ') + w[1]),
           astuces: (it.tips || []).map(x => String(x.text).slice(0, 160)), passages: (it.moments || []).map(m => m.t + ' ' + String(m.label).slice(0, 50)),
           avis: it.com ? { lus: it.com.total, utiles: it.com.useful, cases: it.com.counts, bloquent: it.com.nBlocks, typeBlocage: it.com.blockKind, exBlocage: (it.com.blocks || []).slice(0, 2).map(b => String(b.text).slice(0, 120)), exemples: it.com.ev.slice(0, 4).map(e => e.cat + ' : ' + String(e.text).slice(0, 140)) } : null,
@@ -86,6 +92,20 @@ async function main(){
       await page.waitForTimeout(2500);
       r.images = await page.evaluate(() => { const im = [...document.querySelectorAll('.thumb img')]; return { total: im.length, chargees: im.filter(i => i.complete && i.naturalWidth > 0).length, cassees: im.filter(i => !(i.complete && i.naturalWidth > 0)).slice(0, 4).map(i => i.getAttribute('src')) }; });
       r.captures = await shots(page, 'recherche' + i);
+      // Avis : le robot appuie sur 👎, coche deux raisons, écrit un mot, et on regarde ce qui part vers le tableau
+      if(t.avis){
+        try {
+          await page.click('article.card [data-act="ko"]');
+          await page.click('article.card [data-act="reason"][data-r="mode"]');
+          await page.click('article.card [data-act="reason"][data-r="promesse"]');
+          await page.fill('article.card input[data-note]', 'test du robot');
+          await page.click('article.card [data-act="note"]');
+          await page.waitForTimeout(4500);
+          r.avisEnvoyes = avisRecus.map(x => { try { return JSON.parse(x); } catch(e){ return x; } });
+          const c = await page.$('article.card');
+          await c.screenshot({ path: path.join(OUT, 'avis-' + i + '.jpg'), type: 'jpeg', quality: 70 });
+        } catch(e){ r.avisErreur = redact(e.message).slice(0, 300); }
+      }
       // Gemini : on fait regarder les vidéos demandées (ou la 1re), puis on photographie la fiche
       if(GKEY && t.gemini){
         r.gemini = [];
@@ -164,6 +184,17 @@ async function main(){
   delete rapport.liensAVerifier;
 }
 
+async function lireAvis(){
+  const u = (process.env.AVIS_URL || '').trim();
+  if(!u) return;
+  try {
+    const r = await fetch(u, { redirect: 'follow', signal: AbortSignal.timeout(30000) });
+    const txt = await r.text();
+    fs.writeFileSync(path.join(OUT, 'avis.json'), txt);
+    rapport.avisTableau = { code: r.status, taille: txt.length };
+  } catch(e){ rapport.avisTableau = { erreur: String(e.message).slice(0, 200) }; }
+}
+try { await lireAvis(); } catch(e){}
 try { await main(); } catch(e){ rapport.erreurs.push('général : ' + redact(e.stack || e.message).slice(0, 600)); log('ERREUR', e.message); }
 save('rapport.json', rapport);
 server.close();

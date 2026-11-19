@@ -39,6 +39,12 @@
   .qrow input{flex:1;font-size:1.05rem;border-width:2px;border-color:var(--ink)}
   @media (prefers-color-scheme:dark){.qrow input{border-color:#5b6976}}
   .go{background:var(--yel);color:var(--yel-ink);font-family:var(--f-head);font-weight:800;font-size:1.15rem;padding:0 18px;white-space:nowrap}
+  .precise{margin-top:8px;font-size:.95rem}
+  .fitok{color:var(--good);font-weight:600}
+  .act button.mid.on{background:var(--mid);border-color:var(--mid)}
+  .avis-note{display:flex;gap:6px;margin-top:6px}
+  .avis-note input{flex:1;padding:8px 10px;font-size:.88rem}
+  .avis-note button{font-size:.82rem;padding:7px 12px}
   .srcs{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
   .srcs label{display:flex;align-items:center;gap:6px;font-size:.88rem;padding:5px 10px;border:1.5px solid var(--line);border-radius:99px}
   .srcs label:has(input:checked){border-color:var(--ink);background:var(--soft)}
@@ -128,6 +134,8 @@
     <input id="ytKey" type="password" placeholder="AIza..." autocomplete="off">
     <label class="small" for="gemKey" style="display:block;margin-top:10px">Clé Gemini (pour « Faire regarder la vidéo »)</label>
     <input id="gemKey" type="password" placeholder="Clé de aistudio.google.com" autocomplete="off">
+    <label class="small" for="avisUrl" style="display:block;margin-top:10px">Adresse du tableau d'avis (Google Sheet, pour que Claude lise tes 👍 😐 👎)</label>
+    <input id="avisUrl" type="password" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
     <div class="row"><button id="saveKey" type="button">Enregistrer</button></div>
     <p class="small">Les clés sont gardées sur ce téléphone uniquement (pas dans le code).</p>
     <p class="small"><b>⭐ Chaînes de confiance</b> (touche pour retirer)</p>
@@ -140,6 +148,7 @@
   <form id="f" class="box">
     <div class="qrow"><input id="q" type="text" placeholder="Ex : changer une chambre à air" required aria-label="Ta recherche">
       <button class="go" type="submit">Chercher</button></div>
+    <input id="precise" class="precise" type="text" placeholder="Précise si besoin (facultatif) : ex. mode Saisons, pas Ultimate Team" aria-label="Précision pour trier les résultats">
     <div class="srcs">
       <label><input type="checkbox" id="sYT" checked> YouTube</label>
       <label><input type="checkbox" id="sPT" checked> PeerTube</label>
@@ -174,7 +183,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VERSION = '3.2';
+const APP_VERSION = '3.3';
 $('ver').textContent = 'v' + APP_VERSION;
 
 /* ---------- Mémoire de l'appareil ---------- */
@@ -688,6 +697,12 @@ function scoreItem(it, ctx){
   const side = SIDE_STEPS.find(([re]) => re.test(tt) && !re.test(ctx.qn || ''));
   it.side = side ? side[1] : null;
   it.confirmed = it.written ? !!it.ownOk : !!(it.com && it.com.useful >= 3);
+  // Tri selon ta précision (Gemini a lu le titre et la description)
+  if(it.fit && lastPrecise){
+    if(it.fit.r === 'oui'){ s += 6; why.push(['+', '🎯 correspond à ta précision']); }
+    else if(it.fit.r === 'non') why.push(['-', '🎯 ne correspond pas à ta précision' + (it.fit.why ? ' : ' + it.fit.why : '')]);
+    else why.push(['i', '🎯 impossible de savoir s\'il correspond à ta précision']);
+  }
   // Avis de Gemini (vidéo regardée pour de vrai) : une bonne note vaut preuve, une mauvaise empêche le vert
   it.gem = it.platform === 'YouTube' ? (gemCache[it.id] || null) : null;
   let gemCap = 100;
@@ -1000,6 +1015,7 @@ async function searchIFixit(qs, fallback){
 }
 
 /* ---------- Recherche ---------- */
+let lastPrecise = '', fitCache = new Map();
 let lastResults = [], lastNotes = [], lastQ = '', lastEn = '', lastCtx = null, lastSuggest = null, lastNeighbors = [], shown = [];
 
 function rescore(){ lastResults.forEach(it => scoreItem(it, lastCtx)); }
@@ -1126,7 +1142,69 @@ async function runSearch(){
   lastResults = all;
   calibrate();
   rescore();
+  lastPrecise = $('precise').value.trim();
+  if(lastPrecise){
+    if(!gemKey) lastNotes.push('🎯 Pour trier selon ta précision, colle ta clé Gemini dans ⚙️.');
+    else {
+      render();
+      setStatus('🎯 Gemini trie les résultats selon ta précision… (quelques secondes)');
+      try { const n = await gemFit(lastPrecise); lastNotes.push('🎯 Trié par Gemini selon « ' + esc(lastPrecise) + ' » : ' + n.oui + ' correspondent, ' + n.non + ' cachés, ' + n.inc + ' incertains.'); }
+      catch(e){ lastNotes.push('🎯 Tri selon ta précision impossible : ' + esc(e.message)); }
+      rescore();
+    }
+  }
   render();
+}
+
+// Gemini lit les titres et descriptions, et dit si chaque résultat correspond à ce que tu as précisé (un seul appel texte)
+async function gemText(prompt){
+  const models = await gemModel();
+  let last = null;
+  for(const model of models){
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 90000);
+    try {
+      const r = await fetch(GEM_BASE + 'models/' + model + ':generateContent', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': gemKey }, signal: ctrl.signal,
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.1 } })
+      });
+      const j = await r.json().catch(() => ({}));
+      if(!r.ok){ last = gemErr(j, r.status); if(r.status === 429) throw new Error(last); continue; }
+      const txt = ((j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) || []).map(x => x.text || '').join('');
+      return JSON.parse(txt.replace(/^\s*```(json)?|```\s*$/g, ''));
+    } catch(e){
+      if(e.name === 'AbortError') throw new Error('Gemini met trop de temps');
+      last = e.message; if(/limite/.test(last)) throw e;
+    } finally { clearTimeout(timer); }
+  }
+  throw new Error(last || 'Gemini n\'a pas répondu');
+}
+async function gemFit(prec){
+  const cand = lastResults.filter(it => !it.offTopic).slice(0, 70);
+  const key = norm(lastQ) + '|' + norm(prec);
+  let res = fitCache.get(key);
+  if(!res){
+    const lines = cand.map((it, n) => (n + 1) + '. [' + (it.label || it.platform) + '] ' + it.title + ' | chaîne : ' + (it.channel || '') + ' | ' +
+      String(it.desc || '').replace(/\s+/g, ' ').slice(0, 220));
+    const prompt = 'Recherche de l\'utilisateur : « ' + lastQ + ' ».\nCe qu\'il précise : « ' + prec + ' ».\n' +
+      'Voici des résultats (titre, chaîne, début de description). Pour CHACUN, dis s\'il correspond à ce qu\'il précise :\n' +
+      '"oui" = clairement adapté ; "non" = le titre ou la description montrent clairement que ça ne correspond pas (autre mode, autre modèle, autre sujet…) ; ' +
+      '"?" = impossible à savoir avec ces informations. Sois prudent : "non" seulement quand c\'est visible dans le texte.\n' +
+      'Réponds UNIQUEMENT en JSON : [{"n": numéro, "r": "oui" | "non" | "?", "pourquoi": "très court, en français"}]\n\n' + lines.join('\n');
+    const out = await gemText(prompt);
+    res = {};
+    (Array.isArray(out) ? out : (out.resultats || out.results || [])).forEach(x => {
+      const it = cand[(+x.n || 0) - 1];
+      if(it) res[it.id || it.url] = { r: x.r === 'oui' || x.r === 'non' ? x.r : '?', why: String(x.pourquoi || '').slice(0, 120) };
+    });
+    fitCache.set(key, res);
+  }
+  const n = { oui: 0, non: 0, inc: 0 };
+  lastResults.forEach(it => {
+    it.fit = res[it.id || it.url] || null;
+    if(it.fit) n[it.fit.r === 'oui' ? 'oui' : it.fit.r === 'non' ? 'non' : 'inc']++;
+  });
+  return n;
 }
 $('f').onsubmit = e => { e.preventDefault(); runSearch(); };
 
@@ -1155,10 +1233,11 @@ function render(){
   // Filet de sécurité : s'il ne reste presque rien, on montre aussi les vidéos YouTube moins proches
   const onTopic = lastResults.filter(it => !it.offTopic && !banned[chanKey(it)]).length;
   const relaxed = !showOff && onTopic < 3 && lastResults.length >= 10;
-  const cnt = { ban:0, off:0, mot:0, lang:0, age:0, court:0, chaine:0 };
+  const cnt = { ban:0, off:0, mot:0, lang:0, age:0, court:0, chaine:0, precis:0 };
   shown = lastResults.filter(it => {
     if(banned[chanKey(it)]){ cnt.ban++; return false; }
     if(it.offTopic && !showOff && !(relaxed && it.platform === 'YouTube' && !it.mustMiss)){ cnt.off++; return false; }
+    if(lastPrecise && it.fit && it.fit.r === 'non' && !showOff){ cnt.precis++; return false; }
     if(frOnly && it.lang === 'en'){ cnt.lang++; return false; }
     if(noShort && it.duration != null && it.duration < 60){ cnt.court++; return false; }
     if(forbid.length){
@@ -1188,6 +1267,7 @@ function render(){
   if(cnt.off) hid.push(cnt.off + ' hors-sujet');
   if(cnt.lang) hid.push(cnt.lang + ' en anglais');
   if(cnt.mot) hid.push(cnt.mot + ' avec mot interdit');
+  if(cnt.precis) hid.push(cnt.precis + ' ne correspondent pas à ta précision');
   if(cnt.chaine) hid.push(cnt.chaine + ' en trop de la même chaîne');
   if(cnt.court) hid.push(cnt.court + ' de moins d\'1 minute');
   if(cnt.age) hid.push(cnt.age + ' trop anciennes (filtre Ancienneté)');
@@ -1262,12 +1342,17 @@ function render(){
     const h = histGet(it.url), vd = h ? h.verdict : null;
     const seen = h ? '<li class="info">🕘 déjà ouverte le ' + esc(fmtDay(h.when)) + '</li>' : '';
     const whyBox = '<details><summary>Pourquoi ce score</summary><ul class="why">' + why + seen + '</ul></details>';
-    const verdictRow = '<div class="act"><button type="button" data-act="ok" data-i="' + i + '" class="ok' + (vd === 'ok' ? ' on' : '') + '">👍 Ça a marché</button>' +
-      '<button type="button" data-act="ko" data-i="' + i + '" class="ko' + (vd === 'ko' ? ' on' : '') + '">👎 Pas bon</button>' +
+    const verdictRow = '<div class="act"><button type="button" data-act="ok" data-i="' + i + '" class="ok' + (vd === 'ok' ? ' on' : '') + '">👍 Bien</button>' +
+      '<button type="button" data-act="mid" data-i="' + i + '" class="mid' + (vd === 'mid' ? ' on' : '') + '">😐 Moyen</button>' +
+      '<button type="button" data-act="ko" data-i="' + i + '" class="ko' + (vd === 'ko' ? ' on' : '') + '">👎 Pas bien</button>' +
       (it.written ? '' : '<button type="button" data-act="trust" data-i="' + i + '" class="' + (isT ? 'on' : '') + '">⭐ ' + (isT ? 'De confiance' : 'Confiance') + '</button>' +
       '<button type="button" data-act="ban" data-i="' + i + '">🚫 Bannir</button>') + '</div>';
-    const reasons = vd === 'ko' ? '<div class="act">' + Object.keys(REASONS).map(r =>
-      '<button type="button" data-act="reason" data-r="' + r + '" data-i="' + i + '" class="' + (h.reason === r ? 'on' : '') + '">' + REASONS[r] + '</button>').join('') + '</div>' : '';
+    const rs = h ? reasonsOf(h) : [];
+    const reasons = vd ? '<div class="small" style="margin-top:8px">Pourquoi ? (touche une ou plusieurs raisons)</div><div class="act">' + REASONS_BY[vd].map(r =>
+      '<button type="button" data-act="reason" data-r="' + r + '" data-i="' + i + '" class="' + (rs.includes(r) ? 'on' : '') + '">' + REASONS[r] + '</button>').join('') + '</div>' +
+      '<div class="avis-note"><input type="text" data-note="' + i + '" value="' + esc(h.note || '') + '" placeholder="Un mot pour Claude (facultatif)" aria-label="Commentaire">' +
+      '<button type="button" data-act="note" data-i="' + i + '">OK</button></div>' +
+      (avisUrl ? '' : '<div class="small">Avis gardé sur ce téléphone. Pour que Claude le lise, colle l\'adresse du tableau dans ⚙️.</div>') : '';
     return '<article class="card c-' + cls.slice(2) + '" data-card="' + esc(it.id || it.url) + '">' + head +
       '<div class="cbody"><h3><a data-open="' + i + '" href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(it.title) + '</a></h3>' +
       '<div class="meta">' + meta + '</div>' + sum + keys + gemHtml(it, i) + whyBox + ev + tips + verdictRow + reasons +
@@ -1320,18 +1405,28 @@ $('results').onclick = e => {
   const it = shown[+b.dataset.i];
   if(!it) return;
   if(act === 'gem'){ gemRun(it); return; }
-  if(act === 'ok' || act === 'ko'){
-    const msg = setVerdict(histTouch(it), act);
+  if(act === 'ok' || act === 'mid' || act === 'ko'){
+    const h = histTouch(it);
+    const msg = setVerdict(h, act);
+    avisQueueUp(it, h, +b.dataset.i + 1);
     rescore(); render();
     if(msg) setStatus($('status').innerHTML + '<br>⭐ ' + esc(msg));
     if(!$('hist').hidden) renderHist();
     return;
   }
-  if(act === 'reason'){
+  if(act === 'reason' || act === 'note'){
     const h = histTouch(it);
-    h.reason = h.reason === b.dataset.r ? '' : b.dataset.r;
+    if(act === 'reason'){
+      const rs = reasonsOf(h).filter(x => x !== b.dataset.r);
+      if(rs.length === reasonsOf(h).length) rs.push(b.dataset.r);
+      h.reasons = rs; h.reason = '';
+    }
+    const inp = document.querySelector('input[data-note="' + b.dataset.i + '"]');
+    if(inp) h.note = inp.value.trim().slice(0, 300);
     store.set('hist', hist);
+    avisQueueUp(it, h, +b.dataset.i + 1);
     render();
+    if(act === 'note') setStatus($('status').innerHTML + '<br>✓ Commentaire enregistré.');
     if(!$('hist').hidden) renderHist();
     return;
   }
@@ -1468,7 +1563,43 @@ function gemHtml(it, i){
 }
 
 /* ---------- Mon historique et mes verdicts (gardés sur l'appareil, ne changent jamais le classement) ---------- */
-const REASONS = { perime: 'Périmé', flou: 'Pas clair', hs: 'Hors-sujet', echec: 'Ne marche pas' };
+const REASONS = { perime: 'Périmé', flou: 'Pas clair', hs: 'Hors sujet', echec: 'N\'a pas marché', mode: 'Pas le bon mode ou modèle', promesse: 'Promesses bidon',
+  long: 'Trop long, blabla', son: 'Pas de son ou d\'explication', incomplet: 'Incomplet', clair: 'Très clair', marche: 'Ça a marché', complet: 'Complet' };
+const REASONS_BY = { ok: ['marche', 'clair', 'complet'], mid: ['incomplet', 'long', 'flou', 'perime'], ko: ['hs', 'mode', 'echec', 'promesse', 'flou', 'long', 'son', 'perime'] };
+const VERDICT_TXT = { ok: 'Bien', mid: 'Moyen', ko: 'Pas bien' };
+let avisUrl = store.get('avisUrl', '');
+const avisQueue = store.get('avisQueue', {});
+const avisTimers = {};
+function reasonsOf(h){ return h.reasons || (h.reason ? [h.reason] : []); }
+// Prépare la ligne du tableau : ta recherche, la vidéo, ce que l'appli en pensait, et ton avis
+function avisPayload(it, h, rank){
+  const cls = !it.confirmed ? (it.built && !it.offTopic ? 'Bien fait (bleu)' : 'À vérifier (gris)') : it.score >= 65 ? 'Fiable (vert)' : it.score >= 45 ? 'Mitigé (orange)' : 'Douteux (rouge)';
+  return { id: (it.id || it.url) + '|' + new Date(h.when).toISOString().slice(0, 10), date: new Date().toISOString(), version: APP_VERSION,
+    recherche: lastQ, precision: lastPrecise, anglais: lastEn || '', plateforme: it.label || it.platform, titre: it.title, chaine: it.channel || '', url: it.url,
+    rang: rank, score: it.score, couleur: cls, confirme: it.confirmed ? 'oui' : 'non', bien_construit: it.built || '',
+    gemini: it.gem && it.gem.avis ? (it.gem.avis.note + '/5') : '', avis: h.verdict ? VERDICT_TXT[h.verdict] : 'retiré',
+    raisons: reasonsOf(h).map(r => REASONS[r] || r).join(', '), commentaire: h.note || '' };
+}
+function avisQueueUp(it, h, rank){
+  const pl = avisPayload(it, h, rank);
+  avisQueue[pl.id] = pl;
+  store.set('avisQueue', avisQueue);
+  clearTimeout(avisTimers[pl.id]);
+  avisTimers[pl.id] = setTimeout(avisFlush, 2500);   // on attend un peu : tu as le temps de cocher les raisons
+}
+async function avisFlush(){
+  if(!avisUrl) return;
+  for(const id of Object.keys(avisQueue)){
+    try {
+      // « no-cors » : Google ne laisse pas lire la réponse, mais la ligne arrive bien dans le tableau
+      await fetch(avisUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(avisQueue[id]) });
+      delete avisQueue[id];
+    } catch(e){ break; }
+  }
+  store.set('avisQueue', avisQueue);
+}
+window.addEventListener('online', avisFlush);
+setTimeout(avisFlush, 3000);
 const fmtDay = ms => new Date(ms).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 const histGet = url => hist.find(h => h.url === url);
 function histTouch(it){
@@ -1487,7 +1618,7 @@ function histTouch(it){
 // Deux 👍 sur la même chaîne : elle rejoint les chaînes de confiance (c'est ton avis, pas ton historique, qui compte)
 function setVerdict(h, v){
   h.verdict = h.verdict === v ? null : v;
-  if(h.verdict !== 'ko') h.reason = '';
+  h.reasons = []; h.reason = '';
   store.set('hist', hist);
   if(h.verdict === 'ok' && !trusted[h.chan] && !banned[h.chan] && hist.filter(x => x.chan === h.chan && x.verdict === 'ok').length >= 2){
     trusted[h.chan] = h.channel || h.chan;
@@ -1507,7 +1638,7 @@ function renderHist(){
   box.innerHTML = '<b>🕘 Mon historique</b> <span class="small">(gardé sur ce téléphone, ne change jamais le classement)</span>' +
     hist.map((h, i) => {
       const gap = (h.verdict === 'ko' && h.score >= 65) || (h.verdict === 'ok' && h.score < 45);
-      const meta = [h.channel, fmtDay(h.when), h.q ? 'recherche « ' + h.q + ' »' : '', 'score ' + h.score, h.reason ? REASONS[h.reason] : ''].filter(Boolean).map(esc).join(' · ');
+      const meta = [h.channel, fmtDay(h.when), h.q ? 'recherche « ' + h.q + ' »' : '', 'score ' + h.score, h.verdict ? VERDICT_TXT[h.verdict] : '', reasonsOf(h).map(r => REASONS[r] || r).join(', ')].filter(Boolean).map(esc).join(' · ');
       return '<div class="hrow"><a href="' + esc(h.url) + '" target="_blank" rel="noopener noreferrer">' + esc(h.title) + '</a>' +
         '<div class="meta">' + meta + '</div>' +
         (gap ? '<div class="small">⚠️ Ton avis et le score ne sont pas d\'accord : c\'est utile pour améliorer les règles.</div>' : '') +
@@ -1561,11 +1692,13 @@ $('settings').onclick = e => {
 };
 $('ytKey').value = ytKey;
 $('gemKey').value = gemKey;
+$('avisUrl').value = avisUrl;
 if(!ytKey) $('settings').hidden = false;
 $('btnSettings').onclick = () => { $('settings').hidden = !$('settings').hidden; };
 $('saveKey').onclick = () => {
   ytKey = $('ytKey').value.trim();
   store.set('ytKey', ytKey);
+  avisUrl = $('avisUrl').value.trim(); store.set('avisUrl', avisUrl); avisFlush();
   const gk = $('gemKey').value.trim();
   if(gk !== gemKey){ gemKey = gk; store.set('gemKey', gemKey); store.set('gemModel', null); }
   $('settings').hidden = true;
