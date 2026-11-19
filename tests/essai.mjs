@@ -143,6 +143,24 @@ async function main(){
     await page.close();
   }
 
+  // 1 bis. Une source répond-elle à une page web (téléphone) ? On essaie depuis le navigateur, sans vraie clé
+  if(conf.cors && conf.cors.length){
+    const page = await ctx.newPage();
+    await page.goto(BASE + 'tuto-fiable.html', { waitUntil: 'load' });
+    rapport.cors = await page.evaluate(async list => {
+      const out = [];
+      for(const c of list){
+        try {
+          const r = await fetch(c.url, { method: c.method || 'GET', headers: c.headers || {}, body: c.body ? JSON.stringify(c.body) : undefined });
+          const t = await r.text();
+          out.push({ nom: c.nom, code: r.status, lisible: true, debut: t.slice(0, 200) });
+        } catch(e){ out.push({ nom: c.nom, lisible: false, erreur: String(e.message).slice(0, 150) }); }
+      }
+      return out;
+    }, conf.cors);
+    await page.close();
+  }
+
   // 2. Le banc d'essai des sources, vu depuis un navigateur
   try {
     const page = await ctx.newPage();

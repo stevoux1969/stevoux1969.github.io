@@ -1,1 +1,10 @@
-{ "recherches": [ { "q": "changer chambre à air vélo", "youtube": false } ] }
+{
+  "recherches": [ { "q": "changer chambre à air vélo", "youtube": false } ],
+  "cors": [
+    { "nom": "Tavily (recherche web)", "url": "https://api.tavily.com/search", "method": "POST",
+      "headers": { "Content-Type": "application/json", "Authorization": "Bearer tvly-cle-bidon" },
+      "body": { "query": "changer une chambre à air de vélo tutoriel", "max_results": 5 } },
+    { "nom": "Dailymotion (vidéos)", "url": "https://api.dailymotion.com/videos?search=changer%20chambre%20a%20air%20velo&fields=id,title,views_total,duration,created_time&limit=5" },
+    { "nom": "Wikibooks FR (tutos écrits)", "url": "https://fr.wikibooks.org/w/api.php?action=query&list=search&srsearch=chambre%20%C3%A0%20air&format=json&origin=*" }
+  ]
+}
