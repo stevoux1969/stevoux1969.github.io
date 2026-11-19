@@ -515,10 +515,10 @@ const STEP_LINE = /^\s*((etape|step|stage|passo|paso)\s*\d+|\d{1,2}\s*[.)/-]\s+\
 const PRO_CHANNELS = / (decathlon|btwin|rockrider|ifixit|leroy merlin|castorama|brico ?depot|bricomarche|mr\.? ?bricolage|manomano|bosch|makita|park tool|global cycling network|gcn|global mountain bike network|gmbn|shimano|sram|alltricks|probikeshop|velo ?& ?oxygen|norauto|feu vert|oscaro|mister auto|autodoc|midas|speedy|msi|asus|gigabyte|aorus|asrock|corsair|kingston|crucial|apple support|samsung|philips|dyson|grohe|hansgrohe|legrand|schneider|somfy|sfr|orange|free|bouygues|ikea|this old house|bob vila) /;
 // Titres racoleurs : promesses et superlatifs qui servent à faire cliquer, quel que soit le sujet
 const HYPE = [
-  /\b(insane|broken|crazy|disgusting|overpowered|unbeatable|unstoppable|invincible|game ?changer|you won'?t believe|nobody tells you|never lose|win every)\b/,
+  /\b(insane|broken|crazy|disgusting|overpowered|unbeatable|unstoppable|invincible|game ?changer|you won'?t believe|nobody tells you|never lose|win every|undefeated|unbeaten|guaranteed win)\b/,
   /\b(cheate?e?s?|cheat code|op)\b/,
   /\b(1st|first|number one|no ?1|#1) in the world\b/,
-  /\b(imbattable|invincible|terrifiante?|hallucinante?|choquante?|incroyable|ultra efficace|personne ne (te )?(le )?dit|ne (plus )?jamais perdre|gagne(r)? (tous|toutes) (tes|vos|les)|impossible a (percer|battre|arreter|contrer))\b/,
+  /\b(imbattable|invincible|terrifiante?|hallucinante?|choquante?|incroyable|ultra efficace|personne ne (te )?(le )?dit|ne (plus )?jamais perdre|gagne(r)? (tous|toutes) (tes|vos|les)|impossible a (percer|battre|arreter|contrer)|a tous les coups|a coup sur|invaincue?s?|(te|vous) font gagner)\b/,
   /\b100 ?% (garanti|efficace|reussite|win|de victoires)\b/
 ];
 function hypeOf(title){
