@@ -903,7 +903,7 @@ async function memGet(k){
   });
 }
 async function memSet(k, items){
-  const keep = ['platform','id','title','desc','channel','channelId','url','thumb','published','declLang','duration','views','likes','rawComments','comState','via'];
+  const keep = ['platform','id','title','desc','channel','channelId','url','thumb','published','declLang','duration','views','likes','rawComments','comState','via','ytPos','ytLang'];
   const clean = items.map(it => { const o = {}; keep.forEach(f => { o[f] = it[f]; }); return o; });
   const v = { t: Date.now(), items: clean };
   ytMem.set(k, v);
@@ -976,7 +976,8 @@ async function ytOneLang(x, n){
       duration:isoDur(v.contentDetails && v.contentDetails.duration),
       views:+(st.viewCount || 0),
       likes:st.likeCount != null ? +st.likeCount : null,
-      via:only420.has(v.id) ? '420' : ''
+      via:only420.has(v.id) ? '420' : '',
+      ytPos:ids.indexOf(v.id) + 1, ytLang:x.lang   // place dans l'ordre de YouTube (pour comparer avec l'appli)
     };
   });
   setStatus('Lecture des commentaires…');
