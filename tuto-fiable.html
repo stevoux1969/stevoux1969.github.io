@@ -1499,7 +1499,8 @@ function exitsHtml(){
     ['📘 wikiHow', 'https://fr.wikihow.com/wikiHowTo?search=' + fr],
     ['🔧 iFixit', 'https://fr.ifixit.com/Search?query=' + en],
     ['❓ Stack Exchange', 'https://stackexchange.com/search?q=' + en],
-    ['👽 Reddit', 'https://www.reddit.com/search/?q=' + en],
+    // Reddit ne laisse plus les applis lire ses discussions (fermé en 2026) : on passe par Google, qui les indexe
+    ['👽 Reddit (via Google)', 'https://www.google.com/search?q=' + encodeURIComponent((lastEn || lastQ) + ' site:reddit.com')],
     ['𝕏 X (Twitter)', 'https://x.com/search?q=' + fr],
     ['🦋 Bluesky', 'https://bsky.app/search?q=' + fr],
     ['🎵 TikTok', 'https://www.tiktok.com/search?q=' + fr],
