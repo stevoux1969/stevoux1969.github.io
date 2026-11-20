@@ -149,7 +149,7 @@
   <section id="hist" class="box" hidden></section>
 
   <form id="f" class="box">
-    <div class="qrow"><input id="q" type="text" placeholder="Ex : changer une chambre à air" required aria-label="Ta recherche">
+    <div class="qrow"><input id="q" type="text" placeholder="Ta recherche, ou un lien YouTube à vérifier" required aria-label="Ta recherche">
       <button class="go" type="submit">Chercher</button></div>
     <input id="precise" class="precise" type="text" placeholder="Précise si besoin (facultatif) : ex. mode Saisons, pas Ultimate Team" aria-label="Précision pour trier les résultats">
     <div class="srcs">
@@ -167,7 +167,7 @@
         <div><label for="langMode">Langue</label>
           <select id="langMode"><option value="auto">Français, anglais si besoin</option><option value="both">Français + anglais</option><option value="fr">Français seulement</option></select></div>
         <div><label for="sort">Classer par</label>
-          <select id="sort"><option value="score">Score</option><option value="date">Date</option><option value="views">Vues</option></select></div>
+          <select id="sort"><option value="youtube">Ordre YouTube</option><option value="score">Score</option><option value="date">Date</option><option value="views">Vues</option></select></div>
         <div><label for="age">Ancienneté</label>
           <select id="age"><option value="0">Toutes</option><option value="1">Moins d'1 an</option><option value="2">Moins de 2 ans</option><option value="5">Moins de 5 ans</option></select></div>
       </div>
@@ -186,7 +186,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const APP_VERSION = '3.7';
+const APP_VERSION = '3.8';
 $('ver').textContent = 'v' + APP_VERSION;
 
 /* ---------- Mémoire de l'appareil ---------- */
@@ -676,7 +676,7 @@ function scoreItem(it, ctx){
   if(hasKw){
     const c = coverage(t, ctx);
     const pts = Math.round(20 * c.r);
-    if(pts){ s += pts; why.push(['+', 'colle à ta recherche (' + c.hit + '/' + c.total + ')']); }
+    if(pts && !ctx.verify){ s += pts; why.push(['+', 'colle à ta recherche (' + c.hit + '/' + c.total + ')']); }
   }
   // L'âge de la vidéo ne compte plus : une vieille vidéo n'est pénalisée que si des commentaires disent qu'elle est périmée.
   // Likes / vues
@@ -903,7 +903,7 @@ async function memGet(k){
   });
 }
 async function memSet(k, items){
-  const keep = ['platform','id','title','desc','channel','channelId','url','thumb','published','declLang','duration','views','likes','rawComments','comState','via'];
+  const keep = ['platform','id','title','desc','channel','channelId','url','thumb','published','declLang','duration','views','likes','rawComments','comState','via','ytPos','ytLang'];
   const clean = items.map(it => { const o = {}; keep.forEach(f => { o[f] = it[f]; }); return o; });
   const v = { t: Date.now(), items: clean };
   ytMem.set(k, v);
@@ -924,7 +924,7 @@ async function memSet(k, items){
     };
   } catch(e){}
 }
-const memKey = (q, lang) => 'v2|' + lang + '|' + norm(q).replace(/[^a-z0-9]+/g, ' ').trim();
+const memKey = (q, lang) => 'v3|' + lang + '|' + norm(q).replace(/[^a-z0-9]+/g, ' ').trim();
 
 // Une langue : recherche + détails + commentaires (ou mémoire si déjà fait).
 // x.plus : on fait aussi une 2e recherche limitée aux vidéos de 4 à 20 minutes. YouTube les classe autrement :
@@ -941,6 +941,49 @@ async function ytCall(x, n, extra){
   ytInfo.spent = (ytInfo.spent || 0) + 1;
   return (sr.items || []).map(i => i.id && i.id.videoId).filter(Boolean);
 }
+// Une vidéo renvoyée par YouTube -> une fiche de l'appli
+function ytItem(v, extra){
+  const sn = v.snippet || {}, st = v.statistics || {}, th = sn.thumbnails || {};
+  return Object.assign({
+    platform:'YouTube', id:v.id, title:sn.title, desc:sn.description || '',
+    channel:sn.channelTitle, channelId:sn.channelId,
+    url:'https://www.youtube.com/watch?v=' + v.id,
+    thumb:(th.medium || th.default || {}).url,
+    published:sn.publishedAt,
+    declLang:sn.defaultAudioLanguage || sn.defaultLanguage || '',
+    duration:isoDur(v.contentDetails && v.contentDetails.duration),
+    views:+(st.viewCount || 0),
+    likes:st.likeCount != null ? +st.likeCount : null
+  }, extra);
+}
+
+// --- Vérifier une vidéo (3.8) : un lien YouTube collé dans la recherche, ou reçu par ?verifier=…
+// Coût : 3 unités (détails + 2 lectures de commentaires), aucune des 100 recherches du jour.
+function ytIdFrom(s){
+  const m = String(s || '').match(/(?:youtube\.com\/(?:watch\?(?:[^#\s]*&)?v=|shorts\/|live\/|embed\/)|youtu\.be\/)([\w-]{11})/);
+  return m ? m[1] : '';
+}
+async function verifyVideo(id){
+  if(!ytKey){ setStatus('Pour vérifier une vidéo, colle ta clé YouTube dans ⚙️.'); return; }
+  $('results').innerHTML = '';
+  setStatus('Vérification de la vidéo…');
+  try {
+    const vr = await getJSON(YT + 'videos?' + new URLSearchParams({ part:'snippet,statistics,contentDetails', id, key:ytKey }));
+    const v = (vr.items || [])[0];
+    if(!v){ setStatus('Vidéo introuvable : elle est peut-être privée ou supprimée, ou le lien est incomplet.'); return; }
+    const it = ytItem(v, { verified:true });
+    setStatus('Lecture des commentaires…');
+    await fetchComments(it);
+    // La recherche, c'est le titre : rien n'est « hors sujet » et le titre ne rapporte pas de points
+    lastQ = it.title; lastEn = ''; lastSuggest = null; lastNeighbors = []; lastPrecise = '';
+    lastCtx = buildCtx(it.title, ''); lastCtx.must = []; lastCtx.strong = []; lastCtx.verify = true;
+    lastResults = [it];
+    lastNotes = ['🔍 Vérification d\'une seule vidéo : aucune des 100 recherches YouTube du jour n\'est utilisée.'];
+    rescore();
+    render();
+  } catch(e){ setStatus('Vérification impossible : ' + esc(e.message)); }
+}
+
 async function ytOneLang(x, n){
   const k = memKey(x.q, x.lang + (x.plus ? '+420' : ''));
   const cached = await memGet(k);
@@ -964,21 +1007,10 @@ async function ytOneLang(x, n){
   }
   const byId = new Map(vids.map(v => [v.id, v]));
   const only420 = new Set(ids.slice(rs[0].value.length));
-  const items = ids.map(id => byId.get(id)).filter(Boolean).map(v => {
-    const sn = v.snippet || {}, st = v.statistics || {}, th = sn.thumbnails || {};
-    return {
-      platform:'YouTube', id:v.id, title:sn.title, desc:sn.description || '',
-      channel:sn.channelTitle, channelId:sn.channelId,
-      url:'https://www.youtube.com/watch?v=' + v.id,
-      thumb:(th.medium || th.default || {}).url,
-      published:sn.publishedAt,
-      declLang:sn.defaultAudioLanguage || sn.defaultLanguage || '',
-      duration:isoDur(v.contentDetails && v.contentDetails.duration),
-      views:+(st.viewCount || 0),
-      likes:st.likeCount != null ? +st.likeCount : null,
-      via:only420.has(v.id) ? '420' : ''
-    };
-  });
+  const items = ids.map(id => byId.get(id)).filter(Boolean).map(v => ytItem(v, {
+    via:only420.has(v.id) ? '420' : '',
+    ytPos:ids.indexOf(v.id) + 1, ytLang:x.lang   // place dans l'ordre de YouTube
+  }));
   setStatus('Lecture des commentaires…');
   await Promise.all(items.map(fetchComments));
   memSet(k, items);
@@ -1220,6 +1252,8 @@ async function runSearch(){
   const q = $('q').value.trim();
   if(!q) return;
   savePrefs();
+  const vid = ytIdFrom(q);
+  if(vid) return verifyVideo(vid);
   if(!($('sYT').checked || $('sPT').checked || $('sTX').checked)){ setStatus('Coche au moins une source.'); return; }
   ytInfo = {};
   $('results').innerHTML = '';
@@ -1373,12 +1407,16 @@ function render(){
   // Filet de sécurité : s'il ne reste presque rien, on montre aussi les vidéos YouTube moins proches
   const onTopic = lastResults.filter(it => !it.offTopic && !banned[chanKey(it)]).length;
   const relaxed = !showOff && onTopic < 3 && lastResults.length >= 10;
-  const cnt = { ban:0, off:0, mot:0, lang:0, autre:0, age:0, court:0, chaine:0, precis:0 };
+  const cnt = { ban:0, off:0, mot:0, lang:0, autre:0, age:0, court:0, chaine:0, precis:0, douteux:0 };
+  // « Ordre YouTube » (par défaut, 3.8) : on garde le classement de YouTube, meilleur que le nôtre pour trouver le sujet
+  // (banc d'essai du 20/11), et l'appli filtre : elle retire le hors-sujet et les vidéos douteuses, et met ses preuves sur les autres.
+  const ytMode = sort === 'youtube';
   shown = lastResults.filter(it => {
     if(banned[chanKey(it)]){ cnt.ban++; return false; }
     if(it.lang && it.lang !== 'fr' && it.lang !== 'en' && !trusted[chanKey(it)]){ cnt.autre++; return false; }
     if(it.offTopic && !showOff && !(relaxed && it.platform === 'YouTube' && !it.mustMiss)){ cnt.off++; return false; }
     if(lastPrecise && it.fit && it.fit.r === 'non' && !showOff){ cnt.precis++; return false; }
+    if(ytMode && it.confirmed && it.score < 45 && !showOff && !trusted[chanKey(it)]){ cnt.douteux++; return false; }
     if(frOnly && it.lang === 'en'){ cnt.lang++; return false; }
     if(noShort && it.duration != null && it.duration < 60){ cnt.court++; return false; }
     if(forbid.length){
@@ -1391,6 +1429,14 @@ function render(){
   const ts = it => it.published ? new Date(it.published).getTime() : 0;
   if(sort === 'date') shown.sort((a, b) => ts(b) - ts(a));
   else if(sort === 'views') shown.sort((a, b) => (b.views || 0) - (a.views || 0));
+  else if(ytMode){
+    // Vidéos YouTube dans l'ordre de YouTube (français et anglais alternés) ; les autres sources, par score,
+    // juste après les 50 premières de YouTube et avant celles de la 2e recherche (4 à 20 min).
+    const isYT = it => it.platform === 'YouTube' && it.ytPos;
+    const others = shown.filter(it => !isYT(it)).sort((a, b) => b.score - a.score);
+    const key = it => isYT(it) ? it.ytPos + (it.ytLang === 'en' ? 0.5 : 0) : 50.25 + others.indexOf(it) / 1000;
+    shown.sort((a, b) => key(a) - key(b));
+  }
   else shown.sort((a, b) => (b.score - a.score) || (b.confirmed - a.confirmed) || (b.raw - a.raw) || ((Date.parse(b.published) || 0) - (Date.parse(a.published) || 0)));
   // Pas plus de 2 vidéos par chaîne (sauf chaînes de confiance), pour laisser la place à d'autres voix
   if(capChan){
@@ -1410,6 +1456,7 @@ function render(){
   if(cnt.autre) hid.push(cnt.autre + ' dans une autre langue');
   if(cnt.mot) hid.push(cnt.mot + ' avec mot interdit');
   if(cnt.precis) hid.push(cnt.precis + ' ne correspondent pas à ta précision');
+  if(cnt.douteux) hid.push(cnt.douteux + ' douteuses (avis surtout négatifs)');
   if(cnt.chaine) hid.push(cnt.chaine + ' en trop de la même chaîne');
   if(cnt.court) hid.push(cnt.court + ' de moins d\'1 minute');
   if(cnt.age) hid.push(cnt.age + ' trop anciennes (filtre Ancienneté)');
@@ -1883,6 +1930,7 @@ function savePrefs(){
   PREF_CHECK.forEach(id => { if(typeof p[id] === 'boolean') $(id).checked = p[id]; });
   PREF_VAL.forEach(id => { if(typeof p[id] === 'string') $(id).value = p[id]; });
   if(!store.get('langAuto28', false)){ if($('langMode').value === 'both') $('langMode').value = 'auto'; store.set('langAuto28', true); }
+  if(!store.get('ordreYT38', false)){ $('sort').value = 'youtube'; store.set('ordreYT38', true); }
 })();
 PREF_CHECK.concat(PREF_VAL).forEach(id => {
   $(id).onchange = () => {
@@ -1893,6 +1941,11 @@ PREF_CHECK.concat(PREF_VAL).forEach(id => {
   };
 });
 renderLists();
+// Lien reçu dans l'adresse (?verifier=…) : on vérifie la vidéo tout de suite
+setTimeout(() => {
+  const p = new URLSearchParams(location.search), s = p.get('verifier') || p.get('url') || p.get('text') || '';
+  if(ytIdFrom(s)){ $('q').value = s; runSearch(); }
+}, 0);
 
 /* ---------- Mise à jour : la page regarde toute seule si une version plus récente existe ---------- */
 async function checkUpdate(){
