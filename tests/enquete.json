@@ -1,0 +1,12 @@
+{
+  "recherches": [
+    "peindre un mur peinture monocouche astuces",
+    "peinture monocouche une seule couche test",
+    "bien peindre un mur au rouleau astuces"
+  ],
+  "direct": [
+    { "q": "peinture monocouche mur astuces", "ordre": "relevance", "duree": "any" }
+  ],
+  "videosParRecherche": 15,
+  "commentaires": 40
+}
