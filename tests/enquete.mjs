@@ -6,7 +6,8 @@
 // 4) lit le texte de quelques pages web demandées.
 // Coût YouTube : les recherches de l'appli (2 à 3 par recherche) ; le reste se paie en points (1 par appel), pas en recherches.
 // Lancement : fichier tests/enquete.json, par exemple
-// { "recherches": ["FC 26 tactique saisons"], "videosParRecherche": 15, "commentaires": 40, "pages": ["https://…"] }
+// { "recherches": ["FC 26 tactique saisons"], "direct": [{ "q": "…", "ordre": "viewCount", "depuis": "2025-11-20", "duree": "long" }],
+//   "videosParRecherche": 15, "commentaires": 40, "pages": ["https://…"] }
 import { chromium } from 'playwright';
 import http from 'node:http';
 import fs from 'node:fs';
@@ -18,7 +19,7 @@ const KEY = (process.env.YT_KEY || '').trim();
 const redact = s => { s = String(s).replace(/key=[A-Za-z0-9_.\-]+/g, 'key=***'); if(KEY) s = s.split(KEY).join('***'); return s; };
 const conf = JSON.parse(fs.readFileSync('tests/enquete.json', 'utf8'));
 const N_VID = conf.videosParRecherche || 15, N_COM = Math.min(conf.commentaires || 40, 100);
-const out = { date: new Date().toISOString(), recherches: [], videos: {}, chaines: {}, pages: [], erreurs: [] };
+const out = { date: new Date().toISOString(), recherches: [], direct: [], videos: {}, chaines: {}, pages: [], erreurs: [] };
 const YT = 'https://www.googleapis.com/youtube/v3/';
 
 const root = process.cwd();
@@ -72,8 +73,24 @@ async function main(){
   }
   await browser.close();
 
-  // 2. Détails YouTube pour les vidéos retenues (les N premières de chaque recherche, sans doublon)
-  const ids = [...new Set([].concat(...out.recherches.map(r => (r.resultats || []).filter(x => idOf(x.url)).slice(0, N_VID).map(x => idOf(x.url)))))];
+  // 1 bis. Recherches directes chez YouTube, EN PLUS de celles de l'appli (rien n'est retiré) :
+  // période (« depuis »), tri (« ordre » : relevance ou viewCount), durée (« duree » : any, short, medium, long = plus de 20 min).
+  // Exemple : "direct": [{ "q": "film complet en français", "ordre": "viewCount", "depuis": "2025-11-20", "duree": "long" }]
+  out.direct = [];
+  for(const d of conf.direct || []){
+    const r = { q: d.q, ordre: d.ordre || 'relevance', depuis: d.depuis || null, duree: d.duree || 'any', resultats: [] };
+    try {
+      const p = { part: 'snippet', type: 'video', maxResults: String(d.nombre || 25), q: d.q, order: r.ordre, relevanceLanguage: d.langue || 'fr', regionCode: 'FR', safeSearch: 'moderate', videoDuration: r.duree };
+      if(r.depuis) p.publishedAfter = new Date(r.depuis).toISOString();
+      const j = await yt('search', p);
+      r.resultats = (j.items || []).filter(x => x.id && x.id.videoId).map((x, k) => ({ rang: k + 1, titre: x.snippet.title, url: 'https://www.youtube.com/watch?v=' + x.id.videoId, chaine: x.snippet.channelTitle, publie: x.snippet.publishedAt }));
+    } catch(e){ r.erreur = redact(e.message).slice(0, 200); }
+    out.direct.push(r);
+  }
+
+  // 2. Détails YouTube pour les vidéos retenues (les N premières de chaque recherche, appli et directe, sans doublon)
+  const listes = out.recherches.map(r => r.resultats || []).concat(out.direct.map(r => r.resultats));
+  const ids = [...new Set([].concat(...listes.map(l => l.filter(x => idOf(x.url)).slice(0, N_VID).map(x => idOf(x.url)))))];
   for(let k = 0; k < ids.length; k += 50){
     try {
       const j = await yt('videos', { part: 'snippet,statistics,contentDetails', id: ids.slice(k, k + 50).join(',') });
@@ -135,5 +152,5 @@ if(!KEY) out.erreurs.push('clé YouTube absente');
 else { try { await main(); } catch(e){ out.erreurs.push('général : ' + redact(e.stack || e.message).slice(0, 500)); } }
 fs.writeFileSync(path.join(OUT, 'enquete.json'), redact(JSON.stringify(out, null, 1)));
 server.close();
-console.log('terminé :', out.recherches.length, 'recherche(s),', Object.keys(out.videos).length, 'vidéo(s),', out.pages.length, 'page(s),', out.erreurs.length, 'erreur(s)');
+console.log('terminé :', out.recherches.length, 'recherche(s),', out.direct.length, 'directe(s),', Object.keys(out.videos).length, 'vidéo(s),', out.pages.length, 'page(s),', out.erreurs.length, 'erreur(s)');
 process.exit(0);
