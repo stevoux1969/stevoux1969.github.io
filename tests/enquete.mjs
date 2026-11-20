@@ -2,7 +2,8 @@
 // 1) fait chaque recherche dans l'appli (ordre, filtrage, analyse des commentaires) ;
 // 2) pour les vidéos retenues, va chercher plus de détails chez YouTube : description entière, chapitres,
 //    infos sur la chaîne, et les commentaires les plus pertinents avec les réponses ;
-// 3) lit le texte de quelques pages web demandées.
+// 3) récupère la vignette de chaque vidéo (vignettes.json) ;
+// 4) lit le texte de quelques pages web demandées.
 // Coût YouTube : les recherches de l'appli (2 à 3 par recherche) ; le reste se paie en points (1 par appel), pas en recherches.
 // Lancement : fichier tests/enquete.json, par exemple
 // { "recherches": ["FC 26 tactique saisons"], "videosParRecherche": 15, "commentaires": 40, "pages": ["https://…"] }
@@ -105,6 +106,18 @@ async function main(){
       });
     } catch(e){ v.commentaires = []; v.etatCommentaires = /disabled/i.test(e.message) ? 'fermés' : redact(e.message).slice(0, 120); }
   }
+
+  // 2 bis. Vignettes des vidéos (image 320×180), rangées à part dans vignettes.json pour garder enquete.json lisible.
+  // Format : { "idVidéo": "data:image/jpeg;base64,…" } — à afficher dans le rapport (carte vidéo) sans lien externe.
+  const vignettes = {};
+  for(const id of Object.keys(out.videos)){
+    try {
+      const res = await fetch('https://i.ytimg.com/vi/' + id + '/mqdefault.jpg', { signal: AbortSignal.timeout(15000) });
+      if(res.ok) vignettes[id] = 'data:image/jpeg;base64,' + Buffer.from(await res.arrayBuffer()).toString('base64');
+    } catch(e){}
+  }
+  fs.writeFileSync(path.join(OUT, 'vignettes.json'), JSON.stringify(vignettes));
+  out.vignettes = Object.keys(vignettes).length + ' vignette(s) dans vignettes.json';
 
   // 3. Pages web demandées : texte brut
   for(const u of conf.pages || []){
