@@ -1,0 +1,10 @@
+
+added 2 packages in 2s
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 125.7 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 125.7 MiB
+Chrome Headless Shell 159.0.8154.6 (playwright chromium-headless-shell v1255) downloaded to /home/runner/.cache/ms-playwright/chromium_headless_shell-1255
+recherche "peindre un mur peinture monocouche astuces" -> YouTube : 82 (dont 33 en plus, de 4 à 20 min) · PeerTube : 30 · iFixit : 0 · Wikibooks : 0 · Stack Exchange : 5 Aussi cherché en anglais : « painting a wall with one-coat paint tips » (sauf sur YouTube : assez de bons tutos en français) 🎟️ YouTube : il te reste environ 39 recherches aujourd'hui. 55
+recherche "peinture monocouche une seule couche test" -> YouTube : 124 (dont 28 en plus, de 4 à 20 min) · PeerTube : 30 · iFixit : 0 · Wikibooks : 1 · Stack Exchange : 1 Aussi cherché en anglais : « single-coat paint single coat test » (YouTube aussi : peu de bons tutos en français) 🎟️ YouTube : il te reste environ 38 recherches aujourd'hui. 60 affichée(
+recherche "bien peindre un mur au rouleau astuces" -> YouTube : 85 (dont 36 en plus, de 4 à 20 min) · PeerTube : 30 · iFixit : 0 · Wikibooks : 2 · Stack Exchange : 1 Aussi cherché en anglais : « tips for painting a wall well with a roller paint » (sauf sur YouTube : assez de bons tutos en français) 🎟️ YouTube : il te reste environ 37 recherches aujour
+terminé : 3 recherche(s), 1 directe(s), 45 vidéo(s), 0 page(s), 0 erreur(s)
+code de sortie : 0
