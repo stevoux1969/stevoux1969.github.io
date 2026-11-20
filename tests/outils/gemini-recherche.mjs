@@ -31,6 +31,23 @@ rapport.modeles = names;
 rapport.tousLesModeles = all;
 const pause = ms => new Promise(r => setTimeout(r, ms));
 
+// Témoin : même clé, même modèle, une question toute simple SANS recherche Google.
+// S'il marche alors que les questions avec recherche Google échouent, c'est la recherche Google qui n'est pas dans la formule gratuite.
+for(const model of names.slice(0, 1)){
+  const t = { question: 'temoin-sans-recherche', model };
+  try {
+    const r = await fetch(BASE + 'models/' + model + ':generateContent', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': KEY },
+      body: JSON.stringify({ contents: [{ parts: [{ text: 'Réponds seulement : OK' }] }] }), signal: AbortSignal.timeout(60000) });
+    const j = await r.json().catch(() => ({}));
+    t.code = r.status;
+    if(!r.ok) t.erreur = red((j.error && j.error.message) || '').slice(0, 1500);
+    else t.texte = ((((j.candidates || [])[0] || {}).content || {}).parts || []).filter(p => !p.thought).map(p => p.text || '').join('').slice(0, 100);
+  } catch(err){ t.erreur = red(err.message).slice(0, 200); }
+  rapport.essais.push(t);
+  console.log('témoin', model, t.code, t.erreur || t.texte);
+  await pause(5000);
+}
+
 for(const q of QUESTIONS){
   for(const model of names){
     const e = { question: q.nom, model };
