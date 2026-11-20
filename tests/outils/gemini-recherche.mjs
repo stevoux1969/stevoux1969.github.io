@@ -21,8 +21,14 @@ const QUESTIONS = [
 ];
 
 const lm = await fetch(BASE + 'models?pageSize=200', { headers: { 'x-goog-api-key': KEY } }).then(r => r.json()).catch(e => ({ error: { message: e.message } }));
-let names = (lm.models || []).map(m => m.name.replace('models/', '')).filter(n => /flash/.test(n) && !/image|tts|audio|live/.test(n)).sort().reverse().slice(0, 3);
+// Même choix de modèle que l'appli (les modèles « omni », « lite »… n'ont pas forcément de quota gratuit)
+const all = (lm.models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent')).map(m => m.name.replace('models/', ''));
+let names = [];
+[/^gemini-\d\.\d-flash$/, /^gemini-\d-flash$/, /^gemini-flash-latest$/, /flash(?!.*(lite|image|tts|audio|live|omni))/].forEach(re =>
+  all.filter(n => re.test(n)).sort().reverse().forEach(n => { if(!names.includes(n)) names.push(n); }));
+names = names.slice(0, 3);
 rapport.modeles = names;
+rapport.tousLesModeles = all;
 const pause = ms => new Promise(r => setTimeout(r, ms));
 
 for(const q of QUESTIONS){
@@ -37,7 +43,7 @@ for(const q of QUESTIONS){
       });
       const j = await r.json().catch(() => ({}));
       e.code = r.status;
-      if(!r.ok) e.erreur = red((j.error && j.error.message) || '').slice(0, 300);
+      if(!r.ok) e.erreur = red((j.error && j.error.message) || '').slice(0, 1500);
       else {
         const c = (j.candidates || [])[0] || {};
         e.texte = (c.content && c.content.parts || []).filter(p => !p.thought).map(p => p.text || '').join('').slice(0, 4000);
