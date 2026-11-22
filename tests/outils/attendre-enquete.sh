@@ -13,7 +13,7 @@ ATTENDU=$(git log -1 --diff-filter=AM --format=%H -- tests/enquete.json 2>/dev/n
 [ -z "$ATTENDU" ] && ATTENDU=$(git rev-parse HEAD)
 TESTE=""
 for i in $(seq 1 24); do
-  git fetch -q --depth 1 origin essais:refs/remotes/origin/essais 2>/dev/null
+  git fetch -q --depth 1 origin +essais:refs/remotes/origin/essais 2>/dev/null
   TESTE=$(git show origin/essais:LISEZMOI.txt 2>/dev/null | sed -n 's/^commit testé : //p' | head -1)
   if [ "$TESTE" = "$ATTENDU" ]; then
     git show origin/essais:enquete.json > "$OUT/enquete.json"
