@@ -8,7 +8,9 @@
 set -u
 cd "$(git rev-parse --show-toplevel)" || exit 2
 OUT=${1:-/home/claude/enquete}; mkdir -p "$OUT"
-ATTENDU=$(git rev-parse HEAD)
+# Commit attendu : le dernier qui a ajouté ou modifié tests/enquete.json (= le lancement de l'enquête), sinon HEAD.
+ATTENDU=$(git log -1 --diff-filter=AM --format=%H -- tests/enquete.json 2>/dev/null)
+[ -z "$ATTENDU" ] && ATTENDU=$(git rev-parse HEAD)
 TESTE=""
 for i in $(seq 1 24); do
   git fetch -q --depth 1 origin essais:refs/remotes/origin/essais 2>/dev/null
