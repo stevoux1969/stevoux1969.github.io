@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0a5cff">
+<title>Mes Km AVP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#f4f6fb,#0e1116);--card:light-dark(#fff,#181c24);--ink:light-dark(#111,#eef1f6);--mut:light-dark(#5b6472,#9aa4b4);--line:light-dark(#e3e7ee,#2a303b);--blue:#0a5cff;--green:#00a05a;--amber:#ffb400;--red:#e6261f}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Figtree,system-ui,sans-serif;overflow-x:clip;padding-bottom:40px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;border-radius:12px;min-height:44px;padding:0 14px;background:var(--card);border:1px solid var(--line)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+input,select{width:100%;min-height:46px;font-size:16px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card)}
+.top{background:var(--blue);color:#fff;padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:baseline}
+.top h1{margin:0;font-size:24px;font-weight:800}
+.tabs{display:flex;gap:6px;padding:8px 10px;background:var(--blue);position:sticky;top:0;z-index:5;overflow-x:auto}
+.tabs button{flex:1 0 auto;background:rgba(255,255,255,.15);color:#fff;border:0}
+.tabs button.on{background:#fff;color:var(--blue);font-weight:800}
+main{max-width:720px;margin:0 auto;padding:12px}
+h3{margin:18px 2px 8px;font-size:17px}
+.daybar{display:grid;grid-template-columns:48px 1fr 48px;gap:8px}
+.daybar input{text-align:center;font-weight:600}
+.row{display:grid;grid-template-columns:28px 1fr auto 44px 44px;gap:6px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px;margin-top:8px}
+.row .n{width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;font-weight:800;display:grid;place-items:center;font-size:14px}
+.row.ret .n{background:var(--green)}
+.who b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who small{color:var(--mut);font-size:13px}
+.km{font-weight:800;white-space:nowrap;min-width:64px}
+.km em{font-style:normal;color:var(--green);font-size:14px}
+.km.miss{border-color:var(--amber);background:light-dark(#fff6dc,#3a2f10)}
+.plus{color:var(--green);font-weight:800;font-size:22px;padding:0}
+.dots{padding:0;font-size:20px}
+.daytot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:12px 14px;border-radius:14px;background:var(--ink);color:var(--bg);font-size:18px}
+.daytot b{font-size:26px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.grid button{min-height:64px;font-weight:600;font-size:16px;text-align:left;border-left:6px solid var(--blue)}
+.grid button.retb{border-left-color:var(--green)}
+.grid button.gps{border-left-color:var(--amber)}
+.wide{width:100%;margin-top:10px}
+.prim{background:var(--blue);color:#fff;border:0;font-weight:800}
+.empty{color:var(--mut);text-align:center;padding:18px;border:2px dashed var(--line);border-radius:14px;margin-top:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:8px}
+.card label{display:block;font-size:14px;color:var(--mut);margin:8px 0 4px}
+.sug{list-style:none;margin:4px 0 0;padding:0}
+.sug li button{width:100%;text-align:left;margin-top:4px;font-size:15px}
+.bl{display:flex;gap:8px;align-items:center}
+.bl .who{flex:1}
+.bl button{padding:0 10px;font-size:14px}
+.ok{color:var(--green)}.warn{color:#c98a00}
+.mday{margin-top:12px}
+.mday h4{margin:0 0 4px;display:flex;justify-content:space-between;font-size:15px}
+.mline{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line);font-size:15px}
+.mline span:last-child{white-space:nowrap;font-weight:600}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet[hidden]{display:none}
+.sheet-in{background:var(--card);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:16px 16px 24px;max-height:85vh;overflow:auto}
+.sheet-in h4{margin:0 0 10px;font-size:18px}
+.chips{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.chips button{font-weight:800;color:var(--green)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(100px);background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:12px;max-width:92vw;transition:transform .25s;z-index:30}
+#toast.on{transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+.busy{opacity:.55}
+#print{display:none}
+.preview{margin-top:10px;display:grid;gap:10px}
+.preview svg{width:100%;height:auto;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.25);border-radius:4px}
+@media print{
+  @page{size:A4 landscape;margin:0}
+  html,body{background:#fff!important;padding:0;margin:0}
+  body>*:not(#print){display:none!important}
+  #print{display:block}
+  #print svg{display:block;width:297mm;height:209mm;page-break-after:always;break-after:page}
+  #print svg:last-child{page-break-after:auto;break-after:auto}
+}
+</style>
+</head>
+<body>
+<header class="top"><h1>Mes Km</h1><span id="hdr"></span></header>
+<nav class="tabs">
+  <button data-t="jour" class="on">Journée</button>
+  <button data-t="mois">Mois</button>
+  <button data-t="benef">Bénéficiaires</button>
+  <button data-t="regl">Réglages</button>
+</nav>
+<main>
+  <div id="exBan" class="card" style="margin:12px auto 0;max-width:696px;border-color:var(--amber)" hidden>Données d'exemple (feuille de novembre). Pour repartir à zéro : Réglages → <b>Tout effacer</b>.</div>
+  <section id="v-jour">
+    <div class="daybar"><button id="prevD" aria-label="Jour précédent">‹</button><input type="date" id="dDate"><button id="nextD" aria-label="Jour suivant">›</button></div>
+    <div id="dayList"></div>
+    <div class="daytot"><span>Total du jour</span><span><b id="dayTot">0</b> km</span></div>
+    <h3>J'arrive chez…</h3>
+    <div id="grid" class="grid"></div>
+    <button id="dupBtn" class="wide">Copier les visites d'un autre jour</button>
+  </section>
+
+  <section id="v-mois" hidden>
+    <div class="card">
+      <label for="mMonth">Mois</label><input type="month" id="mMonth">
+      <div class="daytot"><span>Total du mois</span><span><b id="mTot">0</b> km</span></div>
+      <div class="two"><button id="printBtn" class="prim">Imprimer</button><button id="shareBtn" class="prim">Envoyer le PDF</button></div>
+      <details style="margin-top:10px"><summary style="cursor:pointer">Voir la feuille</summary><div id="preview" class="preview"></div></details>
+    </div>
+    <div id="mList"></div>
+  </section>
+
+  <section id="v-benef" hidden>
+    <div class="card">
+      <h3 style="margin-top:0">Ajouter un bénéficiaire</h3>
+      <label for="bNom">Nom (comme sur la feuille)</label><input id="bNom" autocomplete="off">
+      <label for="bAdr">Adresse</label><input id="bAdr" autocomplete="off" placeholder="ex : 12 rue Jean Jaurès Maromme">
+      <ul class="sug" id="bSug"></ul>
+      <button id="bAdd" class="wide prim">Ajouter</button>
+    </div>
+    <div id="bList"></div>
+  </section>
+
+  <section id="v-regl" hidden>
+    <div class="card">
+      <label for="pNom">Nom</label><input id="pNom">
+      <label for="pPre">Prénom</label><input id="pPre">
+      <label for="pDepNom">Point de départ de la journée</label>
+      <select id="pDepNom"><option>Domicile</option><option>Bureau</option></select>
+      <label for="pDep">Adresse du point de départ (laisser vide si on ne compte pas ce trajet)</label>
+      <input id="pDep" autocomplete="off"><ul class="sug" id="pSug"></ul>
+      <small id="pDepInfo" class="ok"></small>
+      <button id="pSave" class="wide prim">Enregistrer</button>
+    </div>
+    <div class="card">
+      <b>Sauvegarde</b><p style="margin:4px 0;color:var(--mut);font-size:14px">Tout est enregistré sur ce téléphone seulement. Fais une sauvegarde de temps en temps.</p>
+      <div class="two"><button id="exp">Exporter</button><button id="impB">Importer</button></div>
+      <input type="file" id="imp" accept=".json,application/json" hidden>
+      <button id="wipe" class="wide" style="color:var(--red)">Tout effacer (bénéficiaires et trajets)</button>
+      <button id="clr" class="wide">Effacer les km mémorisés (recalcul)</button>
+    </div>
+  </section>
+</main>
+<div id="sheet" class="sheet" hidden><div class="sheet-in" id="sheetIn"></div></div>
+<div id="toast" role="status"></div>
+<div id="print"></div>
+
+<script>
+{
+const K='meskm_v1';
+let S=null;try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
+if(!S||(!S.vide&&!(S.benef||[]).length&&!Object.keys(S.jours||{}).length)){S={prof:{nom:'Turquetil',prenom:'Sophie',dep:null,depNom:'Domicile'},benef:[],dist:{},jours:{},exemple:true};
+  const EX={'2026-11-02':[['Buette'],['Paulet',0],['Commare',3],['Duboc',16]],'2026-11-03':[['Bangs'],['Becasse',3],['Hennetier',3],['Stolarski',5],['Duboc',5]],
+    '2026-11-04':[['Flechicks'],['Delaune',9],['Fabien David',14],['Stolarski',3]],'2026-11-05':[['Bangs'],['Stolarski',5],['Grout',5],['Halbeisen',14],['Delaune',1],['Pauron',14]],
+    '2026-11-06':[['Bracq'],['Peugret',7],['Seurin',5],['Duboc',3]],'2026-11-12':[['Polak'],['Danger',4],['Bolay',5],['Halbeisen',5],['Delaune',1],['Pauron',14]],'2026-11-13':[['Stolarski'],['Bracq',7]]};
+  const id={};const gid=n=>id[n]||(S.benef.push({id:id[n]='e'+S.benef.length,nom:n,adr:'',lat:null,lon:null,actif:true}),id[n]);
+  for(const[d,L]of Object.entries(EX)){S.jours[d]=L.map(([n,k],i)=>{const b=gid(n);if(i)S.dist[[gid(L[i-1][0]),b].sort().join('|')]=k;return{bid:b,km:k||0,extra:0,manual:false}})}}
+S=Object.assign({prof:{nom:'',prenom:'',dep:null,depNom:'Domicile'},benef:[],dist:{},jours:{}},S);
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){toast('Sauvegarde impossible sur ce téléphone')}};
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const r1=n=>Math.round(+n||0);
+const fmt=n=>r1(+n||0).toLocaleString('fr-FR');
+const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const frDate=s=>s.split('-').reverse().join('/');
+const shortDate=s=>{const[,m,d]=s.split('-');return (+d)+'/'+(+m)};
+const uid=()=>Math.random().toString(36).slice(2,9);
+let day=iso(new Date());
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),3200)}
+
+/* ---------- points & distances ---------- */
+const B=id=>S.benef.find(x=>x.id===id);
+function pt(id){if(id==='DEP')return S.prof.dep;const b=B(id);return b&&b.lat!=null?{lat:b.lat,lon:b.lon}:null}
+function nom(id){if(id==='DEP')return 'Retour '+(S.prof.depNom||'Domicile').toLowerCase();const b=B(id);return b?b.nom:'(supprimé)'}
+function place(id){return id==='DEP'?(S.prof.depNom||'Domicile'):nom(id)}
+const pairKey=(a,b)=>[a,b].sort().join('|');
+async function route(a,b){
+  try{const r=await fetch(`https://data.geopf.fr/navigation/itineraire?resource=bdtopo-osrm&profile=car&optimization=fastest&start=${a.lon},${a.lat}&end=${b.lon},${b.lat}&distanceUnit=kilometer&getSteps=false&getBbox=false`);
+    if(r.ok){const j=await r.json();if(j.distance!=null)return +j.distance}}catch(e){}
+  try{const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${a.lon},${a.lat};${b.lon},${b.lat}?overview=false`);
+    if(r.ok){const j=await r.json();if(j.routes&&j.routes[0])return j.routes[0].distance/1000}}catch(e){}
+  return null}
+async function dist(x,y){
+  if(x===y)return 0;const k=pairKey(x,y);if(S.dist[k]!=null)return S.dist[k];
+  const a=pt(x),b=pt(y);if(!a||!b)return null;
+  const d=await route(a,b);if(d==null)return null;S.dist[k]=r1(d);save();return S.dist[k]}
+const fromOf=(L,i)=>i?L[i-1].bid:(S.prof.dep&&L[i].bid!=='DEP'?'DEP':null);
+async function recalc(d){
+  const L=S.jours[d]||[];
+  for(let i=0;i<L.length;i++){const it=L[i];if(it.manual)continue;const f=fromOf(L,i);
+    if(!f){it.km=0;it.miss=false;continue}
+    const k=await dist(f,it.bid);if(k==null){it.miss=true}else{it.km=k;it.miss=false}}
+  save()}
+function forget(id){for(const k of Object.keys(S.dist))if(k.split('|').includes(id))delete S.dist[k]}
+
+/* ---------- adresse (géocodage) ---------- */
+async function geo(q){try{const r=await fetch('https://data.geopf.fr/geocodage/search?limit=5&q='+encodeURIComponent(q));const j=await r.json();
+  return(j.features||[]).map(f=>({label:f.properties.label,lon:f.geometry.coordinates[0],lat:f.geometry.coordinates[1]}))}catch(e){return null}}
+function addrPicker(inp,ul,onPick){let h;inp.addEventListener('input',()=>{onPick(null);clearTimeout(h);const q=inp.value.trim();
+  if(q.length<5){ul.innerHTML='';return}
+  h=setTimeout(async()=>{const res=await geo(q);if(res===null){ul.innerHTML='<li class="warn">Pas de réseau : l\'adresse sera enregistrée sans calcul auto.</li>';return}
+    ul.innerHTML=res.map((r,i)=>`<li><button type="button" data-i="${i}">${esc(r.label)}</button></li>`).join('')||'<li class="warn">Adresse introuvable</li>';
+    ul.onclick=e=>{const b=e.target.closest('button');if(!b)return;const r=res[+b.dataset.i];inp.value=r.label;ul.innerHTML='';onPick(r)}},350)})}
+
+/* ---------- feuille du bas ---------- */
+const sheet=$('#sheet'),sin=$('#sheetIn');
+function openSheet(html,bind){sin.innerHTML=html;sheet.hidden=false;bind&&bind(sin)}
+function closeSheet(){sheet.hidden=true;sin.innerHTML=''}
+sheet.addEventListener('click',e=>{if(e.target===sheet)closeSheet()});
+
+/* ---------- onglets ---------- */
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('main>section').forEach(s=>s.hidden=s.id!=='v-'+b.dataset.t);
+  ({jour:renderDay,mois:renderMonth,benef:renderBenef,regl:renderRegl})[b.dataset.t]()});
+
+/* ---------- JOURNÉE ---------- */
+const dDate=$('#dDate');
+dDate.onchange=()=>{if(dDate.value){day=dDate.value;renderDay()}};
+const shift=n=>{const d=new Date(day+'T12:00');d.setDate(d.getDate()+n);day=iso(d);renderDay()};
+$('#prevD').onclick=()=>shift(-1);$('#nextD').onclick=()=>shift(1);
+function renderDay(busy){
+  dDate.value=day;const L=S.jours[day]||[];
+  $('#dayList').innerHTML=L.length?L.map((it,i)=>{const f=fromOf(L,i);
+    return `<div class="row${it.bid==='DEP'?' ret':''}${busy?' busy':''}"><div class="n">${i+1}</div>
+    <div class="who"><b>${esc(nom(it.bid))}</b><small>${f?'depuis '+esc(place(f)):'début de tournée'}${it.manual?' · saisi':''}</small></div>
+    <button class="km${it.miss?' miss':''}" data-a="km" data-i="${i}">${!f&&!it.manual?'départ':it.miss?'? ':fmt(it.km)}${it.extra?` <em>+${fmt(it.extra)}</em>`:''}</button>
+    <button class="plus" data-a="plus" data-i="${i}" aria-label="Ajouter des km">+</button>
+    <button class="dots" data-a="menu" data-i="${i}" aria-label="Options">⋯</button></div>`}).join('')
+    :'<div class="empty">Aucune visite ce jour.<br>Touche un bénéficiaire en arrivant chez lui.</div>';
+  const tot=L.reduce((s,it)=>s+(+it.km||0)+(+it.extra||0),0);$('#dayTot').textContent=fmt(tot);
+  const act=S.benef.filter(b=>b.actif!==false).sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
+  $('#grid').innerHTML=`<button class="gps" data-g="gps">Chez qui je suis ? (GPS)</button>`+act.map(b=>`<button data-b="${esc(b.id)}">${esc(b.nom)}</button>`).join('')
+    +(S.prof.dep?`<button class="retb" data-b="DEP">Retour ${esc((S.prof.depNom||'Domicile').toLowerCase())}</button>`:'')
+    +(act.length?'':'<div class="empty" style="grid-column:1/-1">Ajoute d\'abord tes bénéficiaires (onglet Bénéficiaires).</div>');
+  hdr()}
+function hdr(){const m=day.slice(0,7);let t=0;for(const[d,L]of Object.entries(S.jours))if(d.startsWith(m))for(const it of L)t+=(+it.km||0)+(+it.extra||0);$('#hdr').textContent=fmt(t)+' km ce mois'}
+async function addVisit(bid){
+  (S.jours[day]=S.jours[day]||[]).push({bid,km:0,extra:0,manual:false});save();renderDay(true);
+  await recalc(day);renderDay();const L=S.jours[day];
+  const b=B(bid);
+  if(b&&b.lat==null&&window.isSecureContext&&navigator.geolocation)return openSheet(`<h4>Tu es chez ${esc(b.nom)} en ce moment ?</h4><p style="margin:0">Si oui, le téléphone retient sa position comme adresse. Ça ne se fait qu'une fois, ensuite les km se calculent tout seuls.</p>
+    <div class="two"><button data-x="no">Non</button><button class="prim" data-x="yes">Oui, retenir</button></div>`,s=>s.onclick=e=>{const x=e.target.dataset.x;if(!x)return;closeSheet();
+      if(x==='yes')hereAsAddress(b,async()=>{renderDay(true);await recalc(day);renderDay()});else if(L[L.length-1].miss)toast('Touche « ? » pour taper les km de ce trajet.')});
+  if(L[L.length-1].miss)toast('Km non calculés (pas de réseau ou adresse inconnue). Touche « ? » pour les saisir.')}
+$('#grid').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.g)return locate();addVisit(b.dataset.b)};
+function locate(){
+  if(!window.isSecureContext)return info('Localisation bloquée','Le téléphone n\'autorise la localisation que si l\'appli est ouverte depuis son adresse internet en https (ex : stevoux1969.github.io/km/), pas depuis un fichier ou un aperçu.');
+  if(!navigator.geolocation)return info('Localisation indisponible','Ce navigateur ne propose pas la localisation.');
+  const withPos=S.benef.filter(b=>b.actif!==false&&b.lat!=null);
+  if(!withPos.length)return info('Aucune adresse localisée','Aucun bénéficiaire n\'a de position. Dans l\'onglet Bénéficiaires, touche « Modifier », retape l\'adresse et choisis-la dans la liste proposée (une ligne ✓ verte doit apparaître).');
+  toast('Recherche de ta position…');
+  navigator.geolocation.getCurrentPosition(p=>{const{latitude:la,longitude:lo,accuracy:ac}=p.coords;let best=null,bd=1e9;
+    for(const b of withPos){const dy=(b.lat-la)*111.2,dx=(b.lon-lo)*111.2*Math.cos(la*Math.PI/180),d=Math.hypot(dx,dy);if(d<bd){bd=d;best=b}}
+    const lim=Math.max(0.5,(ac||0)/1000+0.2);
+    if(bd>lim)return info('Aucun bénéficiaire tout près',`Le plus proche est ${esc(best.nom)}, à environ ${bd<10?bd.toFixed(1).replace('.',','):Math.round(bd)} km (précision du GPS : ${Math.round(ac||0)} m). Touche son bouton à la main si tu es bien chez lui.`);
+    openSheet(`<h4>Tu es chez ${esc(best.nom)} ?</h4><p style="color:var(--mut);margin:0">à environ ${Math.round(bd*1000)} m</p><div class="two"><button data-x="no">Non</button><button class="prim" data-x="yes">Oui, ajouter</button></div>`,
+      s=>s.onclick=e=>{const x=e.target.dataset.x;if(!x)return;closeSheet();if(x==='yes')addVisit(best.id)})},
+    err=>{const m={1:['Localisation refusée','Autorise la localisation pour ce site : touche le cadenas à gauche de l\'adresse dans Chrome → Autorisations → Position → Autoriser. Vérifie aussi que la localisation du téléphone est activée (menu du haut).'],
+      2:['Position introuvable','Le téléphone ne trouve pas sa position. Active la localisation du téléphone (menu du haut) et réessaie, si possible près d\'une fenêtre ou dehors.'],
+      3:['Trop long','Le GPS n\'a pas répondu à temps. Réessaie dans quelques secondes.']}[err.code]||['Erreur de localisation',esc(err.message||'')];info(m[0],m[1])},
+    {enableHighAccuracy:true,timeout:20000,maximumAge:30000})}
+function hereAsAddress(b,done){
+  if(!window.isSecureContext||!navigator.geolocation)return info('Impossible ici','La position ne marche que si l\'appli est ouverte depuis son adresse internet (GitHub Pages).');
+  toast('Recherche de ta position…');
+  navigator.geolocation.getCurrentPosition(async p=>{const{latitude:la,longitude:lo}=p.coords;let lab='';
+    try{const r=await fetch(`https://data.geopf.fr/geocodage/reverse?lon=${lo}&lat=${la}&limit=1`);const j=await r.json();lab=j.features&&j.features[0]?j.features[0].properties.label:''}catch(e){}
+    if(b.lat!=null)forget(b.id);b.lat=la;b.lon=lo;b.adr=lab||('Position GPS du '+frDate(iso(new Date())));save();toast('Adresse de '+b.nom+' enregistrée');done&&done()},
+    err=>info('Position introuvable',err.code===1?'Autorise la localisation pour ce site (cadenas à gauche de l\'adresse → Autorisations → Position).':'Active la localisation du téléphone et réessaie.'),
+    {enableHighAccuracy:true,timeout:20000})}
+function info(t,m){openSheet(`<h4>${t}</h4><p style="margin:0 0 12px">${m}</p><button class="wide prim" data-x="ok">OK</button>`,s=>s.onclick=e=>{if(e.target.dataset.x)closeSheet()})}
+$('#dayList').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.i,L=S.jours[day],it=L[i];
+  if(b.dataset.a==='plus')return openSheet(`<h4>Km en plus avec ${esc(nom(it.bid))}</h4><p style="margin:0 0 10px;color:var(--mut)">Déjà ajouté : <b id="cx">${fmt(it.extra)}</b> km</p>
+    <div class="chips">${[2,5,10,15,20].map(n=>`<button data-n="${n}">+${n}</button>`).join('')}</div>
+    <label style="display:block;margin:12px 0 4px;color:var(--mut);font-size:14px">Ou un nombre précis (total en plus)</label><input id="ex" type="number" inputmode="decimal" min="0" step="1" value="${it.extra||''}">
+    <div class="two"><button data-x="zero">Remettre à 0</button><button class="prim" data-x="ok">Valider</button></div>`,
+    s=>s.onclick=ev=>{const t=ev.target;if(t.dataset.n){it.extra=r1((+it.extra||0)+ +t.dataset.n);s.querySelector('#cx').textContent=fmt(it.extra);s.querySelector('#ex').value=it.extra;save();renderDay()}
+      if(t.dataset.x==='zero'){it.extra=0;save();renderDay();closeSheet()}
+      if(t.dataset.x==='ok'){it.extra=Math.max(0,r1(+s.querySelector('#ex').value||0));save();renderDay();closeSheet()}});
+  if(b.dataset.a==='km'){const f=fromOf(L,i);return openSheet(`<h4>Km du trajet</h4><p style="margin:0 0 8px;color:var(--mut)">${f?esc(f==='DEP'?(S.prof.depNom||'Domicile'):nom(f))+' → ':''}${esc(nom(it.bid))}</p>
+    <input id="kv" type="number" inputmode="decimal" min="0" step="1" value="${it.miss?'':it.km}">
+    <p style="font-size:14px;color:var(--mut)">${f?'Ce chiffre sera retenu pour ce trajet les prochaines fois.':''}</p>
+    <div class="two"><button data-x="auto">Recalculer auto</button><button class="prim" data-x="ok">Valider</button></div>`,
+    s=>{s.querySelector('#kv').focus();s.onclick=async ev=>{const x=ev.target.dataset.x;if(!x)return;
+      if(x==='ok'){const v=r1(Math.max(0,+s.querySelector('#kv').value||0));if(f){S.dist[pairKey(f,it.bid)]=v;it.manual=false}else{it.manual=true;it.km=v}it.km=v;it.miss=false}
+      if(x==='auto'){it.manual=false;if(f)delete S.dist[pairKey(f,it.bid)]}
+      closeSheet();save();renderDay(true);await recalc(day);renderDay()}})}
+  if(b.dataset.a==='menu')return openSheet(`<h4>${esc(nom(it.bid))}</h4>
+    <div class="two"><button data-x="up"${i?'':' disabled'}>Monter</button><button data-x="down"${i<L.length-1?'':' disabled'}>Descendre</button></div>
+    <button class="wide" data-x="del" style="color:var(--red)">Supprimer cette visite</button><button class="wide" data-x="close">Fermer</button>`,
+    s=>s.onclick=async ev=>{const x=ev.target.dataset.x;if(!x)return;closeSheet();if(x==='close')return;
+      if(x==='up')[L[i-1],L[i]]=[L[i],L[i-1]];if(x==='down')[L[i+1],L[i]]=[L[i],L[i+1]];if(x==='del')L.splice(i,1);
+      if(!L.length)delete S.jours[day];save();renderDay(true);await recalc(day);renderDay()})};
+$('#dupBtn').onclick=()=>{const y=new Date(day+'T12:00');y.setDate(y.getDate()-7);
+  openSheet(`<h4>Copier les visites d'un autre jour</h4><label style="color:var(--mut);font-size:14px">Jour à copier</label><input type="date" id="cd" value="${iso(y)}"><p id="cp" style="font-size:14px;color:var(--mut)"></p>
+  <div class="two"><button data-x="no">Annuler</button><button class="prim" data-x="ok">Copier ici</button></div>`,s=>{const cd=s.querySelector('#cd'),cp=s.querySelector('#cp');
+    const pv=()=>{const L=S.jours[cd.value]||[];cp.textContent=L.length?L.map(it=>nom(it.bid)).join(' → '):'Aucune visite ce jour-là.'};pv();cd.onchange=pv;
+    s.onclick=async ev=>{const x=ev.target.dataset.x;if(!x)return;closeSheet();if(x!=='ok')return;const src=S.jours[cd.value]||[];if(!src.length)return;
+      S.jours[day]=(S.jours[day]||[]).concat(src.map(it=>({bid:it.bid,km:0,extra:0,manual:false})));save();renderDay(true);await recalc(day);renderDay();toast('Visites copiées. Vérifie et retire celles qui n\'ont pas eu lieu.')}})};
+
+/* ---------- MOIS ---------- */
+const mMonth=$('#mMonth');mMonth.value=day.slice(0,7);mMonth.onchange=()=>renderMonth();
+function monthRows(m){const rows=[];for(const d of Object.keys(S.jours).filter(d=>d.startsWith(m)).sort()){const L=S.jours[d];L.forEach((it,i)=>{const f=fromOf(L,i);if(!f&&!it.extra&&!it.manual)return;rows.push({d,n:(f?place(f)+' → ':'')+place(it.bid),k:r1((+it.km||0)+(+it.extra||0))})})}return rows}
+function renderMonth(){const m=mMonth.value||day.slice(0,7),rows=monthRows(m);let tot=0,html='',cur=null,dt=0,lines='';
+  const flush=()=>{if(cur)html+=`<div class="card mday"><h4><span>${frDate(cur)}</span><span>${fmt(dt)} km</span></h4>${lines}</div>`};
+  for(const r of rows){if(r.d!==cur){flush();cur=r.d;dt=0;lines=''}dt+=r.k;tot+=r.k;lines+=`<div class="mline"><span>${esc(r.n)}</span><span>${fmt(r.k)} km</span></div>`}flush();
+  $('#mList').innerHTML=html||'<div class="empty">Aucun trajet ce mois-ci.</div>';$('#mTot').textContent=fmt(tot);renderPreview()}
+const MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+/* ---- feuille officielle : même modèle pour l'impression et le PDF (mesures en mm) ---- */
+const PG={cols:[34,70,26,25,63,20],x0:5,top:70,hh:12,rh:7.1,n:12};
+let logo=null;{const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;
+  const g=c.getContext('2d');g.drawImage(im,0,0);const d=g.getImageData(0,0,c.width,c.height);
+  for(let i=0;i<d.data.length;i+=4){const v=Math.round(.3*d.data[i]+.59*d.data[i+1]+.11*d.data[i+2]);d.data[i]=d.data[i+1]=d.data[i+2]=v}
+  g.putImageData(d,0,0);logo={src:c.toDataURL('image/png'),r:im.naturalWidth/im.naturalHeight}}catch(e){}};im.src='logo.png'}
+const mctx=document.createElement('canvas').getContext('2d');
+const tw=(t,pt,b)=>{mctx.font=(b?'bold ':'')+'100px Arial, Helvetica, sans-serif';return mctx.measureText(t).width*pt*0.3528/100};
+function fit(t,maxW,pt){let s=pt;while(s>7&&tw(t,s)>maxW)s-=.5;if(tw(t,s)<=maxW)return[t,s];let x=t;while(x.length>1&&tw(x+'…',s)>maxW)x=x.slice(0,-1);return[x+'…',s]}
+function pageModel(chunk,meta){
+  const R=[],T=[],L=[],{cols,x0,top,hh,rh,n}=PG,xs=[x0];cols.forEach(w=>xs.push(xs[xs.length-1]+w));
+  if(!logo){T.push({x:8,y:40,s:12,b:1,t:'vivre et devenir'},{x:8,y:43.2,s:5.5,t:'Villepinte - Saint-Michel'},{x:53,y:37.6,s:11,b:1,t:'Dispositif habitat'},{x:53,y:42.4,s:11,b:1,t:'La Clé'});L.push([50,44,52.5,32.5])}
+  T.push({x:222,y:29,s:9,t:'Mois:'},{x:222,y:33.6,s:9,t:'Salarié(e):'});
+  if(meta.mois)T.push({x:231.5,y:29,s:10,b:1,t:meta.mois});
+  R.push({x:5,y:45,w:237,h:5,f:1});T.push({x:123.5,y:48.6,s:7,t:'TRAJETS SALARIE',a:'c'});
+  T.push({x:5.5,y:62,s:9,t:'Nom:'},{x:5.5,y:66.6,s:9,t:'Prénom:'});
+  if(meta.nom)T.push({x:20,y:62,s:11,b:1,t:meta.nom});if(meta.prenom)T.push({x:20,y:66.6,s:11,b:1,t:meta.prenom});
+  const H=['DATE','Nom du bénéficiaire','Km'];
+  cols.forEach((w,i)=>{R.push({x:xs[i],y:top,w,h:hh,f:1});T.push({x:xs[i]+w/2,y:top+hh/2+1.2,s:9,t:H[i%3],a:'c'});
+    for(let r=0;r<n;r++)R.push({x:xs[i],y:top+hh+r*rh,w,h:rh})});
+  const ty=top+hh+n*rh;
+  [0,1].forEach(side=>{const c=side*3,part=chunk.slice(side*n,side*n+n);let tot=0;
+    part.forEach((r,i)=>{const y=top+hh+i*rh+rh/2+1.4;tot+=r.k;
+      T.push({x:xs[c]+cols[c]/2,y,s:10,t:shortDate(r.d),a:'c'});
+      const[t,sz]=fit(r.n,cols[c+1]-3,10);T.push({x:xs[c+1]+1.5,y,s:sz,t});
+      T.push({x:xs[c+2]+cols[c+2]/2,y,s:10,t:String(r.k),a:'c'})});
+    R.push({x:xs[c],y:ty,w:cols[c]+cols[c+1],h:rh},{x:xs[c+2],y:ty,w:cols[c+2],h:rh});
+    T.push({x:xs[c]+(cols[c]+cols[c+1])/2,y:ty+rh/2+1.4,s:9,t:'Total:',a:'c'});
+    if(part.length)T.push({x:xs[c+2]+cols[c+2]/2,y:ty+rh/2+1.4,s:10,b:1,t:String(r1(tot)),a:'c'})});
+  return{R,T,L}}
+function buildPages(m){const rows=monthRows(m);const[y,mo]=m.split('-');const p=S.prof,meta={mois:MOIS[+mo-1]+' '+y,nom:p.nom,prenom:p.prenom},pages=[];
+  for(let i=0;i<rows.length;i+=PG.n*2)pages.push(pageModel(rows.slice(i,i+PG.n*2),meta));return{pages,meta,rows}}
+function svgPage(m){const k=.3528;
+  return `<svg viewBox="0 0 297 209" xmlns="http://www.w3.org/2000/svg" font-family="Arial, Helvetica, sans-serif" fill="#000">
+  <rect width="297" height="209" fill="#fff"/>
+  ${logo?`<image href="${logo.src}" x="8" y="${47-Math.min(17,80/logo.r)}" width="${Math.min(80,17*logo.r)}" height="${Math.min(17,80/logo.r)}"/>`:''}
+  ${m.R.map(r=>`<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${r.f?'#c8c8c8':'none'}" stroke="#000" stroke-width="0.25"/>`).join('')}
+  ${m.L.map(l=>`<line x1="${l[0]}" y1="${l[1]}" x2="${l[2]}" y2="${l[3]}" stroke="#000" stroke-width="0.35"/>`).join('')}
+  ${m.T.map(t=>`<text x="${t.x}" y="${t.y}" font-size="${(t.s*k).toFixed(3)}" font-weight="${t.b?700:400}"${t.a==='c'?' text-anchor="middle"':''}>${esc(t.t)}</text>`).join('')}</svg>`}
+function renderPreview(){const m=mMonth.value||day.slice(0,7),{pages}=buildPages(m);$('#preview').innerHTML=pages.length?pages.map(svgPage).join(''):'<p>Aucun trajet ce mois-ci.</p>'}
+$('#printBtn').onclick=()=>{const m=mMonth.value||day.slice(0,7),{pages}=buildPages(m);if(!pages.length)return toast('Rien à imprimer pour ce mois');
+  $('#print').innerHTML=pages.map(svgPage).join('');setTimeout(()=>window.print(),80)};
+function loadPdfLib(){return window.jspdf?Promise.resolve():new Promise((ok,ko)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';sc.onload=ok;sc.onerror=ko;document.head.appendChild(sc)})}
+function pdfText(doc,t){doc.setFont('helvetica',t.b?'bold':'normal');doc.setFontSize(t.s);
+  if(!t.t.includes(' → ')){doc.text(t.t,t.x,t.y,t.a==='c'?{align:'center'}:undefined);return}
+  const[a,b]=t.t.split(' → '),wa=doc.getTextWidth(a+' '),aw=t.s*.3528*1.0,ay=t.y-t.s*.3528*.33;let x=t.x;
+  doc.text(a,x,t.y);x+=wa;doc.setLineWidth(.2);doc.line(x,ay,x+aw,ay);doc.line(x+aw,ay,x+aw-aw*.35,ay-aw*.25);doc.line(x+aw,ay,x+aw-aw*.35,ay+aw*.25);
+  doc.text(b,x+aw+doc.getTextWidth(' '),t.y)}
+async function makePdf(pages){await loadPdfLib();const doc=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  pages.forEach((m,i)=>{if(i)doc.addPage();
+    if(logo){const h=Math.min(17,80/logo.r),w=Math.min(80,17*logo.r);doc.addImage(logo.src,'PNG',8,47-h,w,h)}
+    doc.setDrawColor(0);doc.setTextColor(0);doc.setLineWidth(.25);
+    m.R.forEach(r=>{if(r.f){doc.setFillColor(200,200,200);doc.rect(r.x,r.y,r.w,r.h,'FD')}else doc.rect(r.x,r.y,r.w,r.h,'S')});
+    doc.setLineWidth(.35);m.L.forEach(l=>doc.line(...l));m.T.forEach(t=>pdfText(doc,t))});
+  return doc.output('blob')}
+$('#shareBtn').onclick=async()=>{const m=mMonth.value||day.slice(0,7),{pages,meta}=buildPages(m);if(!pages.length)return toast('Rien à envoyer pour ce mois');
+  toast('Préparation du PDF…');let blob;try{blob=await makePdf(pages)}catch(e){return toast('Impossible de créer le PDF (pas de réseau ?)')}
+  const name=`Trajets ${meta.mois} ${[S.prof.nom,S.prof.prenom].filter(Boolean).join(' ')}.pdf`.replace(/\s+/g,' ');
+  const file=new File([blob],name,{type:'application/pdf'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:name})}catch(e){}return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();toast('PDF téléchargé')};
+
+/* ---------- BÉNÉFICIAIRES ---------- */
+let newPick=null;addrPicker($('#bAdr'),$('#bSug'),r=>newPick=r);
+$('#bAdd').onclick=()=>{const n=$('#bNom').value.trim(),a=$('#bAdr').value.trim();if(!n)return toast('Indique le nom');
+  S.benef.push({id:uid(),nom:n,adr:newPick?newPick.label:a,lat:newPick?newPick.lat:null,lon:newPick?newPick.lon:null,actif:true});save();
+  $('#bNom').value='';$('#bAdr').value='';$('#bSug').innerHTML='';
+  toast(newPick?'Bénéficiaire ajouté':'Ajouté sans position : choisis une adresse dans la liste pour le calcul auto');newPick=null;renderBenef()};
+function renderBenef(){const all=[...S.benef].sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
+  const line=b=>`<div class="card bl"><div class="who"><b>${esc(b.nom)}</b><small class="${b.lat!=null?'ok':'warn'}">${b.lat!=null?'✓ ':'⚠ position inconnue · '}${esc(b.adr||'sans adresse')}</small></div>
+    <button data-e="${esc(b.id)}">Modifier</button><button data-t="${esc(b.id)}">${b.actif===false?'Réactiver':'Archiver'}</button></div>`;
+  const act=all.filter(b=>b.actif!==false),arc=all.filter(b=>b.actif===false);
+  $('#bList').innerHTML=(act.length?`<h3>Actifs (${act.length})</h3>`+act.map(line).join(''):'')+(arc.length?`<details><summary style="margin-top:14px;cursor:pointer">Archivés (${arc.length})</summary>${arc.map(line).join('')}</details>`:'')}
+$('#bList').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.t){const x=B(b.dataset.t);x.actif=x.actif===false;save();renderBenef();return}
+  if(b.dataset.e){const x=B(b.dataset.e);let pick=null;
+    openSheet(`<h4>Modifier</h4><label style="color:var(--mut);font-size:14px">Nom</label><input id="en" value="${esc(x.nom)}">
+      <label style="color:var(--mut);font-size:14px;display:block;margin-top:8px">Adresse</label><input id="ea" value="${esc(x.adr)}" autocomplete="off"><ul class="sug" id="es"></ul>
+      <button class="wide" data-x="gps">Je suis chez lui : prendre ma position</button>
+      <div class="two"><button data-x="del" style="color:var(--red)">Supprimer</button><button class="prim" data-x="ok">Enregistrer</button></div>`,
+      s=>{addrPicker(s.querySelector('#ea'),s.querySelector('#es'),r=>pick=r);
+        s.onclick=ev=>{const k=ev.target.dataset.x;if(!k)return;
+          if(k==='gps'){closeSheet();hereAsAddress(x,renderBenef);return}
+          if(k==='del'){if(ev.target.dataset.sure){S.benef=S.benef.filter(y=>y!==x);forget(x.id);save();closeSheet();renderBenef()}else{ev.target.dataset.sure=1;ev.target.textContent='Sûr ? Retoucher'}return}
+          x.nom=s.querySelector('#en').value.trim()||x.nom;
+          if(pick){if(x.lat!=null)forget(x.id);x.adr=pick.label;x.lat=pick.lat;x.lon=pick.lon}
+          save();closeSheet();renderBenef()}})}};
+
+/* ---------- RÉGLAGES ---------- */
+let depPick;addrPicker($('#pDep'),$('#pSug'),r=>depPick=r);
+function renderRegl(){const p=S.prof;$('#pNom').value=p.nom;$('#pPre').value=p.prenom;$('#pDepNom').value=p.depNom||'Domicile';
+  $('#pDep').value=p.dep?p.dep.label:'';depPick=undefined;$('#pDepInfo').textContent=p.dep?'✓ Le 1er trajet de la journée est compté depuis ce point.':''}
+$('#pSave').onclick=()=>{const p=S.prof;p.nom=$('#pNom').value.trim();p.prenom=$('#pPre').value.trim();p.depNom=$('#pDepNom').value;
+  if(!$('#pDep').value.trim()){if(p.dep)forget('DEP');p.dep=null}else if(depPick){p.dep={label:depPick.label,lat:depPick.lat,lon:depPick.lon};forget('DEP')}
+  save();renderRegl();toast('Réglages enregistrés')};
+$('#exp').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='meskm-sauvegarde-'+iso(new Date())+'.json';a.click()};
+$('#impB').onclick=()=>$('#imp').click();
+$('#imp').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(!d.benef||!d.jours)throw 0;S=Object.assign(S,d);save();toast('Sauvegarde importée');renderRegl()}catch(x){toast('Fichier non reconnu')}};
+$('#clr').onclick=e=>{if(!e.target.dataset.sure){e.target.dataset.sure=1;e.target.textContent='Sûr ? Retoucher pour effacer';return}S.dist={};save();e.target.textContent='Effacer les km mémorisés (recalcul)';delete e.target.dataset.sure;toast('Km mémorisés effacés')};
+
+$('#exBan').hidden=!S.exemple;
+$('#wipe').onclick=e=>{if(!e.target.dataset.sure){e.target.dataset.sure=1;e.target.textContent='Sûr ? Retoucher pour TOUT effacer';return}
+  S={prof:{nom:S.prof.nom,prenom:S.prof.prenom,dep:null,depNom:'Domicile'},benef:[],dist:{},jours:{},vide:true};save();$('#exBan').hidden=true;
+  e.target.textContent='Tout effacer (bénéficiaires et trajets)';delete e.target.dataset.sure;toast('Tout est effacé');renderRegl()};
+renderDay();
+}
+</script>
+</body>
+</html>
