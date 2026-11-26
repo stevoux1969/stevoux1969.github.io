@@ -51,6 +51,7 @@ button{cursor:pointer}
 .statuscard .btn-green,.statuscard .btn-ghost{margin-top:14px}
 .addbtn{margin:16px 16px 0;width:calc(100% - 32px)}
 .btn-blue svg{width:22px;height:22px}
+.nofin{display:block;width:100%;margin-top:10px;min-height:42px;border:2px solid #d5dbf0;border-radius:12px;background:#fff;color:#2c3e91;font-size:15px;font-weight:700;box-shadow:0 3px 0 #dfe4f5}
 .linkbtn{display:flex;align-items:center;justify-content:center;min-height:48px;margin:18px 16px 0;border-radius:12px;background:#eef1fb;color:#2c3e91;font-size:16px;font-weight:700;text-decoration:none}
 
 /* Planning */
@@ -188,8 +189,9 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
       <div class="datelabel" id="datelabel"></div>
       <div class="two gap14">
         <div><label class="l" for="debut">Début</label><input id="debut" type="time" value="10:00"></div>
-        <div><label class="l" for="fin">Fin</label><input id="fin" type="time" value="12:00"></div>
+        <div><label class="l" for="fin">Fin <span style="font-weight:400">(facultatif)</span></label><input id="fin" type="time" value="12:00"></div>
       </div>
+      <button type="button" class="nofin" id="nofin" onclick="document.getElementById('fin').value=''">Pas d'heure de fin</button>
       <div class="info" id="lock-note" hidden></div>
       <div id="repeat-block">
         <div class="l gap16">Répéter</div>
@@ -650,7 +652,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
     var filled=false;
     if(src){
       if(src.heure) $('debut').value=src.heure;
-      if(src.fin) $('fin').value=src.fin;
+      $('fin').value=src.fin||'';
       setPlaces(parseInt(src.places,10)||0);
       $('description').value=src.description||'';
       $('adresse').value=src.adresse||'';
@@ -858,8 +860,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #b9c3ee;border-color:#
     if(!date){toast('Choisis une date');return;}
     if(date<MIN_DATE){toast('Avant novembre 2026, le planning reste sur le Google Sheet');return;}
     if(!debut){toast("Choisis l'heure de début");return;}
-    if(!fin){toast("Choisis l'heure de fin");return;}
-    if(fin<=debut){toast("L'heure de fin doit être après le début");return;}
+    if(fin&&fin<=debut){toast("L'heure de fin doit être après le début");return;}
     var icon=$('pickico').textContent||'📋';
     var limite=getLimite();
     var desc=$('description').value.trim(),adr=$('adresse').value.trim(),lien=$('lien').value.trim();
