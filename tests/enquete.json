@@ -1,4 +1,0 @@
-{ "recherches": ["documentaire corruption politique France", "affaires politico-financières France documentaire", "propagande manipulation de l'opinion politique France documentaire"],
-  "direct": [{ "q": "documentaire scandales corruption élus France", "ordre": "relevance", "duree": "long", "langue": "fr" },
-             { "q": "documentaire propagande désinformation manipulation opinion France", "ordre": "relevance", "duree": "long", "langue": "fr" }],
-  "videosParRecherche": 15, "commentaires": 40 }
