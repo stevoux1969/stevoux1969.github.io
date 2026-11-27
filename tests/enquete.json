@@ -1,0 +1,3 @@
+{ "recherches": ["histoire politique de la France documentaire", "histoire de France de la Révolution à nos jours documentaire", "histoire de la Ve République documentaire"],
+  "direct": [{ "q": "documentaire histoire politique France Révolution République", "ordre": "relevance", "duree": "long", "langue": "fr" }],
+  "videosParRecherche": 15, "commentaires": 40 }
