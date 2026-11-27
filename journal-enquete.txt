@@ -1,0 +1,10 @@
+
+added 2 packages in 1s
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 125.7 MiB
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 125.7 MiB
+Chrome Headless Shell 159.0.8154.6 (playwright chromium-headless-shell v1255) downloaded to /home/runner/.cache/ms-playwright/chromium_headless_shell-1255
+recherche "documentaire corruption politique France" -> YouTube : 147 (dont 48 en plus, de 4 à 20 min) · PeerTube : 30 · iFixit : 0 · Wikibooks : 3 · Stack Exchange : 0 Aussi cherché en anglais : « Documentary on political corruption in France » (YouTube aussi : peu de bons tutos en français) 🎟️ YouTube : il te reste environ 38 recherches aujourd'hui. 6
+recherche "affaires politico-financières France documentaire" -> YouTube : 144 (dont 44 en plus, de 4 à 20 min) · PeerTube : 30 · iFixit : 0 · Wikibooks : 1 · Stack Exchange : 0 Aussi cherché en anglais : « Political and financial affairs in France – Documentary » (YouTube aussi : peu de bons tutos en français) 🎟️ YouTube : il te reste environ 37 recherches aujo
+recherche "propagande manipulation de l'opinion politique France documentaire" -> YouTube : 129 (dont 33 en plus, de 4 à 20 min) · PeerTube : 27 · iFixit : 0 · Wikibooks : 5 · Stack Exchange : 0 Aussi cherché en anglais : « Propaganda Manipulation of Political Opinion France Documentary » (YouTube aussi : peu de bons tutos en français) 🎟️ YouTube : il te reste environ 36 recherc
+terminé : 3 recherche(s), 2 directe(s), 71 vidéo(s), 0 page(s), 0 erreur(s)
+code de sortie : 0
